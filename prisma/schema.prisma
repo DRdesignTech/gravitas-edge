@@ -1,0 +1,698 @@
+// Prisma schema for Job Search Portal
+// Run: npx prisma migrate dev / npx prisma db push
+// Generated client is placed in apps/api/node_modules/.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================================================
+// ENUMS
+// PostgreSQL-native enum types for domain statuses across the platform.
+// ==========================================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum VaultStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum VaultType {
+  INDIA
+  GLOBAL
+  MIDDLE_EAST
+  INTERNATIONAL
+  OTHER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING
+  FAILED
+}
+
+enum OpportunityStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  EXPIRED
+}
+
+enum OpportunityCategory {
+  INDIA
+  GLOBAL
+  MIDDLE_EAST
+  INTERNATIONAL
+  OTHER
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+  REMOTE
+  HYBRID
+  OTHER
+}
+
+enum ReferralStatus {
+  PENDING
+  SUCCESSFUL
+  INVALID
+  SUSPENDED
+}
+
+enum CommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+  CANCELLED
+}
+
+enum ResumeUploadStatus {
+  UPLOADED
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ResumeProcessingStatus {
+  UPLOADED
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  OCR_REQUIRED
+  OCR_COMPLETED
+  ERROR
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum ProfileConfirmationStatus {
+  EXTRACTED
+  CONFIRMED
+}
+
+enum SourceType {
+  EXTRACTED
+  USER_CONFIRMED
+}
+
+// ==========================================================================
+// USERS & AUTHORIZATION
+// ==========================================================================
+
+model User {
+  id                    String     @id @default(uuid())
+  email                 String     @unique
+  phone                 String?    @unique
+  passwordHash          String?
+  status                UserStatus @default(ACTIVE)
+  emailVerified         Boolean    @default(false)
+  refreshTokenHash      String?
+  refreshTokenExpiresAt DateTime?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  deletedAt             DateTime?
+
+  roles              UserRole[]
+  profile            UserProfile?
+  subscriptions      Subscription[]
+  ledReferrals       Referral[]         @relation("ReferralReferrer")
+  receivedReferrals  Referral[]         @relation("ReferralReferred")
+  opportunitiesOwned Opportunity[]
+  resumes            Resume[]
+  candidateProfiles  CandidateProfile[]
+  payments           Payment[]
+  adminAuditLogs     AuditLog[]         @relation("AuditAdminUser")
+  actionAuditLogs    AuditLog[]         @relation("AuditActorUser")
+
+  @@index([status])
+  @@index([email])
+  @@index([phone])
+  @@index([deletedAt])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users UserRole[]
+
+  @@index([name])
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+  @@index([userId])
+}
+
+model UserProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  fullName         String?
+  phone            String?
+  location         String?
+  yearsExperience  Int?
+  monthsExperience Int?
+  currentJobTitle  String?
+  currentCompany   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================================================
+// VAULTS & EXPERIENCE ACCESS LEVELS
+// ==========================================================================
+
+model Vault {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  status      VaultStatus @default(ACTIVE)
+  type        VaultType   @default(OTHER)
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  plans              PlanVault[]
+  opportunities      OpportunityVault[]
+  experienceLevels   VaultExperienceLevel[]
+  subscriptionAccess SubscriptionVaultAccess[]
+
+  @@unique([name])
+  @@index([status])
+  @@index([type])
+  @@index([deletedAt])
+}
+
+model ExperienceLevel {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  code        String   @unique
+  minYears    Int
+  maxYears    Int?
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vaults        VaultExperienceLevel[]
+  opportunities OpportunityExperienceLevel[]
+
+  @@index([slug])
+  @@index([code])
+}
+
+model VaultExperienceLevel {
+  id                String @id @default(uuid())
+  vaultId           String
+  experienceLevelId String
+
+  vault           Vault           @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  experienceLevel ExperienceLevel @relation(fields: [experienceLevelId], references: [id], onDelete: Cascade)
+
+  @@unique([vaultId, experienceLevelId])
+  @@index([experienceLevelId])
+}
+
+// ==========================================================================
+// SUBSCRIPTION PLANS
+// ==========================================================================
+
+model SubscriptionPlan {
+  id           String    @id @default(uuid())
+  name         String    @unique
+  description  String?
+  price        Decimal   @db.Decimal(10, 2)
+  currency     String    @default("INR")
+  durationDays Int
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  vaults        PlanVault[]
+  subscriptions Subscription[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model PlanVault {
+  id      String @id @default(uuid())
+  planId  String
+  vaultId String
+
+  plan  SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  vault Vault            @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, vaultId])
+  @@index([vaultId])
+}
+
+// ==========================================================================
+// SUBSCRIPTIONS
+// ==========================================================================
+
+model Subscription {
+  id                     String             @id @default(uuid())
+  userId                 String
+  planId                 String
+  startDate              DateTime
+  endDate                DateTime
+  status                 SubscriptionStatus @default(PENDING)
+  paymentReference       String?
+  razorpaySubscriptionId String?
+  cancelledAt            DateTime?
+  cancellationReason     String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        SubscriptionPlan          @relation(fields: [planId], references: [id], onDelete: Restrict)
+  vaultAccess SubscriptionVaultAccess[]
+  payments    Payment[]
+  commissions ReferralCommission[]
+
+  @@unique([userId, planId, startDate])
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([endDate])
+  @@index([razorpaySubscriptionId])
+  @@index([userId, status, endDate])
+}
+
+model SubscriptionVaultAccess {
+  id             String @id @default(uuid())
+  subscriptionId String
+  vaultId        String
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  vault        Vault        @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, vaultId])
+  @@index([vaultId])
+}
+
+// ==========================================================================
+// OPPORTUNITIES
+// ==========================================================================
+
+model Opportunity {
+  id                 String              @id @default(uuid())
+  title              String
+  description        String?
+  company            String?
+  location           String?
+  country            String?
+  employmentType     EmploymentType?
+  industry           String?
+  functionalArea     String?
+  minExperience      Int?
+  maxExperience      Int?
+  applicationUrl     String?
+  applicationContact String?
+  source             String?
+  category           OpportunityCategory @default(OTHER)
+  status             OpportunityStatus   @default(DRAFT)
+  createdBy          String?
+  publishedDate      DateTime?
+  expiryDate         DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+
+  creator          User?                        @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  vaults           OpportunityVault[]
+  experienceLevels OpportunityExperienceLevel[]
+
+  @@index([status])
+  @@index([category])
+  @@index([location])
+  @@index([country])
+  @@index([industry])
+  @@index([publishedDate])
+  @@index([expiryDate])
+  @@index([deletedAt])
+  @@index([status, category, expiryDate])
+}
+
+model OpportunityVault {
+  id            String @id @default(uuid())
+  opportunityId String
+  vaultId       String
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  vault       Vault       @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+
+  @@unique([opportunityId, vaultId])
+  @@index([vaultId])
+}
+
+model OpportunityExperienceLevel {
+  id                String @id @default(uuid())
+  opportunityId     String
+  experienceLevelId String
+
+  opportunity     Opportunity     @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  experienceLevel ExperienceLevel @relation(fields: [experienceLevelId], references: [id], onDelete: Cascade)
+
+  @@unique([opportunityId, experienceLevelId])
+  @@index([experienceLevelId])
+}
+
+// ==========================================================================
+// REFERRALS, COMMISSIONS & SLABS
+// ==========================================================================
+
+model Referral {
+  id              String         @id @default(uuid())
+  referrerId      String
+  referredUserId  String
+  code            String         @unique
+  referralLink    String?
+  status          ReferralStatus @default(PENDING)
+  successfulDate  DateTime?
+  invalidReason   String?
+  suspendedReason String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+
+  referrer     User @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredUser User @relation("ReferralReferred", fields: [referredUserId], references: [id], onDelete: Cascade)
+
+  commissions ReferralCommission[]
+
+  // A user cannot refer themselves.
+  @@unique([referrerId, referredUserId])
+  @@index([referrerId])
+  @@index([referredUserId])
+  @@index([status])
+  @@index([code])
+  @@index([deletedAt])
+}
+
+model ReferralCommission {
+  id                   String           @id @default(uuid())
+  referralId           String           @unique
+  subscriptionId       String?
+  commissionPercentage Decimal          @db.Decimal(5, 2)
+  commissionAmount     Decimal          @db.Decimal(12, 2)
+  subscriptionAmount   Decimal          @db.Decimal(12, 2)
+  status               CommissionStatus @default(PENDING)
+  approvedDate         DateTime?
+  paidDate             DateTime?
+  payoutReference      String?
+  rejectedReason       String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  referral     Referral      @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  // Prevent duplicate commission for the same qualifying subscription/payment.
+  @@unique([subscriptionId])
+  @@index([status])
+  @@index([referralId])
+  @@index([subscriptionId])
+}
+
+model ReferralSlab {
+  id                   String   @id @default(uuid())
+  minReferrals         Int
+  maxReferrals         Int?
+  commissionPercentage Decimal  @db.Decimal(5, 2)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Each slab starts at a unique minimum referral count; the maximum bound is
+  // open-ended (null) for the top slab. Ranges must not overlap (enforced at
+  // the application layer; the unique min bound keeps the key safe).
+  @@unique([minReferrals])
+  @@index([isActive])
+}
+
+// ==========================================================================
+// RESUMES & PROCESSING
+// ==========================================================================
+
+model Resume {
+  id              String             @id @default(uuid())
+  userId          String
+  originalName    String
+  storageName     String
+  fileType        String
+  fileSize        Int
+  storageProvider String             @default("local")
+  storagePath     String
+  storageKey      String?
+  uploadStatus    ResumeUploadStatus @default(UPLOADED)
+  uploadedAt      DateTime           @default(now())
+  processedAt     DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  deletedAt       DateTime?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processing       ResumeProcessing?
+  candidateProfile CandidateProfile?
+
+  @@index([userId])
+  @@index([uploadStatus])
+  @@index([deletedAt])
+}
+
+model ResumeProcessing {
+  id            String                 @id @default(uuid())
+  resumeId      String                 @unique
+  status        ResumeProcessingStatus @default(UPLOADED)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  errorMessage  String?
+  parserVersion String?
+  ocrUsed       Boolean                @default(false)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([ocrUsed])
+}
+
+// ==========================================================================
+// CANDIDATE PROFILE (from parsed resume + user confirmation)
+// ==========================================================================
+
+model CandidateProfile {
+  id                 String                    @id @default(uuid())
+  userId             String
+  resumeId           String                    @unique
+  fullName           String?
+  email              String?
+  phone              String?
+  location           String?
+  totalExperience    Int?
+  currentJobTitle    String?
+  currentCompany     String?
+  resumeText         String?
+  confirmationStatus ProfileConfirmationStatus @default(EXTRACTED)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  skills          CandidateSkill[]
+  workExperience  CandidateWorkExperience[]
+  education       CandidateEducation[]
+  certifications  CandidateCertification[]
+  industries      CandidateIndustry[]
+  functionalAreas CandidateFunctionalArea[]
+
+  @@index([userId])
+  @@index([confirmationStatus])
+}
+
+model CandidateSkill {
+  id                 String     @id @default(uuid())
+  candidateProfileId String
+  name               String
+  source             SourceType @default(EXTRACTED)
+  createdAt          DateTime   @default(now())
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateProfileId, name])
+  @@index([name])
+}
+
+model CandidateWorkExperience {
+  id                 String     @id @default(uuid())
+  candidateProfileId String
+  company            String
+  jobTitle           String?
+  startDate          DateTime?
+  endDate            DateTime?
+  isCurrent          Boolean    @default(false)
+  source             SourceType @default(EXTRACTED)
+  createdAt          DateTime   @default(now())
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+}
+
+model CandidateEducation {
+  id                 String     @id @default(uuid())
+  candidateProfileId String
+  qualification      String
+  institution        String?
+  startYear          Int?
+  endYear            Int?
+  source             SourceType @default(EXTRACTED)
+  createdAt          DateTime   @default(now())
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+}
+
+model CandidateCertification {
+  id                 String     @id @default(uuid())
+  candidateProfileId String
+  name               String
+  issuer             String?
+  issueYear          Int?
+  source             SourceType @default(EXTRACTED)
+  createdAt          DateTime   @default(now())
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@index([candidateProfileId])
+}
+
+model CandidateIndustry {
+  id                 String     @id @default(uuid())
+  candidateProfileId String
+  name               String
+  source             SourceType @default(EXTRACTED)
+  createdAt          DateTime   @default(now())
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateProfileId, name])
+  @@index([name])
+}
+
+model CandidateFunctionalArea {
+  id                 String     @id @default(uuid())
+  candidateProfileId String
+  name               String
+  source             SourceType @default(EXTRACTED)
+  createdAt          DateTime   @default(now())
+
+  candidateProfile CandidateProfile @relation(fields: [candidateProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([candidateProfileId, name])
+  @@index([name])
+}
+
+// ==========================================================================
+// PAYMENTS (Razorpay foundation)
+// ==========================================================================
+
+model Payment {
+  id                     String        @id @default(uuid())
+  userId                 String
+  subscriptionId         String?
+  razorpayPaymentId      String?       @unique
+  razorpayOrderId        String?       @unique
+  razorpaySubscriptionId String?
+  amount                 Decimal       @db.Decimal(12, 2)
+  currency               String        @default("INR")
+  status                 PaymentStatus @default(CREATED)
+  webhookEvent           String?
+  metadata               Json?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@unique([razorpayOrderId, razorpayPaymentId])
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([razorpaySubscriptionId])
+}
+
+// ==========================================================================
+// ADMIN AUDIT
+// ==========================================================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  adminUserId String?
+  userId      String?
+  action      String
+  entityType  String
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  adminUser User? @relation("AuditAdminUser", fields: [adminUserId], references: [id], onDelete: SetNull)
+  user      User? @relation("AuditActorUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([action])
+  @@index([adminUserId])
+  @@index([createdAt])
+}
