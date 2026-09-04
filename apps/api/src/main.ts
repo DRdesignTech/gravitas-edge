@@ -16,10 +16,10 @@ async function bootstrap() {
   console.log('CORS origins from env:', corsOrigins);
 
   app.enableCors({
-    origin: (origin) => {
-      if (!origin) return true;
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
       const allowed = corsOrigins.indexOf(origin) !== -1;
-      return allowed ? true : false;
+      callback(null, allowed ? true : false);
     },
     credentials: true,
   });
