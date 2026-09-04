@@ -8,8 +8,19 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:3001')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  console.log('CORS origins from env:', corsOrigins);
+
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: (origin) => {
+      if (!origin) return true;
+      const allowed = corsOrigins.indexOf(origin) !== -1;
+      return allowed ? true : false;
+    },
     credentials: true,
   });
 
@@ -47,7 +58,7 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 5000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 API running on: http://localhost:${port}`);
   console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
