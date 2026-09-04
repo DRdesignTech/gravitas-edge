@@ -58,7 +58,7 @@ This document describes the Railway native Nixpacks deployment for the Job Searc
 | `STORAGE_LOCAL_PATH` | `.env.example` | Set to `./storage`. Railway creates `/app/storage` (per Dockerfile). |
 | `STORAGE_LOCAL_PUBLIC_URL` | `.env.example` | Set to `https://api-url.up.railway.app` (replace with actual API Railway URL). |
 | `MAX_FILE_SIZE` | `.env.example` | Set to `5242880` (5MB). |
-| `CORS_ORIGINS` | **Must set manually** | Comma-separated, no spaces. Production: `https://website-url.up.railway.app,https://admin-url.up.railway.app`. Local: `http://localhost:3000,http://localhost:3001`. |
+| `CORS_ORIGINS` | **Must set manually** | Comma-separated, no spaces. Production: `https://website-production-*.up.railway.app,https://admin-production-ae49.up.railway.app`. Local: `http://localhost:3000,http://localhost:3001`. In the current deployment, this must include `https://admin-production-ae49.up.railway.app` and the deployed Website URL. |
 
 ### Build & Start
 
@@ -122,7 +122,7 @@ This document describes the Railway native Nixpacks deployment for the Job Searc
 
 | Variable | Value | Notes |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | `https://api-url.up.railway.app/api` | Must match the deployed API service URL. Used by Next.js rewrites AND inlined at build time. |
+| `NEXT_PUBLIC_API_URL` | `https://api-production-17b88.up.railway.app/api` | Must match the deployed API service URL (with `/api` suffix). Used by Next.js rewrites (`next.config.js`) AND inlined at build time. In the current deployment, this is set to `https://api-production-17b88.up.railway.app/api`. |
 
 ### Build & Start
 
@@ -136,8 +136,11 @@ This document describes the Railway native Nixpacks deployment for the Job Searc
 ## CORS Configuration
 
 - **Source**: API `src/main.ts:11` reads `process.env.CORS_ORIGINS`.
-- **Production value**: `CORS_ORIGINS=https://website-url.up.railway.app,https://admin-url.up.railway.app`
-  - Replace `website-url.up.railway.app` and `admin-url.up.railway.app` with the actual Railway-provided URLs.
+- **Production value**: `CORS_ORIGINS=https://website-production-*.up.railway.app,https://admin-production-ae49.up.railway.app`
+  - Replace `website-production-*.up.railway.app` with your actual Railway Website URL.
+  - `admin-production-ae49.up.railway.app` is the current Admin domain.
+  - This must include both the deployed Website and Admin URLs so the API accepts requests from both.
+  - The current deployment requires `https://admin-production-ae49.up.railway.app` to be included for the Admin login flow to work.
 - **Local development value**: `CORS_ORIGINS=http://localhost:3000,http://localhost:3001` (preserved from `.env`).
 - **Do not hardcode Railway URLs** in the code — set them as Railway environment variables.
 - The `next.config.js` files have `rewrites` that use `NEXT_PUBLIC_API_URL` — separate from CORS.
