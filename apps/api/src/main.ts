@@ -32,6 +32,14 @@ async function bootstrap() {
     .addTag('auth')
     .addTag('users')
     .addTag('admin-users')
+    .addTag('admin-vaults')
+    .addTag('admin-experience-levels')
+    .addTag('admin-subscription-plans')
+    .addTag('admin-subscriptions')
+    .addTag('subscriptions')
+    .addTag('vaults')
+    .addTag('admin-opportunities')
+    .addTag('opportunities')
     .addBearerAuth()
     .build();
 
