@@ -12,6 +12,7 @@ import {
 } from '@/lib/services';
 import { SubscriptionPlan, Vault, PaginatedResult } from '@/lib/types';
 import {
+  ActionMenu,
   Badge,
   Button,
   Card,
@@ -64,6 +65,7 @@ export default function PlansPage() {
   const [editing, setEditing] = useState<SubscriptionPlan | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SubscriptionPlan | null>(null);
   const [manageTarget, setManageTarget] = useState<SubscriptionPlan | null>(null);
   const [linkedIds, setLinkedIds] = useState<string[]>([]);
@@ -147,6 +149,7 @@ export default function PlansPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setDeleting(true);
     try {
       await adminDeletePlan(deleteTarget.id);
       showToast('Plan archived', 'success');
@@ -154,6 +157,8 @@ export default function PlansPage() {
       load();
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -234,17 +239,28 @@ export default function PlansPage() {
       key: 'actions',
       label: '',
       render: (p) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => openManage(p)}>
-            Link vaults
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => openEdit(p)}>
-            Edit
-          </Button>
-          <Button size="sm" variant="danger" onClick={() => setDeleteTarget(p)}>
-            Archive
-          </Button>
-        </div>
+        <>
+          <div className="hidden items-center gap-2 sm:flex">
+            <Button size="sm" variant="secondary" onClick={() => openManage(p)}>
+              Link vaults
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => openEdit(p)}>
+              Edit
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => setDeleteTarget(p)}>
+              Archive
+            </Button>
+          </div>
+          <ActionMenu
+            className="sm:hidden"
+            label={`Actions for ${p.name}`}
+            items={[
+              { label: 'Link vaults', onClick: () => openManage(p) },
+              { label: 'Edit', onClick: () => openEdit(p) },
+              { label: 'Archive', danger: true, onClick: () => setDeleteTarget(p) },
+            ]}
+          />
+        </>
       ),
     },
   ];
@@ -418,6 +434,7 @@ export default function PlansPage() {
         title="Archive plan"
         message={`Archive "${deleteTarget?.name}"? This cannot be undone.`}
         confirmText="Archive"
+        loading={deleting}
       />
     </div>
   );

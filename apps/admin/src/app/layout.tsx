@@ -1,5 +1,13 @@
+import { Poppins } from 'next/font/google';
 import '../styles/globals.css';
 import Providers from '@/components/Providers';
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-poppins',
+});
 
 export const metadata = {
   title: 'Gravits Edge Consultant — Admin Panel',
@@ -22,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body>
+      <body className={poppins.variable}>
         <Providers>{children}</Providers>
       </body>
     </html>

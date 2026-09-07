@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+apps/*/dist
+apps/*/.next
+apps/*/out
+packages/*/dist
+.next
+dist
+
+# Environment files (never bake secrets into a build)
+.env
+.env.*
+!.env.example
+
+# VCS / IDE / OS
+.git
+.gitignore
+.github
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# Logs / temp / test
+coverage
+*.log
+.tmp
+temp
+apps/api/test/*.js
+apps/api/test/*.d.ts
+apps/api/test/*.map
+
+# Docs
+docs
+README.md

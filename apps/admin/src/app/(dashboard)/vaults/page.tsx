@@ -12,6 +12,7 @@ import {
 } from '@/lib/services';
 import { Vault, ExperienceLevel, PaginatedResult, VAULT_TYPES, VAULT_STATUSES } from '@/lib/types';
 import {
+  ActionMenu,
   Badge,
   Button,
   Card,
@@ -63,6 +64,7 @@ export default function VaultsPage() {
   const [editing, setEditing] = useState<Vault | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Vault | null>(null);
   const [manageTarget, setManageTarget] = useState<Vault | null>(null);
   const [linkedIds, setLinkedIds] = useState<string[]>([]);
@@ -139,6 +141,7 @@ export default function VaultsPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setDeleting(true);
     try {
       await adminDeleteVault(deleteTarget.id);
       showToast('Vault archived', 'success');
@@ -146,6 +149,8 @@ export default function VaultsPage() {
       load();
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -215,17 +220,28 @@ export default function VaultsPage() {
       key: 'actions',
       label: '',
       render: (v) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => openManage(v)}>
-            Link levels
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>
-            Edit
-          </Button>
-          <Button size="sm" variant="danger" onClick={() => setDeleteTarget(v)}>
-            Archive
-          </Button>
-        </div>
+        <>
+          <div className="hidden items-center gap-2 sm:flex">
+            <Button size="sm" variant="secondary" onClick={() => openManage(v)}>
+              Link levels
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>
+              Edit
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => setDeleteTarget(v)}>
+              Archive
+            </Button>
+          </div>
+          <ActionMenu
+            className="sm:hidden"
+            label={`Actions for ${v.name}`}
+            items={[
+              { label: 'Link levels', onClick: () => openManage(v) },
+              { label: 'Edit', onClick: () => openEdit(v) },
+              { label: 'Archive', danger: true, onClick: () => setDeleteTarget(v) },
+            ]}
+          />
+        </>
       ),
     },
   ];
@@ -382,6 +398,7 @@ export default function VaultsPage() {
         title="Archive vault"
         message={`Archive "${deleteTarget?.name}"? This cannot be undone.`}
         confirmText="Archive"
+        loading={deleting}
       />
     </div>
   );

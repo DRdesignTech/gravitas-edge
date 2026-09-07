@@ -7,6 +7,7 @@ import { fetchOpportunity } from '@/lib/services';
 import { Opportunity } from '@/lib/types';
 import { Badge, Button, Card, Skeleton, EmptyState, AccessBadge, LockIcon } from '@/components/ui';
 import { PinIcon, BriefcaseIcon, LayersIcon } from '@/components/cards';
+import ContentProtection from '@/components/ContentProtection';
 import { formatDate, titleCase, experienceLabel } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -93,40 +94,45 @@ export default function OpportunityPage() {
         <span aria-hidden>←</span> Back to opportunities
       </Link>
 
-      <header className="mt-5">
-        <div className="flex flex-wrap items-center gap-2">
-          {o.isPremium ? (
-            <Badge variant="premium">Premium</Badge>
-          ) : (
-            <Badge variant="success">Free</Badge>
-          )}
-          <Badge variant="info">{titleCase(o.category)}</Badge>
-          {o.employmentType && <Badge variant="neutral">{titleCase(o.employmentType)}</Badge>}
-        </div>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-content sm:text-4xl">
-          {o.title}
-        </h1>
-        {o.company && <p className="mt-2 text-lg text-content-muted">{o.company}</p>}
-      </header>
+      <ContentProtection>
+        <header className="mt-5">
+          <div className="flex flex-wrap items-center gap-2">
+            {o.isPremium ? (
+              <Badge variant="premium">Premium</Badge>
+            ) : (
+              <Badge variant="success">Free</Badge>
+            )}
+            <Badge variant="info">{titleCase(o.category)}</Badge>
+            {o.employmentType && <Badge variant="neutral">{titleCase(o.employmentType)}</Badge>}
+          </div>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight text-content sm:text-4xl">
+            {o.title}
+          </h1>
+          {o.company && <p className="mt-2 text-lg text-content-muted">{o.company}</p>}
+        </header>
 
-      <Card className="mt-6">
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
-          {o.location && <DetailRow label="Location" value={o.location} />}
-          <DetailRow label="Experience" value={experienceLabel(o.minExperience, o.maxExperience)} />
-          {o.industry && <DetailRow label="Industry" value={o.industry} />}
-          {o.functionalArea && <DetailRow label="Function" value={o.functionalArea} />}
-          <DetailRow label="Published" value={formatDate(o.publishedDate)} />
-          <DetailRow label="Expires" value={formatDate(o.expiryDate)} />
-        </dl>
-      </Card>
-
-      {o.description && (
-        <Card title="About this role" className="mt-6">
-          <p className="whitespace-pre-line text-sm leading-relaxed text-content">
-            {o.description}
-          </p>
+        <Card className="mt-6">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
+            {o.location && <DetailRow label="Location" value={o.location} />}
+            <DetailRow
+              label="Experience"
+              value={experienceLabel(o.minExperience, o.maxExperience)}
+            />
+            {o.industry && <DetailRow label="Industry" value={o.industry} />}
+            {o.functionalArea && <DetailRow label="Function" value={o.functionalArea} />}
+            <DetailRow label="Published" value={formatDate(o.publishedDate)} />
+            <DetailRow label="Expires" value={formatDate(o.expiryDate)} />
+          </dl>
         </Card>
-      )}
+
+        {o.description && (
+          <Card title="About this role" className="mt-6">
+            <p className="whitespace-pre-line text-sm leading-relaxed text-content">
+              {o.description}
+            </p>
+          </Card>
+        )}
+      </ContentProtection>
 
       {/* Access / apply */}
       <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">

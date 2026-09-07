@@ -57,6 +57,14 @@ export function RefreshIcon({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
+export function MoreIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+    </svg>
+  );
+}
+
 /* ---------- Button ---------- */
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -769,6 +777,7 @@ interface ConfirmDialogProps {
   message: string;
   confirmText?: string;
   variant?: 'danger' | 'primary';
+  loading?: boolean;
 }
 
 export function ConfirmDialog({
@@ -779,6 +788,7 @@ export function ConfirmDialog({
   message,
   confirmText = 'Confirm',
   variant = 'danger',
+  loading = false,
 }: ConfirmDialogProps) {
   return (
     <Modal
@@ -788,10 +798,14 @@ export function ConfirmDialog({
       size="sm"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button variant={variant === 'danger' ? 'danger' : 'primary'} onClick={onConfirm}>
+          <Button
+            variant={variant === 'danger' ? 'danger' : 'primary'}
+            onClick={onConfirm}
+            loading={loading}
+          >
             {confirmText}
           </Button>
         </>
@@ -799,5 +813,74 @@ export function ConfirmDialog({
     >
       <p className="text-sm text-content-muted">{message}</p>
     </Modal>
+  );
+}
+
+/* ---------- ActionMenu ---------- */
+export interface ActionMenuItem {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}
+
+interface ActionMenuProps {
+  items: ActionMenuItem[];
+  className?: string;
+  label?: string;
+}
+
+export function ActionMenu({ items, className = '', label = 'Actions' }: ActionMenuProps) {
+  const [open, setOpen] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className={cn('relative', className)}>
+      <button
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-content-muted transition hover:bg-surface-muted hover:text-content dark:hover:bg-line"
+      >
+        <MoreIcon />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-20 mt-1 min-w-36 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-pop dark:bg-surface-elevated">
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                item.onClick();
+              }}
+              className={cn(
+                'block w-full px-4 py-2 text-left text-sm transition hover:bg-surface-muted dark:hover:bg-line',
+                item.danger ? 'text-red-600 dark:text-red-400' : 'text-content',
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

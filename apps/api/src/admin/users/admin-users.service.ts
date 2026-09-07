@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
+import { CreateUserDto } from './dto/create-user.dto';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import {
@@ -158,5 +159,65 @@ export class AdminUsersService {
     });
 
     return this.findOne(id);
+  }
+
+  async create(dto: CreateUserDto, actor: AuthenticatedUser, ipAddress?: string) {
+    const { email, password, role = 'USER', status = 'ACTIVE' } = dto;
+
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      throw new BadRequestException('User with this email already exists');
+    }
+
+    const newUser = await this.prisma.user.create({
+      data: {
+        email,
+        passwordHash: password,
+        status,
+        roles: role ? { create: { role: { connect: { name: role } } } } : undefined,
+      },
+      select: USER_SELECT,
+    });
+
+    await this.audit.record({
+      action: 'USER_CREATED',
+      entityType: 'User',
+      entityId: newUser.id,
+      adminUserId: actor.id,
+      ipAddress,
+      details: { email, role, status },
+    });
+
+    return {
+      ...newUser,
+      roles: newUser.roles.map((r) => r.role.name),
+    };
+  }
+
+  async remove(id: string, actor: AuthenticatedUser, ipAddress?: string) {
+    const existing = await this.prisma.user.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (id === actor.id) {
+      throw new BadRequestException('Cannot delete your own account');
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { status: 'INACTIVE', deletedAt: new Date() },
+    });
+
+    await this.audit.record({
+      action: 'USER_DELETED',
+      entityType: 'User',
+      entityId: id,
+      adminUserId: actor.id,
+      ipAddress,
+      details: { reason: 'Admin soft-delete' },
+    });
+
+    return { message: 'User archived successfully' };
   }
 }

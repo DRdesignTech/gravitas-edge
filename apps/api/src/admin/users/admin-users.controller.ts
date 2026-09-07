@@ -6,6 +6,8 @@ import {
   HttpStatus,
   Param,
   Patch,
+  Post,
+  Delete,
   Query,
   Req,
   UseGuards,
@@ -15,6 +17,7 @@ import { Request } from 'express';
 import { AdminUsersService } from './admin-users.service';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -51,6 +54,28 @@ export class AdminUsersController {
     @Req() req: Request,
   ) {
     return this.adminUsersService.update(id, dto, actor, this.clientIp(req));
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new user' })
+  create(
+    @Body() dto: CreateUserDto,
+    @CurrentUser() actor: AuthenticatedUser,
+    @Req() req: Request,
+  ) {
+    return this.adminUsersService.create(dto, actor, this.clientIp(req));
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete/soft-delete a user' })
+  remove(
+    @Param('id') id: string,
+    @CurrentUser() actor: AuthenticatedUser,
+    @Req() req: Request,
+  ) {
+    return this.adminUsersService.remove(id, actor, this.clientIp(req));
   }
 
   private clientIp(req: Request): string | undefined {

@@ -79,6 +79,19 @@ export function adminUpdateUser(id: string, body: { status?: string; roles?: str
   return api.patch<User>(`/admin/users/${id}`, body);
 }
 
+export function adminCreateUser(body: {
+  email: string;
+  password: string;
+  role?: string;
+  status?: string;
+}) {
+  return api.post<User>(`/admin/users`, body);
+}
+
+export function adminDeleteUser(id: string) {
+  return api.del(`/admin/users/${id}`);
+}
+
 export function adminListVaults(query: VaultQuery = {}) {
   return api.get<PaginatedResult<Vault>>(`/admin/vaults${qs(query)}`);
 }

@@ -1,5 +1,13 @@
+import { Poppins } from 'next/font/google';
 import '../styles/globals.css';
 import Providers from '@/components/layout/Providers';
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-poppins',
+});
 
 export const metadata = {
   title: 'Gravits Edge Consultant — Find your next opportunity',
@@ -23,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="font-sans antialiased">
+      <body className={`${poppins.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

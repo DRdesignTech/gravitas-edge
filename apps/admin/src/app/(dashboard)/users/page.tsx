@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminListUsers, adminUpdateUser } from '@/lib/services';
+import { adminListUsers, adminUpdateUser, adminCreateUser, adminDeleteUser } from '@/lib/services';
 import { User, PaginatedResult, USER_STATUSES, ROLES } from '@/lib/types';
 import {
   Button,
@@ -37,6 +37,13 @@ export default function UsersPage() {
   const [editStatus, setEditStatus] = useState('');
   const [editRoles, setEditRoles] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createEmail, setCreateEmail] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createRole, setCreateRole] = useState<'USER' | 'ADMIN'>('USER');
+  const [createStatus, setCreateStatus] = useState<'ACTIVE' | 'INACTIVE' | 'SUSPENDED'>('ACTIVE');
+
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -77,6 +84,35 @@ export default function UsersPage() {
       showToast(message, 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setCreateEmail('');
+    setCreatePassword('');
+    setCreateRole('USER');
+    setCreateStatus('ACTIVE');
+    setCreating(true);
+  };
+
+  const saveCreate = async () => {
+    if (!createEmail || !createPassword) return;
+    setCreating(true);
+    try {
+      await adminCreateUser({
+        email: createEmail,
+        password: createPassword,
+        role: createRole,
+        status: createStatus,
+      });
+      showToast('User created', 'success');
+      setCreating(false);
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -130,12 +166,32 @@ export default function UsersPage() {
       key: 'actions',
       label: '',
       render: (u) => (
-        <Button size="sm" variant="secondary" onClick={() => openEdit(u)}>
-          Edit
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" onClick={() => openEdit(u)}>
+            Edit
+          </Button>
+          <Button size="sm" variant="danger" onClick={() => setDeleteTarget(u)}>
+            Delete
+          </Button>
+        </div>
       ),
     },
   ];
+
+  const deleteUser = async (id: string) => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    try {
+      await adminDeleteUser(id);
+      showToast('User archived', 'success');
+      setDeleteTarget(null);
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div>
@@ -182,6 +238,53 @@ export default function UsersPage() {
         </form>
       </Card>
 
+      <Card className="mb-4" padding={false}>
+        <form className="grid gap-4 p-4 md:grid-cols-3">
+          <Input
+            label="Email"
+            placeholder="user@example.com"
+            value={createEmail}
+            onChange={(e) => setCreateEmail(e.target.value)}
+          />
+          <Input
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            value={createPassword}
+            onChange={(e) => setCreatePassword(e.target.value)}
+          />
+          <Select
+            label="Role"
+            value={createRole}
+            onChange={(e) => setCreateRole(e.target.value as 'USER' | 'ADMIN')}
+            options={[
+              { value: 'USER', label: 'USER' },
+              { value: 'ADMIN', label: 'ADMIN' },
+            ]}
+          />
+          <Select
+            label="Status"
+            value={createStatus}
+            onChange={(e) => setCreateStatus(e.target.value as 'ACTIVE' | 'INACTIVE' | 'SUSPENDED')}
+            options={[
+              { value: 'ACTIVE', label: 'Active' },
+              { value: 'INACTIVE', label: 'Inactive' },
+              { value: 'SUSPENDED', label: 'Suspended' },
+            ]}
+          />
+          <div className="flex items-end">
+            <Button
+              type="button"
+              onClick={saveCreate}
+              loading={creating}
+              disabled={!createEmail || !createPassword}
+            >
+              Create User
+            </Button>
+          </div>
+        </form>
+      </Card>
+
       {loading ? (
         <Skeleton className="h-64 rounded-2xl" />
       ) : error ? (
@@ -196,6 +299,15 @@ export default function UsersPage() {
             totalPages={data.meta.totalPages}
             onPageChange={setPage}
           />
+          <div className="mt-4">
+            <Button
+              onClick={() => setEditing(null)}
+              variant="primary"
+              className="hidden sm:inline-flex"
+            >
+              New User
+            </Button>
+          </div>
         </>
       ) : (
         <Card>
@@ -257,6 +369,33 @@ export default function UsersPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete user"
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => deleteTarget && deleteUser(deleteTarget.id)}
+              loading={false}
+              disabled={!deleteTarget}
+              variant="danger"
+            >
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-content-muted">
+          Are you sure you want to delete {deleteTarget?.email}? This will set their status to
+          INACTIVE.
+        </p>
       </Modal>
     </div>
   );

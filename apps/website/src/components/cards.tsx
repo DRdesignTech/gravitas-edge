@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Opportunity, Vault } from '@/lib/types';
+import ContentProtection from '@/components/ContentProtection';
 import { Badge, AccessBadge, LockIcon } from '@/components/ui';
 import { titleCase, experienceLabel, formatDate } from '@/lib/format';
 
@@ -58,36 +59,38 @@ export function VaultCard({ vault: v }: { vault: Vault }) {
         v.locked ? 'border-line opacity-90' : 'border-brand-200 dark:border-brand-500/40'
       }`}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-              v.locked
-                ? 'bg-surface-muted text-content-faint'
-                : 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300'
-            }`}
-          >
-            {v.locked ? <LockIcon className="h-5 w-5" /> : <VaultIcon className="h-5 w-5" />}
-          </span>
-          <h3 className="font-semibold text-content">{v.name}</h3>
-        </div>
-        <AccessBadge locked={v.locked ?? false} />
-      </div>
-
-      {v.description && <p className="mt-3 text-sm text-content-muted">{v.description}</p>}
-
-      {v.experienceLevels && v.experienceLevels.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {v.experienceLevels.map((el) => (
+      <ContentProtection>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
             <span
-              key={el.id}
-              className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300"
+              className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                v.locked
+                  ? 'bg-surface-muted text-content-faint'
+                  : 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300'
+              }`}
             >
-              {el.name}
+              {v.locked ? <LockIcon className="h-5 w-5" /> : <VaultIcon className="h-5 w-5" />}
             </span>
-          ))}
+            <h3 className="font-semibold text-content">{v.name}</h3>
+          </div>
+          <AccessBadge locked={v.locked ?? false} />
         </div>
-      )}
+
+        {v.description && <p className="mt-3 text-sm text-content-muted">{v.description}</p>}
+
+        {v.experienceLevels && v.experienceLevels.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {v.experienceLevels.map((el) => (
+              <span
+                key={el.id}
+                className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300"
+              >
+                {el.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </ContentProtection>
 
       {v.locked ? (
         <p className="mt-auto pt-4 text-xs text-content-faint">

@@ -9,6 +9,7 @@ import {
 } from '@/lib/services';
 import { ExperienceLevel } from '@/lib/types';
 import {
+  ActionMenu,
   Button,
   Card,
   ConfirmDialog,
@@ -54,6 +55,7 @@ export default function ExperienceLevelsPage() {
   const [editing, setEditing] = useState<ExperienceLevel | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ExperienceLevel | null>(null);
 
   const load = () => {
@@ -120,6 +122,7 @@ export default function ExperienceLevelsPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setDeleting(true);
     try {
       await adminDeleteExperienceLevel(deleteTarget.id);
       showToast('Experience level deleted', 'success');
@@ -127,6 +130,8 @@ export default function ExperienceLevelsPage() {
       load();
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -159,14 +164,24 @@ export default function ExperienceLevelsPage() {
       key: 'actions',
       label: '',
       render: (el) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => openEdit(el)}>
-            Edit
-          </Button>
-          <Button size="sm" variant="danger" onClick={() => setDeleteTarget(el)}>
-            Delete
-          </Button>
-        </div>
+        <>
+          <div className="hidden items-center gap-2 sm:flex">
+            <Button size="sm" variant="secondary" onClick={() => openEdit(el)}>
+              Edit
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => setDeleteTarget(el)}>
+              Delete
+            </Button>
+          </div>
+          <ActionMenu
+            className="sm:hidden"
+            label={`Actions for ${el.name}`}
+            items={[
+              { label: 'Edit', onClick: () => openEdit(el) },
+              { label: 'Delete', danger: true, onClick: () => setDeleteTarget(el) },
+            ]}
+          />
+        </>
       ),
     },
   ];
@@ -271,6 +286,7 @@ export default function ExperienceLevelsPage() {
         title="Delete experience level"
         message={`Delete "${deleteTarget?.name}"? This cannot be undone.`}
         confirmText="Delete"
+        loading={deleting}
       />
     </div>
   );

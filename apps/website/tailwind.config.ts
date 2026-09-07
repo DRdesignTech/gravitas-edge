@@ -38,7 +38,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
-          'Inter',
+          'var(--font-poppins)',
           'ui-sans-serif',
           'system-ui',
           '-apple-system',

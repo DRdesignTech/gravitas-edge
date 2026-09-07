@@ -20,6 +20,7 @@ import {
   EMPLOYMENT_TYPES,
 } from '@/lib/types';
 import {
+  ActionMenu,
   Badge,
   Button,
   Card,
@@ -99,6 +100,7 @@ export default function OpportunitiesPage() {
   const [editing, setEditing] = useState<Opportunity | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Opportunity | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -209,6 +211,7 @@ export default function OpportunitiesPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setDeleting(true);
     try {
       await adminDeleteOpportunity(deleteTarget.id);
       showToast('Opportunity archived', 'success');
@@ -216,6 +219,8 @@ export default function OpportunitiesPage() {
       load();
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -289,14 +294,24 @@ export default function OpportunitiesPage() {
       key: 'actions',
       label: '',
       render: (o) => (
-        <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => openEdit(o)}>
-            Edit
-          </Button>
-          <Button size="sm" variant="danger" onClick={() => setDeleteTarget(o)}>
-            Archive
-          </Button>
-        </div>
+        <>
+          <div className="hidden items-center gap-2 sm:flex">
+            <Button size="sm" variant="secondary" onClick={() => openEdit(o)}>
+              Edit
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => setDeleteTarget(o)}>
+              Archive
+            </Button>
+          </div>
+          <ActionMenu
+            className="sm:hidden"
+            label={`Actions for ${o.title}`}
+            items={[
+              { label: 'Edit', onClick: () => openEdit(o) },
+              { label: 'Archive', danger: true, onClick: () => setDeleteTarget(o) },
+            ]}
+          />
+        </>
       ),
     },
   ];
@@ -613,6 +628,7 @@ export default function OpportunitiesPage() {
         title="Archive opportunity"
         message={`Archive "${deleteTarget?.title}"? This cannot be undone.`}
         confirmText="Archive"
+        loading={deleting}
       />
     </div>
   );
