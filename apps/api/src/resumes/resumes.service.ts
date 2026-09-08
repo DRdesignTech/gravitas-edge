@@ -3,6 +3,7 @@ import {
   UnprocessableEntityException,
   NotFoundException,
   InternalServerErrorException,
+  StreamableFile,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../resumes/storage/storage.service';
@@ -10,6 +11,12 @@ import { QueryResumesDto } from '../resumes/dto/resumes.dto';
 import { ResumeResponseDto } from '../resumes/dto/resumes.dto';
 import { isValidResumeFile, getExtension } from '../resumes/validation/resume.validation';
 import { existsSync, createReadStream } from 'fs';
+
+const MIME_BY_TYPE: Record<string, string> = {
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
 
 @Injectable()
 export class ResumesService {
@@ -52,11 +59,9 @@ export class ResumesService {
       select: {
         id: true,
         originalName: true,
-        storageName: true,
         fileType: true,
         fileSize: true,
         storageProvider: true,
-        storagePath: true,
         uploadStatus: true,
         uploadedAt: true,
         processedAt: true,
@@ -70,7 +75,6 @@ export class ResumesService {
       mimeType,
       fileSize: resume.fileSize,
       storageProvider: resume.storageProvider,
-      storagePath: resume.storagePath,
       uploadStatus: resume.uploadStatus,
       uploadedAt: resume.uploadedAt,
       processedAt: resume.processedAt as Date | undefined,
@@ -91,7 +95,6 @@ export class ResumesService {
         select: {
           id: true,
           originalName: true,
-          storageName: true,
           fileType: true,
           fileSize: true,
           storageProvider: true,
@@ -110,7 +113,6 @@ export class ResumesService {
         fileType: r.fileType,
         fileSize: r.fileSize,
         storageProvider: r.storageProvider,
-        storagePath: (r as any).storagePath,
         uploadStatus: r.uploadStatus,
         uploadedAt: r.uploadedAt,
         processedAt: r.processedAt as Date | undefined,
@@ -131,11 +133,9 @@ export class ResumesService {
       select: {
         id: true,
         originalName: true,
-        storageName: true,
         fileType: true,
         fileSize: true,
         storageProvider: true,
-        storagePath: true,
         uploadStatus: true,
         uploadedAt: true,
         processedAt: true,
@@ -153,7 +153,6 @@ export class ResumesService {
       fileType: resume.fileType,
       fileSize: resume.fileSize,
       storageProvider: resume.storageProvider,
-      storagePath: resume.storagePath,
       uploadStatus: resume.uploadStatus,
       uploadedAt: resume.uploadedAt,
       processedAt: resume.processedAt as Date | undefined,
@@ -162,9 +161,9 @@ export class ResumesService {
     };
   }
 
-  async download(id: string, userId: string) {
+  async download(id: string, userId: string): Promise<StreamableFile> {
     const resume = await this.prisma.resume.findFirst({
-      where: { id, userId },
+      where: { id, userId, deletedAt: null },
       select: { storagePath: true, originalName: true, fileType: true, fileSize: true },
     });
 
@@ -178,7 +177,13 @@ export class ResumesService {
       throw new InternalServerErrorException('Resume file not found on disk');
     }
 
-    return createReadStream(filePath);
+    const safeName = resume.originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+    return new StreamableFile(createReadStream(filePath), {
+      type: MIME_BY_TYPE[resume.fileType] ?? 'application/octet-stream',
+      disposition: `attachment; filename="${safeName}"`,
+      length: resume.fileSize || undefined,
+    });
   }
 
   async replace(
@@ -219,11 +224,9 @@ export class ResumesService {
       select: {
         id: true,
         originalName: true,
-        storageName: true,
         fileType: true,
         fileSize: true,
         storageProvider: true,
-        storagePath: true,
         uploadStatus: true,
         uploadedAt: true,
         processedAt: true,
@@ -244,7 +247,6 @@ export class ResumesService {
       mimeType,
       fileSize: updated.fileSize,
       storageProvider: updated.storageProvider,
-      storagePath: updated.storagePath,
       uploadStatus: updated.uploadStatus,
       uploadedAt: updated.uploadedAt,
       processedAt: updated.processedAt as Date | undefined,
@@ -258,7 +260,7 @@ export class ResumesService {
     });
 
     if (!resume) {
-      return;
+      throw new NotFoundException('Resume not found or access denied');
     }
 
     try {

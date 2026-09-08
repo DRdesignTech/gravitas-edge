@@ -73,8 +73,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
       error = 'VALIDATION_ERROR';
       this.logger.warn(`Prisma validation error: ${exception.message}`);
     } else if (exception instanceof Error) {
-      message = exception.message;
+      // Do not echo internal error messages to clients - they may contain
+      // paths, SQL, or secrets. Log the detail server-side only.
+      message = 'Internal server error';
       error = 'INTERNAL_SERVER_ERROR';
+      if (process.env.ENVIRONMENT !== 'production') {
+        message = exception.message;
+      }
       this.logger.error(`Unhandled exception on ${request.method} ${request.url}`, exception.stack);
     }
 

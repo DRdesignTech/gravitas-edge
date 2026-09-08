@@ -1,12 +1,27 @@
-import { Controller, Get, Post, Patch, Delete, Param, Query, UploadedFile } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ParseFilePipe } from '@nestjs/common';
 import { MaxFileSizeValidator } from '@nestjs/common';
-import { FileTypeValidator } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { memoryStorage } from 'multer';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/auth.types';
 import { ResumesService } from './resumes.service';
 import { QueryResumesDto } from './dto/resumes.dto';
+import { resumeFileFilter } from '../resumes/middleware/file-upload.util';
+
+const RESUME_MAX_SIZE = 5 * 1024 * 1024;
 
 @Controller('resumes')
 @ApiTags('resumes')
@@ -15,6 +30,7 @@ export class ResumesController {
 
   @Post()
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Upload a resume file' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -28,17 +44,18 @@ export class ResumesController {
       },
     },
   })
+  @UseInterceptors(
+    FileInterceptor('resume', {
+      storage: memoryStorage(),
+      limits: { fileSize: RESUME_MAX_SIZE },
+      fileFilter: resumeFileFilter,
+    }),
+  )
   upload(
     @CurrentUser() user: AuthenticatedUser,
     @UploadedFile(
       new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new FileTypeValidator({
-            fileType:
-              /^(application|image)\/(pdf|msword|vnd.openxmlformats-officedocument.wordprocessingml.document)$/,
-          }),
-        ],
+        validators: [new MaxFileSizeValidator({ maxSize: RESUME_MAX_SIZE })],
         fileIsRequired: true,
       }),
     )
@@ -79,6 +96,7 @@ export class ResumesController {
 
   @Patch(':id')
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Replace resume file' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -92,18 +110,19 @@ export class ResumesController {
       },
     },
   })
+  @UseInterceptors(
+    FileInterceptor('resume', {
+      storage: memoryStorage(),
+      limits: { fileSize: RESUME_MAX_SIZE },
+      fileFilter: resumeFileFilter,
+    }),
+  )
   replace(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @UploadedFile(
       new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new FileTypeValidator({
-            fileType:
-              /^(application|image)\/(pdf|msword|vnd.openxmlformats-officedocument.wordprocessingml.document)$/,
-          }),
-        ],
+        validators: [new MaxFileSizeValidator({ maxSize: RESUME_MAX_SIZE })],
         fileIsRequired: true,
       }),
     )

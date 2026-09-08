@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ReferralsService } from './referrals.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/auth.types';
@@ -12,6 +13,7 @@ export class ReferralsController {
   constructor(private readonly referralsService: ReferralsService) {}
 
   @Post()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Generate (or return existing) referral code and link for the user' })
   async generate(@CurrentUser() user: AuthenticatedUser) {
     return this.referralsService.generateReferralCode(user.id);

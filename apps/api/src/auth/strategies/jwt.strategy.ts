@@ -23,6 +23,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Invalid token');
     }
 
+    // Defense in depth: only access tokens may authenticate requests, even
+    // though access and refresh tokens use different signing secrets.
+    if (payload.type && payload.type !== 'access') {
+      throw new UnauthorizedException('Invalid token');
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {

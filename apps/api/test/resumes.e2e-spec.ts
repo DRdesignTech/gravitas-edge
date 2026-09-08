@@ -4,9 +4,21 @@ import request from 'supertest';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/prisma/prisma.service';
 
-describe('Resumes e2e', () => {
+describe('Resumes e2e (security)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+
+  const unique = Date.now();
+  const ownerEmail = `e2e-res-owner-${unique}@example.com`;
+  const otherEmail = `e2e-res-other-${unique}@example.com`;
+  const password = 'StrongPass123!';
+
+  let ownerToken = '';
+  let otherToken = '';
+
+  function attachPdf(_name = 'resume.pdf', content = '%PDF-1.4 fake pdf body') {
+    return Buffer.from(content);
+  }
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -26,64 +38,206 @@ describe('Resumes e2e', () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    // Ensure admin role exists for auth tests
-    await prisma.role.upsert({
-      create: { id: 'role-admin', name: 'ADMIN', createdAt: new Date(), updatedAt: new Date() },
-      update: { createdAt: new Date(), updatedAt: new Date() },
-      where: { name: 'ADMIN' },
-    });
+    const ownerRes = await request(app.getHttpServer())
+      .post('/api/auth/register')
+      .send({ email: ownerEmail, password, fullName: 'Owner' })
+      .expect(201);
+    ownerToken = ownerRes.body.data.accessToken;
+
+    const otherRes = await request(app.getHttpServer())
+      .post('/api/auth/register')
+      .send({ email: otherEmail, password, fullName: 'Other' })
+      .expect(201);
+    otherToken = otherRes.body.data.accessToken;
   });
 
   afterAll(async () => {
-    await prisma.$executeRawUnsafe(`DELETE FROM "Resume"`);
+    const users = await prisma.user.findMany({
+      where: { email: { in: [ownerEmail, otherEmail] } },
+      select: { id: true, email: true },
+    });
+    for (const u of users) {
+      await prisma.resume.deleteMany({ where: { userId: u.id } });
+      await prisma.user.delete({ where: { id: u.id } });
+    }
     await app.close();
   });
 
-  it('should upload a valid PDF resume', async () => {
+  it('rejects unauthenticated resume access', async () => {
+    await request(app.getHttpServer()).get('/api/resumes').expect(401);
+    await request(app.getHttpServer()).post('/api/resumes').expect(401);
+  });
+
+  it('uploads a valid PDF via multipart and does not leak storage paths', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/resumes')
-      .set('Authorization', 'Bearer test-token')
-      .send({ resume: Buffer.from('%PDF-1.4 fake pdf content').toString('base64') })
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .attach('resume', attachPdf('my-cv.pdf', '%PDF-1.4 contents here'), {
+        filename: 'my-cv.pdf',
+        contentType: 'application/pdf',
+      })
       .expect(201);
 
     expect(res.body.success).toBe(true);
     expect(res.body.data.id).toBeDefined();
-    expect(res.body.data.originalName).toBeDefined();
+    expect(res.body.data.originalName).toBe('my-cv.pdf');
     expect(res.body.data.uploadStatus).toBe('UPLOADED');
     expect(res.body.data.fileSize).toBeGreaterThan(0);
+    expect(res.body.data.storagePath).toBeUndefined();
+    expect(res.body.data.storageName).toBeUndefined();
   });
 
-  it('should list resumes for authenticated user', async () => {
-    await request(app.getHttpServer())
-      .get('/api/resumes')
-      .set('Authorization', 'Bearer test-token')
-      .expect(200);
-  });
-
-  it('should return 401 for unauthorized access', async () => {
-    await request(app.getHttpServer()).get('/api/resumes').expect(401);
-  });
-
-  it('should soft-delete a resume', async () => {
-    // First upload a resume
-    const uploadRes = await request(app.getHttpServer())
+  it('accepts a real DOC (OLE2) file', async () => {
+    const ole2 = Buffer.from([
+      0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+      0x00,
+    ]);
+    const res = await request(app.getHttpServer())
       .post('/api/resumes')
-      .set('Authorization', 'Bearer test-token')
-      .send({ resume: Buffer.from('%PDF-1.4 fake pdf content').toString('base64') })
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .attach('resume', ole2, { filename: 'cv.doc', contentType: 'application/msword' })
+      .expect(201);
+    expect(res.body.data.id).toBeDefined();
+
+    const detail = await request(app.getHttpServer())
+      .get(`/api/resumes/${res.body.data.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(detail.body.data.fileType).toBe('doc');
+  });
+
+  it('rejects a non-resume file extension', async () => {
+    await request(app.getHttpServer())
+      .post('/api/resumes')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .attach('resume', Buffer.from('MZ this is an exe'), {
+        filename: 'malware.exe',
+        contentType: 'application/x-msdownload',
+      })
+      .expect(400);
+  });
+
+  it('rejects an oversized file (>5MB)', async () => {
+    const big = Buffer.alloc(5 * 1024 * 1024 + 1, 0x41);
+    // Give it a valid PDF header so only the size limit is tripped.
+    Buffer.from('%PDF-1.4').copy(big);
+    await request(app.getHttpServer())
+      .post('/api/resumes')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .attach('resume', big, { filename: 'huge.pdf', contentType: 'application/pdf' })
+      .expect(413);
+  });
+
+  it('rejects content that does not match the claimed extension', async () => {
+    await request(app.getHttpServer())
+      .post('/api/resumes')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .attach('resume', Buffer.from('<script>alert(1)</script>'), {
+        filename: 'fake.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(422);
+  });
+
+  it('sanitizes path-traversal-style filenames', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/resumes')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .attach('resume', Buffer.from('%PDF-1.4 traversal'), {
+        filename: '../../etc/evil.pdf',
+        contentType: 'application/pdf',
+      })
       .expect(201);
 
-    const resumeId = uploadRes.body.data.id;
+    expect(res.body.data.originalName.includes('..')).toBe(false);
+    expect(res.body.data.originalName.includes('/')).toBe(false);
+  });
 
-    // Now delete it
+  it('allows the owner to download their resume', async () => {
+    const up = await request(app.getHttpServer())
+      .post('/api/resumes')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .attach('resume', attachPdf('download.pdf', '%PDF-1.4 downloadable'), {
+        filename: 'download.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    const id = up.body.data.id;
+
+    const dl = await request(app.getHttpServer())
+      .get(`/api/resumes/${id}/download`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(dl.headers['content-disposition']).toContain('attachment');
+    expect(dl.headers['content-type']).toContain('application/pdf');
+    const body = Buffer.isBuffer(dl.body) ? dl.body.toString('utf-8') : dl.text;
+    expect(body).toContain('%PDF-1.4');
+  });
+
+  it('blocks another user from reading/downloading/replacing/deleting a resume', async () => {
+    const up = await request(app.getHttpServer())
+      .post('/api/resumes')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .attach('resume', attachPdf(), {
+        filename: 'private.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    const id = up.body.data.id;
+
     await request(app.getHttpServer())
-      .delete(`/api/resumes/${resumeId}`)
-      .set('Authorization', 'Bearer test-token')
+      .get(`/api/resumes/${id}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .get(`/api/resumes/${id}/download`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .delete(`/api/resumes/${id}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .patch(`/api/resumes/${id}`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .attach('resume', attachPdf(), { filename: 'evildoer.pdf', contentType: 'application/pdf' })
+      .expect(404);
+  });
+
+  it('does not allow downloading a soft-deleted resume', async () => {
+    const up = await request(app.getHttpServer())
+      .post('/api/resumes')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .attach('resume', attachPdf('todelete.pdf', '%PDF-1.4 doomed'), {
+        filename: 'todelete.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+    const id = up.body.data.id;
+
+    await request(app.getHttpServer())
+      .delete(`/api/resumes/${id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
 
-    // Verify it's gone from listing
     await request(app.getHttpServer())
+      .get(`/api/resumes/${id}/download`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(404);
+  });
+
+  it('lists only the authenticated user’s own resumes', async () => {
+    const list = await request(app.getHttpServer())
       .get('/api/resumes')
-      .set('Authorization', 'Bearer test-token')
+      .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
+    expect(Array.isArray(list.body.data.data)).toBe(true);
+    for (const item of list.body.data.data) {
+      expect(item.storagePath).toBeUndefined();
+      expect(item.storageName).toBeUndefined();
+    }
   });
 });

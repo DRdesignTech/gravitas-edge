@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, UserStatus } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -172,7 +173,7 @@ export class AdminUsersService {
     const newUser = await this.prisma.user.create({
       data: {
         email,
-        passwordHash: password,
+        passwordHash: await bcrypt.hash(password, 12),
         status,
         roles: role ? { create: { role: { connect: { name: role } } } } : undefined,
       },

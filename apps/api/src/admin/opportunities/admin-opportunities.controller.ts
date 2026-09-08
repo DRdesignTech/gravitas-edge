@@ -16,6 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { memoryStorage } from 'multer';
 import { Request } from 'express';
 import { AdminOpportunitiesService } from './admin-opportunities.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
@@ -77,7 +78,12 @@ export class AdminOpportunitiesController {
 
   @Post('import')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    }),
+  )
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Import opportunities from CSV/Excel file' })
   import(

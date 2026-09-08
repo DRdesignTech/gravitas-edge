@@ -22,7 +22,7 @@ const prisma = new PrismaClient();
 
 const DEMO_USER_EMAILS: string[] = [];
 for (let i = 1; i <= 20; i++) DEMO_USER_EMAILS.push(`demo.user${i}@example.com`);
-DEMO_USER_EMAILS.push('ay677607@gmail.com');
+DEMO_USER_EMAILS.push(process.env.SEED_ADMIN_EMAIL ?? 'admin@gravitasedge.local');
 
 async function main() {
   console.log('Resetting development demo data...');

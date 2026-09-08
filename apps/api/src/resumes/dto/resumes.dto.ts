@@ -64,9 +64,6 @@ export class ResumeResponseDto {
   @ApiProperty({ example: 'local' })
   storageProvider: string;
 
-  @ApiProperty({ example: 'resumes/c4a6e872-1a2b-3c4d-5e6f-7g8h9i0j1k2l/resume.pdf' })
-  storagePath: string;
-
   @ApiProperty({ example: 'UPLOADED' })
   uploadStatus: string;
 

@@ -15,6 +15,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AdminSubscriptionsService } from './admin-subscriptions.service';
+import { CreateSubscriptionDto, UpdateSubscriptionDto } from './dto/admin-subscription.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -45,7 +46,7 @@ export class AdminSubscriptionsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a subscription for a user' })
   create(
-    @Body() dto: { userId: string; planId: string; startDate?: string; endDate?: string },
+    @Body() dto: CreateSubscriptionDto,
     @CurrentUser() actor: AuthenticatedUser,
     @Req() req: Request,
   ) {
@@ -64,7 +65,7 @@ export class AdminSubscriptionsController {
   @ApiOperation({ summary: 'Update a subscription' })
   update(
     @Param('id') id: string,
-    @Body() dto: { status?: string },
+    @Body() dto: UpdateSubscriptionDto,
     @CurrentUser() actor: AuthenticatedUser,
     @Req() req: Request,
   ) {

@@ -20,6 +20,13 @@ const prisma = new PrismaClient();
 const DEMO_PASSWORD = 'Demo@1234';
 const DEMO_HASH_ROUNDS = 12;
 
+// Admin credentials are read from the environment so real credentials are
+// never committed to source. The email default below matches the legacy
+// dev-only demo admin so existing local databases and reset-demo.ts keep
+// working; override via SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD.
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'admin@gravitasedge.local';
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? 'Demo@1234';
+
 // Deterministic pseudo-random generator so re-seeding is stable / idempotent.
 function mulberry32(seed: number) {
   return function () {
@@ -223,20 +230,21 @@ async function main() {
 
   // ---------------------------------------------------------------------------
   // ADMIN ACCOUNT (DEVELOPMENT/DEMO ONLY)
-  //   Email: ay677607@gmail.com   Password: aman1234   Role: ADMIN
+  //   Email:      SEED_ADMIN_EMAIL  (env override)
+  //   Password:   SEED_ADMIN_PASSWORD  (env override)
   // ---------------------------------------------------------------------------
   const admin = await prisma.user.upsert({
-    where: { email: 'ay677607@gmail.com' },
+    where: { email: ADMIN_EMAIL },
     update: {
       status: 'ACTIVE',
       emailVerified: true,
       deletedAt: null,
-      passwordHash: await bcrypt.hash('aman1234', DEMO_HASH_ROUNDS),
+      passwordHash: await bcrypt.hash(ADMIN_PASSWORD, DEMO_HASH_ROUNDS),
     },
     create: {
-      email: 'ay677607@gmail.com',
+      email: ADMIN_EMAIL,
       phone: null,
-      passwordHash: await bcrypt.hash('aman1234', DEMO_HASH_ROUNDS),
+      passwordHash: await bcrypt.hash(ADMIN_PASSWORD, DEMO_HASH_ROUNDS),
       status: 'ACTIVE',
       emailVerified: true,
       createdAt: daysAgo(400),
@@ -253,11 +261,16 @@ async function main() {
 
   await prisma.userProfile.upsert({
     where: { userId: admin.id },
-    update: { fullName: 'Aman Yadav (Admin)' },
-    create: { userId: admin.id, fullName: 'Aman Yadav (Admin)' },
+    update: { fullName: 'Gravitas Edge Admin' },
+    create: { userId: admin.id, fullName: 'Gravitas Edge Admin' },
   });
 
-  console.log(`Admin account ready: ay677607@gmail.com / aman1234 (DEVELOPMENT ONLY)`);
+  // Never print credentials to console; document where they come from instead.
+  if (process.env.SEED_ADMIN_EMAIL) {
+    console.log(`Admin account ready (email from SEED_ADMIN_EMAIL).`);
+  } else {
+    console.log('Admin account ready (email from SEED_ADMIN_EMAIL env, or default dev value).');
+  }
 
   // ---------------------------------------------------------------------------
   // DEMO USERS (18 total) spread across the last 12 months
@@ -1216,13 +1229,13 @@ async function main() {
   console.log('==========================================================');
   console.log('Development seeding complete.');
   console.log('');
-  console.log('DEMO ADMIN LOGIN (DEVELOPMENT ONLY - NOT FOR PRODUCTION):');
-  console.log('  Email:    ay677607@gmail.com');
-  console.log('  Password: aman1234');
+  console.log('DEMO ADMIN LOGIN:');
+  console.log(`  Email:    ${ADMIN_EMAIL}`);
+  console.log('  Password: set via SEED_ADMIN_PASSWORD (does not echo it here)');
   console.log('  Role:     ADMIN');
   console.log('');
-  console.log('DEMO USER LOGINS (password for all): ' + DEMO_PASSWORD);
-  console.log('  e.g. demo.user1@example.com');
+  console.log('DEMO USER LOGINS (dev-only demo users):');
+  console.log('  e.g. demo.user1@example.com (password is the dev demo password, not echoed)');
   console.log('==========================================================');
 }
 
