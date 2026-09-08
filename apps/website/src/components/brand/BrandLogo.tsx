@@ -1,6 +1,6 @@
 import Image from 'next/image';
 
-export const BRAND_NAME = 'GRAVITS EDGE CONSULTANT';
+export const BRAND_NAME = 'Gravitas Edge Consulting';
 
 interface BrandLogoProps {
   className?: string;
@@ -17,9 +17,9 @@ export default function BrandLogo({
     <span className="flex items-center gap-2.5">
       <Image
         src="/brand/logo.png"
-        alt="Gravits Edge Consultant logo"
+        alt="Gravitas Edge Consulting logo"
         width={1459}
-        height={1078}
+        height={1278}
         priority
         className={className}
         style={{ objectFit: 'contain' }}

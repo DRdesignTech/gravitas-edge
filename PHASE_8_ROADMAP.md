@@ -1,4 +1,4 @@
-# Job Search Portal — Remaining Work Roadmap (Phase 8+)
+# Gravitas Edge Consulting — Remaining Work Roadmap (Phase 8+)
 
 Analysis Date: September 2026
 Client Requirements vs Current Implementation

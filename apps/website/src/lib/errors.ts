@@ -1,5 +1,5 @@
 /**
- * Human-friendly error handling for the Job Portal apps.
+ * Human-friendly error handling for the Gravitas Edge Consulting apps.
  *
  * Never lets raw Prisma/DB/network/stack messages leak to the user. Maps
  * structured API errors to clear, actionable copy and falls back to a safe

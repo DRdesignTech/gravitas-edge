@@ -42,7 +42,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <Card className="p-2">
           <div className="mb-2 text-center">
-            <BrandLogo className="mx-auto h-16 w-auto" showName={false} />
+            <BrandLogo className="mx-auto h-20 w-auto" showName={false} />
             <h1 className="mt-4 text-xl font-bold tracking-tight text-content sm:text-2xl">
               Admin Sign in
             </h1>

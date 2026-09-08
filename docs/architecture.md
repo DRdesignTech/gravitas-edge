@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Job Search Portal is a monorepo with three deployable applications and one
+The Gravitas Edge Consulting job platform is a monorepo with three deployable applications and one
 shared package, orchestrated with npm workspaces.
 
 ```
@@ -19,7 +19,7 @@ Website (Next.js :3000)                    Admin (Next.js :3001)
 
 ## Frontend (Next.js App Router)
 
-- `apps/website` — public-facing job portal for users
+- `apps/website` — public-facing job platform for users
 - `apps/admin` — internal administration panel
 - Both use App Router, TypeScript strict mode, Tailwind CSS
 - Both talk only to the backend via REST; never directly to PostgreSQL

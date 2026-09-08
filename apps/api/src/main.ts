@@ -36,8 +36,8 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('Job Portal API')
-    .setDescription('Job Search Portal REST API')
+    .setTitle('Gravitas Edge Consulting API')
+    .setDescription('Gravitas Edge Consulting REST API')
     .setVersion('1.0')
     .addTag('health')
     .addTag('auth')

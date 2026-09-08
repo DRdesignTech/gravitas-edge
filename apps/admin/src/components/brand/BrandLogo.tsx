@@ -17,7 +17,7 @@ export default function BrandLogo({
     <span className="flex items-center gap-2.5">
       <Image
         src="/brand/logo.png"
-        alt="Gravits Edge Consultant logo"
+        alt="Gravitas Edge Consulting logo"
         width={1459}
         height={1078}
         priority

@@ -33,7 +33,7 @@ const variantClasses: Record<ButtonVariant, string> = {
 
 const sizeClasses: Record<ButtonSize, string> = {
   sm: 'px-3 py-1.5 text-xs',
-  md: 'px-4 py-2 text-sm',
+  md: 'px-4 py-2.5 text-sm',
   lg: 'px-6 py-3 text-base',
 };
 
@@ -239,7 +239,7 @@ const badgeClasses: Record<BadgeVariant, string> = {
   info: 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400',
   neutral: 'bg-slate-50 text-slate-700 ring-slate-600/20 dark:bg-slate-500/10 dark:text-slate-300',
   premium:
-    'bg-gradient-to-r from-brand-600 to-violet-600 text-white ring-brand-500/30 dark:from-brand-500 dark:to-violet-500',
+    'bg-gradient-to-r from-brand-600 to-brand-400 text-white ring-brand-500/30 dark:from-brand-500 dark:to-brand-300',
 };
 
 export function Badge({ variant = 'neutral', className = '', children }: BadgeProps) {

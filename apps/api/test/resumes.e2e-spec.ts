@@ -61,9 +61,7 @@ describe('Resumes e2e', () => {
   });
 
   it('should return 401 for unauthorized access', async () => {
-    await request(app.getHttpServer())
-      .get('/api/resumes')
-      .expect(401);
+    await request(app.getHttpServer()).get('/api/resumes').expect(401);
   });
 
   it('should soft-delete a resume', async () => {

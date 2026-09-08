@@ -1,7 +1,7 @@
 {
   "name": "api",
   "version": "1.0.0",
-  "description": "Job Portal REST API",
+  "description": "Gravitas Edge Consulting REST API",
   "private": true,
   "scripts": {
     "build": "nest build",

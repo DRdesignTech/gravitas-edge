@@ -1,6 +1,6 @@
 # Railway Production Deployment
 
-This document describes the Railway native Nixpacks deployment for the Job Search Portal monorepo.
+This document describes the Railway native Nixpacks deployment for the Gravitas Edge Consulting job platform monorepo.
 
 ## Overview
 

@@ -1,7 +1,7 @@
 # Database Design
 
 This document describes the PostgreSQL schema (defined in `prisma/schema.prisma`)
-for the Job Search Portal. All access is through the NestJS API via Prisma.
+for the Gravitas Edge Consulting job platform. All access is through the NestJS API via Prisma.
 
 ## Entity Overview
 

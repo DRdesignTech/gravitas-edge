@@ -94,7 +94,7 @@ export default function PlansPage() {
                 }`}
               >
                 {allAccess && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-brand-600 to-violet-600 px-3 py-0.5 text-xs font-bold text-white shadow-sm">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-brand-600 to-brand-400 px-3 py-0.5 text-xs font-bold text-white shadow-sm">
                     MOST POPULAR
                   </span>
                 )}

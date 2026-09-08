@@ -60,7 +60,7 @@ export default function Header() {
             className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <BrandLogo
-              className="h-9 w-auto"
+              className="h-10 w-auto"
               nameClassName="text-base font-bold tracking-tight text-content sm:text-lg"
             />
           </Link>

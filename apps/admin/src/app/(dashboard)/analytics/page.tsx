@@ -55,7 +55,7 @@ const RANGE_OPTIONS: { value: string; label: string }[] = [
   { value: 'custom', label: 'Custom range' },
 ];
 
-const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#14b8a6'];
+const CHART_COLORS = ['#061B4F', '#008FEF', '#0B2D78', '#94BEF5', '#10b981', '#f59e0b', '#ef4444'];
 const AXIS_TICK = 'var(--color-content-faint)';
 const GRID_STROKE = 'var(--color-line)';
 
@@ -269,7 +269,7 @@ export default function AnalyticsPage() {
                     type="monotone"
                     dataKey="revenue"
                     name="Revenue"
-                    stroke="#6366f1"
+                    stroke="#061B4F"
                     strokeWidth={2}
                     activeDot={{ r: 6 }}
                   />
@@ -321,7 +321,7 @@ export default function AnalyticsPage() {
                     }}
                   />
                   <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
-                  <Bar dataKey="purchases" name="Purchases" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="purchases" name="Purchases" fill="#061B4F" radius={[4, 4, 0, 0]} />
                   <Bar
                     dataKey="activeUsers"
                     name="Active users"
@@ -351,7 +351,7 @@ export default function AnalyticsPage() {
                     cx="50%"
                     cy="50%"
                     outerRadius={90}
-                    fill="#8884d8"
+                    fill="#94BEF5"
                     label
                   >
                     {revenueChartData.map((_, i) => (
@@ -397,14 +397,14 @@ export default function AnalyticsPage() {
                     type="monotone"
                     dataKey="newUsers"
                     name="New users"
-                    stroke="#3b82f6"
+                    stroke="#008FEF"
                     strokeWidth={2}
                   />
                   <Line
                     type="monotone"
                     dataKey="totalUsers"
                     name="Total users"
-                    stroke="#8b5cf6"
+                    stroke="#0B2D78"
                     strokeWidth={2}
                   />
                 </LineChart>
@@ -505,7 +505,7 @@ export default function AnalyticsPage() {
                           color: 'var(--color-content)',
                         }}
                       />
-                      <Bar dataKey="value" name="Count" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="value" name="Count" fill="#061B4F" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -569,7 +569,7 @@ export default function AnalyticsPage() {
                     <Cell fill="#10b981" />
                     <Cell fill="#ef4444" />
                     <Cell fill="#f59e0b" />
-                    <Cell fill="#3b82f6" />
+                    <Cell fill="#008FEF" />
                   </Pie>
                   <Tooltip
                     contentStyle={{

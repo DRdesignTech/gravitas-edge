@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Query,
-  UploadedFile,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, UploadedFile } from '@nestjs/common';
 import { ParseFilePipe } from '@nestjs/common';
 import { MaxFileSizeValidator } from '@nestjs/common';
 import { FileTypeValidator } from '@nestjs/common';
@@ -43,7 +34,10 @@ export class ResumesController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new FileTypeValidator({ fileType: /^(application|image)\/(pdf|msword|vnd.openxmlformats-officedocument.wordprocessingml.document)$/ }),
+          new FileTypeValidator({
+            fileType:
+              /^(application|image)\/(pdf|msword|vnd.openxmlformats-officedocument.wordprocessingml.document)$/,
+          }),
         ],
         fileIsRequired: true,
       }),
@@ -51,13 +45,7 @@ export class ResumesController {
     file: Express.Multer.File,
   ) {
     const buffer = file.buffer;
-    return this.resumesService.create(
-      user.id,
-      file.originalname,
-      file.mimetype,
-      file.size,
-      buffer,
-    );
+    return this.resumesService.create(user.id, file.originalname, file.mimetype, file.size, buffer);
   }
 
   @Get()
@@ -77,10 +65,7 @@ export class ResumesController {
   @Get(':id/download')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Download resume file (authenticated stream)' })
-  download(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
-  ) {
+  download(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.resumesService.download(id, user.id);
   }
 
@@ -114,7 +99,10 @@ export class ResumesController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new FileTypeValidator({ fileType: /^(application|image)\/(pdf|msword|vnd.openxmlformats-officedocument.wordprocessingml.document)$/ }),
+          new FileTypeValidator({
+            fileType:
+              /^(application|image)\/(pdf|msword|vnd.openxmlformats-officedocument.wordprocessingml.document)$/,
+          }),
         ],
         fileIsRequired: true,
       }),

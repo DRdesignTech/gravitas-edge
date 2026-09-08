@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # =============================================================================
-# Gravits Edge Consultant — Job Search Portal (monorepo)
+# Gravitas Edge Consulting — job platform (monorepo)
 #
 # A single root Dockerfile for all three deployable services.
 #

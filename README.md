@@ -1,6 +1,6 @@
-# Job Search Portal
+# Gravitas Edge Consulting
 
-Production-grade monorepo for a Job Search Portal — local development only.
+Production-grade monorepo for the Gravitas Edge Consulting job platform — local development only.
 
 ## Architecture
 

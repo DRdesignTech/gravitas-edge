@@ -1,4 +1,4 @@
-// Prisma schema for Job Search Portal
+// Prisma schema for Gravitas Edge Consulting job platform
 // Run: npx prisma migrate dev / npx prisma db push
 // Generated client is placed in apps/api/node_modules/.prisma
 

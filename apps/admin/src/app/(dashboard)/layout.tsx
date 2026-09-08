@@ -142,10 +142,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className={`flex h-16 items-center gap-2.5 border-b border-line px-3 ${collapsed ? 'justify-center' : ''}`}
       >
         {collapsed ? (
-          <BrandLogo className="h-9 w-auto" showName={false} />
+          <BrandLogo className="h-10 w-auto" showName={false} />
         ) : (
           <>
-            <BrandLogo className="h-9 w-auto shrink-0" showName={false} />
+            <BrandLogo className="h-10 w-auto shrink-0" showName={false} />
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-content">{BRAND_NAME}</p>
               <p className="truncate text-[11px] text-content-muted">Admin Console</p>

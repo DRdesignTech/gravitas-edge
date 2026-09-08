@@ -1,12 +1,14 @@
-import { Injectable, UnprocessableEntityException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  UnprocessableEntityException,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../resumes/storage/storage.service';
 import { QueryResumesDto } from '../resumes/dto/resumes.dto';
 import { ResumeResponseDto } from '../resumes/dto/resumes.dto';
-import {
-  isValidResumeFile,
-  getExtension,
-} from '../resumes/validation/resume.validation';
+import { isValidResumeFile, getExtension } from '../resumes/validation/resume.validation';
 import { existsSync, createReadStream } from 'fs';
 
 @Injectable()
@@ -203,11 +205,7 @@ export class ResumesService {
       throw new NotFoundException('Resume not found');
     }
 
-    const { storageName: newStorageName } = this.storage.saveFile(
-      buffer,
-      originalName,
-      userId,
-    );
+    const { storageName: newStorageName } = this.storage.saveFile(buffer, originalName, userId);
 
     const updated = await this.prisma.resume.update({
       where: { id },

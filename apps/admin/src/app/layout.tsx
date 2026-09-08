@@ -10,8 +10,8 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: 'Gravits Edge Consultant — Admin Panel',
-  description: 'Gravits Edge Consultant Administration',
+  title: 'Gravitas Edge Consulting — Admin Panel',
+  description: 'Gravitas Edge Consulting Administration',
 };
 
 const themeScript = `

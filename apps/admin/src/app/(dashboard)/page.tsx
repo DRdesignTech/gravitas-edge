@@ -64,7 +64,7 @@ export default function DashboardHomePage() {
       value: stats.publishedOpportunities.toLocaleString(),
       sub: `${stats.totalOpportunities.toLocaleString()} total`,
       href: '/opportunities',
-      tint: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',
+      tint: 'bg-brand-100 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300',
     },
     {
       label: 'Active Vaults',
@@ -78,7 +78,7 @@ export default function DashboardHomePage() {
       value: formatMoney(stats.totalRevenue, 'INR').replace(/\.00$/, ''),
       sub: `${formatMoney(stats.monthlyRevenue, 'INR').replace(/\.00$/, '')} this month`,
       href: '/analytics',
-      tint: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+      tint: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
     },
   ];
 
@@ -93,7 +93,7 @@ export default function DashboardHomePage() {
     <div>
       <PageHeader
         title="Dashboard"
-        subtitle="Overview of your platform's health and performance."
+        subtitle="Overview of Gravitas Edge Consulting's health and performance."
         actions={
           <Button variant="secondary" size="sm" onClick={load} disabled={loading}>
             <RefreshIcon className="h-4 w-4" />
