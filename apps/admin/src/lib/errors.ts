@@ -15,11 +15,29 @@ export interface ApiErrorInfo {
   message: string;
 }
 
+export class ApiError extends Error {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 const GENERIC = 'Something went wrong. Please try again.';
 const NETWORK_HINTS = /failed to fetch|networkerror|load failed|fetch failed|econnrefused|socket/i;
 
 function inferKind(message: string, status?: number): ApiErrorKind {
-  if (status === 401) return 'session';
+  if (status === 401) {
+    // A failed login surfaces the API's message ("Invalid credentials",
+    // "Account is not active"); a real 401 from an authed call is an
+    // expired/invalid session.
+    if (/invalid credentials|account is not active|incorrect|email or password/i.test(message)) {
+      return 'auth';
+    }
+    return 'session';
+  }
   if (status === 403) return 'unauthorized';
   if (status === 404) return 'not_found';
   if (status === 422) return 'validation';
@@ -73,7 +91,8 @@ export function parseApiError(error: unknown, status?: number): ApiErrorInfo {
     .replace(/\s+at\s+\S+.*$/s, '')
     .trim();
 
-  const kind = inferKind(cleaned, status);
+  const errStatus = error instanceof ApiError ? error.status : undefined;
+  const kind = inferKind(cleaned, status ?? errStatus);
 
   const specificKinds: ApiErrorKind[] = ['auth', 'validation', 'conflict', 'not_found'];
   if (specificKinds.includes(kind)) {

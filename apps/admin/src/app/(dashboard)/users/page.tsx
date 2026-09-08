@@ -299,15 +299,6 @@ export default function UsersPage() {
             totalPages={data.meta.totalPages}
             onPageChange={setPage}
           />
-          <div className="mt-4">
-            <Button
-              onClick={() => setEditing(null)}
-              variant="primary"
-              className="hidden sm:inline-flex"
-            >
-              New User
-            </Button>
-          </div>
         </>
       ) : (
         <Card>

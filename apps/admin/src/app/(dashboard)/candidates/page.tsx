@@ -109,7 +109,11 @@ export default function CandidatesPage() {
       label: '',
       render: (u) => (
         <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => window.location.href = `/admin/candidates/${u.id}`}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => (window.location.href = `/admin/candidates/${u.id}`)}
+          >
             View
           </Button>
         </div>
@@ -181,7 +185,7 @@ export default function CandidatesPage() {
         <form className="grid gap-4 p-4 md:grid-cols-3">
           <Button
             type="button"
-            onClick={() => window.location.href = '/admin/candidates/create'}
+            onClick={() => (window.location.href = '/admin/candidates/create')}
             variant="primary"
           >
             Create Candidate
@@ -207,7 +211,7 @@ export default function CandidatesPage() {
             <Button
               variant="primary"
               className="hidden sm:inline-flex"
-              onClick={() => window.location.href = '/admin/candidates/create'}
+              onClick={() => (window.location.href = '/admin/candidates/create')}
             >
               New User
             </Button>
@@ -215,7 +219,10 @@ export default function CandidatesPage() {
         </>
       ) : (
         <Card>
-          <EmptyState title="No candidates found" description="Try adjusting your search or filters." />
+          <EmptyState
+            title="No candidates found"
+            description="Try adjusting your search or filters."
+          />
         </Card>
       )}
     </div>

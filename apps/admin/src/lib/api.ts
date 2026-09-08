@@ -1,8 +1,26 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+import { ApiError } from './errors';
+
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('admin_token');
+}
+
+async function toApiError(res: Response): Promise<ApiError> {
+  const text = await res.text().catch(() => '');
+  let message = `Error ${res.status}`;
+  if (text) {
+    try {
+      const json = JSON.parse(text);
+      const raw = json?.message;
+      if (Array.isArray(raw)) message = raw.join(' ');
+      else if (typeof raw === 'string' && raw.trim()) message = raw.trim();
+    } catch {
+      // not JSON; ignore
+    }
+  }
+  return new ApiError(message, res.status);
 }
 
 export async function apiFetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
@@ -16,18 +34,20 @@ export async function apiFetch<T = any>(path: string, options: RequestInit = {})
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
-  if (res.status === 401) {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_user');
-      window.location.href = '/login';
-    }
-    throw new Error('Unauthorized');
-  }
-
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(err.message || `Error ${res.status}`);
+    const apiErr = await toApiError(res);
+    // Only treat a 401 as session expiry when it came from an authenticated
+    // request. A failed login (no token attached) must surface its own
+    // message instead of redirecting.
+    if (res.status === 401 && token) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        window.location.href = '/login';
+      }
+      throw new ApiError(apiErr.message, 401);
+    }
+    throw apiErr;
   }
 
   const text = await res.text();
@@ -53,8 +73,7 @@ export async function uploadFile<T = any>(path: string, file: File): Promise<T> 
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers, body: formData });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Upload failed' }));
-    throw new Error(err.message || `Error ${res.status}`);
+    throw await toApiError(res);
   }
   const json = await res.json();
   return (json && json.success === true ? json.data : json) as T;

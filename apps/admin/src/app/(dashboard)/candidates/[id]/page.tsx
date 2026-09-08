@@ -4,14 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { adminGetUser } from '@/lib/services';
 import { User } from '@/lib/types';
-import {
-  Button,
-  Card,
-  Skeleton,
-  EmptyState,
-  ErrorState,
-  PageHeader,
-} from '@/components/ui';
+import { Button, Card, Skeleton, EmptyState, ErrorState, PageHeader } from '@/components/ui';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui';
@@ -21,19 +14,21 @@ export default function CandidateProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [resumes, setResumes] = useState<Array<{
-    id: string;
-    originalName: string;
-    fileType: string;
-    fileSize: number;
-    uploadStatus: string;
-    uploadedAt: string;
-  }>>([]);
+  const [resumes, setResumes] = useState<
+    Array<{
+      id: string;
+      originalName: string;
+      fileType: string;
+      fileSize: number;
+      uploadStatus: string;
+      uploadedAt: string;
+    }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { showToast } = useToast();
 
-const loadUser = async () => {
+  const loadUser = async () => {
     setLoading(true);
     setError('');
     try {
@@ -73,43 +68,34 @@ const loadUser = async () => {
 
   return (
     <div className="min-h-screen p-6">
-      <PageHeader
-        title={user.profile?.fullName || user.email}
-        subtitle={user.email}
-      />
+      <PageHeader title={user.profile?.fullName || user.email} subtitle={user.email} />
 
       <Card>
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <p className="font-medium text-content">
-              {user.profile?.fullName || user.email}
-            </p>
+            <p className="font-medium text-content">{user.profile?.fullName || user.email}</p>
             <p className="text-sm text-content-muted">{user.email}</p>
             {user.profile?.phone && (
-              <p className="mt-1 text-sm text-content-muted">
-                📱 {user.profile.phone}
-              </p>
+              <p className="mt-1 text-sm text-content-muted">📱 {user.profile.phone}</p>
             )}
             {user.profile?.location && (
-              <p className="mt-1 text-sm text-content-muted">
-                📍 {user.profile.location}
-              </p>
+              <p className="mt-1 text-sm text-content-muted">📍 {user.profile.location}</p>
             )}
             {user.profile?.yearsExperience !== undefined && (
               <p className="mt-2 text-sm">
-                {user.profile.yearsExperience}{user.profile.monthsExperience !== undefined ? ` ${user.profile.monthsExperience} months` : ''} yrs experience
+                {user.profile.yearsExperience}
+                {user.profile.monthsExperience !== undefined
+                  ? ` ${user.profile.monthsExperience} months`
+                  : ''}{' '}
+                yrs experience
               </p>
             )}
           </div>
           <div>
             <p className="font-medium text-content">Current Role</p>
-            <p className="mt-1 text-content-medium">
-              {user.profile?.currentJobTitle || '—'}
-            </p>
+            <p className="mt-1 text-content-medium">{user.profile?.currentJobTitle || '—'}</p>
             <p className="mt-1 text-content-medium">{user.profile?.currentCompany || '—'}</p>
-            <p className="mt-1 text-sm text-content-muted">
-              Joined {formatDate(user.createdAt)}
-            </p>
+            <p className="mt-1 text-sm text-content-muted">Joined {formatDate(user.createdAt)}</p>
           </div>
         </div>
       </Card>
@@ -123,7 +109,7 @@ const loadUser = async () => {
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => router.push(`/admin/candidates/${id}/resumes`) }
+              onClick={() => router.push(`/admin/candidates/${id}/resumes`)}
             >
               Manage Resumes
             </Button>
@@ -167,9 +153,7 @@ const loadUser = async () => {
                       </span>
                     </td>
                     <td className="py-4">
-                      <span className="text-xs text-content-muted">
-                        {formatDate(r.uploadedAt)}
-                      </span>
+                      <span className="text-xs text-content-muted">{formatDate(r.uploadedAt)}</span>
                     </td>
                     <td className="py-4">
                       <StatusBadge value={r.uploadStatus} />
@@ -178,7 +162,7 @@ const loadUser = async () => {
                       <a
                         href={`/api/resumes/${r.id}/download?token=${localStorage.getItem(
                           'admin_token',
-                        )}`}        
+                        )}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline text-xs font-medium"
@@ -190,11 +174,9 @@ const loadUser = async () => {
                         size="sm"
                         variant="danger"
                         onClick={() =>
-                          window.confirm(
-                            'Are you sure you want to delete this resume?',
-                          )
+                          window.confirm('Are you sure you want to delete this resume?')
                         }
-                        >
+                      >
                         Delete
                       </Button>
                     </td>
