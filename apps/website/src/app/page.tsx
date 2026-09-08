@@ -32,6 +32,20 @@ const features = [
   },
 ];
 
+function CheckIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={2.2}
+      stroke="currentColor"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const { user } = useAuth();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -60,7 +74,10 @@ export default function Home() {
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-line">
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-brand-50 to-transparent dark:from-brand-950/40" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-brand-50 via-surface to-surface dark:from-brand-950/40 dark:via-surface dark:to-surface" />
+        <div className="pointer-events-none absolute -top-32 left-1/4 -z-10 h-80 w-80 rounded-full bg-brand-300/25 blur-3xl dark:bg-brand-500/10" />
+        <div className="pointer-events-none absolute -top-24 right-10 -z-10 h-72 w-72 rounded-full bg-brand-400/20 blur-3xl dark:bg-brand-400/10" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,transparent_0%,rgb(var(--color-surface))_100%)]" />
         <div className="mx-auto max-w-7xl px-4 py-20 text-center sm:px-6 lg:px-8 lg:py-28">
           <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1 text-xs font-semibold text-brand-700 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-300">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
@@ -88,18 +105,40 @@ export default function Home() {
               </Button>
             </Link>
           </div>
+          <div className="mx-auto mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-2 text-sm text-content-muted">
+            <span className="inline-flex items-center gap-2">
+              <CheckIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              India + global roles
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <CheckIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              Free &amp; premium listings
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <CheckIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              Members-only referral vaults
+            </span>
+          </div>
         </div>
       </section>
 
       {/* Features */}
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mb-8 text-center">
+          <p className="text-xs font-semibold tracking-widest text-brand-600 uppercase dark:text-brand-400">
+            Why Gravitas Edge
+          </p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight text-content sm:text-3xl">
+            Everything you need to move forward
+          </h2>
+        </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((f) => (
             <div
               key={f.title}
-              className="rounded-2xl border border-line bg-surface p-6 shadow-card dark:bg-surface-elevated"
+              className="group rounded-2xl border border-line bg-surface p-6 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-xl dark:bg-brand-950">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-brand-100 bg-brand-50 text-2xl transition-transform duration-200 group-hover:scale-105 dark:border-brand-800 dark:bg-brand-950">
                 {f.icon}
               </div>
               <h3 className="mt-4 font-semibold text-content">{f.title}</h3>
@@ -111,9 +150,14 @@ export default function Home() {
 
       {/* Latest opportunities */}
       <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
-        <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-content">Latest Opportunities</h2>
+            <p className="text-xs font-semibold tracking-widest text-brand-600 uppercase dark:text-brand-400">
+              Fresh this week
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-content">
+              Latest Opportunities
+            </h2>
             <p className="mt-1 text-sm text-content-muted">Fresh roles added by our partners.</p>
           </div>
           <Link
@@ -152,9 +196,14 @@ export default function Home() {
       {/* Vaults */}
       <section className="border-t border-line bg-surface dark:bg-surface-elevated/50">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mb-6 flex items-center justify-between gap-4">
+          <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-content">Content Vaults</h2>
+              <p className="text-xs font-semibold tracking-widest text-brand-600 uppercase dark:text-brand-400">
+                Members only
+              </p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-content">
+                Content Vaults
+              </h2>
               <p className="mt-1 text-sm text-content-muted">
                 Members-only vaults of referrals and premium roles.
               </p>

@@ -107,10 +107,10 @@ export default function ResumesPage() {
 
   const doDelete = async (resumeId: string) => {
     try {
-      await fetch(
-        (process.env.NEXT_PUBLIC_API_URL || '/api') + `/resumes/${resumeId}`,
-        { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } },
-      );
+      await fetch((process.env.NEXT_PUBLIC_API_URL || '/api') + `/resumes/${resumeId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
       showToast('Resume deleted successfully', 'success');
       await loadResumes();
     } catch (e: any) {
