@@ -49,7 +49,14 @@ export class AdminSubscriptionsController {
     @CurrentUser() actor: AuthenticatedUser,
     @Req() req: Request,
   ) {
-    return this.adminSubscriptionsService.create(dto.userId, dto.planId, dto.startDate, dto.endDate, actor, this.clientIp(req));
+    return this.adminSubscriptionsService.create(
+      dto.userId,
+      dto.planId,
+      dto.startDate,
+      dto.endDate,
+      actor,
+      this.clientIp(req),
+    );
   }
 
   @Patch(':id')
@@ -67,11 +74,7 @@ export class AdminSubscriptionsController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete/soft-delete a subscription' })
-  remove(
-    @Param('id') id: string,
-    @CurrentUser() actor: AuthenticatedUser,
-    @Req() req: Request,
-  ) {
+  remove(@Param('id') id: string, @CurrentUser() actor: AuthenticatedUser, @Req() req: Request) {
     return this.adminSubscriptionsService.remove(id, actor, this.clientIp(req));
   }
 

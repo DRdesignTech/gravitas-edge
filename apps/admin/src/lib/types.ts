@@ -141,6 +141,121 @@ export const EMPLOYMENT_TYPES = [
 ] as const;
 export const ROLES = ['USER', 'ADMIN'] as const;
 
+export interface UserSummary {
+  id: string;
+  email: string;
+  status?: string;
+  referralCode?: string | null;
+}
+
+export interface ReferralCommissionMin {
+  id: string;
+  status: string;
+  commissionAmount: number | string;
+  createdAt: string;
+}
+
+export interface Referral {
+  id: string;
+  referrerId: string;
+  referredUserId: string;
+  code: string;
+  referralLink?: string | null;
+  status: string;
+  successfulDate?: string | null;
+  invalidReason?: string | null;
+  suspendedReason?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+  referrer: UserSummary;
+  referredUser: UserSummary;
+  commissions: ReferralCommissionMin[];
+}
+
+export interface ReferralCommission {
+  id: string;
+  referralId: string;
+  subscriptionId?: string | null;
+  commissionPercentage: number | string;
+  commissionAmount: number | string;
+  subscriptionAmount: number | string;
+  status: string;
+  approvedDate?: string | null;
+  paidDate?: string | null;
+  payoutReference?: string | null;
+  rejectedReason?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  referral?: {
+    id: string;
+    code: string;
+    status: string;
+    successfulDate?: string | null;
+    referrer: { id: string; email: string };
+    referredUser: { id: string; email: string };
+  } | null;
+  subscription?: {
+    id: string;
+    status: string;
+    plan: { id: string; name: string; price: number; currency: string } | null;
+  } | null;
+}
+
+export interface ReferralSlab {
+  id: string;
+  minReferrals: number;
+  maxReferrals?: number | null;
+  commissionPercentage: number | string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ReferralSlabList {
+  items: ReferralSlab[];
+}
+
+export interface AdminReferralQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+  fromDate?: string;
+  toDate?: string;
+}
+
+export interface AdminCommissionQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}
+
+export const REFERRAL_STATUSES = ['PENDING', 'SUCCESSFUL', 'INVALID', 'SUSPENDED'] as const;
+export const COMMISSION_STATUSES = [
+  'PENDING',
+  'APPROVED',
+  'PAID',
+  'REJECTED',
+  'CANCELLED',
+] as const;
+
+export const REFERRAL_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pending',
+  SUCCESSFUL: 'Successful',
+  INVALID: 'Invalid',
+  SUSPENDED: 'Suspended',
+};
+
+export const COMMISSION_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pending',
+  APPROVED: 'Approved',
+  PAID: 'Paid',
+  REJECTED: 'Rejected',
+  CANCELLED: 'Cancelled',
+};
+
 export type DateRange = '7d' | '30d' | '90d' | '1y' | 'custom';
 
 export interface AnalyticsOverview {

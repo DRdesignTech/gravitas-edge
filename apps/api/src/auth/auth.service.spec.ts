@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { ReferralsService } from '../referrals/referrals.service';
 import { JwtPayload } from '../common/types/auth.types';
 
 jest.mock('bcryptjs');
@@ -15,6 +16,7 @@ describe('AuthService', () => {
   let prisma: any;
   let jwt: any;
   let audit: any;
+  let referrals: any;
 
   const userId = 'user-1';
   const email = 'user@example.com';
@@ -49,6 +51,10 @@ describe('AuthService', () => {
     }),
   });
 
+  const mockReferralsService = () => ({
+    attributeReferralInTx: jest.fn().mockResolvedValue(null),
+  });
+
   const mockPrismaService = () => {
     const store: any = {};
     return {
@@ -81,6 +87,7 @@ describe('AuthService', () => {
     prisma = mockPrismaService();
     jwt = mockJwtService();
     audit = mockAuditService();
+    referrals = mockReferralsService();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -89,6 +96,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: jwt },
         { provide: ConfigService, useValue: mockConfigService() },
         { provide: AuditService, useValue: audit },
+        { provide: ReferralsService, useValue: referrals },
       ],
     }).compile();
 
@@ -132,6 +140,36 @@ describe('AuthService', () => {
       expect(result.refreshToken).toBeDefined();
       expect((result.user as any).passwordHash).toBeUndefined();
       expect(bcrypt.hash).toHaveBeenCalledWith('StrongPass123!', 12);
+    });
+
+    it('attributes a referral when registration includes a referral code', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.role.findUnique.mockResolvedValue({ id: 'role-user', name: 'USER' });
+      prisma.$transaction.mockImplementation((fn: any) =>
+        fn({
+          user: {
+            create: async (d: any) => ({ id: userId, email: d.email, ...d }),
+            update: jest.fn(),
+            findUnique: async () => null,
+          },
+          role: { findUnique: async () => ({ id: 'role-user', name: 'USER' }) },
+          userRole: { create: jest.fn() },
+          userProfile: { create: jest.fn() },
+        }),
+      );
+      prisma.userRole.findMany.mockResolvedValue([{ role: { name: 'USER' } }]);
+      jwt.signAsync.mockResolvedValue('access').mockResolvedValueOnce('access');
+      (referrals.attributeReferralInTx as jest.Mock).mockResolvedValue({ id: 'referral-1' });
+
+      await service.register(
+        { email, password: 'StrongPass123!', referralCode: 'REF-6Q3MX7K2TY' },
+        '127.0.0.1',
+      );
+
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'REFERRAL_ATTRIBUTED', entityType: 'Referral' }),
+      );
     });
 
     it('rejects duplicate email', async () => {

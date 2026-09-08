@@ -11,10 +11,12 @@ import { AuditModule } from './audit/audit.module';
 import { VaultsModule } from './vaults/vaults.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
+import { ReferralsModule } from './referrals/referrals.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { ResumesModule } from './resumes/resumes.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     VaultsModule,
     SubscriptionsModule,
     OpportunitiesModule,
+    ReferralsModule,
+    ResumesModule,
   ],
   controllers: [HealthController],
   providers: [

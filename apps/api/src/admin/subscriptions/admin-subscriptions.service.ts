@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionAccessService } from '../../access/subscription-access.service';
+import { ReferralsService } from '../../referrals/referrals.service';
 
 @Injectable()
 export class AdminSubscriptionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: SubscriptionAccessService,
+    private readonly referrals: ReferralsService,
   ) {}
 
   async list(query: { page?: number; limit?: number; userId?: string; status?: string }) {
@@ -95,7 +97,14 @@ export class AdminSubscriptionsService {
     };
   }
 
-  async create(userId: string, planId: string, startDate?: string, endDate?: string, _actor?: { id: string }, _ipAddress?: string) {
+  async create(
+    userId: string,
+    planId: string,
+    startDate?: string,
+    endDate?: string,
+    _actor?: { id: string },
+    _ipAddress?: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -150,7 +159,15 @@ export class AdminSubscriptionsService {
       data: { status: status as any },
     });
 
-    return this.findOne(id);
+    // Confirmed-success point: a subscription that becomes ACTIVE (or is
+    // confirmed to be within its validity window) accrues the referral
+    // commission if the user was referred.
+    const updated = await this.findOne(id);
+    if (this.access.effectiveStatus(updated) === 'ACTIVE') {
+      await this.referrals.handleSubscriptionActivated(id);
+    }
+
+    return updated;
   }
 
   async remove(id: string, actor: { id: string }, _ipAddress?: string) {

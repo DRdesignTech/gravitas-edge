@@ -9,6 +9,7 @@ const nav = [
   { href: '/dashboard/profile', label: 'My Profile' },
   { href: '/dashboard/subscriptions', label: 'My Subscriptions' },
   { href: '/dashboard/vaults', label: 'My Vaults' },
+  { href: '/dashboard/referrals', label: 'Referrals' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

@@ -18,15 +18,15 @@ export function formatDateTime(value?: string | null): string {
   });
 }
 
-export function formatMoney(amount: number, currency: string): string {
+export function formatMoney(amount: number | string, currency: string): string {
   try {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(Number(amount));
   } catch {
-    return `${currency} ${amount}`;
+    return `${currency} ${Number(amount) || 0}`;
   }
 }
 

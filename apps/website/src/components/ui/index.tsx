@@ -255,7 +255,16 @@ export function Badge({ variant = 'neutral', className = '', children }: BadgePr
 /** Map a raw status string to a Badge variant. */
 export function statusVariant(status?: string | null): BadgeVariant {
   const s = (status || '').toUpperCase();
-  if (s === 'ACTIVE' || s === 'PUBLISHED' || s === 'SUCCESS' || s === 'UNLOCKED') return 'success';
+  if (
+    s === 'ACTIVE' ||
+    s === 'PUBLISHED' ||
+    s === 'SUCCESS' ||
+    s === 'SUCCESSFUL' ||
+    s === 'UNLOCKED' ||
+    s === 'APPROVED' ||
+    s === 'PAID'
+  )
+    return 'success';
   if (s === 'PENDING' || s === 'DRAFT' || s === 'INACTIVE' || s === 'EXPIRING') return 'warning';
   if (
     s === 'EXPIRED' ||
@@ -263,7 +272,9 @@ export function statusVariant(status?: string | null): BadgeVariant {
     s === 'FAILED' ||
     s === 'ARCHIVED' ||
     s === 'SUSPENDED' ||
-    s === 'LOCKED'
+    s === 'LOCKED' ||
+    s === 'INVALID' ||
+    s === 'REJECTED'
   )
     return 'danger';
   return 'neutral';

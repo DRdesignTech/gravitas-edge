@@ -5,6 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { ReferralsService } from '../referrals/referrals.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from '../common/types/auth.types';
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly audit: AuditService,
+    private readonly referrals: ReferralsService,
   ) {}
 
   private get accessExpiresIn(): string {
@@ -60,7 +62,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    const user = await this.prisma.$transaction(async (tx) => {
+    const { user, attributedReferral } = await this.prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
         data: {
           email,
@@ -86,8 +88,25 @@ export class AuthService {
         });
       }
 
-      return created;
+      const attribution = dto.referralCode
+        ? await this.referrals.attributeReferralInTx(tx, dto.referralCode, created.id)
+        : null;
+
+      return { user: created, attributedReferral: attribution };
     });
+
+    if (attributedReferral) {
+      // Recorded after commit: interactive transactions hold a DB connection,
+      // and the audit write uses a separate one to avoid pool contention.
+      await this.audit.record({
+        action: 'REFERRAL_ATTRIBUTED',
+        entityType: 'Referral',
+        entityId: attributedReferral.id,
+        actorUserId: user.id,
+        ipAddress,
+        details: { referralCode: dto.referralCode ?? null },
+      });
+    }
 
     const roles = await this.getUserRoles(user.id);
     const tokens = await this.issueTokens(user.id, user.email, roles);

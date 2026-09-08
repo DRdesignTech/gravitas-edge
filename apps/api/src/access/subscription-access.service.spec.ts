@@ -1,6 +1,13 @@
 import { Test } from '@nestjs/testing';
 import { SubscriptionAccessService } from './subscription-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReferralsService } from '../referrals/referrals.service';
+
+function mockReferralsService() {
+  return {
+    handleSubscriptionActivated: jest.fn().mockResolvedValue(undefined),
+  } as any;
+}
 
 function mockPrismaService() {
   return {
@@ -24,11 +31,17 @@ function mockPrismaService() {
 describe('SubscriptionAccessService', () => {
   let service: SubscriptionAccessService;
   let prisma: ReturnType<typeof mockPrismaService>;
+  let referrals: ReturnType<typeof mockReferralsService>;
 
   beforeEach(async () => {
     prisma = mockPrismaService();
+    referrals = mockReferralsService();
     const moduleRef = await Test.createTestingModule({
-      providers: [SubscriptionAccessService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        SubscriptionAccessService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: ReferralsService, useValue: referrals },
+      ],
     }).compile();
     service = moduleRef.get(SubscriptionAccessService);
   });

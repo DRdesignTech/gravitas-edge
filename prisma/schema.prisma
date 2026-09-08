@@ -134,6 +134,7 @@ model User {
   passwordHash          String?
   status                UserStatus @default(ACTIVE)
   emailVerified         Boolean    @default(false)
+  referralCode          String?    @unique
   refreshTokenHash      String?
   refreshTokenExpiresAt DateTime?
   createdAt             DateTime   @default(now())
@@ -411,7 +412,7 @@ model Referral {
   id              String         @id @default(uuid())
   referrerId      String
   referredUserId  String
-  code            String         @unique
+  code            String
   referralLink    String?
   status          ReferralStatus @default(PENDING)
   successfulDate  DateTime?

@@ -17,8 +17,10 @@ const navLinks = [
 const userMenuLinks = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/dashboard/profile', label: 'My Profile' },
+  { href: '/dashboard/resumes', label: 'Resumes' },
   { href: '/dashboard/subscriptions', label: 'My Subscriptions' },
   { href: '/dashboard/vaults', label: 'My Vaults' },
+  { href: '/dashboard/referrals', label: 'Referrals' },
 ];
 
 function initials(name?: string | null, email?: string) {

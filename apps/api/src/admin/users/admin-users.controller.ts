@@ -59,22 +59,14 @@ export class AdminUsersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new user' })
-  create(
-    @Body() dto: CreateUserDto,
-    @CurrentUser() actor: AuthenticatedUser,
-    @Req() req: Request,
-  ) {
+  create(@Body() dto: CreateUserDto, @CurrentUser() actor: AuthenticatedUser, @Req() req: Request) {
     return this.adminUsersService.create(dto, actor, this.clientIp(req));
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete/soft-delete a user' })
-  remove(
-    @Param('id') id: string,
-    @CurrentUser() actor: AuthenticatedUser,
-    @Req() req: Request,
-  ) {
+  remove(@Param('id') id: string, @CurrentUser() actor: AuthenticatedUser, @Req() req: Request) {
     return this.adminUsersService.remove(id, actor, this.clientIp(req));
   }
 

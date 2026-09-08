@@ -11,12 +11,19 @@ import { AdminSubscriptionsController } from './subscriptions/admin-subscription
 import { AdminSubscriptionsService } from './subscriptions/admin-subscriptions.service';
 import { AdminOpportunitiesController } from './opportunities/admin-opportunities.controller';
 import { AdminOpportunitiesService } from './opportunities/admin-opportunities.service';
+import {
+  AdminCommissionsController,
+  AdminReferralsController,
+  AdminReferralSlabsController,
+} from './referrals/admin-referrals.controller';
+import { AdminReferralsService } from './referrals/admin-referrals.service';
 import { AuditModule } from '../audit/audit.module';
 import { AccessModule } from '../access/access.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ReferralsModule } from '../referrals/referrals.module';
 
 @Module({
-  imports: [AuditModule, AccessModule, AnalyticsModule],
+  imports: [AuditModule, AccessModule, AnalyticsModule, ReferralsModule],
   controllers: [
     AdminUsersController,
     AdminVaultsController,
@@ -24,6 +31,9 @@ import { AnalyticsModule } from './analytics/analytics.module';
     SubscriptionPlansController,
     AdminSubscriptionsController,
     AdminOpportunitiesController,
+    AdminReferralsController,
+    AdminCommissionsController,
+    AdminReferralSlabsController,
   ],
   providers: [
     AdminUsersService,
@@ -32,6 +42,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     SubscriptionPlansService,
     AdminSubscriptionsService,
     AdminOpportunitiesService,
+    AdminReferralsService,
   ],
 })
 export class AdminModule {}

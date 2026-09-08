@@ -157,3 +157,120 @@ export const SUBSCRIPTION_STATUSES = [
 ] as const;
 
 export const OPPORTUNITY_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'EXPIRED'] as const;
+
+// ── Referral types ──────────────────────────────────────────────────
+
+export interface ReferralCode {
+  referralCode: string;
+  referralLink: string;
+}
+
+export interface ReferralSummary extends ReferralCode {
+  counts: {
+    totalReferrals: number;
+    successfulReferrals: number;
+    pendingReferrals: number;
+    invalidReferrals: number;
+    suspendedReferrals: number;
+  };
+  commissionTotalAmount: string;
+}
+
+export interface ReferralItem {
+  id: string;
+  referrerId: string;
+  referredUserId: string;
+  code: string;
+  referralLink: string | null;
+  status: string;
+  successfulDate: string | null;
+  invalidReason: string | null;
+  suspendedReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+  referredUser: {
+    id: string;
+    email: string;
+    status: string;
+  } | null;
+  commissions: {
+    id: string;
+    status: string;
+    commissionAmount: string;
+  }[];
+}
+
+export interface CommissionItem {
+  id: string;
+  referralId: string;
+  subscriptionId: string | null;
+  commissionPercentage: string;
+  commissionAmount: string;
+  subscriptionAmount: string;
+  status: string;
+  approvedDate: string | null;
+  paidDate: string | null;
+  payoutReference: string | null;
+  rejectedReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  referral: {
+    id: string;
+    referredUser: {
+      id: string;
+      email: string;
+    } | null;
+    successfulDate: string | null;
+  } | null;
+  subscription: {
+    id: string;
+    plan: {
+      id: string;
+      name: string;
+    } | null;
+  } | null;
+}
+
+export interface CommissionStatistics {
+  counts: {
+    total: number;
+    pending: number;
+    approved: number;
+    paid: number;
+    rejected: number;
+    cancelled: number;
+  };
+  totalCommissionAmount: string;
+}
+
+export const REFERRAL_STATUSES = ['PENDING', 'SUCCESSFUL', 'INVALID', 'SUSPENDED'] as const;
+
+export const COMMISSION_STATUSES = [
+  'PENDING',
+  'APPROVED',
+  'PAID',
+  'REJECTED',
+  'CANCELLED',
+] as const;
+
+export interface ReferralQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+}
+
+export interface CommissionQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+}
+
+export interface Resume {
+  id: string;
+  originalName: string;
+  fileType: string;
+  fileSize: number;
+  uploadStatus?: string;
+  uploadedAt: string;
+}

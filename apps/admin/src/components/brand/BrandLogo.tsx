@@ -1,6 +1,6 @@
 import Image from 'next/image';
 
-export const BRAND_NAME = 'GRAVITS EDGE CONSULTANT';
+export const BRAND_NAME = 'Gravitas Edge Consulting';
 
 interface BrandLogoProps {
   className?: string;

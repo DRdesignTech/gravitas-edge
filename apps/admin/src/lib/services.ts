@@ -13,6 +13,12 @@ import {
   VaultAnalytics,
   OpportunityAnalytics,
   UsersAnalytics,
+  Referral,
+  ReferralCommission,
+  ReferralSlab,
+  ReferralSlabList,
+  AdminReferralQuery,
+  AdminCommissionQuery,
 } from './types';
 
 export interface UserQuery {
@@ -199,6 +205,50 @@ export function adminUpdateOpportunity(
 
 export function adminDeleteOpportunity(id: string) {
   return api.del(`/admin/opportunities/${id}`);
+}
+
+export function adminListReferrals(query: AdminReferralQuery = {}) {
+  return api.get<PaginatedResult<Referral>>(`/admin/referrals${qs(query)}`);
+}
+
+export function adminGetReferral(id: string) {
+  return api.get<Referral>(`/admin/referrals/${id}`);
+}
+
+export function adminSuspendReferral(id: string, body: { reason: string }) {
+  return api.post<Referral>(`/admin/referrals/${id}/suspend`, body);
+}
+
+export function adminListCommissions(query: AdminCommissionQuery = {}) {
+  return api.get<PaginatedResult<ReferralCommission>>(`/admin/commissions${qs(query)}`);
+}
+
+export function adminGetCommission(id: string) {
+  return api.get<ReferralCommission>(`/admin/commissions/${id}`);
+}
+
+export function adminApproveCommission(id: string, body: { note?: string } = {}) {
+  return api.post<ReferralCommission>(`/admin/commissions/${id}/approve`, body);
+}
+
+export function adminRejectCommission(id: string, body: { reason: string }) {
+  return api.post<ReferralCommission>(`/admin/commissions/${id}/reject`, body);
+}
+
+export function adminPayCommission(id: string, body: { payoutReference?: string } = {}) {
+  return api.post<ReferralCommission>(`/admin/commissions/${id}/pay`, body);
+}
+
+export function adminCancelCommission(id: string, body: { reason?: string } = {}) {
+  return api.post<ReferralCommission>(`/admin/commissions/${id}/cancel`, body);
+}
+
+export function adminListReferralSlabs() {
+  return api.get<ReferralSlabList>('/admin/referral-slabs');
+}
+
+export function adminUpdateReferralSlab(id: string, body: Partial<ReferralSlab>) {
+  return api.patch<ReferralSlab>(`/admin/referral-slabs/${id}`, body);
 }
 
 export function adminImportOpportunities(file: File) {

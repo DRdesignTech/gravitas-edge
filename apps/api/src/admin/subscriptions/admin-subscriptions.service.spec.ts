@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { AdminSubscriptionsService } from './admin-subscriptions.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionAccessService } from '../../access/subscription-access.service';
+import { ReferralsService } from '../../referrals/referrals.service';
 
 function mockPrismaService() {
   return {
@@ -10,6 +11,8 @@ function mockPrismaService() {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       count: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn(),
     },
     $transaction: jest.fn(async (fns: any[]) => {
       const results = [];
@@ -24,6 +27,12 @@ function mockPrismaService() {
 function mockAccessService() {
   return {
     effectiveStatus: jest.fn(),
+  } as any;
+}
+
+function mockReferralsService() {
+  return {
+    handleSubscriptionActivated: jest.fn().mockResolvedValue(undefined),
   } as any;
 }
 
@@ -53,6 +62,7 @@ describe('AdminSubscriptionsService', () => {
         AdminSubscriptionsService,
         { provide: PrismaService, useValue: prisma },
         { provide: SubscriptionAccessService, useValue: access },
+        { provide: ReferralsService, useValue: mockReferralsService() },
       ],
     }).compile();
     service = moduleRef.get(AdminSubscriptionsService);

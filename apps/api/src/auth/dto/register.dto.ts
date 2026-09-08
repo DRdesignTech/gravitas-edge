@@ -36,4 +36,14 @@ export class RegisterDto {
   @IsString()
   @MaxLength(255)
   location?: string;
+
+  @ApiPropertyOptional({
+    example: 'REF-6Q3MX7K2TY',
+    description: 'Referral code of the user who invited you (optional)',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^REF-[A-Z2-9]{10}$/, { message: 'referralCode must be a valid referral code' })
+  @MaxLength(32)
+  referralCode?: string;
 }

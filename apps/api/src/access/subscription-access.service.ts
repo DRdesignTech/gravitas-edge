@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReferralsService } from '../referrals/referrals.service';
 
 export interface VaultAccessEntry {
   vaultId: string;
@@ -30,7 +31,10 @@ export type EffectiveSubscriptionStatus = SubscriptionStatus | 'ACTIVE';
  */
 @Injectable()
 export class SubscriptionAccessService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly referrals: ReferralsService,
+  ) {}
 
   /**
    * Compute the effective status of a subscription without mutating the row.
@@ -183,8 +187,8 @@ export class SubscriptionAccessService {
     const endDate =
       options.endDate ?? new Date(startDate.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
 
-    return this.prisma.$transaction(async (tx) => {
-      const subscription = await tx.subscription.create({
+    const subscription = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.subscription.create({
         data: {
           userId,
           planId,
@@ -198,16 +202,24 @@ export class SubscriptionAccessService {
       if (plan.vaults.length > 0) {
         await tx.subscriptionVaultAccess.createMany({
           data: plan.vaults.map((v) => ({
-            subscriptionId: subscription.id,
+            subscriptionId: created.id,
             vaultId: v.vaultId,
           })),
         });
       }
 
       return tx.subscription.findUniqueOrThrow({
-        where: { id: subscription.id },
+        where: { id: created.id },
         include: { vaultAccess: true, plan: true },
       });
     });
+
+    // Confirmed-success point: a newly activated (paid) subscription triggers
+    // referral commission accrual for the referrer (best-effort, non-blocking).
+    if (this.effectiveStatus(subscription) === 'ACTIVE') {
+      await this.referrals.handleSubscriptionActivated(subscription.id);
+    }
+
+    return subscription;
   }
 }

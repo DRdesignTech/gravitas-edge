@@ -1,11 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Button, Card, Input, Alert, useToast } from '@/components/ui';
 import BrandLogo, { BRAND_NAME } from '@/components/brand/BrandLogo';
 import { getErrorMessage } from '@/lib/errors';
+
+const REFERRAL_CODE_RE = /^REF-[A-Z2-9]{10}$/;
 
 interface FieldErrors {
   fullName?: string;
@@ -14,7 +17,12 @@ interface FieldErrors {
   confirm?: string;
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const searchParams = useSearchParams();
+  const refParam = searchParams.get('ref');
+  const referralCode = refParam && REFERRAL_CODE_RE.test(refParam) ? refParam : null;
+  const invalidReferralCode = refParam && !referralCode;
+
   const { register } = useAuth();
   const { showToast } = useToast();
   const [fullName, setFullName] = useState('');
@@ -41,7 +49,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register(fullName.trim(), email.trim(), password);
+      await register(fullName.trim(), email.trim(), password, referralCode ?? undefined);
       showToast(`Account created! Welcome to ${BRAND_NAME}.`, 'success');
     } catch (err) {
       const message = getErrorMessage(err);
@@ -65,6 +73,20 @@ export default function RegisterPage() {
               Start discovering your next opportunity with {BRAND_NAME}.
             </p>
           </div>
+
+          {invalidReferralCode && (
+            <Alert variant="warning" className="mb-4">
+              The referral link you used contains an invalid code. You can still create an account
+              without a referral.
+            </Alert>
+          )}
+
+          {referralCode && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
+              You were referred with code{' '}
+              <span className="font-mono font-semibold">{referralCode}</span>
+            </div>
+          )}
 
           {error && (
             <Alert variant="error" className="mb-4">
@@ -141,5 +163,13 @@ export default function RegisterPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }

@@ -10,7 +10,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, referralCode?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -57,12 +57,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/dashboard');
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    const res = await api.post<{ accessToken: string; user: User }>('/auth/register', {
+  const register = async (name: string, email: string, password: string, referralCode?: string) => {
+    const body: Record<string, string> = {
       fullName: name,
       email,
       password,
-    });
+    };
+    if (referralCode) body.referralCode = referralCode;
+    const res = await api.post<{ accessToken: string; user: User }>('/auth/register', body);
     const token = res.accessToken ?? (res as any).access_token;
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(res.user));
