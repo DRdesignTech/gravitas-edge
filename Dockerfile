@@ -96,9 +96,9 @@ ENV APP=$APP
 # Writable local-storage dir (multer local driver)
 RUN mkdir -p /app/storage && chown -R node:node /app/storage
 
-COPY --from=prod --chown=node:node /app/node_modules ./node_modules
-COPY --from=prod --chown=node:node /app/prisma ./prisma
-COPY --from=prod --chown=node:node /app/package.json ./package.json
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=deps --chown=node:node /app/prisma ./prisma
+COPY --from=deps --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/apps ./apps
 COPY --from=build --chown=node:node /app/packages ./packages
 
