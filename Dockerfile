@@ -28,6 +28,9 @@ FROM node:${NODE_VERSION}-slim AS deps
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Install OpenSSL for Prisma
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+
 # Copy manifests first for better layer caching
 COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
@@ -89,6 +92,9 @@ WORKDIR /app
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
+
+# Install OpenSSL for Prisma (runtime: prisma migrate deploy)
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 ARG APP=api
 ENV APP=$APP
