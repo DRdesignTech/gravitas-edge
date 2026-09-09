@@ -15,14 +15,25 @@ const EMPTY: AnalyticsOverview = {
   expiredSubscriptions: 0,
   cancelledSubscriptions: 0,
   pendingSubscriptions: 0,
+  failedSubscriptions: 0,
   totalOpportunities: 0,
   publishedOpportunities: 0,
   totalPlans: 0,
   activePlans: 0,
   totalVaults: 0,
   activeVaults: 0,
-  totalRevenue: 0,
+  grossRevenue: 0,
   monthlyRevenue: 0,
+  refundedCount: 0,
+  refundedAmount: 0,
+  referralRegistrations: 0,
+  periodReferralRegistrations: 0,
+  successfulReferrals: 0,
+  pendingReferrals: 0,
+  totalCommissions: 0,
+  periodCommissions: 0,
+  totalResumes: 0,
+  periodResumes: 0,
 };
 
 export default function DashboardHomePage() {
@@ -75,10 +86,31 @@ export default function DashboardHomePage() {
     },
     {
       label: 'Total Revenue (30d)',
-      value: formatMoney(stats.totalRevenue, 'INR').replace(/\.00$/, ''),
+      value: formatMoney(stats.grossRevenue, 'INR').replace(/\.00$/, ''),
       sub: `${formatMoney(stats.monthlyRevenue, 'INR').replace(/\.00$/, '')} this month`,
       href: '/analytics',
       tint: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
+    },
+    {
+      label: 'Referral Registrations',
+      value: stats.referralRegistrations.toLocaleString(),
+      sub: `${stats.successfulReferrals.toLocaleString()} successful`,
+      href: '/referrals',
+      tint: 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300',
+    },
+    {
+      label: 'Referral Commissions',
+      value: formatMoney(stats.totalCommissions, 'INR').replace(/\.00$/, ''),
+      sub: `${formatMoney(stats.periodCommissions, 'INR').replace(/\.00$/, '')} this period`,
+      href: '/commissions',
+      tint: 'bg-teal-100 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300',
+    },
+    {
+      label: 'Resume Uploads',
+      value: stats.totalResumes.toLocaleString(),
+      sub: `${stats.periodResumes.toLocaleString()} this period`,
+      href: '/analytics',
+      tint: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300',
     },
   ];
 
@@ -103,8 +135,8 @@ export default function DashboardHomePage() {
       />
 
       {loading ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="h-28" />
           ))}
         </div>
@@ -114,7 +146,7 @@ export default function DashboardHomePage() {
         </Card>
       ) : (
         <>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {kpis.map((k) => (
               <Link key={k.label} href={k.href}>
                 <Card className="h-full transition hover:-translate-y-0.5 hover:shadow-card-hover">

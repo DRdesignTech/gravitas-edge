@@ -43,4 +43,28 @@ export class AnalyticsController {
   users(@Query() query: AnalyticsQueryDto) {
     return this.analyticsService.users(query);
   }
+
+  @Get('user-trend')
+  @ApiOperation({ summary: 'Real user registration trend bucketed by period' })
+  userTrend(@Query() query: AnalyticsQueryDto) {
+    return this.analyticsService.userTrend(query);
+  }
+
+  @Get('referrals')
+  @ApiOperation({ summary: 'Referral registrations and status breakdown' })
+  referrals(@Query() query: AnalyticsQueryDto) {
+    return this.analyticsService.referrals(query);
+  }
+
+  @Get('commissions')
+  @ApiOperation({ summary: 'Referral commission totals and status breakdown' })
+  commissions(@Query() query: AnalyticsQueryDto) {
+    return this.analyticsService.commissions(query);
+  }
+
+  @Get('resumes')
+  @ApiOperation({ summary: 'Resume upload counts and trend' })
+  resumes(@Query() query: AnalyticsQueryDto) {
+    return this.analyticsService.resumes(query);
+  }
 }

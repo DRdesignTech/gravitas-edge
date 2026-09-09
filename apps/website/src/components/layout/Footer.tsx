@@ -17,6 +17,9 @@ export default function Footer() {
             <Link href="/plans" className="text-sm text-content-muted hover:text-content">
               Plans
             </Link>
+            <Link href="/faq" className="text-sm text-content-muted hover:text-content">
+              FAQ
+            </Link>
             <Link href="/dashboard" className="text-sm text-content-muted hover:text-content">
               Dashboard
             </Link>

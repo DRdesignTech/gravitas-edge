@@ -256,7 +256,7 @@ export const COMMISSION_STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Cancelled',
 };
 
-export type DateRange = '7d' | '30d' | '90d' | '1y' | 'custom';
+export type DateRange = 'today' | '7d' | '30d' | '90d' | '1y' | 'month' | 'custom';
 
 export interface AnalyticsOverview {
   totalUsers: number;
@@ -266,18 +266,29 @@ export interface AnalyticsOverview {
   expiredSubscriptions: number;
   cancelledSubscriptions: number;
   pendingSubscriptions: number;
+  failedSubscriptions: number;
   totalOpportunities: number;
   publishedOpportunities: number;
   totalPlans: number;
   activePlans: number;
   totalVaults: number;
   activeVaults: number;
-  totalRevenue: number;
+  grossRevenue: number;
   monthlyRevenue: number;
+  refundedCount: number;
+  refundedAmount: number;
+  referralRegistrations: number;
+  periodReferralRegistrations: number;
+  successfulReferrals: number;
+  pendingReferrals: number;
+  totalCommissions: number;
+  periodCommissions: number;
+  totalResumes: number;
+  periodResumes: number;
 }
 
 export interface RevenueTimeline {
-  month: string;
+  period: string;
   revenue: number;
   paymentCount: number;
 }
@@ -285,6 +296,8 @@ export interface RevenueTimeline {
 export interface RevenueData {
   totalRevenue: number;
   periodRevenue: number;
+  refundedCount: number;
+  refundedAmount: number;
   timeline: RevenueTimeline[];
 }
 
@@ -348,4 +361,65 @@ export interface UsersAnalytics {
   recentSubscriptions: RecentSubscription[];
   recentOpportunities: RecentOpportunity[];
   topVaults: TopVault[];
+}
+
+export interface TrendPoint {
+  period: string;
+  count: number;
+}
+
+export interface UserTrendData {
+  totalUsers: number;
+  newUsers: number;
+  timeline: TrendPoint[];
+}
+
+export interface RecentReferral {
+  id: string;
+  code: string;
+  status: string;
+  createdAt: string;
+  successfulDate: string | null;
+  referrerName: string | null;
+  referrerEmail: string;
+  referredName: string | null;
+  referredEmail: string;
+}
+
+export interface ReferralAnalytics {
+  totalReferrals: number;
+  periodReferrals: number;
+  byStatus: {
+    successful: number;
+    pending: number;
+    invalid: number;
+    suspended: number;
+  };
+  recentReferrals: RecentReferral[];
+}
+
+export interface CommissionStatusBreakdown {
+  status: string;
+  count: number;
+  amount: number;
+}
+
+export interface CommissionAnalytics {
+  totalCommissions: number;
+  totalCount: number;
+  periodCommissions: number;
+  periodCount: number;
+  byStatus: CommissionStatusBreakdown[];
+}
+
+export interface ResumeStatusBreakdown {
+  status: string;
+  count: number;
+}
+
+export interface ResumeAnalytics {
+  totalResumes: number;
+  periodResumes: number;
+  byUploadStatus: ResumeStatusBreakdown[];
+  timeline: TrendPoint[];
 }

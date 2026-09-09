@@ -19,6 +19,10 @@ import {
   ReferralSlabList,
   AdminReferralQuery,
   AdminCommissionQuery,
+  UserTrendData,
+  ReferralAnalytics,
+  CommissionAnalytics,
+  ResumeAnalytics,
 } from './types';
 
 export interface UserQuery {
@@ -287,6 +291,30 @@ export function adminAnalyticsOpportunities(
 
 export function adminAnalyticsUsers(range: DateRange, startDate?: string, endDate?: string) {
   return api.get<UsersAnalytics>(`/admin/analytics/users${analyticsQs(range, startDate, endDate)}`);
+}
+
+export function adminAnalyticsUserTrend(range: DateRange, startDate?: string, endDate?: string) {
+  return api.get<UserTrendData>(
+    `/admin/analytics/user-trend${analyticsQs(range, startDate, endDate)}`,
+  );
+}
+
+export function adminAnalyticsReferrals(range: DateRange, startDate?: string, endDate?: string) {
+  return api.get<ReferralAnalytics>(
+    `/admin/analytics/referrals${analyticsQs(range, startDate, endDate)}`,
+  );
+}
+
+export function adminAnalyticsCommissions(range: DateRange, startDate?: string, endDate?: string) {
+  return api.get<CommissionAnalytics>(
+    `/admin/analytics/commissions${analyticsQs(range, startDate, endDate)}`,
+  );
+}
+
+export function adminAnalyticsResumes(range: DateRange, startDate?: string, endDate?: string) {
+  return api.get<ResumeAnalytics>(
+    `/admin/analytics/resumes${analyticsQs(range, startDate, endDate)}`,
+  );
 }
 
 function analyticsQs(range: DateRange, startDate?: string, endDate?: string) {

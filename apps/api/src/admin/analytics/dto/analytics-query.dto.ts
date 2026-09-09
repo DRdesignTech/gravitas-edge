@@ -2,10 +2,12 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsEnum, IsOptional } from 'class-validator';
 
 export enum DateRange {
+  TODAY = 'today',
   SEVEN_DAYS = '7d',
   THIRTY_DAYS = '30d',
   NINETY_DAYS = '90d',
   ONE_YEAR = '1y',
+  THIS_MONTH = 'month',
   CUSTOM = 'custom',
 }
 

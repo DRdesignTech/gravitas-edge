@@ -316,6 +316,7 @@ export function Badge({ variant = 'neutral', children }: BadgeProps) {
 const STATUS_KEYS: Record<string, BadgeVariant> = {
   ACTIVE: 'success',
   PUBLISHED: 'success',
+  SUCCESSFUL: 'success',
   COMPLETED: 'success',
   SUCCESS: 'success',
   VERIFIED: 'success',

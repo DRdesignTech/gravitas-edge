@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CommissionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AnalyticsQueryDto, DateRange } from './dto/analytics-query.dto';
 
@@ -8,22 +9,33 @@ export class AnalyticsService {
 
   private getDateFilter(dto: AnalyticsQueryDto): { start: Date; end: Date } {
     const now = new Date();
-    const end = now;
 
     switch (dto.range) {
+      case DateRange.TODAY: {
+        const start = new Date(now);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(now);
+        end.setHours(23, 59, 59, 999);
+        return { start, end };
+      }
       case DateRange.SEVEN_DAYS: {
         const start = new Date(now);
         start.setDate(start.getDate() - 7);
-        return { start, end };
+        return { start, end: now };
       }
       case DateRange.NINETY_DAYS: {
         const start = new Date(now);
         start.setDate(start.getDate() - 90);
-        return { start, end };
+        return { start, end: now };
       }
       case DateRange.ONE_YEAR: {
         const start = new Date(now);
         start.setFullYear(start.getFullYear() - 1);
+        return { start, end: now };
+      }
+      case DateRange.THIS_MONTH: {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         return { start, end };
       }
       case DateRange.CUSTOM: {
@@ -37,13 +49,22 @@ export class AnalyticsService {
       default: {
         const start = new Date(now);
         start.setDate(start.getDate() - 30);
-        return { start, end };
+        return { start, end: now };
       }
     }
   }
 
+  /** Bump the interval of the monthly timeline bucket to match a short range. */
+  private timelineGranularity(dto: AnalyticsQueryDto): 'day' | 'month' {
+    if (dto.range === DateRange.TODAY || dto.range === DateRange.SEVEN_DAYS) {
+      return 'day';
+    }
+    return 'month';
+  }
+
   async overview(dto: AnalyticsQueryDto) {
     const { start, end } = this.getDateFilter(dto);
+    const activeSubsDate = new Date();
 
     const [
       totalUsers,
@@ -53,6 +74,7 @@ export class AnalyticsService {
       expiredSubscriptions,
       cancelledSubscriptions,
       pendingSubscriptions,
+      failedSubscriptions,
       totalOpportunities,
       publishedOpportunities,
       totalPlans,
@@ -60,7 +82,16 @@ export class AnalyticsService {
       totalVaults,
       activeVaults,
       totalRevenue,
-      monthlyRevenue,
+      periodRevenue,
+      refunded,
+      referralRegistrations,
+      periodReferralRegistrations,
+      successfulReferrals,
+      pendingReferrals,
+      totalCommissions,
+      periodCommissions,
+      totalResumes,
+      periodResumes,
     ] = await this.prisma.$transaction([
       this.prisma.user.count({ where: { deletedAt: null } }),
       this.prisma.user.count({
@@ -68,11 +99,12 @@ export class AnalyticsService {
       }),
       this.prisma.subscription.count({ where: {} }),
       this.prisma.subscription.count({
-        where: { status: 'ACTIVE', endDate: { gte: new Date() } },
+        where: { status: 'ACTIVE', endDate: { gte: activeSubsDate } },
       }),
       this.prisma.subscription.count({ where: { status: 'EXPIRED' } }),
       this.prisma.subscription.count({ where: { status: 'CANCELLED' } }),
       this.prisma.subscription.count({ where: { status: 'PENDING' } }),
+      this.prisma.subscription.count({ where: { status: 'FAILED' } }),
       this.prisma.opportunity.count({ where: { deletedAt: null } }),
       this.prisma.opportunity.count({
         where: { deletedAt: null, status: 'PUBLISHED' },
@@ -86,11 +118,38 @@ export class AnalyticsService {
         _sum: { amount: true },
       }),
       this.prisma.payment.aggregate({
+        where: { status: 'SUCCESS', createdAt: { gte: start, lte: end } },
+        _sum: { amount: true },
+      }),
+      this.prisma.payment.aggregate({
+        where: { status: 'REFUNDED' },
+        _count: { _all: true },
+        _sum: { amount: true },
+      }),
+      this.prisma.referral.count({ where: { deletedAt: null } }),
+      this.prisma.referral.count({
+        where: { deletedAt: null, createdAt: { gte: start, lte: end } },
+      }),
+      this.prisma.referral.count({
+        where: { deletedAt: null, status: 'SUCCESSFUL' },
+      }),
+      this.prisma.referral.count({
+        where: { deletedAt: null, status: 'PENDING' },
+      }),
+      this.prisma.referralCommission.aggregate({
+        where: { status: { notIn: ['CANCELLED', 'REJECTED'] } },
+        _sum: { commissionAmount: true },
+      }),
+      this.prisma.referralCommission.aggregate({
         where: {
-          status: 'SUCCESS',
+          status: { notIn: ['CANCELLED', 'REJECTED'] },
           createdAt: { gte: start, lte: end },
         },
-        _sum: { amount: true },
+        _sum: { commissionAmount: true },
+      }),
+      this.prisma.resume.count({ where: { deletedAt: null } }),
+      this.prisma.resume.count({
+        where: { deletedAt: null, createdAt: { gte: start, lte: end } },
       }),
     ]);
 
@@ -102,19 +161,31 @@ export class AnalyticsService {
       expiredSubscriptions,
       cancelledSubscriptions,
       pendingSubscriptions,
+      failedSubscriptions,
       totalOpportunities,
       publishedOpportunities,
       totalPlans,
       activePlans,
       totalVaults,
       activeVaults,
-      totalRevenue: Number(totalRevenue._sum.amount ?? 0),
-      monthlyRevenue: Number(monthlyRevenue._sum.amount ?? 0),
+      grossRevenue: Number(totalRevenue._sum.amount ?? 0),
+      monthlyRevenue: Number(periodRevenue._sum.amount ?? 0),
+      refundedCount: refunded._count._all,
+      refundedAmount: Number(refunded._sum.amount ?? 0),
+      referralRegistrations,
+      periodReferralRegistrations,
+      successfulReferrals,
+      pendingReferrals,
+      totalCommissions: Number(totalCommissions._sum.commissionAmount ?? 0),
+      periodCommissions: Number(periodCommissions._sum.commissionAmount ?? 0),
+      totalResumes,
+      periodResumes,
     };
   }
 
   async revenue(dto: AnalyticsQueryDto) {
     const { start, end } = this.getDateFilter(dto);
+    const granularity = this.timelineGranularity(dto);
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -125,31 +196,43 @@ export class AnalyticsService {
       orderBy: { createdAt: 'asc' },
     });
 
-    const monthlyMap = new Map<string, { revenue: number; count: number }>();
+    const bucketMap = new Map<string, { revenue: number; count: number }>();
     for (const p of payments) {
-      const key = `${p.createdAt.getFullYear()}-${String(p.createdAt.getMonth() + 1).padStart(2, '0')}`;
-      const entry = monthlyMap.get(key) ?? { revenue: 0, count: 0 };
+      const key =
+        granularity === 'day'
+          ? `${p.createdAt.getFullYear()}-${String(p.createdAt.getMonth() + 1).padStart(2, '0')}-${String(p.createdAt.getDate()).padStart(2, '0')}`
+          : `${p.createdAt.getFullYear()}-${String(p.createdAt.getMonth() + 1).padStart(2, '0')}`;
+      const entry = bucketMap.get(key) ?? { revenue: 0, count: 0 };
       entry.revenue += Number(p.amount);
       entry.count += 1;
-      monthlyMap.set(key, entry);
+      bucketMap.set(key, entry);
     }
 
-    const timeline = Array.from(monthlyMap.entries()).map(([month, data]) => ({
-      month,
+    const timeline = Array.from(bucketMap.entries()).map(([period, data]) => ({
+      period,
       revenue: data.revenue,
       paymentCount: data.count,
     }));
 
-    const totalRevenue = await this.prisma.payment.aggregate({
-      where: { status: 'SUCCESS' },
-      _sum: { amount: true },
-    });
+    const [totalRevenue, refunded] = await this.prisma.$transaction([
+      this.prisma.payment.aggregate({
+        where: { status: 'SUCCESS' },
+        _sum: { amount: true },
+      }),
+      this.prisma.payment.aggregate({
+        where: { status: 'REFUNDED' },
+        _count: { _all: true },
+        _sum: { amount: true },
+      }),
+    ]);
 
     const periodRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
 
     return {
       totalRevenue: Number(totalRevenue._sum.amount ?? 0),
       periodRevenue,
+      refundedCount: refunded._count._all,
+      refundedAmount: Number(refunded._sum.amount ?? 0),
       timeline,
     };
   }
@@ -168,49 +251,67 @@ export class AnalyticsService {
       orderBy: { name: 'asc' },
     });
 
-    const results = await Promise.all(
-      vaults.map(async (vault) => {
-        const [purchases, activeUsers, revenue] = await Promise.all([
-          this.prisma.subscriptionVaultAccess.count({
-            where: {
-              vaultId: vault.id,
-              subscription: {
-                createdAt: { gte: start, lte: end },
-              },
-            },
-          }),
-          this.prisma.subscriptionVaultAccess.count({
-            where: {
-              vaultId: vault.id,
-              subscription: {
-                status: 'ACTIVE',
-                endDate: { gte: new Date() },
-              },
-            },
-          }),
-          this.prisma.payment.aggregate({
-            where: {
-              status: 'SUCCESS',
-              subscription: {
-                vaultAccess: { some: { vaultId: vault.id } },
-                createdAt: { gte: start, lte: end },
-              },
-            },
-            _sum: { amount: true },
-          }),
-        ]);
-
-        return {
-          id: vault.id,
-          name: vault.name,
-          type: vault.type,
-          status: vault.status,
-          purchases,
-          activeUsers,
-          revenue: Number(revenue._sum.amount ?? 0),
-        };
+    const [purchasesByVault, activeUsersByVault, payments] = await this.prisma.$transaction([
+      // Purchases in period per vault (all subscriptions created in range).
+      this.prisma.subscriptionVaultAccess.groupBy({
+        by: ['vaultId'],
+        where: { subscription: { createdAt: { gte: start, lte: end } } },
+        orderBy: { vaultId: 'asc' },
+        _count: { _all: true },
       }),
-    );
+      // Currently active users per vault (subscription status ACTIVE + within validity).
+      this.prisma.subscriptionVaultAccess.groupBy({
+        by: ['vaultId'],
+        orderBy: { vaultId: 'asc' },
+        where: {
+          subscription: { status: 'ACTIVE', endDate: { gte: new Date() } },
+        },
+        _count: { _all: true },
+      }),
+      // Successful payments in period with their vault access, for revenue attribution.
+      this.prisma.payment.findMany({
+        where: {
+          status: 'SUCCESS',
+          subscription: {
+            createdAt: { gte: start, lte: end },
+          },
+        },
+        select: {
+          amount: true,
+          subscription: {
+            select: {
+              vaultAccess: { select: { vaultId: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const purchasesMap = new Map<string, number>();
+    for (const row of purchasesByVault as { vaultId: string; _count: { _all: number } }[]) {
+      purchasesMap.set(row.vaultId, row._count._all);
+    }
+    const activeUsersMap = new Map<string, number>();
+    for (const row of activeUsersByVault as { vaultId: string; _count: { _all: number } }[]) {
+      activeUsersMap.set(row.vaultId, row._count._all);
+    }
+    const revenueMap = new Map<string, number>();
+    for (const p of payments) {
+      const amount = Number(p.amount);
+      for (const va of p.subscription?.vaultAccess ?? []) {
+        revenueMap.set(va.vaultId, (revenueMap.get(va.vaultId) ?? 0) + amount);
+      }
+    }
+
+    const results = vaults.map((vault) => ({
+      id: vault.id,
+      name: vault.name,
+      type: vault.type,
+      status: vault.status,
+      purchases: purchasesMap.get(vault.id) ?? 0,
+      activeUsers: activeUsersMap.get(vault.id) ?? 0,
+      revenue: revenueMap.get(vault.id) ?? 0,
+    }));
 
     const totalPurchases = results.reduce((s, v) => s + v.purchases, 0);
 
@@ -392,5 +493,225 @@ export class AnalyticsService {
         activeUsers: v._count.subscriptionAccess,
       })),
     };
+  }
+
+  /**
+   * Real user registration trend bucketed by the range granularity. Fills
+   * buckets with zero so the frontend chart is continuous.
+   */
+  async userTrend(dto: AnalyticsQueryDto) {
+    const { start, end } = this.getDateFilter(dto);
+    const granularity = this.timelineGranularity(dto);
+
+    const rows = await this.prisma.user.groupBy({
+      by: ['createdAt'],
+      where: { deletedAt: null, createdAt: { gte: start, lte: end } },
+      _count: { _all: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const daily = new Map<string, number>();
+    const monthlyRegistrations = new Map<string, number>();
+    if (granularity === 'day') {
+      const cur = new Date(start);
+      while (cur <= end) {
+        const key = this.toBucketKey(cur, 'day');
+        daily.set(key, 0);
+        cur.setDate(cur.getDate() + 1);
+      }
+      for (const r of rows) {
+        const key = this.toBucketKey(r.createdAt, 'day');
+        daily.set(key, (daily.get(key) ?? 0) + r._count._all);
+      }
+    } else {
+      const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+      const last = new Date(end.getFullYear(), end.getMonth(), 1);
+      while (cur <= last) {
+        const key = this.toBucketKey(cur, 'month');
+        monthlyRegistrations.set(key, 0);
+        cur.setMonth(cur.getMonth() + 1);
+      }
+      for (const r of rows) {
+        const key = this.toBucketKey(r.createdAt, 'month');
+        monthlyRegistrations.set(key, (monthlyRegistrations.get(key) ?? 0) + r._count._all);
+      }
+    }
+
+    const timeline =
+      granularity === 'day'
+        ? Array.from(daily.entries()).map(([period, count]) => ({ period, count }))
+        : Array.from(monthlyRegistrations.entries()).map(([period, count]) => ({
+            period,
+            count,
+          }));
+
+    const [totalUsers, newUsers] = await this.prisma.$transaction([
+      this.prisma.user.count({ where: { deletedAt: null } }),
+      this.prisma.user.count({
+        where: { deletedAt: null, createdAt: { gte: start, lte: end } },
+      }),
+    ]);
+
+    return { totalUsers, newUsers, timeline };
+  }
+
+  async referrals(dto: AnalyticsQueryDto) {
+    const { start, end } = this.getDateFilter(dto);
+
+    const [totalReferrals, periodReferrals, successful, pending, invalid, suspended] =
+      await this.prisma.$transaction([
+        this.prisma.referral.count({ where: { deletedAt: null } }),
+        this.prisma.referral.count({
+          where: { deletedAt: null, createdAt: { gte: start, lte: end } },
+        }),
+        this.prisma.referral.count({ where: { deletedAt: null, status: 'SUCCESSFUL' } }),
+        this.prisma.referral.count({ where: { deletedAt: null, status: 'PENDING' } }),
+        this.prisma.referral.count({ where: { deletedAt: null, status: 'INVALID' } }),
+        this.prisma.referral.count({ where: { deletedAt: null, status: 'SUSPENDED' } }),
+      ]);
+
+    const recentReferrals = await this.prisma.referral.findMany({
+      where: { deletedAt: null, createdAt: { gte: start, lte: end } },
+      select: {
+        id: true,
+        code: true,
+        status: true,
+        createdAt: true,
+        successfulDate: true,
+        referrer: { select: { id: true, email: true, profile: { select: { fullName: true } } } },
+        referredUser: {
+          select: { id: true, email: true, profile: { select: { fullName: true } } },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return {
+      totalReferrals,
+      periodReferrals,
+      byStatus: { successful, pending, invalid, suspended },
+      recentReferrals: recentReferrals.map((ref) => ({
+        id: ref.id,
+        code: ref.code,
+        status: ref.status,
+        createdAt: ref.createdAt,
+        successfulDate: ref.successfulDate,
+        referrerName: ref.referrer.profile?.fullName ?? null,
+        referrerEmail: ref.referrer.email,
+        referredName: ref.referredUser.profile?.fullName ?? null,
+        referredEmail: ref.referredUser.email,
+      })),
+    };
+  }
+
+  async commissions(dto: AnalyticsQueryDto) {
+    const { start, end } = this.getDateFilter(dto);
+    const valid: { status: { notIn: CommissionStatus[] } } = {
+      status: { notIn: ['CANCELLED', 'REJECTED'] },
+    };
+
+    const [totalAgg, periodAgg, byStatus] = await this.prisma.$transaction([
+      this.prisma.referralCommission.aggregate({
+        where: valid,
+        _sum: { commissionAmount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.referralCommission.aggregate({
+        where: { ...valid, createdAt: { gte: start, lte: end } },
+        _sum: { commissionAmount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.referralCommission.groupBy({
+        by: ['status'],
+        orderBy: { status: 'asc' },
+        _count: { _all: true },
+        _sum: { commissionAmount: true },
+      }),
+    ]);
+
+    const total = totalAgg as {
+      _sum: { commissionAmount: number | null };
+      _count: { _all: number };
+    };
+    const period = periodAgg as {
+      _sum: { commissionAmount: number | null };
+      _count: { _all: number };
+    };
+
+    return {
+      totalCommissions: Number(total._sum.commissionAmount ?? 0),
+      totalCount: total._count._all,
+      periodCommissions: Number(period._sum.commissionAmount ?? 0),
+      periodCount: period._count._all,
+      byStatus: (byStatus as any[]).map((s) => ({
+        status: s.status,
+        count: s._count._all,
+        amount: Number(s._sum.commissionAmount ?? 0),
+      })),
+    };
+  }
+
+  async resumes(dto: AnalyticsQueryDto) {
+    const { start, end } = this.getDateFilter(dto);
+    const granularity = this.timelineGranularity(dto);
+
+    const [totalResumes, periodResumes, uploadStatus] = await this.prisma.$transaction([
+      this.prisma.resume.count({ where: { deletedAt: null } }),
+      this.prisma.resume.count({
+        where: { deletedAt: null, createdAt: { gte: start, lte: end } },
+      }),
+      this.prisma.resume.groupBy({
+        by: ['uploadStatus'],
+        where: { deletedAt: null },
+        orderBy: { uploadStatus: 'asc' },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const rows = await this.prisma.resume.findMany({
+      where: { deletedAt: null, createdAt: { gte: start, lte: end } },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const daily = new Map<string, number>();
+    if (granularity === 'day') {
+      const cur = new Date(start);
+      while (cur <= end) {
+        daily.set(this.toBucketKey(cur, 'day'), 0);
+        cur.setDate(cur.getDate() + 1);
+      }
+    } else {
+      const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+      const last = new Date(end.getFullYear(), end.getMonth(), 1);
+      while (cur <= last) {
+        daily.set(this.toBucketKey(cur, 'month'), 0);
+        cur.setMonth(cur.getMonth() + 1);
+      }
+    }
+    for (const r of rows) {
+      const key = this.toBucketKey(r.createdAt, granularity);
+      daily.set(key, (daily.get(key) ?? 0) + 1);
+    }
+
+    return {
+      totalResumes,
+      periodResumes,
+      byUploadStatus: (uploadStatus as any[]).map((s) => ({
+        status: s.uploadStatus,
+        count: s._count._all,
+      })),
+      timeline: Array.from(daily.entries()).map(([period, count]) => ({ period, count })),
+    };
+  }
+
+  private toBucketKey(date: Date, granularity: 'day' | 'month'): string {
+    if (granularity === 'day') {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+        date.getDate(),
+      ).padStart(2, '0')}`;
+    }
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   }
 }

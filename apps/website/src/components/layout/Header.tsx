@@ -12,6 +12,7 @@ const navLinks = [
   { href: '/', label: 'Home' },
   { href: '/opportunities', label: 'Opportunities' },
   { href: '/plans', label: 'Plans' },
+  { href: '/faq', label: 'FAQ' },
 ];
 
 const userMenuLinks = [

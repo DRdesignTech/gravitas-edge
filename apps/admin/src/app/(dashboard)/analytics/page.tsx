@@ -22,6 +22,10 @@ import {
   adminAnalyticsVaults,
   adminAnalyticsOpportunities,
   adminAnalyticsUsers,
+  adminAnalyticsUserTrend,
+  adminAnalyticsReferrals,
+  adminAnalyticsCommissions,
+  adminAnalyticsResumes,
 } from '@/lib/services';
 import {
   AnalyticsOverview,
@@ -29,6 +33,10 @@ import {
   VaultAnalytics,
   OpportunityAnalytics,
   UsersAnalytics,
+  UserTrendData,
+  ReferralAnalytics,
+  CommissionAnalytics,
+  ResumeAnalytics,
   DateRange,
 } from '@/lib/types';
 import {
@@ -48,10 +56,12 @@ import { getErrorMessage } from '@/lib/errors';
 type Filter = { range: DateRange; startDate?: string; endDate?: string };
 
 const RANGE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'today', label: 'Today' },
   { value: '7d', label: 'Last 7 days' },
   { value: '30d', label: 'Last 30 days' },
   { value: '90d', label: 'Last 90 days' },
   { value: '1y', label: 'Last year' },
+  { value: 'month', label: 'This month' },
   { value: 'custom', label: 'Custom range' },
 ];
 
@@ -68,6 +78,10 @@ export default function AnalyticsPage() {
   const [vaults, setVaults] = useState<VaultAnalytics[]>([]);
   const [opps, setOpps] = useState<OpportunityAnalytics | null>(null);
   const [usersData, setUsersData] = useState<UsersAnalytics | null>(null);
+  const [userTrend, setUserTrend] = useState<UserTrendData | null>(null);
+  const [referralData, setReferralData] = useState<ReferralAnalytics | null>(null);
+  const [commissionData, setCommissionData] = useState<CommissionAnalytics | null>(null);
+  const [resumeData, setResumeData] = useState<ResumeAnalytics | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async (f: Filter, isRefresh = false) => {
@@ -75,18 +89,26 @@ export default function AnalyticsPage() {
     else setLoading(true);
     setError(null);
     try {
-      const [o, r, v, op, u] = await Promise.all([
+      const [o, r, v, op, u, t, ref, com, res] = await Promise.all([
         adminAnalyticsOverview(f.range, f.startDate, f.endDate),
         adminAnalyticsRevenue(f.range, f.startDate, f.endDate),
         adminAnalyticsVaults(f.range, f.startDate, f.endDate),
         adminAnalyticsOpportunities(f.range, f.startDate, f.endDate),
         adminAnalyticsUsers(f.range, f.startDate, f.endDate),
+        adminAnalyticsUserTrend(f.range, f.startDate, f.endDate),
+        adminAnalyticsReferrals(f.range, f.startDate, f.endDate),
+        adminAnalyticsCommissions(f.range, f.startDate, f.endDate),
+        adminAnalyticsResumes(f.range, f.startDate, f.endDate),
       ]);
       setOverview(o);
       setRevenue(r);
       setVaults(v);
       setOpps(op);
       setUsersData(u);
+      setUserTrend(t);
+      setReferralData(ref);
+      setCommissionData(com);
+      setResumeData(res);
     } catch (e) {
       setError(getErrorMessage(e));
     } finally {
@@ -110,20 +132,43 @@ export default function AnalyticsPage() {
   const revenueChartData = useMemo(() => {
     if (!revenue || revenue.timeline.length === 0) return [];
     return revenue.timeline.map((t) => ({
-      month: t.month,
+      period: t.period,
       revenue: t.revenue,
       payments: t.paymentCount,
     }));
   }, [revenue]);
 
   const userGrowthData = useMemo(() => {
-    if (!revenue || revenue.timeline.length === 0 || !overview) return [];
-    return revenue.timeline.map((t, i) => ({
-      month: t.month,
-      newUsers: i === 0 ? Math.round(overview.newUsers / Math.max(1, revenue.timeline.length)) : 0,
-      totalUsers: overview.totalUsers,
+    if (!userTrend || userTrend.timeline.length === 0) return [];
+    return userTrend.timeline.map((t) => ({
+      period: t.period,
+      newUsers: t.count,
     }));
-  }, [revenue, overview]);
+  }, [userTrend]);
+
+  const referralStatusData = useMemo(() => {
+    if (!referralData) return [];
+    return [
+      { name: 'Successful', value: referralData.byStatus.successful, color: '#10b981' },
+      { name: 'Pending', value: referralData.byStatus.pending, color: '#f59e0b' },
+      { name: 'Invalid', value: referralData.byStatus.invalid, color: '#ef4444' },
+      { name: 'Suspended', value: referralData.byStatus.suspended, color: '#94BEF5' },
+    ].filter((d) => d.value > 0);
+  }, [referralData]);
+
+  const commissionStatusData = useMemo(() => {
+    if (!commissionData) return [];
+    return commissionData.byStatus.map((s) => ({
+      name: titleCase(s.status),
+      count: s.count,
+      amount: s.amount,
+    }));
+  }, [commissionData]);
+
+  const resumeTimelineData = useMemo(() => {
+    if (!resumeData || resumeData.timeline.length === 0) return [];
+    return resumeData.timeline.map((t) => ({ period: t.period, uploads: t.count }));
+  }, [resumeData]);
 
   const opportunityCharts = useMemo(() => {
     if (!opps) return { category: [], status: [], employment: [], country: [] };
@@ -138,23 +183,84 @@ export default function AnalyticsPage() {
   const kpiCards = [
     { label: 'Total Users', value: overview?.totalUsers.toLocaleString() ?? '—' },
     { label: 'New Users', value: overview?.newUsers.toLocaleString() ?? '—' },
+    { label: 'Total Subscriptions', value: overview?.totalSubscriptions.toLocaleString() ?? '—' },
     { label: 'Active Subscriptions', value: overview?.activeSubscriptions.toLocaleString() ?? '—' },
-    { label: 'Total Revenue', value: overview ? formatMoney(overview.totalRevenue, 'INR') : '—' },
+    { label: 'Total Opportunities', value: overview?.totalOpportunities.toLocaleString() ?? '—' },
     {
-      label: 'Monthly Revenue',
+      label: 'Published Ops',
+      value: overview?.publishedOpportunities.toLocaleString() ?? '—',
+    },
+    {
+      label: 'Gross Revenue',
+      value: overview ? formatMoney(overview.grossRevenue, 'INR') : '—',
+    },
+    {
+      label: 'Revenue (period)',
       value: overview ? formatMoney(overview.monthlyRevenue, 'INR') : '—',
     },
-    { label: 'Total Opportunities', value: overview?.totalOpportunities.toLocaleString() ?? '—' },
-    { label: 'Published Ops', value: overview?.publishedOpportunities.toLocaleString() ?? '—' },
-    { label: 'Expired Subs', value: overview?.expiredSubscriptions.toLocaleString() ?? '—' },
+    {
+      label: 'Refunds',
+      value:
+        overview && overview.refundedCount > 0
+          ? `${overview.refundedCount} (${formatMoney(overview.refundedAmount, 'INR')})`
+          : '0',
+    },
+    {
+      label: 'Referral Registrations',
+      value: overview?.referralRegistrations.toLocaleString() ?? '—',
+    },
+    {
+      label: 'Referral Commissions',
+      value: overview ? formatMoney(overview.totalCommissions, 'INR') : '—',
+    },
+    { label: 'Resume Uploads', value: overview?.totalResumes.toLocaleString() ?? '—' },
   ];
+
+  const tooltipStyle = {
+    background: 'var(--color-surface-elevated)',
+    borderColor: 'var(--color-line)',
+    color: 'var(--color-content)',
+  };
+
+  // Reports derived from real data.
+  const reportUsers = useMemo(() => {
+    if (!usersData) return [];
+    return usersData.recentUsers.map((u) => ({
+      name: u.name || u.email,
+      email: u.email,
+      roles: u.roles.join(', '),
+      date: u.createdAt,
+    }));
+  }, [usersData]);
+
+  const reportSubscriptions = useMemo(() => {
+    if (!usersData) return [];
+    return usersData.recentSubscriptions.map((s) => ({
+      user: s.userName || s.userEmail,
+      plan: s.planName,
+      status: s.status,
+      start: s.startDate,
+      end: s.endDate,
+    }));
+  }, [usersData]);
+
+  const reportReferrals = useMemo(() => {
+    if (!referralData) return [];
+    return referralData.recentReferrals.map((ref) => ({
+      code: ref.code,
+      referrer: ref.referrerName || ref.referrerEmail,
+      referred: ref.referredName || ref.referredEmail,
+      status: ref.status,
+      date: ref.createdAt,
+    }));
+  }, [referralData]);
 
   if (loading) {
     return (
       <div>
         <PageHeader title="Analytics" subtitle="Loading platform analytics…" />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
@@ -184,7 +290,7 @@ export default function AnalyticsPage() {
         subtitle="Platform performance overview."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-lg border border-line bg-surface p-1 dark:bg-surface-elevated">
+            <div className="inline-flex flex-wrap rounded-lg border border-line bg-surface p-1 dark:bg-surface-elevated">
               {RANGE_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
@@ -255,15 +361,9 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={revenueChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: AXIS_TICK }} />
+                  <XAxis dataKey="period" tick={{ fontSize: 12, fill: AXIS_TICK }} />
                   <YAxis tick={{ fontSize: 12, fill: AXIS_TICK }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'var(--color-surface-elevated)',
-                      borderColor: 'var(--color-line)',
-                      color: 'var(--color-content)',
-                    }}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
                   <Line
                     type="monotone"
@@ -313,13 +413,7 @@ export default function AnalyticsPage() {
                     height={60}
                   />
                   <YAxis tick={{ fontSize: 12, fill: AXIS_TICK }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'var(--color-surface-elevated)',
-                      borderColor: 'var(--color-line)',
-                      color: 'var(--color-content)',
-                    }}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
                   <Bar dataKey="purchases" name="Purchases" fill="#061B4F" radius={[4, 4, 0, 0]} />
                   <Bar
@@ -337,8 +431,8 @@ export default function AnalyticsPage() {
         <Card title="Revenue by Period">
           {revenueChartData.length === 0 ? (
             <EmptyState
-              title="No plan data"
-              description="Plan performance will appear here once data is available."
+              title="No revenue data"
+              description="Revenue will appear here once data is available."
             />
           ) : (
             <div className="h-72">
@@ -347,7 +441,7 @@ export default function AnalyticsPage() {
                   <Pie
                     data={revenueChartData}
                     dataKey="revenue"
-                    nameKey="month"
+                    nameKey="period"
                     cx="50%"
                     cy="50%"
                     outerRadius={90}
@@ -358,13 +452,7 @@ export default function AnalyticsPage() {
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: 'var(--color-surface-elevated)',
-                      borderColor: 'var(--color-line)',
-                      color: 'var(--color-content)',
-                    }}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -372,7 +460,7 @@ export default function AnalyticsPage() {
           )}
         </Card>
 
-        <Card title="User Growth">
+        <Card title="User Registrations">
           {userGrowthData.length === 0 ? (
             <EmptyState
               title="No user growth data"
@@ -383,15 +471,9 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={userGrowthData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: AXIS_TICK }} />
+                  <XAxis dataKey="period" tick={{ fontSize: 12, fill: AXIS_TICK }} />
                   <YAxis tick={{ fontSize: 12, fill: AXIS_TICK }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'var(--color-surface-elevated)',
-                      borderColor: 'var(--color-line)',
-                      color: 'var(--color-content)',
-                    }}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
                   <Line
                     type="monotone"
@@ -400,11 +482,87 @@ export default function AnalyticsPage() {
                     stroke="#008FEF"
                     strokeWidth={2}
                   />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        <Card title="Referral Status">
+          {referralStatusData.length === 0 ? (
+            <EmptyState
+              title="No referral data"
+              description="Referral status will appear here once referrals exist."
+            />
+          ) : (
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={referralStatusData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={85}
+                    label
+                  >
+                    {referralStatusData.map((d) => (
+                      <Cell key={d.name} fill={d.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+
+        <Card title="Commission Status">
+          {commissionStatusData.length === 0 ? (
+            <EmptyState
+              title="No commission data"
+              description="Commissions will appear here once referrals convert."
+            />
+          ) : (
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={commissionStatusData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: AXIS_TICK }} />
+                  <YAxis tick={{ fontSize: 11, fill: AXIS_TICK }} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
+                  <Bar dataKey="count" name="Count" fill="#0B2D78" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+
+        <Card title="Resume Uploads">
+          {resumeTimelineData.length === 0 ? (
+            <EmptyState
+              title="No resume data"
+              description="Resume uploads will appear here once resumes are uploaded."
+            />
+          ) : (
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={resumeTimelineData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+                  <XAxis dataKey="period" tick={{ fontSize: 10, fill: AXIS_TICK }} />
+                  <YAxis tick={{ fontSize: 11, fill: AXIS_TICK }} />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
                   <Line
                     type="monotone"
-                    dataKey="totalUsers"
-                    name="Total users"
-                    stroke="#0B2D78"
+                    dataKey="uploads"
+                    name="Uploads"
+                    stroke="#008FEF"
                     strokeWidth={2}
                   />
                 </LineChart>
@@ -441,13 +599,7 @@ export default function AnalyticsPage() {
                           <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          background: 'var(--color-surface-elevated)',
-                          borderColor: 'var(--color-line)',
-                          color: 'var(--color-content)',
-                        }}
-                      />
+                      <Tooltip contentStyle={tooltipStyle} />
                       <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -471,13 +623,7 @@ export default function AnalyticsPage() {
                           <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          background: 'var(--color-surface-elevated)',
-                          borderColor: 'var(--color-line)',
-                          color: 'var(--color-content)',
-                        }}
-                      />
+                      <Tooltip contentStyle={tooltipStyle} />
                       <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -498,13 +644,7 @@ export default function AnalyticsPage() {
                         height={50}
                       />
                       <YAxis tick={{ fontSize: 12, fill: AXIS_TICK }} />
-                      <Tooltip
-                        contentStyle={{
-                          background: 'var(--color-surface-elevated)',
-                          borderColor: 'var(--color-line)',
-                          color: 'var(--color-content)',
-                        }}
-                      />
+                      <Tooltip contentStyle={tooltipStyle} />
                       <Bar dataKey="value" name="Count" fill="#061B4F" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -525,13 +665,7 @@ export default function AnalyticsPage() {
                         height={50}
                       />
                       <YAxis tick={{ fontSize: 12, fill: AXIS_TICK }} />
-                      <Tooltip
-                        contentStyle={{
-                          background: 'var(--color-surface-elevated)',
-                          borderColor: 'var(--color-line)',
-                          color: 'var(--color-content)',
-                        }}
-                      />
+                      <Tooltip contentStyle={tooltipStyle} />
                       <Bar dataKey="value" name="Count" fill="#10b981" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -558,6 +692,7 @@ export default function AnalyticsPage() {
                       { name: 'Expired', value: overview?.expiredSubscriptions ?? 0 },
                       { name: 'Cancelled', value: overview?.cancelledSubscriptions ?? 0 },
                       { name: 'Pending', value: overview?.pendingSubscriptions ?? 0 },
+                      { name: 'Failed', value: overview?.failedSubscriptions ?? 0 },
                     ]}
                     dataKey="value"
                     nameKey="name"
@@ -570,14 +705,9 @@ export default function AnalyticsPage() {
                     <Cell fill="#ef4444" />
                     <Cell fill="#f59e0b" />
                     <Cell fill="#008FEF" />
+                    <Cell fill="#94BEF5" />
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: 'var(--color-surface-elevated)',
-                      borderColor: 'var(--color-line)',
-                      color: 'var(--color-content)',
-                    }}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ color: 'var(--color-content-muted)' }} />
                 </PieChart>
               </ResponsiveContainer>
@@ -685,30 +815,173 @@ export default function AnalyticsPage() {
           )}
         </Card>
 
-        <Card title="Recently Published Opportunities">
-          {!usersData || usersData.recentOpportunities.length === 0 ? (
+        <Card title="Recent Referrals">
+          {!referralData || referralData.recentReferrals.length === 0 ? (
             <EmptyState
-              title="No recent opportunities"
-              description="Published opportunities will appear here."
+              title="No recent referrals"
+              description="Referrals will appear here once attributed."
             />
           ) : (
             <ul className="divide-y divide-line">
-              {usersData.recentOpportunities.slice(0, 10).map((o) => (
-                <li key={o.id} className="py-3">
+              {referralData.recentReferrals.slice(0, 10).map((ref) => (
+                <li key={ref.id} className="py-3">
                   <div className="flex items-center justify-between">
-                    <p className="truncate text-sm font-medium text-content">{o.title}</p>
-                    <StatusBadge value={o.status} />
+                    <p className="truncate text-sm font-medium text-content">
+                      {ref.referrerName || ref.referrerEmail}
+                    </p>
+                    <StatusBadge value={ref.status} />
                   </div>
                   <p className="mt-0.5 text-xs text-content-muted">
-                    {o.company || '—'} {o.location ? `· ${o.location}` : ''}
+                    → {ref.referredName || ref.referredEmail}
                   </p>
-                  <p className="mt-0.5 text-xs text-content-faint">{formatDate(o.createdAt)}</p>
+                  <p className="mt-0.5 text-xs text-content-faint">{formatDate(ref.createdAt)}</p>
                 </li>
               ))}
             </ul>
           )}
         </Card>
       </div>
+
+      <div className="mt-6">
+        <Card title="Report — Users">
+          {reportUsers.length === 0 ? (
+            <EmptyState
+              title="No users in period"
+              description="Newly registered users will appear here."
+            />
+          ) : (
+            <div className="max-h-96 overflow-auto">
+              <table className="min-w-full divide-y divide-line">
+                <thead className="sticky top-0 bg-surface-muted dark:bg-surface">
+                  <tr>
+                    {['Name', 'Email', 'Roles', 'Registered'].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-content-muted"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line bg-surface dark:bg-surface-elevated">
+                  {reportUsers.map((u, i) => (
+                    <tr key={i} className="transition-colors hover:bg-surface-muted">
+                      <td className="px-4 py-3 text-sm font-medium text-content">{u.name}</td>
+                      <td className="px-4 py-3 text-sm text-content">{u.email}</td>
+                      <td className="px-4 py-3 text-sm text-content">{u.roles}</td>
+                      <td className="px-4 py-3 text-sm text-content">{formatDate(u.date)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Card title="Report — Subscriptions">
+          {reportSubscriptions.length === 0 ? (
+            <EmptyState
+              title="No subscriptions in period"
+              description="New subscriptions will appear here."
+            />
+          ) : (
+            <div className="max-h-96 overflow-auto">
+              <table className="min-w-full divide-y divide-line">
+                <thead className="sticky top-0 bg-surface-muted dark:bg-surface">
+                  <tr>
+                    {['User', 'Plan', 'Status', 'Start'].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-content-muted"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line bg-surface dark:bg-surface-elevated">
+                  {reportSubscriptions.map((s, i) => (
+                    <tr key={i} className="transition-colors hover:bg-surface-muted">
+                      <td className="px-4 py-3 text-sm font-medium text-content">{s.user}</td>
+                      <td className="px-4 py-3 text-sm text-content">{s.plan}</td>
+                      <td className="px-4 py-3 text-sm text-content">
+                        <StatusBadge value={s.status} />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-content">{formatDate(s.start)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        <Card title="Report — Referrals">
+          {reportReferrals.length === 0 ? (
+            <EmptyState
+              title="No referrals in period"
+              description="Attributed referrals will appear here."
+            />
+          ) : (
+            <div className="max-h-96 overflow-auto">
+              <table className="min-w-full divide-y divide-line">
+                <thead className="sticky top-0 bg-surface-muted dark:bg-surface">
+                  <tr>
+                    {['Code', 'Referrer', 'Referred', 'Status', 'Date'].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-content-muted"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line bg-surface dark:bg-surface-elevated">
+                  {reportReferrals.map((r, i) => (
+                    <tr key={i} className="transition-colors hover:bg-surface-muted">
+                      <td className="px-4 py-3 text-sm font-medium text-content">{r.code}</td>
+                      <td className="px-4 py-3 text-sm text-content">{r.referrer}</td>
+                      <td className="px-4 py-3 text-sm text-content">{r.referred}</td>
+                      <td className="px-4 py-3 text-sm text-content">
+                        <StatusBadge value={r.status} />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-content">{formatDate(r.date)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <Card title="Recently Published Opportunities" className="mt-6">
+        {!usersData || usersData.recentOpportunities.length === 0 ? (
+          <EmptyState
+            title="No recent opportunities"
+            description="Published opportunities will appear here."
+          />
+        ) : (
+          <ul className="divide-y divide-line">
+            {usersData.recentOpportunities.slice(0, 10).map((o) => (
+              <li key={o.id} className="py-3">
+                <div className="flex items-center justify-between">
+                  <p className="truncate text-sm font-medium text-content">{o.title}</p>
+                  <StatusBadge value={o.status} />
+                </div>
+                <p className="mt-0.5 text-xs text-content-muted">
+                  {o.company || '—'} {o.location ? `· ${o.location}` : ''}
+                </p>
+                <p className="mt-0.5 text-xs text-content-faint">{formatDate(o.createdAt)}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }
