@@ -3,6 +3,7 @@ import {
   CommissionItem,
   CommissionQuery,
   CommissionStatistics,
+  ExperienceLevel,
   Opportunity,
   OpportunityQuery,
   PaginatedResult,
@@ -35,6 +36,15 @@ export function fetchOpportunity(id: string) {
 
 export function fetchVaults() {
   return api.get<Vault[]>('/vaults');
+}
+
+export function fetchExperienceLevels() {
+  return api.get<ExperienceLevel[]>('/experience-levels');
+}
+
+export async function fetchVaultById(id: string): Promise<Vault | null> {
+  const vaults = await fetchVaults();
+  return vaults.find((v) => v.id === id) ?? null;
 }
 
 export function fetchMySubscriptions() {

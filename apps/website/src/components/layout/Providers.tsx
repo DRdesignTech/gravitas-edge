@@ -11,7 +11,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <AuthProvider>
         <ToastProvider>
-          <div className="flex min-h-screen flex-col bg-surface-muted text-content">
+          <div className="flex min-h-screen flex-col overflow-x-hidden bg-surface-muted text-content">
             <Header />
             <main className="flex-1">{children}</main>
             <Footer />

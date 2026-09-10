@@ -87,6 +87,9 @@ export interface Opportunity {
   applicationUrl?: string | null;
   applicationContact?: string | null;
   source?: string | null;
+  salary?: string | null;
+  experienceText?: string | null;
+  externalRef?: string | null;
   category: string;
   status: string;
   publishedDate?: string | null;
@@ -97,6 +100,21 @@ export interface Opportunity {
   vaults?: Vault[];
   creator?: { id: string; email: string };
   _count?: { vaults?: number; experienceLevels?: number };
+}
+
+export interface ImportPreviewRow {
+  excelRow: number;
+  classification: 'VALID' | 'INVALID' | 'DUPLICATE' | 'SKIPPED';
+  title: string | null;
+  reason: string | null;
+  fields: Record<string, unknown> | null;
+}
+
+export interface ImportPreviewResponse {
+  vault: { id: string; name: string; type: string };
+  sheetName: string;
+  summary: { total: number; valid: number; invalid: number; duplicate: number; skipped: number };
+  rows: ImportPreviewRow[];
 }
 
 export interface PaginatedResult<T> {

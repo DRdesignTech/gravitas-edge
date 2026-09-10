@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health/health.controller';
+import { PublicExperienceLevelsController } from './experience-levels/public-experience-levels.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -41,7 +42,7 @@ import { ResumesModule } from './resumes/resumes.module';
     ReferralsModule,
     ResumesModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, PublicExperienceLevelsController],
   providers: [
     {
       provide: APP_GUARD,

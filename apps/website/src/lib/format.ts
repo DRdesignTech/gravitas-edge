@@ -44,3 +44,18 @@ export function experienceLabel(min?: number | null, max?: number | null): strin
   if (max !== undefined && max !== null) return `${min}–${max} yrs`;
   return `${min}+ yrs`;
 }
+
+/**
+ * Prefer the raw experience text from the API (e.g. "3+ Years",
+ * "Multiple domain, across experience level") and fall back to the
+ * structured min/max label when no text is provided.
+ */
+export function displayExperience(
+  experienceText?: string | null,
+  min?: number | null,
+  max?: number | null,
+): string {
+  const text = experienceText?.trim();
+  if (text) return text;
+  return experienceLabel(min, max);
+}

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { EmploymentType, OpportunityCategory, OpportunityStatus } from '@prisma/client';
 import {
+  ArrayNotEmpty,
   IsArray,
   IsEnum,
   IsInt,
@@ -88,6 +89,27 @@ export class CreateOpportunityDto {
   @MaxLength(100)
   source?: string;
 
+  @ApiPropertyOptional({ example: '₹12,00,000 per annum' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  salary?: string;
+
+  @ApiPropertyOptional({ example: '3+ years in React' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(3000)
+  experienceText?: string;
+
+  @ApiPropertyOptional({
+    example: 'S. No. 42',
+    description: 'External reference (e.g. client row number)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  externalRef?: string;
+
   @ApiProperty({ enum: OpportunityCategory, default: OpportunityCategory.OTHER })
   @IsEnum(OpportunityCategory)
   category: OpportunityCategory;
@@ -102,15 +124,15 @@ export class CreateOpportunityDto {
   @IsString()
   expiryDate?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: [String],
-    description: 'Array of vault IDs to link',
+    description: 'Array of vault IDs to link (at least one required)',
     example: ['uuid1', 'uuid2'],
   })
-  @IsOptional()
+  @ArrayNotEmpty()
   @IsArray()
   @IsString({ each: true })
-  vaultIds?: string[];
+  vaultIds: string[];
 
   @ApiPropertyOptional({
     type: [String],

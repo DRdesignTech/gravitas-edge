@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { Opportunity, Vault } from '@/lib/types';
-import ContentProtection from '@/components/ContentProtection';
 import { Badge, AccessBadge, LockIcon } from '@/components/ui';
-import { titleCase, experienceLabel, formatDate } from '@/lib/format';
+import { titleCase, formatDate, displayExperience } from '@/lib/format';
 
 export function OpportunityCard({ opportunity: o }: { opportunity: Opportunity }) {
   return (
@@ -35,17 +34,32 @@ export function OpportunityCard({ opportunity: o }: { opportunity: Opportunity }
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        {o.salary ? (
+          <p
+            className="mt-4 truncate text-base font-bold text-brand-700 dark:text-brand-300"
+            title={o.salary}
+          >
+            {o.salary}
+          </p>
+        ) : null}
+
+        <div className="mt-3 flex flex-wrap gap-2">
           {o.location && (
             <MetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>{o.location}</MetaChip>
+          )}
+          {o.country && (
+            <MetaChip icon={<GlobeIcon className="h-3.5 w-3.5" />}>{o.country}</MetaChip>
+          )}
+          {o.industry && (
+            <MetaChip icon={<LayersIcon className="h-3.5 w-3.5" />}>{o.industry}</MetaChip>
           )}
           {o.employmentType && (
             <MetaChip icon={<BriefcaseIcon className="h-3.5 w-3.5" />}>
               {titleCase(o.employmentType)}
             </MetaChip>
           )}
-          <MetaChip icon={<LayersIcon className="h-3.5 w-3.5" />}>
-            {experienceLabel(o.minExperience, o.maxExperience)}
+          <MetaChip icon={<BarsIcon className="h-3.5 w-3.5" />}>
+            {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
           </MetaChip>
         </div>
 
@@ -78,10 +92,28 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
             {o.isPremium && <Badge variant="premium">Premium</Badge>}
           </div>
           {o.company && <p className="mt-0.5 text-sm text-content-muted">{o.company}</p>}
+          {o.salary && (
+            <p
+              className="mt-1.5 text-sm font-bold text-brand-700 dark:text-brand-300"
+              title={o.salary}
+            >
+              {o.salary}
+            </p>
+          )}
           <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-content-muted">
             {o.location && (
               <span className="inline-flex items-center gap-1.5">
                 <PinIcon className="h-4 w-4" /> {o.location}
+              </span>
+            )}
+            {o.country && (
+              <span className="inline-flex items-center gap-1.5">
+                <GlobeIcon className="h-4 w-4" /> {o.country}
+              </span>
+            )}
+            {o.industry && (
+              <span className="inline-flex items-center gap-1.5">
+                <LayersIcon className="h-4 w-4" /> {o.industry}
               </span>
             )}
             {o.employmentType && (
@@ -90,7 +122,8 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
               </span>
             )}
             <span className="inline-flex items-center gap-1.5">
-              <LayersIcon className="h-4 w-4" /> {experienceLabel(o.minExperience, o.maxExperience)}
+              <BarsIcon className="h-4 w-4" />{' '}
+              {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
             </span>
           </div>
         </div>
@@ -139,54 +172,45 @@ function ArrowRightIcon({ className = 'h-4 w-4' }: { className?: string }) {
 
 export function VaultCard({ vault: v }: { vault: Vault }) {
   return (
-    <div
-      className={`flex h-full flex-col rounded-2xl border bg-surface p-5 shadow-card dark:bg-surface-elevated ${
-        v.locked ? 'border-line opacity-90' : 'border-brand-200 dark:border-brand-500/40'
+    <Link
+      href={`/vaults/${v.id}`}
+      className={`group flex h-full flex-col rounded-2xl border bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50 ${
+        v.locked ? 'border-line' : 'border-brand-200 dark:border-brand-500/40'
       }`}
     >
-      <ContentProtection>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span
-              className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                v.locked
-                  ? 'bg-surface-muted text-content-faint'
-                  : 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300'
-              }`}
-            >
-              {v.locked ? <LockIcon className="h-5 w-5" /> : <VaultIcon className="h-5 w-5" />}
-            </span>
-            <h3 className="font-semibold text-content">{v.name}</h3>
-          </div>
-          <AccessBadge locked={v.locked ?? false} />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span
+            className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+              v.locked
+                ? 'bg-surface-muted text-content-faint'
+                : 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300'
+            }`}
+          >
+            {v.locked ? <LockIcon className="h-5 w-5" /> : <VaultIcon className="h-5 w-5" />}
+          </span>
+          <h3 className="font-semibold text-content">{v.name}</h3>
         </div>
+        <AccessBadge locked={v.locked ?? false} />
+      </div>
 
-        {v.description && <p className="mt-3 text-sm text-content-muted">{v.description}</p>}
+      {v.description && <p className="mt-3 text-sm text-content-muted">{v.description}</p>}
 
-        {v.experienceLevels && v.experienceLevels.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {v.experienceLevels.map((el) => (
-              <span
-                key={el.id}
-                className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300"
-              >
-                {el.name}
-              </span>
-            ))}
-          </div>
-        )}
-      </ContentProtection>
-
-      {v.locked ? (
-        <p className="mt-auto pt-4 text-xs text-content-faint">
-          Unlock this vault with a subscription.
-        </p>
-      ) : (
-        <p className="mt-auto pt-4 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-          Included with your subscription
-        </p>
-      )}
-    </div>
+      <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+        <span
+          className={`text-xs font-medium ${
+            v.locked
+              ? 'text-content-faint group-hover:text-brand-600 dark:group-hover:text-brand-300'
+              : 'text-emerald-600 dark:text-emerald-400'
+          }`}
+        >
+          {v.locked
+            ? 'Browse jobs free · Full details via subscription'
+            : 'Full details included with your subscription'}
+        </span>
+        <ArrowRightIcon className="h-4 w-4 shrink-0 text-brand-500/70 transition-transform duration-200 group-hover:translate-x-0.5" />
+      </div>
+    </Link>
   );
 }
 
@@ -241,6 +265,43 @@ export function LayersIcon({ className = 'h-4 w-4' }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3"
+      />
+    </svg>
+  );
+}
+
+export function GlobeIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 21a9 9 0 100-18 9 9 0 000 18zm0 0c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3 7.5 7.03 7.5 12s2.015 9 4.5 9z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 12h16.8" />
+    </svg>
+  );
+}
+
+export function BarsIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
       />
     </svg>
   );

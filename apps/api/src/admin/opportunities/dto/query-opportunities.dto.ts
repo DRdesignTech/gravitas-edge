@@ -59,6 +59,11 @@ export class QueryOpportunitiesDto {
   @IsString()
   experienceLevelId?: string;
 
+  @ApiPropertyOptional({ description: 'Filter by vault ID' })
+  @IsOptional()
+  @IsString()
+  vaultId?: string;
+
   @ApiPropertyOptional({ description: 'Filter by published after this date (ISO 8601)' })
   @IsOptional()
   @IsString()

@@ -10,6 +10,7 @@ import BrandLogo from '@/components/brand/BrandLogo';
 
 const navLinks = [
   { href: '/', label: 'Home' },
+  { href: '/vaults', label: 'Vaults' },
   { href: '/opportunities', label: 'Opportunities' },
   { href: '/plans', label: 'Plans' },
   { href: '/faq', label: 'FAQ' },
@@ -55,14 +56,14 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 sm:gap-6">
           <Link
             href="/"
             className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <BrandLogo
               className="h-10 w-auto"
-              nameClassName="text-base font-bold tracking-tight text-content sm:text-lg"
+              nameClassName="hidden text-base font-bold tracking-tight text-content sm:inline sm:text-lg"
             />
           </Link>
           <nav className="hidden items-center gap-1 md:flex">

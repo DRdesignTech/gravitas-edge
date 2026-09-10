@@ -31,6 +31,7 @@ export class OpportunitiesController {
       industry?: string;
       employmentType?: string;
       experienceLevelId?: string;
+      vaultId?: string;
       sortBy?: string;
       sortOrder?: string;
     },

@@ -356,6 +356,9 @@ model Opportunity {
   applicationUrl     String?
   applicationContact String?
   source             String?
+  salary             String?
+  experienceText     String?
+  externalRef        String?
   category           OpportunityCategory @default(OTHER)
   status             OpportunityStatus   @default(DRAFT)
   createdBy          String?

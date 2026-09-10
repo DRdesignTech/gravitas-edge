@@ -432,8 +432,8 @@ export default function Home() {
           <div className="absolute -right-32 top-48 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-14 sm:px-6 sm:pt-20 lg:px-8 lg:pb-24 lg:pt-28">
-          <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+        <div className="relative mx-auto max-w-7xl px-4 pb-14 pt-12 sm:px-6 sm:pt-20 lg:px-8 lg:pb-24 lg:pt-28">
+          <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
             {/* Live badge */}
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-blue-200">
               <DotIcon className="h-1.5 w-1.5 animate-pulse text-blue-300" />
@@ -492,51 +492,55 @@ export default function Home() {
             <div className="pointer-events-none absolute inset-x-0 top-1/2 h-64 -translate-y-1/2 bg-[radial-gradient(circle_at_center,rgba(0,143,239,0.25),transparent_70%)] blur-2xl" />
             <div className="pointer-events-none absolute left-1/2 top-8 h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-blue-400/40 to-transparent" />
 
-            <div className="relative mx-auto max-w-3xl">
+            <div className="relative mx-auto max-w-4xl">
               <div className="-mx-1">
                 <DashboardWindow />
               </div>
 
               {/* Phone card overlapping */}
-              <div className="absolute -bottom-24 right-0 w-52 scale-90 sm:-right-4 sm:w-64 sm:scale-100 lg:-right-16">
+              <div className="absolute -bottom-24 right-0 hidden w-52 sm:block sm:-right-4 sm:w-64 lg:-right-16">
                 <PhoneCard />
               </div>
             </div>
 
             {/* Spacer for the overlapping phone card */}
-            <div className="h-24 sm:h-28" />
+            <div className="h-0 sm:h-28" />
           </div>
 
           {/* ══════════════════════════════════════════════════════════ */}
           {/* SECTION 3 — STATS                                           */}
           {/* ══════════════════════════════════════════════════════════ */}
           <div className="mt-14 lg:mt-16">
-            <div className="grid grid-cols-2 divide-x divide-blue-500/15 rounded-2xl border border-blue-500/20 bg-[#08102a]/80 py-8 backdrop-blur-sm sm:py-10">
-              <div className="flex flex-col items-center gap-1 border-b border-blue-500/15 px-4 py-4 sm:border-b-0">
-                <p className="bg-gradient-to-r from-brand-300 to-blue-300 bg-clip-text text-3xl font-extrabold text-transparent sm:text-4xl">
+            <div className="grid grid-cols-2 rounded-2xl border border-blue-500/20 bg-[#08102a]/80 py-6 backdrop-blur-sm sm:py-10">
+              <div className="flex flex-col items-center gap-1 border-b border-r border-blue-500/15 px-3 py-3 sm:px-4 sm:py-4">
+                <p className="bg-gradient-to-r from-brand-300 to-blue-300 bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl lg:text-4xl">
                   1000+
                 </p>
-                <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-blue-200/60 sm:text-xs">
+                <p className="text-center text-[10px] font-semibold uppercase tracking-widest text-blue-200/60 sm:text-xs">
                   Opportunities Vetted
                 </p>
               </div>
-              <div className="flex flex-col items-center gap-1 border-b border-blue-500/15 px-4 py-4 sm:border-b-0">
-                <p className="text-3xl font-extrabold text-white sm:text-4xl">India Hub</p>
-                <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-blue-200/60 sm:text-xs">
+              <div className="flex flex-col items-center gap-1 border-b border-blue-500/15 px-3 py-3 sm:px-4 sm:py-4">
+                <p className="whitespace-nowrap text-2xl font-extrabold text-white sm:text-3xl lg:text-4xl">
+                  India Hub
+                </p>
+                <p className="text-center text-[10px] font-semibold uppercase tracking-widest text-blue-200/60 sm:text-xs">
                   Bangalore &amp; Mumbai
                 </p>
               </div>
-              <div className="flex flex-col items-center gap-1 border-blue-500/15 px-4 py-4 sm:border-t-0">
-                <p className="text-3xl font-extrabold text-white sm:text-4xl">UAE &amp; GCC</p>
-                <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-blue-200/60 sm:text-xs">
+              <div className="flex flex-col items-center gap-1 border-r border-blue-500/15 px-3 py-3 sm:px-4 sm:py-4">
+                <p className="whitespace-nowrap text-2xl font-extrabold text-white sm:text-3xl lg:text-4xl">
+                  UAE &amp; GCC
+                </p>
+                <p className="text-center text-[10px] font-semibold uppercase tracking-widest text-blue-200/60 sm:text-xs">
                   Dubai &amp; Riyadh
                 </p>
               </div>
-              <div className="flex flex-col items-center gap-1 px-4 py-4">
-                <p className="bg-gradient-to-r from-brand-300 to-blue-300 bg-clip-text text-3xl font-extrabold text-transparent sm:text-4xl">
+              <div className="flex flex-col items-center gap-1 px-3 py-3 sm:px-4 sm:py-4">
+                <p className="whitespace-nowrap bg-gradient-to-r from-brand-300 to-blue-300 bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl lg:text-4xl">
                   Global Remote
                 </p>
-                <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-blue-200/60 sm:text-xs">
+                <p className="text-center text-[10px] font-semibold uppercase tracking-widest text-blue-200/60 sm:text-xs">
                   US/EU Compensation
                 </p>
               </div>
@@ -557,7 +561,7 @@ export default function Home() {
       {/* SECTION 4 & 5 — ADVANTAGE HEADER + CARDS (light)               */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <section className="bg-white dark:bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mx-auto max-w-2xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-widest text-brand-700 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-300">
               The Gravitas Advantage
@@ -607,7 +611,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       <section className="border-t border-line bg-surface dark:bg-surface-elevated/50">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mb-6 flex items-end justify-between gap-4">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold tracking-widest text-brand-600 uppercase dark:text-brand-400">
                 Fresh this week
@@ -654,7 +658,7 @@ export default function Home() {
       {/* Vaults */}
       <section className="border-t border-line bg-surface dark:bg-surface-elevated/50">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <div className="mb-6 flex items-end justify-between gap-4">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold tracking-widest text-brand-600 uppercase dark:text-brand-400">
                 Members only
@@ -710,7 +714,7 @@ export default function Home() {
           <div className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-blue-600/10 blur-3xl" />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-5 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mx-auto max-w-2xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-widest text-blue-200">
               Member Results

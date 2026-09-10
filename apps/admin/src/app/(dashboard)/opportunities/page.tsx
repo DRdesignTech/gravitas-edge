@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   adminListOpportunities,
-  adminCreateOpportunity,
   adminUpdateOpportunity,
+  adminCreateOpportunity,
   adminDeleteOpportunity,
-  adminImportOpportunities,
   adminListVaults,
   adminListExperienceLevels,
 } from '@/lib/services';
@@ -55,6 +55,9 @@ interface FormState {
   applicationUrl: string;
   applicationContact: string;
   source: string;
+  salary: string;
+  experienceText: string;
+  externalRef: string;
   category: string;
   status: string;
   expiryDate: string;
@@ -76,6 +79,9 @@ const emptyForm: FormState = {
   applicationUrl: '',
   applicationContact: '',
   source: '',
+  salary: '',
+  experienceText: '',
+  externalRef: '',
   category: 'INDIA',
   status: 'DRAFT',
   expiryDate: '',
@@ -92,6 +98,7 @@ export default function OpportunitiesPage() {
   const [status, setStatus] = useState('');
   const [category, setCategory] = useState('');
   const [employmentType, setEmploymentType] = useState('');
+  const [vaultId, setVaultId] = useState('');
   const [page, setPage] = useState(1);
 
   const [allVaults, setAllVaults] = useState<Vault[]>([]);
@@ -102,18 +109,19 @@ export default function OpportunitiesPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Opportunity | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importResult, setImportResult] = useState<{
-    imported: number;
-    failed: number;
-    errors: Array<{ row: number; title?: string; error: string }>;
-  } | null>(null);
 
   const load = () => {
     setLoading(true);
     setError('');
-    adminListOpportunities({ page, limit: 15, search, status, category, employmentType })
+    adminListOpportunities({
+      page,
+      limit: 15,
+      search,
+      status,
+      category,
+      employmentType,
+      vaultId,
+    })
       .then(setData)
       .catch((e) => setError(getErrorMessage(e)))
       .finally(() => setLoading(false));
@@ -122,7 +130,7 @@ export default function OpportunitiesPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, status, category, employmentType]);
+  }, [page, status, category, employmentType, vaultId]);
 
   useEffect(() => {
     adminListVaults({ page: 1, limit: 100 })
@@ -137,12 +145,6 @@ export default function OpportunitiesPage() {
     e.preventDefault();
     setPage(1);
     load();
-  };
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm({ ...emptyForm });
-    setFormOpen(true);
   };
 
   const openEdit = (o: Opportunity) => {
@@ -161,6 +163,9 @@ export default function OpportunitiesPage() {
       applicationUrl: o.applicationUrl ?? '',
       applicationContact: o.applicationContact ?? '',
       source: o.source ?? '',
+      salary: o.salary ?? '',
+      experienceText: o.experienceText ?? '',
+      externalRef: o.externalRef ?? '',
       category: o.category,
       status: o.status,
       expiryDate: o.expiryDate ? o.expiryDate.slice(0, 10) : '',
@@ -187,6 +192,9 @@ export default function OpportunitiesPage() {
         applicationUrl: form.applicationUrl || undefined,
         applicationContact: form.applicationContact || undefined,
         source: form.source || undefined,
+        salary: form.salary || undefined,
+        experienceText: form.experienceText || undefined,
+        externalRef: form.externalRef || undefined,
         category: form.category,
         status: form.status || undefined,
         expiryDate: form.expiryDate || undefined,
@@ -224,21 +232,6 @@ export default function OpportunitiesPage() {
     }
   };
 
-  const runImport = async () => {
-    if (!importFile) return;
-    setSaving(true);
-    try {
-      const res = await adminImportOpportunities(importFile);
-      setImportResult(res);
-      showToast(`Imported ${res.imported}, failed ${res.failed}`, 'success');
-      load();
-    } catch (err) {
-      showToast(getErrorMessage(err), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const toggle = (field: 'vaultIds' | 'experienceLevelIds', value: string) =>
     setForm((f) => ({
       ...f,
@@ -257,19 +250,38 @@ export default function OpportunitiesPage() {
       render: (o) => (
         <div>
           <p className="font-medium text-content">{o.title}</p>
-          {o.location && <p className="text-sm text-content-muted">{o.location}</p>}
+          {o.externalRef && <p className="text-xs text-content-faint">{o.externalRef}</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'vaults',
+      label: 'Vaults',
+      render: (o) => (
+        <div className="flex flex-wrap gap-1">
+          {(o.vaults || []).map((v) => (
+            <Badge key={v.id} variant="info">
+              {v.name}
+            </Badge>
+          ))}
+          {(o.vaults || []).length === 0 && <span className="text-content-faint">—</span>}
         </div>
       ),
     },
     {
       key: 'company',
-      label: 'Company',
-      render: (o) => <span className="text-content">{o.company || '—'}</span>,
+      label: 'Company / Location',
+      render: (o) => (
+        <div>
+          <span className="text-content">{o.company || '—'}</span>
+          {o.location && <p className="text-xs text-content-muted">{o.location}</p>}
+        </div>
+      ),
     },
     {
-      key: 'category',
-      label: 'Category',
-      render: (o) => <Badge variant="info">{titleCase(o.category)}</Badge>,
+      key: 'salary',
+      label: 'Salary',
+      render: (o) => <span className="text-content-muted">{o.salary || '—'}</span>,
     },
     {
       key: 'exp',
@@ -323,31 +335,37 @@ export default function OpportunitiesPage() {
         subtitle={
           data
             ? `${data.meta.totalItems.toLocaleString()} total opportunities`
-            : 'Manage job opportunities'
+            : 'Manage job opportunities by vault'
         }
         actions={
           <>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setImportResult(null);
-                setImportOpen(true);
-              }}
-            >
-              Import
-            </Button>
-            <Button onClick={openCreate}>New Opportunity</Button>
+            <Link href="/opportunities/import">
+              <Button variant="secondary">Import Jobs</Button>
+            </Link>
+            <Link href="/opportunities/new">
+              <Button>Add Job</Button>
+            </Link>
           </>
         }
       />
 
       <Card className="mb-6" padding={false}>
-        <form onSubmit={handleSearch} className="grid gap-4 p-5 md:grid-cols-5">
+        <form onSubmit={handleSearch} className="grid gap-4 p-5 md:grid-cols-6">
           <Input
             label="Search"
             placeholder="Title, company"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+          />
+          <Select
+            label="Vault"
+            placeholder="All"
+            value={vaultId}
+            onChange={(e) => {
+              setPage(1);
+              setVaultId(e.target.value);
+            }}
+            options={allVaults.map((v) => ({ value: v.id, label: v.name }))}
           />
           <Select
             label="Status"
@@ -379,9 +397,24 @@ export default function OpportunitiesPage() {
             }}
             options={EMPLOYMENT_TYPES.map((t) => ({ value: t, label: titleCase(t) }))}
           />
-          <div className="flex items-end">
-            <Button type="submit" className="w-full">
+          <div className="flex items-end gap-2">
+            <Button type="submit" className="flex-1">
               Search
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+                setStatus('');
+                setCategory('');
+                setEmploymentType('');
+                setVaultId('');
+                setPage(1);
+                load();
+              }}
+            >
+              Reset
             </Button>
           </div>
         </form>
@@ -415,6 +448,7 @@ export default function OpportunitiesPage() {
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
         title={editing ? 'Edit opportunity' : 'New opportunity'}
+        size="lg"
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setFormOpen(false)}>
@@ -484,6 +518,16 @@ export default function OpportunitiesPage() {
               onChange={(e) => setForm((f) => ({ ...f, expiryDate: e.target.value }))}
             />
             <Input
+              label="External ref (S. No.)"
+              value={form.externalRef}
+              onChange={(e) => setForm((f) => ({ ...f, externalRef: e.target.value }))}
+            />
+            <Input
+              label="Salary"
+              value={form.salary}
+              onChange={(e) => setForm((f) => ({ ...f, salary: e.target.value }))}
+            />
+            <Input
               label="Min experience (yrs)"
               type="number"
               min={0}
@@ -508,6 +552,12 @@ export default function OpportunitiesPage() {
               onChange={(e) => setForm((f) => ({ ...f, applicationContact: e.target.value }))}
             />
           </div>
+          <Textarea
+            label="Experience (free text)"
+            rows={2}
+            value={form.experienceText}
+            onChange={(e) => setForm((f) => ({ ...f, experienceText: e.target.value }))}
+          />
           <div className="grid grid-cols-2 gap-4">
             <Select
               label="Category"
@@ -523,7 +573,7 @@ export default function OpportunitiesPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-content">Vaults</label>
+            <label className="mb-1 block text-sm font-medium text-content">Vaults (required)</label>
             <div className="grid grid-cols-2 gap-2">
               {allVaults.map((v) => (
                 <label key={v.id} className="flex items-center gap-2 text-sm text-content-muted">
@@ -553,72 +603,6 @@ export default function OpportunitiesPage() {
             </div>
           </div>
         </div>
-      </Modal>
-
-      <Modal
-        isOpen={importOpen}
-        onClose={() => {
-          setImportOpen(false);
-          setImportResult(null);
-          setImportFile(null);
-        }}
-        title="Import opportunities"
-        footer={
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setImportOpen(false);
-                setImportResult(null);
-                setImportFile(null);
-              }}
-            >
-              Close
-            </Button>
-            <Button onClick={runImport} loading={saving} disabled={!importFile}>
-              Import
-            </Button>
-          </div>
-        }
-      >
-        {!importResult ? (
-          <div className="space-y-4">
-            <p className="text-sm text-content-muted">
-              Upload a CSV or Excel (.xlsx/.xls) file with columns: title, description, company,
-              location, country, employment_type, industry, functional_area, min_experience,
-              max_experience, application_url, application_contact, source, category, status,
-              expiry_date.
-            </p>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              className="block w-full text-sm text-content file:mr-4 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-brand-950 dark:file:text-brand-300"
-              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-            />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg bg-emerald-50 p-4 text-center">
-                <p className="text-2xl font-bold text-emerald-700">{importResult.imported}</p>
-                <p className="text-sm text-emerald-700">Imported</p>
-              </div>
-              <div className="rounded-lg bg-red-50 p-4 text-center">
-                <p className="text-2xl font-bold text-red-700">{importResult.failed}</p>
-                <p className="text-sm text-red-700">Failed</p>
-              </div>
-            </div>
-            {importResult.errors.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-lg border border-line p-3">
-                {importResult.errors.map((e, i) => (
-                  <p key={i} className="text-xs text-content-muted">
-                    Row {e.row}: {e.error}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </Modal>
 
       <ConfirmDialog

@@ -22,7 +22,6 @@ function mockPrismaService() {
 function mockAccessService() {
   return {
     getAccessibleVaultIds: jest.fn(),
-    hasVaultAccess: jest.fn(),
   } as any;
 }
 
@@ -53,6 +52,16 @@ describe('OpportunitiesService', () => {
     createdAt: new Date(),
   };
 
+  function premiumOpportunity(vaultIds: string[]) {
+    return {
+      ...baseOpportunity,
+      vaults: vaultIds.map((id) => ({
+        vault: { id, name: id, type: 'INDIA' },
+      })),
+      experienceLevels: [{ experienceLevel: { id: 'el-1', name: 'Career' } }],
+    };
+  }
+
   beforeEach(async () => {
     prisma = mockPrismaService();
     access = mockAccessService();
@@ -67,53 +76,58 @@ describe('OpportunitiesService', () => {
   });
 
   describe('listForUser', () => {
-    it('returns published non-premium opportunities for unauthenticated users', async () => {
+    it('returns published non-premium opportunities to unauthenticated users (full access)', async () => {
       prisma.opportunity.findMany.mockResolvedValue([
-        { ...baseOpportunity, vaults: [], experienceLevels: [], _count: { vaults: 0 } },
+        { ...baseOpportunity, vaults: [], experienceLevels: [] },
       ]);
       prisma.opportunity.count.mockResolvedValue(1);
 
       const result = await service.listForUser(undefined, { page: 1, limit: 20 });
       expect(result.items).toHaveLength(1);
       expect(result.items[0].isPremium).toBe(false);
+      expect(result.items[0].isFullAccess).toBe(true);
+      expect(result.items[0].description).toBe('Great role');
       expect(access.getAccessibleVaultIds).not.toHaveBeenCalled();
     });
 
-    it('includes premium opportunities user has access to', async () => {
+    it('returns premium opportunities with full access when user has the vault', async () => {
       access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
-      prisma.opportunity.findMany.mockResolvedValue([
-        {
-          ...baseOpportunity,
-          vaults: [{ vault: { id: 'v-1', name: 'India' } }],
-          experienceLevels: [{ experienceLevel: { id: 'el-1', name: 'Career' } }],
-          _count: { vaults: 1 },
-        },
-      ]);
+      prisma.opportunity.findMany.mockResolvedValue([premiumOpportunity(['v-1'])]);
       prisma.opportunity.count.mockResolvedValue(1);
 
       const result = await service.listForUser('user-1', { page: 1, limit: 20 });
       expect(result.items[0].isPremium).toBe(true);
-      expect(result.items[0].vaults).toBeUndefined();
+      expect(result.items[0].isFullAccess).toBe(true);
+      expect(result.items[0].applicationContact).toBe('hr@acme.com');
+      expect(result.items[0].vaults).toEqual([{ id: 'v-1', name: 'v-1', type: 'INDIA' }]);
     });
 
-    it('excludes premium opportunities user lacks access to', async () => {
+    it('shows premium opportunities as locked teasers to users without access', async () => {
       access.getAccessibleVaultIds.mockResolvedValue([]);
+      prisma.opportunity.findMany.mockResolvedValue([premiumOpportunity(['v-1'])]);
+      prisma.opportunity.count.mockResolvedValue(1);
+
+      const result = await service.listForUser('user-1', { page: 1, limit: 20 });
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].isPremium).toBe(true);
+      expect(result.items[0].isFullAccess).toBe(false);
+      expect(result.items[0].description).toBeUndefined();
+      expect(result.items[0].applicationContact).toBeUndefined();
+      expect(result.items[0].vaults).toEqual([{ id: 'v-1', name: 'v-1', type: 'INDIA' }]);
+    });
+
+    it('does not apply vault restriction to the list query (teasers are returned)', async () => {
+      access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
       prisma.opportunity.findMany.mockResolvedValue([]);
       prisma.opportunity.count.mockResolvedValue(0);
 
-      const result = await service.listForUser('user-1', { page: 1, limit: 20 });
-      expect(result.items).toHaveLength(0);
-      expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            vaults: { none: {} },
-          }),
-        }),
-      );
+      await service.listForUser('user-1', { page: 1, limit: 20 });
+      const whereArgs = prisma.opportunity.findMany.mock.calls[0][0].where;
+      expect(whereArgs.vaults).toBeUndefined();
     });
 
-    it('searches by title/description/company', async () => {
-      access.getAccessibleVaultIds.mockResolvedValue([]);
+    it('searches by title/description/company and sector+location', async () => {
+      access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
       prisma.opportunity.findMany.mockResolvedValue([]);
       prisma.opportunity.count.mockResolvedValue(0);
 
@@ -121,7 +135,26 @@ describe('OpportunitiesService', () => {
       expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: expect.arrayContaining([{ title: { contains: 'engineer', mode: 'insensitive' } }]),
+            OR: expect.arrayContaining([
+              { title: { contains: 'engineer', mode: 'insensitive' } },
+              { location: { contains: 'engineer', mode: 'insensitive' } },
+              { industry: { contains: 'engineer', mode: 'insensitive' } },
+            ]),
+          }),
+        }),
+      );
+    });
+
+    it('filters jobs by vault', async () => {
+      access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
+      prisma.opportunity.findMany.mockResolvedValue([]);
+      prisma.opportunity.count.mockResolvedValue(0);
+
+      await service.listForUser(undefined, { page: 1, limit: 20, vaultId: 'v-9' });
+      expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            vaults: { some: { vaultId: 'v-9' } },
           }),
         }),
       );
@@ -185,10 +218,28 @@ describe('OpportunitiesService', () => {
         expect.objectContaining({ orderBy: { title: 'asc' } }),
       );
     });
+
+    it('returns pagination metadata', async () => {
+      access.getAccessibleVaultIds.mockResolvedValue([]);
+      prisma.opportunity.findMany.mockResolvedValue([
+        { ...baseOpportunity, vaults: [], experienceLevels: [] },
+      ]);
+      prisma.opportunity.count.mockResolvedValue(25);
+
+      const result = await service.listForUser(undefined, { page: 2, limit: 20 });
+      expect(result.meta).toEqual({
+        page: 2,
+        limit: 20,
+        totalItems: 25,
+        totalPages: 2,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      });
+    });
   });
 
   describe('findOneForUser', () => {
-    it('returns a non-premium opportunity to anyone', async () => {
+    it('returns a non-premium opportunity to anyone (full access)', async () => {
       prisma.opportunity.findFirst.mockResolvedValue({
         ...baseOpportunity,
         vaults: [],
@@ -198,43 +249,71 @@ describe('OpportunitiesService', () => {
       const result = await service.findOneForUser('opp-1');
       expect(result.id).toBe('opp-1');
       expect(result.isPremium).toBe(false);
+      expect(result.isFullAccess).toBe(true);
+      expect(result.applicationContact).toBe('hr@acme.com');
     });
 
-    it('returns a premium opportunity to user with vault access', async () => {
-      prisma.opportunity.findFirst.mockResolvedValue({
-        ...baseOpportunity,
-        vaults: [{ vault: { id: 'v-1', name: 'India', type: 'INDIA' } }],
-        experienceLevels: [],
-      });
-      access.hasVaultAccess.mockResolvedValue(true);
+    it('returns full details to a subscriber with the correct vault', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue(premiumOpportunity(['v-1']));
+      access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
 
       const result = await service.findOneForUser('opp-1', 'user-1');
       expect(result.isPremium).toBe(true);
+      expect(result.isFullAccess).toBe(true);
+      expect(result.description).toBe('Great role');
+      expect(result.applicationContact).toBe('hr@acme.com');
       expect(result.vaults).toHaveLength(1);
     });
 
-    it('throws NotFoundException for premium opportunity without access', async () => {
-      prisma.opportunity.findFirst.mockResolvedValue({
-        ...baseOpportunity,
-        vaults: [{ vault: { id: 'v-1', name: 'India' } }],
-        experienceLevels: [],
-      });
-      access.hasVaultAccess.mockResolvedValue(false);
+    it('returns basic info (no full description) for a premium job without auth', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue(premiumOpportunity(['v-1']));
 
-      await expect(service.findOneForUser('opp-1', 'user-1')).rejects.toThrow(NotFoundException);
+      const result = await service.findOneForUser('opp-1');
+      expect(result.isPremium).toBe(true);
+      expect(result.isFullAccess).toBe(false);
+      expect(result.description).toBeUndefined();
     });
 
-    it('throws NotFoundException for premium opportunity without auth', async () => {
-      prisma.opportunity.findFirst.mockResolvedValue({
-        ...baseOpportunity,
-        vaults: [{ vault: { id: 'v-1', name: 'India' } }],
-        experienceLevels: [],
-      });
+    it('never leaks the contact email for a locked premium job', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue(premiumOpportunity(['v-1']));
+      access.getAccessibleVaultIds.mockResolvedValue([]);
 
-      await expect(service.findOneForUser('opp-1')).rejects.toThrow(NotFoundException);
+      const result = await service.findOneForUser('opp-1', 'user-1');
+      expect(result.isFullAccess).toBe(false);
+      expect(result.applicationContact).toBeUndefined();
+      expect(result.applicationUrl).toBeUndefined();
+      expect(result.source).toBeUndefined();
     });
 
-    it('throws NotFoundException for nonexistent opportunity', async () => {
+    it('does not unlock a premium job from another vault (vault A sub vs vault B job)', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue(premiumOpportunity(['v-2']));
+      access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
+
+      const result = await service.findOneForUser('opp-1', 'user-1');
+      expect(result.isPremium).toBe(true);
+      expect(result.isFullAccess).toBe(false);
+      expect(result.applicationContact).toBeUndefined();
+    });
+
+    it('locks a premium job when subscriptions are expired (no accessible vaults)', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue(premiumOpportunity(['v-1']));
+      access.getAccessibleVaultIds.mockResolvedValue([]);
+
+      const result = await service.findOneForUser('opp-1', 'user-1');
+      expect(result.isFullAccess).toBe(false);
+      expect(result.description).toBeUndefined();
+    });
+
+    it('grants full access when the user holds ANY of the job vaults', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue(premiumOpportunity(['v-1', 'v-2']));
+      access.getAccessibleVaultIds.mockResolvedValue(['v-2']);
+
+      const result = await service.findOneForUser('opp-1', 'user-1');
+      expect(result.isFullAccess).toBe(true);
+      expect(result.applicationContact).toBe('hr@acme.com');
+    });
+
+    it('throws NotFoundException for a nonexistent opportunity', async () => {
       prisma.opportunity.findFirst.mockResolvedValue(null);
       await expect(service.findOneForUser('bad-id', 'user-1')).rejects.toThrow(NotFoundException);
     });

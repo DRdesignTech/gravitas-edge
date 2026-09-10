@@ -21,7 +21,7 @@ function mockPrismaService(): any {
       deleteMany: jest.fn(),
       createMany: jest.fn(),
     },
-    vault: { findMany: jest.fn() },
+    vault: { findMany: jest.fn(), findFirst: jest.fn() },
     experienceLevel: { findMany: jest.fn() },
     $transaction: jest.fn(async (fns: any) => {
       if (typeof fns === 'function') return fns(mockPrismaService());
@@ -125,6 +125,19 @@ describe('AdminOpportunitiesService', () => {
       );
     });
 
+    it('filters by vault', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([]);
+      prisma.opportunity.count.mockResolvedValue(0);
+      await service.list({ page: 1, limit: 20, vaultId: 'vault-1' });
+      expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            vaults: { some: { vaultId: 'vault-1' } },
+          }),
+        }),
+      );
+    });
+
     it('filters by date range', async () => {
       prisma.opportunity.findMany.mockResolvedValue([]);
       prisma.opportunity.count.mockResolvedValue(0);
@@ -168,19 +181,11 @@ describe('AdminOpportunitiesService', () => {
   });
 
   describe('create', () => {
-    it('creates an opportunity without vaults', async () => {
-      prisma.opportunity.create.mockResolvedValue({
-        id: 'opp-1',
-        title: 'Dev',
-        vaults: [],
-        experienceLevels: [],
-      });
-
-      const result = await service.create({ title: 'Dev', category: 'INDIA' }, 'admin-1');
-      expect(result.id).toBe('opp-1');
-      expect(audit.record).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'OPPORTUNITY_CREATED' }),
-      );
+    it('requires at least one vault assignment', async () => {
+      await expect(
+        service.create({ title: 'Dev', category: 'INDIA' } as any, 'admin-1'),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.opportunity.create).not.toHaveBeenCalled();
     });
 
     it('creates with vault and experience level links', async () => {
@@ -226,13 +231,17 @@ describe('AdminOpportunitiesService', () => {
     });
 
     it('sets publishedDate when status is PUBLISHED', async () => {
+      prisma.vault.findMany.mockResolvedValue([{ id: 'v-1' }]);
       prisma.opportunity.create.mockImplementation(async (args: any) => {
         expect(args.data.publishedDate).toBeInstanceOf(Date);
         expect(args.data.status).toBe('PUBLISHED');
         return { id: 'opp-1', ...args.data, vaults: [], experienceLevels: [] };
       });
 
-      await service.create({ title: 'Dev', category: 'INDIA', status: 'PUBLISHED' }, 'admin-1');
+      await service.create(
+        { title: 'Dev', category: 'INDIA', status: 'PUBLISHED', vaultIds: ['v-1'] } as any,
+        'admin-1',
+      );
     });
   });
 
@@ -325,6 +334,103 @@ describe('AdminOpportunitiesService', () => {
     it('throws for nonexistent opportunity', async () => {
       prisma.opportunity.findFirst.mockResolvedValue(null);
       await expect(service.remove('bad-id', 'admin-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('import & preview', () => {
+    const csvFile = (content: string) =>
+      ({
+        originalname: 'jobs.csv',
+        buffer: Buffer.from(content),
+        size: content.length,
+      }) as Express.Multer.File;
+
+    beforeEach(() => {
+      prisma.vault.findFirst.mockResolvedValue({
+        id: 'vault-uae',
+        name: 'UAE & GCC Access',
+        type: 'MIDDLE_EAST',
+      });
+      prisma.opportunity.findMany.mockResolvedValue([]);
+      prisma.opportunity.create.mockResolvedValue({ id: 'opp-imported', title: 'Imported' });
+    });
+
+    it('rejects a nonexistent vault', async () => {
+      prisma.vault.findFirst.mockResolvedValue(null);
+      await expect(
+        service.previewImport(csvFile('Title\nDev'), 'bad-vault', 'admin-1'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('previews rows as VALID without persisting anything', async () => {
+      const file = csvFile(
+        'Title,Salary,Experience,Location\nSenior DevOps,Up to AED 7000 monthly,5+ years,Dubai',
+      );
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      expect(result.sheetName).toBe('(CSV file)');
+      expect(result.summary.valid).toBe(1);
+      expect(result.rows[0].classification).toBe('VALID');
+      expect(result.rows[0].fields?.salary).toBe('Up to AED 7000 monthly');
+      expect(result.rows[0].fields?.experienceText).toBe('5+ years');
+      expect(result.rows[0].fields?.minExperience).toBe(5);
+      expect(result.rows[0].fields?.category).toBe('MIDDLE_EAST');
+      expect(result.rows[0].fields?.status).toBe('PUBLISHED');
+      expect(prisma.opportunity.create).not.toHaveBeenCalled();
+    });
+
+    it('classifies duplicates against existing rows in the selected vault', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([
+        { title: 'Duplicate Dev', externalRef: null },
+      ]);
+      const file = csvFile('Title\nDuplicate Dev\nFresh Role');
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      const dup = result.rows.find((r) => r.title === 'Duplicate Dev');
+      expect(dup?.classification).toBe('DUPLICATE');
+      expect(dup?.reason).toBe('Duplicate title already exists in vault');
+      expect(result.summary.duplicate).toBe(1);
+    });
+
+    it('flags repeated titles within the same file', async () => {
+      const file = csvFile('Title\nRepeat Role\nRepeat Role');
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      const matches = result.rows.filter((r) => r.title === 'Repeat Role');
+      expect(matches[0].classification).toBe('VALID');
+      expect(matches[1].classification).toBe('DUPLICATE');
+      expect(matches[1].reason).toBe('Duplicate title within file');
+    });
+
+    it('marks rows missing a title as INVALID and ignores empty rows', async () => {
+      const file = csvFile('Title,Salary\nAlpha,100\n,Beta\n,');
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      const invalid = result.rows.find((r) => r.classification === 'INVALID');
+      const skipped = result.rows.find((r) => r.classification === 'SKIPPED');
+      expect(invalid?.reason).toBe('Missing required field: title');
+      expect(skipped).toBeUndefined();
+      expect(result.summary.invalid).toBe(1);
+      expect(result.summary.skipped).toBe(0);
+    });
+
+    it('imports valid rows into the vault and ignores empty rows', async () => {
+      const file = csvFile('Title\nGood Job\n,');
+      const result = await service.import(file, 'vault-uae', 'admin-1');
+
+      expect(result.imported).toBe(1);
+      expect(result.skipped).toBe(0);
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'OPPORTUNITY_IMPORT', entityType: 'Opportunity' }),
+      );
+    });
+
+    it('rejects files over the import limit', async () => {
+      const header = 'Title\n';
+      const fill = Array.from({ length: 501 }, (_, i) => `Job ${i}`).join('\n');
+      await expect(
+        service.previewImport(csvFile(header + fill), 'vault-uae', 'admin-1'),
+      ).rejects.toThrow(/limited to 500 rows/);
     });
   });
 });

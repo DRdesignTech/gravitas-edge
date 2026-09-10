@@ -89,6 +89,24 @@ export class UpdateOpportunityDto {
   @MaxLength(100)
   source?: string;
 
+  @ApiPropertyOptional({ example: '₹12,00,000 per annum' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  salary?: string;
+
+  @ApiPropertyOptional({ example: '3+ years in React' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(3000)
+  experienceText?: string;
+
+  @ApiPropertyOptional({ example: 'S. No. 42' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  externalRef?: string;
+
   @ApiPropertyOptional({ enum: OpportunityCategory })
   @IsOptional()
   @IsEnum(OpportunityCategory)

@@ -53,6 +53,9 @@ export interface Opportunity {
   functionalArea?: string | null;
   minExperience?: number | null;
   maxExperience?: number | null;
+  salary?: string | null;
+  experienceText?: string | null;
+  externalRef?: string | null;
   applicationUrl?: string | null;
   applicationContact?: string | null;
   source?: string | null;
@@ -64,6 +67,7 @@ export interface Opportunity {
   experienceLevels?: ExperienceLevel[];
   vaults?: Vault[];
   isPremium?: boolean;
+  isFullAccess?: boolean;
 }
 
 export interface SubscriptionPlan {
@@ -119,6 +123,7 @@ export interface OpportunityQuery {
   industry?: string;
   employmentType?: string;
   experienceLevelId?: string;
+  vaultId?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }

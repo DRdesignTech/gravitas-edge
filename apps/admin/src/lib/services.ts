@@ -1,6 +1,7 @@
 import { api, uploadFile } from './api';
 import {
   AdminSubscription,
+  ImportPreviewResponse,
   Opportunity,
   PaginatedResult,
   SubscriptionPlan,
@@ -64,6 +65,7 @@ export interface OpportunityQuery {
   location?: string;
   industry?: string;
   employmentType?: string;
+  vaultId?: string;
   sortBy?: string;
   sortOrder?: string;
 }
@@ -255,12 +257,20 @@ export function adminUpdateReferralSlab(id: string, body: Partial<ReferralSlab>)
   return api.patch<ReferralSlab>(`/admin/referral-slabs/${id}`, body);
 }
 
-export function adminImportOpportunities(file: File) {
+export function adminImportOpportunities(file: File, vaultId: string, defaultStatus?: string) {
   return uploadFile<{
     imported: number;
     failed: number;
+    skipped: number;
     errors: Array<{ row: number; title?: string; error: string }>;
-  }>('/admin/opportunities/import', file);
+  }>('/admin/opportunities/import', file, { vaultId, ...(defaultStatus ? { defaultStatus } : {}) });
+}
+
+export function adminPreviewImport(file: File, vaultId: string, defaultStatus?: string) {
+  return uploadFile<ImportPreviewResponse>('/admin/opportunities/import/preview', file, {
+    vaultId,
+    ...(defaultStatus ? { defaultStatus } : {}),
+  });
 }
 
 export function adminAnalyticsOverview(range: DateRange, startDate?: string, endDate?: string) {

@@ -65,10 +65,17 @@ export const api = {
   del: <T = any>(path: string) => apiFetch<T>(path, { method: 'DELETE' }),
 };
 
-export async function uploadFile<T = any>(path: string, file: File): Promise<T> {
+export async function uploadFile<T = any>(
+  path: string,
+  file: File,
+  fields?: Record<string, string>,
+): Promise<T> {
   const token = getToken();
   const formData = new FormData();
   formData.append('file', file);
+  if (fields) {
+    for (const [k, v] of Object.entries(fields)) formData.append(k, v);
+  }
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers, body: formData });
