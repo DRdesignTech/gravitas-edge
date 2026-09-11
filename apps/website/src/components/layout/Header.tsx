@@ -10,9 +10,10 @@ import BrandLogo from '@/components/brand/BrandLogo';
 
 const navLinks = [
   { href: '/', label: 'Home' },
+  { href: '/how-it-works', label: 'How It Works' },
+  { href: '/opportunities', label: 'Free Preview' },
   { href: '/vaults', label: 'Vaults' },
-  { href: '/opportunities', label: 'Opportunities' },
-  { href: '/plans', label: 'Plans' },
+  { href: '/upload-resume', label: 'Resume' },
   { href: '/faq', label: 'FAQ' },
 ];
 
@@ -62,19 +63,20 @@ export default function Header() {
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 sm:gap-6">
+        <div className="flex items-center gap-3 sm:gap-10">
           <Link
             href="/"
             className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            aria-label="Gravitas Edge Consulting home"
           >
             <BrandLogo
-              className="h-10 w-auto"
+              className="h-9 w-auto"
               nameClassName="hidden text-base font-bold tracking-tight text-content sm:inline sm:text-lg"
             />
           </Link>
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -91,19 +93,21 @@ export default function Header() {
           </nav>
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <ThemeToggle />
           {user ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
                 className="flex items-center gap-2 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3 text-sm font-medium text-content hover:bg-surface-muted"
               >
                 {user.profile?.profileImg ? (
                   <img
                     src={getProfileImageUrl(user.profile.profileImg) ?? undefined}
                     alt="Profile"
-                    className="h-7 w-7 rounded-full object-cover border border-brand-200 dark:border-brand-800"
+                    className="h-7 w-7 rounded-full border border-brand-200 object-cover dark:border-brand-800"
                   />
                 ) : (
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
@@ -136,28 +140,21 @@ export default function Header() {
               )}
             </div>
           ) : (
-            <>
-              <Link
-                href="/login"
-                className="rounded-lg px-4 py-2 text-sm font-medium text-content-muted transition-colors hover:bg-surface-muted hover:text-content"
-              >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
-              >
-                Sign Up
-              </Link>
-            </>
+            <Link
+              href="/login"
+              className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            >
+              Sign In
+            </Link>
           )}
         </div>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <ThemeToggle />
           <button
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
             className="rounded-lg p-2 text-content-muted hover:bg-surface-muted hover:text-content"
           >
             {mobileOpen ? (
@@ -169,6 +166,7 @@ export default function Header() {
                 viewBox="0 0 24 24"
                 strokeWidth={2}
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -182,20 +180,22 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-line bg-surface px-4 pb-6 pt-3 md:hidden">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
-                isActive(link.href)
-                  ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
-                  : 'text-content-muted hover:bg-surface-muted'
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <div className="border-t border-line bg-surface px-4 pb-6 pt-3 lg:hidden">
+          <nav className="space-y-1" aria-label="Primary mobile">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
+                  isActive(link.href)
+                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
+                    : 'text-content-muted hover:bg-surface-muted hover:text-content'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
           <div className="my-2 border-t border-line" />
           {user ? (
             <>
@@ -219,15 +219,15 @@ export default function Header() {
             <div className="flex gap-3">
               <Link
                 href="/login"
-                className="flex-1 rounded-xl border border-line bg-surface px-4 py-2 text-center text-sm font-medium text-content"
+                className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
               >
-                Login
+                Sign In
               </Link>
               <Link
                 href="/register"
-                className="flex-1 rounded-xl bg-brand-600 px-4 py-2 text-center text-sm font-semibold text-white"
+                className="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 text-center text-sm font-medium text-content hover:bg-surface-muted"
               >
-                Sign Up
+                Create account
               </Link>
             </div>
           )}

@@ -1,4 +1,4 @@
-import { api, uploadFile } from './api';
+import { api, apiFetch, uploadFile } from './api';
 import {
   CommissionItem,
   CommissionQuery,
@@ -69,6 +69,29 @@ export function updateMyProfile(dto: Partial<UserProfile>) {
 
 export function uploadProfileImage(file: File) {
   return uploadFile<User>('/users/me/profile-image', file);
+}
+
+export function uploadResume(file: File) {
+  return uploadFile<Resume>('/resumes', file, 'resume');
+}
+
+export function uploadGuestResume(file: File, details: GuestResumeDetails) {
+  const formData = new FormData();
+  formData.append('resume', file);
+  formData.append('fullName', details.fullName);
+  formData.append('email', details.email);
+  if (details.phone) formData.append('phone', details.phone);
+  return postFormData<{ id: string }>('/guest-resumes', formData);
+}
+
+export interface GuestResumeDetails {
+  fullName: string;
+  email: string;
+  phone?: string;
+}
+
+function postFormData<T = any>(path: string, formData: FormData): Promise<T> {
+  return apiFetch<T>(path, { method: 'POST', body: formData });
 }
 
 export function removeProfileImage() {

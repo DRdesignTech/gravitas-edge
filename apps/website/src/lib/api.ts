@@ -71,10 +71,14 @@ export const api = {
   delete: <T = any>(path: string) => apiFetch<T>(path, { method: 'DELETE' }),
 };
 
-export async function uploadFile<T = any>(path: string, file: File): Promise<T> {
+export async function uploadFile<T = any>(
+  path: string,
+  file: File,
+  fieldName = 'file',
+): Promise<T> {
   const token = getToken();
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append(fieldName, file);
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers, body: formData });

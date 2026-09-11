@@ -94,7 +94,7 @@ export default function ResumesPage() {
     setUploading(true);
 
     try {
-      await uploadFile(`/resumes`, file);
+      await uploadFile(`/resumes`, file, 'resume');
       showToast('Resume uploaded successfully', 'success');
       await loadResumes();
     } catch (e: any) {
