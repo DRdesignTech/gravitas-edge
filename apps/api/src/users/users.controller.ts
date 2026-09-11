@@ -1,9 +1,10 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Patch } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Patch, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/auth.types';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -35,5 +36,24 @@ export class UsersController {
   @ApiOperation({ summary: 'Update the authenticated user profile' })
   updateProfile(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(user.id, dto);
+  }
+
+  @Post('me/profile-image')
+  @HttpCode(HttpStatus.OK)
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload profile image for the authenticated user' })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  uploadProfileImage(
+    @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.usersService.uploadProfileImage(user.id, file);
+  }
+
+  @Delete('me/profile-image')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove profile image for the authenticated user' })
+  removeProfileImage(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.removeProfileImage(user.id);
   }
 }

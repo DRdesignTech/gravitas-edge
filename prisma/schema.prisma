@@ -194,6 +194,7 @@ model UserProfile {
   monthsExperience Int?
   currentJobTitle  String?
   currentCompany   String?
+  profileImg       String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

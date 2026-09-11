@@ -6,6 +6,7 @@ export interface UserProfile {
   monthsExperience?: number | null;
   currentJobTitle?: string | null;
   currentCompany?: string | null;
+  profileImg?: string | null;
 }
 
 export interface User {

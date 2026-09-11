@@ -31,6 +31,14 @@ function initials(name?: string | null, email?: string) {
   return src[0].toUpperCase();
 }
 
+function getProfileImageUrl(img: string | null | undefined) {
+  if (!img) return null;
+  if (img.startsWith('http')) return img;
+  const base = process.env.NEXT_PUBLIC_API_URL || '';
+  // Profile images are served from /api/storage/
+  return `${base}/storage/${img}`;
+}
+
 export default function Header() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
@@ -91,9 +99,17 @@ export default function Header() {
                 onClick={() => setUserMenuOpen((v) => !v)}
                 className="flex items-center gap-2 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3 text-sm font-medium text-content hover:bg-surface-muted"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-                  {initials(user.profile?.fullName, user.email)}
-                </span>
+                {user.profile?.profileImg ? (
+                  <img
+                    src={getProfileImageUrl(user.profile.profileImg) ?? undefined}
+                    alt="Profile"
+                    className="h-7 w-7 rounded-full object-cover border border-brand-200 dark:border-brand-800"
+                  />
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                    {initials(user.profile?.fullName, user.email)}
+                  </span>
+                )}
                 <span className="max-w-[140px] truncate">
                   {user.profile?.fullName || user.email}
                 </span>

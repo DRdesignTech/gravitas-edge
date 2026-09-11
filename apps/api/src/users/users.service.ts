@@ -1,6 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as crypto from 'crypto';
+
+import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { StorageService } from '../resumes/storage/storage.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
@@ -8,6 +13,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   async getMe(userId: string) {
@@ -76,6 +82,120 @@ export class UsersService {
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     return this.updateMe(userId, dto);
+  }
+
+  async uploadProfileImage(userId: string, file: Express.Multer.File) {
+    // Validate file type
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new UnprocessableEntityException('Invalid file type. Only JPG, PNG, and WebP are allowed.');
+    }
+
+    const extension = file.originalname.split('.').pop()?.toLowerCase();
+    if (!extension || !allowedExtensions.includes(extension)) {
+      throw new UnprocessableEntityException('Invalid file extension. Only JPG, PNG, and WebP are allowed.');
+    }
+
+    // Validate file size (max 5MB for profile images)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      throw new UnprocessableEntityException('File too large. Maximum size is 5MB.');
+    }
+
+    // Validate file content (basic magic bytes check)
+    if (!this.isValidImageFile(file.buffer, file.mimetype)) {
+      throw new UnprocessableEntityException('Invalid image file content.');
+    }
+
+    // Get existing profile image to delete later
+    const existingProfile = await this.prisma.userProfile.findUnique({ where: { userId } });
+    const oldImagePath = existingProfile?.profileImg ?? null;
+
+    // Generate safe storage path
+    const uniqueSuffix = crypto.randomBytes(16).toString('hex');
+    const storageName = `${userId}-${uniqueSuffix}.${extension}`;
+    const relativePath = `profile-images/${userId}/${storageName}`;
+    const fullPath = this.storage.getFullPath(relativePath);
+
+    // Ensure directory exists
+    const dir = path.dirname(fullPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Write file
+    fs.writeFileSync(fullPath, file.buffer);
+
+    // Update profile with new image path
+    await this.prisma.userProfile.upsert({
+      where: { userId },
+      create: { userId, profileImg: relativePath },
+      update: { profileImg: relativePath },
+    });
+
+    // Delete old image after successful upload
+    if (oldImagePath) {
+      this.storage.deleteFile(oldImagePath);
+    }
+
+    await this.audit.record({
+      action: 'USER_PROFILE_IMAGE_UPDATED',
+      entityType: 'UserProfile',
+      entityId: userId,
+      actorUserId: userId,
+    });
+
+    return this.getMe(userId);
+  }
+
+  async removeProfileImage(userId: string) {
+    const existingProfile = await this.prisma.userProfile.findUnique({ where: { userId } });
+    const oldImagePath = existingProfile?.profileImg ?? null;
+
+    if (!oldImagePath) {
+      return this.getMe(userId); // Nothing to remove
+    }
+
+    await this.prisma.userProfile.update({
+      where: { userId },
+      data: { profileImg: null },
+    });
+
+    this.storage.deleteFile(oldImagePath);
+
+    await this.audit.record({
+      action: 'USER_PROFILE_IMAGE_REMOVED',
+      entityType: 'UserProfile',
+      entityId: userId,
+      actorUserId: userId,
+    });
+
+    return this.getMe(userId);
+  }
+
+  private isValidImageFile(buffer: Buffer, mimeType: string): boolean {
+    if (buffer.length < 12) return false;
+
+    // JPEG: FF D8 FF
+    if (mimeType === 'image/jpeg') {
+      return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    }
+
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (mimeType === 'image/png') {
+      return buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47 &&
+             buffer[4] === 0x0d && buffer[5] === 0x0a && buffer[6] === 0x1a && buffer[7] === 0x0a;
+    }
+
+    // WebP: RIFF....WEBP
+    if (mimeType === 'image/webp') {
+      return buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+             buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+    }
+
+    return false;
   }
 
   private async findUserWithProfile(userId: string) {

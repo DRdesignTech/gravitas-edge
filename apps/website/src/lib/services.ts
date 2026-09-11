@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, uploadFile } from './api';
 import {
   CommissionItem,
   CommissionQuery,
@@ -65,6 +65,14 @@ export function fetchMyResumes() {
 
 export function updateMyProfile(dto: Partial<UserProfile>) {
   return api.patch<User>('/users/me/profile', dto);
+}
+
+export function uploadProfileImage(file: File) {
+  return uploadFile<User>('/users/me/profile-image', file);
+}
+
+export function removeProfileImage() {
+  return api.delete<User>('/users/me/profile-image');
 }
 
 export function fetchMe() {

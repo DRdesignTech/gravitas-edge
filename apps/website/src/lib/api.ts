@@ -68,6 +68,7 @@ export const api = {
   patch: <T = any>(path: string, body?: any) =>
     apiFetch<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
   del: <T = any>(path: string) => apiFetch<T>(path, { method: 'DELETE' }),
+  delete: <T = any>(path: string) => apiFetch<T>(path, { method: 'DELETE' }),
 };
 
 export async function uploadFile<T = any>(path: string, file: File): Promise<T> {

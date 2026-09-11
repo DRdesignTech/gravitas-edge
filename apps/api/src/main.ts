@@ -3,6 +3,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { getCorsOrigins, corsOriginCallback } from './common/cors.util';
+import * as express from 'express';
+import * as path from 'path';
 
 async function bootstrap() {
   const isProduction = process.env.ENVIRONMENT === 'production';
@@ -19,7 +21,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.useGlobalPipes(
+app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
@@ -29,6 +31,10 @@ async function bootstrap() {
       },
     }),
   );
+
+  // Serve static files from storage directory (for profile images, resumes, etc.)
+  const storagePath = path.resolve(process.env.STORAGE_LOCAL_PATH ?? './storage');
+  app.use('/api/storage', express.static(storagePath));
 
   if (!isProduction) {
     const config = new DocumentBuilder()
