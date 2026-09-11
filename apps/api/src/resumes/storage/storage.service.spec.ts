@@ -60,4 +60,14 @@ describe('StorageService path containment (security)', () => {
       expect(result.storagePath.includes('..')).toBe(false);
     });
   });
+
+  describe('saveGuestFile', () => {
+    it('writes under guest-resumes with a random storage name and safe path', () => {
+      const result = service.saveGuestFile(Buffer.from('%PDF-1.4'), 'cv.pdf');
+      expect(result.storagePath).toMatch(/^guest-resumes\/[a-f0-9]{32}\.pdf$/);
+      expect(result.storageName).toMatch(/^[a-f0-9]{32}\.pdf$/);
+      expect(result.storagePath.startsWith('resumes/')).toBe(false);
+      expect(service.getFullPath(result.storagePath).startsWith(tmpDir)).toBe(true);
+    });
+  });
 });

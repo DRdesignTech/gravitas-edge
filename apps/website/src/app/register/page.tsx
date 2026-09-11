@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { useGuestResume } from '@/lib/guest-resume';
+import { linkGuestResume } from '@/lib/services';
 import { Button, Card, Input, Alert, useToast } from '@/components/ui';
 import BrandLogo, { BRAND_NAME } from '@/components/brand/BrandLogo';
 import { getErrorMessage } from '@/lib/errors';
@@ -24,6 +26,7 @@ function RegisterForm() {
   const invalidReferralCode = refParam && !referralCode;
 
   const { register } = useAuth();
+  const { guestToken, guestResume, clearGuestResume } = useGuestResume();
   const { showToast } = useToast();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -50,6 +53,18 @@ function RegisterForm() {
     setLoading(true);
     try {
       await register(fullName.trim(), email.trim(), password, referralCode ?? undefined);
+
+      if (guestToken) {
+        try {
+          await linkGuestResume(guestToken);
+          clearGuestResume();
+          showToast('Your resume has been linked to your account.', 'success');
+        } catch {
+          // Best effort: never block account creation when the guest resume
+          // could not be linked (the resume remains stored server-side).
+        }
+      }
+
       showToast(`Account created! Welcome to ${BRAND_NAME}.`, 'success');
     } catch (err) {
       const message = getErrorMessage(err);
@@ -85,6 +100,13 @@ function RegisterForm() {
             <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
               You were referred with code{' '}
               <span className="font-mono font-semibold">{referralCode}</span>
+            </div>
+          )}
+
+          {guestResume && (
+            <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200">
+              You uploaded {guestResume.originalName} as a guest — it will be linked to your new
+              account, so you won&apos;t need to upload it again.
             </div>
           )}
 

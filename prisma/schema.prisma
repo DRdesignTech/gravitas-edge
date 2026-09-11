@@ -148,6 +148,7 @@ model User {
   receivedReferrals  Referral[]         @relation("ReferralReferred")
   opportunitiesOwned Opportunity[]
   resumes            Resume[]
+  guestResumes       GuestResume[]
   candidateProfiles  CandidateProfile[]
   payments           Payment[]
   adminAuditLogs     AuditLog[]         @relation("AuditAdminUser")
@@ -508,6 +509,34 @@ model Resume {
 
   @@index([userId])
   @@index([uploadStatus])
+  @@index([deletedAt])
+}
+
+// Guest resume submissions let logged-out visitors upload their resume.
+// The opaque `token` (hashed in DB) is the only handle the visitor holds;
+// it can later be linked to a registered user without re-uploading.
+model GuestResume {
+  id              String   @id @default(uuid())
+  tokenHash       String   @unique
+  fullName        String
+  email           String
+  phone           String?
+  originalName    String
+  storageName     String
+  fileType        String
+  fileSize        Int
+  storageProvider String   @default("local")
+  storagePath     String
+  uploadedAt      DateTime @default(now())
+  linkedUserId    String?
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  linkedUser User? @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([linkedUserId])
   @@index([deletedAt])
 }
 

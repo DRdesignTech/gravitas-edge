@@ -171,9 +171,10 @@ function ArrowRightIcon({ className = 'h-4 w-4' }: { className?: string }) {
 }
 
 export function VaultCard({ vault: v }: { vault: Vault }) {
+  const unlocked = !v.locked;
   return (
     <Link
-      href={`/vaults/${v.id}`}
+      href={unlocked ? `/opportunities?vaultId=${encodeURIComponent(v.id)}` : `/vaults/${v.id}`}
       className={`group flex h-full flex-col rounded-2xl border bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50 ${
         v.locked ? 'border-line' : 'border-brand-200 dark:border-brand-500/40'
       }`}
@@ -206,7 +207,7 @@ export function VaultCard({ vault: v }: { vault: Vault }) {
         >
           {v.locked
             ? 'Browse jobs free · Full details via subscription'
-            : 'Full details included with your subscription'}
+            : 'Open the jobs included with your access'}
         </span>
         <ArrowRightIcon className="h-4 w-4 shrink-0 text-brand-500/70 transition-transform duration-200 group-hover:translate-x-0.5" />
       </div>

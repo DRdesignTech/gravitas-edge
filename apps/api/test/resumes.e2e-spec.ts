@@ -52,6 +52,9 @@ describe('Resumes e2e (security)', () => {
   });
 
   afterAll(async () => {
+    await prisma.guestResume.deleteMany({
+      where: { email: { in: [ownerEmail, 'guest-jane@example.com'] } },
+    });
     const users = await prisma.user.findMany({
       where: { email: { in: [ownerEmail, otherEmail] } },
       select: { id: true, email: true },
@@ -239,5 +242,121 @@ describe('Resumes e2e (security)', () => {
       expect(item.storagePath).toBeUndefined();
       expect(item.storageName).toBeUndefined();
     }
+  });
+
+  describe('Guest resume upload (no authentication)', () => {
+    let guestToken = '';
+
+    it('allows a logged-out visitor to upload a resume without an account', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/resumes/guest')
+        .field('fullName', 'Jane Guest')
+        .field('email', 'guest-jane@example.com')
+        .field('phone', '+919876543210')
+        .attach('resume', attachPdf('guest-cv.pdf', '%PDF-1.4 guest resume'), {
+          filename: 'guest-cv.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.token).toMatch(/^[a-f0-9]{64}$/);
+      expect(res.body.data.resume.originalName).toBe('guest-cv.pdf');
+      expect(res.body.data.resume.fileType).toBe('pdf');
+      expect(res.body.data.resume.linked).toBe(false);
+      expect(res.body.data.resume.storagePath).toBeUndefined();
+      expect(res.body.data.resume.storageName).toBeUndefined();
+      guestToken = res.body.data.token;
+    });
+
+    it('rejects missing visitor contact details', async () => {
+      await request(app.getHttpServer())
+        .post('/api/resumes/guest')
+        .attach('resume', attachPdf('anon.pdf', '%PDF-1.4 no details'), {
+          filename: 'anon.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(400);
+    });
+
+    it('allows retrieving the guest resume metadata by token', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/resumes/guest/${guestToken}`)
+        .expect(200);
+      expect(res.body.data.resume.originalName).toBe('guest-cv.pdf');
+      expect(res.body.data.resume.storagePath).toBeUndefined();
+    });
+
+    it('returns 404 for an unknown guest token', async () => {
+      await request(app.getHttpServer())
+        .get(`/api/resumes/guest/${'0'.repeat(64)}`)
+        .expect(404);
+    });
+
+    it('allows replacing the guest resume file using the same token', async () => {
+      const res = await request(app.getHttpServer())
+        .put(`/api/resumes/guest/${guestToken}`)
+        .attach('resume', attachPdf('guest-cv-v2.pdf', '%PDF-1.4 guest resume v2'), {
+          filename: 'guest-cv-v2.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(200);
+      expect(res.body.data.resume.originalName).toBe('guest-cv-v2.pdf');
+    });
+
+    it('rejects a non-resume file for guests', async () => {
+      await request(app.getHttpServer())
+        .post('/api/resumes/guest')
+        .field('fullName', 'Jane Guest')
+        .field('email', 'guest-jane@example.com')
+        .attach('resume', Buffer.from('MZ evil'), {
+          filename: 'evil.exe',
+          contentType: 'application/x-msdownload',
+        })
+        .expect(400);
+    });
+
+    it('rejects tampered content for guests', async () => {
+      await request(app.getHttpServer())
+        .post('/api/resumes/guest')
+        .field('fullName', 'Jane Guest')
+        .field('email', 'guest-jane@example.com')
+        .attach('resume', Buffer.from('<script>alert(1)</script>'), {
+          filename: 'fake.pdf',
+          contentType: 'application/pdf',
+        })
+        .expect(422);
+    });
+
+    it('links the guest resume to a registered user after signup', async () => {
+      const linkRes = await request(app.getHttpServer())
+        .post(`/api/resumes/guest/${guestToken}/link`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(201);
+      expect(linkRes.body.data.resumeId).toBeDefined();
+
+      // The linked resume is now visible in the user's authenticated list.
+      const list = await request(app.getHttpServer())
+        .get('/api/resumes')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(200);
+      const names = list.body.data.data.map((r: any) => r.originalName);
+      expect(names).toContain('guest-cv-v2.pdf');
+    });
+
+    it('forbids linking a guest resume already claimed by another user', async () => {
+      await request(app.getHttpServer())
+        .post(`/api/resumes/guest/${guestToken}/link`)
+        .set('Authorization', `Bearer ${otherToken}`)
+        .expect(403);
+    });
+
+    it('never exposes raw storage paths for guest resumes', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/api/resumes/guest/${guestToken}`)
+        .expect(200);
+      expect(JSON.stringify(res.body)).not.toContain('storagePath');
+      expect(JSON.stringify(res.body)).not.toContain('storage');
+    });
   });
 });

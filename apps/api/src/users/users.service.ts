@@ -2,7 +2,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 
-import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { StorageService } from '../resumes/storage/storage.service';
@@ -90,12 +95,16 @@ export class UsersService {
     const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 
     if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new UnprocessableEntityException('Invalid file type. Only JPG, PNG, and WebP are allowed.');
+      throw new UnprocessableEntityException(
+        'Invalid file type. Only JPG, PNG, and WebP are allowed.',
+      );
     }
 
     const extension = file.originalname.split('.').pop()?.toLowerCase();
     if (!extension || !allowedExtensions.includes(extension)) {
-      throw new UnprocessableEntityException('Invalid file extension. Only JPG, PNG, and WebP are allowed.');
+      throw new UnprocessableEntityException(
+        'Invalid file extension. Only JPG, PNG, and WebP are allowed.',
+      );
     }
 
     // Validate file size (max 5MB for profile images)
@@ -185,14 +194,30 @@ export class UsersService {
 
     // PNG: 89 50 4E 47 0D 0A 1A 0A
     if (mimeType === 'image/png') {
-      return buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47 &&
-             buffer[4] === 0x0d && buffer[5] === 0x0a && buffer[6] === 0x1a && buffer[7] === 0x0a;
+      return (
+        buffer[0] === 0x89 &&
+        buffer[1] === 0x50 &&
+        buffer[2] === 0x4e &&
+        buffer[3] === 0x47 &&
+        buffer[4] === 0x0d &&
+        buffer[5] === 0x0a &&
+        buffer[6] === 0x1a &&
+        buffer[7] === 0x0a
+      );
     }
 
     // WebP: RIFF....WEBP
     if (mimeType === 'image/webp') {
-      return buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
-             buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+      return (
+        buffer[0] === 0x52 &&
+        buffer[1] === 0x49 &&
+        buffer[2] === 0x46 &&
+        buffer[3] === 0x46 &&
+        buffer[8] === 0x57 &&
+        buffer[9] === 0x45 &&
+        buffer[10] === 0x42 &&
+        buffer[11] === 0x50
+      );
     }
 
     return false;

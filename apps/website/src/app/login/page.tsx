@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { Button, Card, Input, Alert, useToast } from '@/components/ui';
 import BrandLogo, { BRAND_NAME } from '@/components/brand/BrandLogo';
+import SessionExpiredNotifier from '@/components/layout/SessionExpiredNotifier';
 import { getErrorMessage } from '@/lib/errors';
 
 export default function LoginPage() {
@@ -40,6 +41,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
+      <SessionExpiredNotifier />
       <div className="w-full max-w-md">
         <Card className="p-2">
           <div className="mb-2 text-center">

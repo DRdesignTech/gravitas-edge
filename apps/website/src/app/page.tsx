@@ -277,6 +277,55 @@ export default function Home() {
           )}
         </div>
       </section>
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* TESTIMONIALS                                                   */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <section className="bg-[#0A1730]">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+          <Eyebrow invert>WHAT SUBSCRIBERS SAY</Eyebrow>
+          <h2 className="mt-4 max-w-2xl text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            Real outcomes from professionals who acted before the market moved.
+          </h2>
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2">
+            {/* Testimonial 1 */}
+            <div className="flex flex-col rounded-2xl border border-white/10 bg-white/5 p-7 sm:p-8">
+              <span className="mb-5 inline-flex w-fit items-center rounded-full bg-emerald-500/15 px-3.5 py-1 text-xs font-semibold tracking-wide text-emerald-300">
+                45% Pay Jump
+              </span>
+              <blockquote className="flex-1 text-base leading-relaxed text-slate-200 sm:text-lg">
+                &ldquo;I found a Lead PM role 3 weeks before it was posted publicly on LinkedIn.
+                Applied directly to the VP via the email provided in the Gravitas Vault, and was
+                offered India-competitive premium equity + a 45% pay bump.&rdquo;
+              </blockquote>
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <p className="text-sm font-bold text-white">Simran Khurana</p>
+                <p className="mt-0.5 text-sm text-slate-400">
+                  Lead Product Manager @ FinTech Growth Scale-Up
+                </p>
+              </div>
+            </div>
+
+            {/* Testimonial 2 */}
+            <div className="flex flex-col rounded-2xl border border-white/10 bg-white/5 p-7 sm:p-8">
+              <span className="mb-5 inline-flex w-fit items-center rounded-full bg-sky-500/15 px-3.5 py-1 text-xs font-semibold tracking-wide text-sky-300">
+                Tax-Free UAE Relocation
+              </span>
+              <blockquote className="flex-1 text-base leading-relaxed text-slate-200 sm:text-lg">
+                &ldquo;Moving to Dubai was my goal. The Middle East Vault gave me the direct
+                headhunter list and active pre-market roles. I contacted the talent partner directly
+                and landed a key tax-free package without applying blindly on portals.&rdquo;
+              </blockquote>
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <p className="text-sm font-bold text-white">Adil Mahmood</p>
+                <p className="mt-0.5 text-sm text-slate-400">
+                  Director of Infrastructure @ Enterprise SaaS (Dubai)
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

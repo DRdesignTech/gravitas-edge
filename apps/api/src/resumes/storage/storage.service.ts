@@ -67,6 +67,27 @@ export class StorageService {
     return { storageName, storagePath, publicUrl };
   }
 
+  saveGuestFile(
+    buffer: Buffer,
+    originalName: string,
+  ): { storageName: string; storagePath: string } {
+    const extension = this.getExtension(originalName);
+    const uniqueSuffix = crypto.randomBytes(16).toString('hex');
+    const storageName = `${uniqueSuffix}.${extension}`;
+    const relativePath = `guest-resumes/${storageName}`;
+    const fullPath = this.resolveSafe(relativePath);
+
+    const dir = path.dirname(fullPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(fullPath, buffer);
+
+    this.logger.log(`Saved guest resume file: ${fullPath}`);
+    return { storageName, storagePath: relativePath };
+  }
+
   getPublicUrl(storagePath: string): string {
     if (!this.storageLocalPublicUrl) return '';
     this.resolveSafe(storagePath);

@@ -4,6 +4,7 @@ import {
   CommissionQuery,
   CommissionStatistics,
   ExperienceLevel,
+  GuestResumeInfo,
   Opportunity,
   OpportunityQuery,
   PaginatedResult,
@@ -59,8 +60,9 @@ export function fetchMyProfile() {
   return api.get<UserProfile>('/users/me/profile');
 }
 
-export function fetchMyResumes() {
-  return api.get<Resume[]>('/resumes');
+export async function fetchMyResumes(): Promise<Resume[]> {
+  const res = await api.get<{ data: Resume[]; meta: PaginatedResult<Resume>['meta'] }>('/resumes');
+  return res?.data ?? [];
 }
 
 export function updateMyProfile(dto: Partial<UserProfile>) {
@@ -81,13 +83,37 @@ export function uploadGuestResume(file: File, details: GuestResumeDetails) {
   formData.append('fullName', details.fullName);
   formData.append('email', details.email);
   if (details.phone) formData.append('phone', details.phone);
-  return postFormData<{ id: string }>('/guest-resumes', formData);
+  return postFormData<GuestResumeResult>('/resumes/guest', formData);
+}
+
+export function getGuestResume(token: string) {
+  return api.get<{ resume: GuestResumeInfo }>(`/resumes/guest/${encodeURIComponent(token)}`);
+}
+
+export function replaceGuestResume(token: string, file: File) {
+  return uploadFile<{ resume: GuestResumeInfo }>(
+    `/resumes/guest/${encodeURIComponent(token)}`,
+    file,
+    'resume',
+    'PUT',
+  );
+}
+
+export function linkGuestResume(token: string) {
+  return api.post<{ message: string; resumeId: string }>(
+    `/resumes/guest/${encodeURIComponent(token)}/link`,
+  );
 }
 
 export interface GuestResumeDetails {
   fullName: string;
   email: string;
   phone?: string;
+}
+
+export interface GuestResumeResult {
+  token: string;
+  resume: GuestResumeInfo;
 }
 
 function postFormData<T = any>(path: string, formData: FormData): Promise<T> {

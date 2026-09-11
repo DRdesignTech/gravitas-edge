@@ -104,7 +104,11 @@ export default function OpportunityPage() {
 
   const o = opportunity;
   const singleVault = o.vaults && o.vaults.length === 1 ? o.vaults[0] : null;
-  const backHref = singleVault ? `/vaults/${singleVault.id}` : '/opportunities';
+  const backHref = singleVault
+    ? o.isFullAccess
+      ? `/opportunities?vaultId=${encodeURIComponent(singleVault.id)}`
+      : `/vaults/${singleVault.id}`
+    : '/opportunities';
   const backLabel = singleVault ? `← Back to ${singleVault.name}` : '← Back to opportunities';
   const source =
     o.source && o.source.trim() && o.source.trim().toLowerCase() !== 'not specified'

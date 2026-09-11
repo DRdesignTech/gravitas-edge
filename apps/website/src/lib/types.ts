@@ -7,6 +7,7 @@ export interface UserProfile {
   currentJobTitle?: string | null;
   currentCompany?: string | null;
   profileImg?: string | null;
+  createdAt?: string;
 }
 
 export interface User {
@@ -279,4 +280,12 @@ export interface Resume {
   fileSize: number;
   uploadStatus?: string;
   uploadedAt: string;
+}
+
+export interface GuestResumeInfo {
+  originalName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+  linked?: boolean;
 }
