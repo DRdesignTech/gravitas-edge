@@ -83,7 +83,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
 COPY package.json package-lock.json ./
-RUN npm prune --omit=dev
+COPY apps/api/package.json apps/api/package.json
+COPY apps/website/package.json apps/website/package.json
+COPY apps/admin/package.json apps/admin/package.json
+COPY packages/shared/package.json packages/shared/package.json
+RUN npm prune --omit=dev && npm rebuild prisma next
 
 # ---------------------------------------------------------------------------
 # runtime — slim final image
