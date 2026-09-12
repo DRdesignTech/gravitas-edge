@@ -9,6 +9,7 @@ import { ReferralsService } from '../referrals/referrals.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from '../common/types/auth.types';
+import type { StringValue } from 'ms';
 
 const ACCESS_TOKEN_TYPE = 'access';
 const REFRESH_TOKEN_TYPE = 'refresh';
@@ -23,12 +24,12 @@ export class AuthService {
     private readonly referrals: ReferralsService,
   ) {}
 
-  private get accessExpiresIn(): string {
-    return this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m';
+  private get accessExpiresIn(): StringValue {
+    return (this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m') as StringValue;
   }
 
-  private get refreshExpiresIn(): string {
-    return this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d';
+  private get refreshExpiresIn(): StringValue {
+    return (this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '7d') as StringValue;
   }
 
   async register(dto: RegisterDto, ipAddress?: string) {
@@ -304,7 +305,7 @@ export class AuthService {
     return bcrypt.hash(value, 10);
   }
 
-  private parseDurationToMs(duration: string): number {
+  private parseDurationToMs(duration: StringValue): number {
     const match = /^(\d+)([smhd])$/.exec(duration.trim());
     if (!match) return 7 * 24 * 60 * 60 * 1000;
     const value = Number(match[1]);

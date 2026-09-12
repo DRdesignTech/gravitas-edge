@@ -19,6 +19,7 @@ export interface User {
   createdAt: string;
   roles: string[];
   profile?: UserProfile | null;
+  subscriptions?: Subscription[];
 }
 
 export interface ExperienceLevel {

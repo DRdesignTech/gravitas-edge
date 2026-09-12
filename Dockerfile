@@ -19,7 +19,7 @@
 #                    NEXT_PUBLIC_API_URL for website/admin
 # =============================================================================
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=24
 
 # ---------------------------------------------------------------------------
 # deps — install all workspace dependencies (hoisted to /app/node_modules)

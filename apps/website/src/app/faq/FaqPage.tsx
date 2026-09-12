@@ -136,7 +136,7 @@ export default function FaqPage() {
   const [search, setSearch] = useState(initialQuery);
   const [openId, setOpenId] = useState<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const query = search.trim().toLowerCase();
 

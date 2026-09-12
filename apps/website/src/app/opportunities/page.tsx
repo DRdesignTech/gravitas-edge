@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { fetchOpportunities, fetchVaultById } from '@/lib/services';
-import { Opportunity, OpportunityQuery, PaginatedResult, Vault } from '@/lib/types';
+import { Opportunity, OpportunityQuery, PaginatedResult, Vault, Subscription } from '@/lib/types';
 import {
   Button,
   Card,
@@ -22,6 +22,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { OPPORTUNITY_CATEGORIES, EMPLOYMENT_TYPES } from '@/lib/types';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import InfoBanner from '@/components/marketing/InfoBanner';
+import { useAuth } from '@/lib/auth';
 
 const PAGE_SIZE = 10;
 
@@ -63,6 +64,7 @@ function FunctionTag({ value }: { value?: string | null }) {
 function OpportunityPageContent() {
   const searchParams = useSearchParams();
   const vaultId = searchParams.get('vaultId') || '';
+  const { user, loading: authLoading } = useAuth();
 
   const [data, setData] = useState<PaginatedResult<Opportunity> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,6 +77,11 @@ function OpportunityPageContent() {
   const [country, setCountry] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [page, setPage] = useState(1);
+
+  const hasActiveSubscription = user?.subscriptions?.some(
+    (s: Subscription) => s.status === 'ACTIVE' && new Date(s.endDate) > new Date()
+  );
+  const isSubscriber = Boolean(user && hasActiveSubscription);
 
   useEffect(() => {
     if (vaultId) {
@@ -151,6 +158,28 @@ function OpportunityPageContent() {
   const totalItems = data?.meta.totalItems ?? 0;
   const hasActiveFilters = Boolean(search || category || employmentType || country);
 
+  if (authLoading) {
+    return (
+      <div className="overflow-hidden">
+        <section className="bg-[#0A1730]">
+          <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-24">
+            <div className="h-4 w-40 bg-slate-700" />
+            <div className="mt-5 h-10 w-full max-w-2xl bg-slate-700" />
+          </div>
+        </section>
+        <section className="bg-surface-muted">
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-16 rounded-2xl bg-surface animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden">
       {/* SECTION 1 — NAVY HERO */}
@@ -164,30 +193,44 @@ function OpportunityPageContent() {
               <span aria-hidden>←</span> All vaults
             </Link>
           )}
-          <Eyebrow invert>{vaultId ? 'VAULT OPPORTUNITIES' : 'LIVE FREE PREVIEW'}</Eyebrow>
+          <Eyebrow invert>
+            {vaultId
+              ? 'VAULT OPPORTUNITIES'
+              : isSubscriber
+              ? 'SUBSCRIBER ACCESS'
+              : 'LIVE FREE PREVIEW'}
+          </Eyebrow>
           <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl">
             {vaultId
               ? `Opportunities in ${vault?.name ?? 'this vault'}`
+              : isSubscriber
+              ? 'Your active subscription unlocks full opportunity details below.'
               : 'Review the opportunity flow before making any subscription decision.'}
           </h1>
           <p className="mt-6 max-w-3xl text-base leading-relaxed text-slate-300 sm:text-lg">
             {vaultId
               ? 'Every opportunity below belongs to this Vault. Full company, source, contact and application details are unlocked by your active subscription, while remaining fields stay visible.'
+              : isSubscriber
+              ? 'You are viewing the live opportunity database with full subscriber access. Company names, sources, contacts and application links are visible for opportunities in your unlocked vaults.'
               : 'This is the same live opportunity database used across the platform. Non-subscribers can browse the records and visible fields without subscribing. Protected company, source, contact and detailed application information unlock only with the relevant active subscription.'}
           </p>
         </div>
       </section>
 
-      {/* SECTION 2 — PREVIEW NOTICE */}
-      <section className="border-b border-line bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-          <InfoBanner>
-            No subscription is required to browse the preview. We encourage you to review the
-            current opportunities first and continue only if the available access is genuinely
-            useful for your search.
-          </InfoBanner>
-        </div>
-      </section>
+      {!isSubscriber && !vaultId && (
+        <>
+          {/* SECTION 2 — PREVIEW NOTICE (only for non-subscribers on free preview) */}
+          <section className="border-b border-line bg-surface-muted">
+            <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+              <InfoBanner>
+                No subscription is required to browse the preview. We encourage you to review the
+                current opportunities first and continue only if the available access is genuinely
+                useful for your search.
+              </InfoBanner>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* SECTION 3 — LIVE OPPORTUNITY TABLE */}
       <section className="bg-surface-muted">
@@ -360,7 +403,7 @@ function OpportunityPageContent() {
         </div>
       </section>
 
-      {/* SECTION 4 — NEXT STEP */}
+{/* SECTION 4 — NEXT STEP */}
       <section className="bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="max-w-2xl">
@@ -368,11 +411,15 @@ function OpportunityPageContent() {
             <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
               {vaultId
                 ? 'Everything here belongs to one Vault.'
+                : isSubscriber
+                ? 'You have full subscriber access.'
                 : 'Found the opportunity mix relevant?'}
             </h2>
             <p className="mt-4 text-base leading-relaxed text-content-muted">
               {vaultId
                 ? `You are viewing the opportunities inside ${vault?.name ?? 'this vault'}. Full company, source, contact and application details unlock with an active subscription for this Vault.`
+                : isSubscriber
+                ? 'Your active subscription gives you access to full opportunity details for unlocked vaults. Company names, sources, contacts and application links are visible where your subscription applies.'
                 : 'Continue to Vaults & Plans to identify which access level matches your geography and experience. If the preview is not useful to you right now, there is no need to subscribe.'}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -382,7 +429,7 @@ function OpportunityPageContent() {
               >
                 {vaultId
                   ? `Manage ${vault?.name ?? 'this Vault'} access`
-                  : 'Continue to Vaults & Plans'}
+                  : 'View Vaults & Plans'}
                 <span aria-hidden="true">→</span>
               </Link>
               {vaultId && (
@@ -390,22 +437,24 @@ function OpportunityPageContent() {
                   href="/vaults"
                   className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-6 py-3 text-base font-semibold text-content transition-colors hover:border-brand-300 dark:bg-surface-elevated"
                 >
-                  All Vaults &amp; Plans
+                  All Vaults & Plans
                 </Link>
               )}
             </div>
           </div>
 
-          <div className="mt-16 border-t border-line pt-10">
-            <p className="text-xs text-content-faint">
-              Illustrative records are shown in this design mock-up. The live website will display
-              the current database records available on the platform.
-            </p>
-            <p className="mt-3 text-sm font-medium text-content-muted">
-              Explore first. Decide for yourself.
-            </p>
-            <p className="mt-1 text-sm text-content-muted">Subscribe only if it adds value.</p>
-          </div>
+          {!isSubscriber && !vaultId && (
+            <div className="mt-16 border-t border-line pt-10">
+              <p className="text-xs text-content-faint">
+                Illustrative records are shown in this design mock-up. The live website will display
+                the current database records available on the platform.
+              </p>
+              <p className="mt-3 text-sm font-medium text-content-muted">
+                Explore first. Decide for yourself.
+              </p>
+              <p className="mt-1 text-sm text-content-muted">Subscribe only if it adds value.</p>
+            </div>
+          )}
         </div>
       </section>
     </div>
