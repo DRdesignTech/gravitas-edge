@@ -33,6 +33,10 @@ apps/api/test/*.js
 apps/api/test/*.d.ts
 apps/api/test/*.map
 
+# Local / uploaded files (dev/test only — never bake into a prod image)
+storage
+apps/api/storage
+
 # Docs
 docs
 README.md

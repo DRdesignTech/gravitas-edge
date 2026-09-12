@@ -17,6 +17,7 @@ interface FieldErrors {
   email?: string;
   password?: string;
   confirm?: string;
+  terms?: string;
 }
 
 function RegisterForm() {
@@ -32,6 +33,7 @@ function RegisterForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [agreedTerms, setAgreedTerms] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
@@ -47,6 +49,8 @@ function RegisterForm() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Please enter a valid email.';
     if (password.length < 6) next.password = 'Password must be at least 6 characters.';
     if (confirm !== password) next.confirm = 'Passwords do not match.';
+    if (!agreedTerms)
+      next.terms = 'Please accept the Privacy Policy and Terms & Conditions to continue.';
     setFieldErrors(next);
     if (Object.keys(next).length) return;
 
@@ -168,7 +172,46 @@ function RegisterForm() {
               error={fieldErrors.confirm}
               required
             />
-            <Button type="submit" className="w-full" loading={loading}>
+            <div>
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors ${
+                  fieldErrors.terms ? 'border-red-500/60 bg-red-50/30' : 'border-line bg-surface'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={agreedTerms}
+                  onChange={(e) => {
+                    setAgreedTerms(e.target.checked);
+                    clearField('terms');
+                  }}
+                  required
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+                  aria-invalid={!!fieldErrors.terms}
+                />
+                <span className="text-sm leading-relaxed text-content-muted">
+                  I have read and agree to the{' '}
+                  <Link
+                    href="/privacy-policy"
+                    className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+                  >
+                    Privacy Policy
+                  </Link>{' '}
+                  and{' '}
+                  <Link
+                    href="/terms-and-conditions"
+                    className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+                  >
+                    Terms & Conditions
+                  </Link>
+                  .
+                </span>
+              </label>
+              {fieldErrors.terms && (
+                <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fieldErrors.terms}</p>
+              )}
+            </div>
+            <Button type="submit" className="w-full" loading={loading} disabled={loading}>
               {loading ? 'Creating account…' : 'Create account'}
             </Button>
           </form>

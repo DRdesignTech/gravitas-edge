@@ -81,8 +81,9 @@ RUN NODE_OPTIONS="--max-old-space-size=4096" sh -c \
 FROM node:${NODE_VERSION}-slim AS prod
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/prisma ./prisma
 COPY package.json package-lock.json ./
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev && npx prisma generate --schema=prisma/schema.prisma
 
 # ---------------------------------------------------------------------------
 # runtime — slim final image
@@ -102,7 +103,7 @@ ENV APP=$APP
 # Writable local-storage dir (multer local driver)
 RUN mkdir -p /app/storage && chown -R node:node /app/storage
 
-COPY --from=deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=prod --chown=node:node /app/node_modules ./node_modules
 COPY --from=deps --chown=node:node /app/prisma ./prisma
 COPY --from=deps --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/apps ./apps
@@ -115,7 +116,7 @@ CMD ["sh", "-c", \
   "case \"$APP\" in \
      api) \
        npx prisma migrate deploy --schema=prisma/schema.prisma && \
-       node apps/api/dist/main.js ;; \
+       PORT=${PORT:-8080} node apps/api/dist/main.js ;; \
      website) \
        cd apps/website && npx next start -p ${PORT:-8080} ;; \
      admin) \

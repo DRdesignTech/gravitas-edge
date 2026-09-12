@@ -53,6 +53,15 @@ function CheckIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 text-sm">
+      <dt className="shrink-0 text-content-faint">{label}</dt>
+      <dd className="text-right font-medium text-content">{value}</dd>
+    </div>
+  );
+}
+
 export default function VaultDetailPage() {
   const params = useParams<{ id: string }>();
   const vaultId = params.id;
@@ -64,6 +73,7 @@ export default function VaultDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [checkoutConsent, setCheckoutConsent] = useState(false);
 
   const [checkingAccess, setCheckingAccess] = useState(true);
 
@@ -246,12 +256,117 @@ export default function VaultDetailPage() {
                   <p className="mt-4 text-sm text-content-faint">Pricing will be available soon.</p>
                 )}
 
+                {selectedPlan && (
+                  <div className="mt-6 border-t border-line pt-5">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-content-faint">
+                      Before you continue
+                    </h3>
+                    <dl className="mt-4 space-y-2.5">
+                      <SummaryRow label="Selected Vault" value={vault.name} />
+                      <SummaryRow
+                        label="Scope"
+                        value={[
+                          typeLabel(vault.type),
+                          ...(vault.experienceLevels?.length
+                            ? vault.experienceLevels.map((l) => l.name)
+                            : []),
+                        ].join(' · ')}
+                      />
+                      <SummaryRow
+                        label="Subscription duration"
+                        value={durationLabel(selectedPlan.durationDays)}
+                      />
+                      <SummaryRow
+                        label="Total payable amount"
+                        value={formatMoney(selectedPlan.price, selectedPlan.currency)}
+                      />
+                      <SummaryRow
+                        label="Taxes"
+                        value="Applicable taxes, if any, will be shown and charged at payment."
+                      />
+                      <SummaryRow
+                        label="Auto-renewal"
+                        value="Not applicable — this subscription does not auto-renew and access ends at expiry."
+                      />
+                      <SummaryRow
+                        label="Access includes"
+                        value="Curated employment opportunities in the selected Vault with relevant application or contact routes, plus new opportunities added during the active period."
+                      />
+                      <SummaryRow
+                        label="Access activation"
+                        value="Access is activated after successful payment confirmation. If access is not provided within a reasonable period after successful payment, contact support promptly."
+                      />
+                    </dl>
+                    <p className="mt-4 text-sm leading-relaxed text-content-muted">
+                      Fees are generally non-refundable once Vault access has been activated, except
+                      where a refund or other remedy is required by applicable law or provided under
+                      the{' '}
+                      <Link
+                        href="/refund-policy"
+                        className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+                      >
+                        Refund & Cancellation Policy
+                      </Link>
+                      . See also our{' '}
+                      <Link
+                        href="/terms-and-conditions"
+                        className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+                      >
+                        Terms & Conditions
+                      </Link>
+                      .
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-5">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface px-3.5 py-3 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={checkoutConsent}
+                      onChange={(e) => setCheckoutConsent(e.target.checked)}
+                      required
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+                    />
+                    <span className="text-sm leading-relaxed text-content-muted">
+                      I have read and agree to the{' '}
+                      <Link
+                        href="/terms-and-conditions"
+                        className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+                      >
+                        Terms & Conditions
+                      </Link>{' '}
+                      and{' '}
+                      <Link
+                        href="/refund-policy"
+                        className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+                      >
+                        Refund & Cancellation Policy
+                      </Link>
+                      . I understand that digital Vault access may be activated after successful
+                      payment and that subscription fees are generally non-refundable once access
+                      has been activated, except where a refund or other remedy is required by
+                      applicable law or provided under the Refund & Cancellation Policy.
+                    </span>
+                  </label>
+                </div>
+
                 <div className="mt-6">
                   <Link href={checkoutHref}>
-                    <Button className="w-full" size="lg" disabled={!selectedPlan}>
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      disabled={!selectedPlan || !checkoutConsent}
+                    >
                       Continue to Subscription
                     </Button>
                   </Link>
+                  {selectedPlan && !checkoutConsent && (
+                    <p className="mt-2 text-center text-xs text-content-faint">
+                      Please accept the Terms & Conditions and Refund & Cancellation Policy to
+                      continue.
+                    </p>
+                  )}
                 </div>
               </div>
 

@@ -91,6 +91,7 @@ export default function ResumeUploadCard({
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
   const [replacing, setReplacing] = useState(false);
+  const [resumeConsent, setResumeConsent] = useState(false);
 
   const resetForm = () => {
     setFile(null);
@@ -160,6 +161,13 @@ export default function ResumeUploadCard({
     if (!v.valid) {
       showToast(v.message, 'error');
       setFile(null);
+      return;
+    }
+
+    if (!resumeConsent) {
+      setError(
+        'Please read and accept the Candidate Resume & Recruitment Consulting Notice before uploading.',
+      );
       return;
     }
 
@@ -333,6 +341,29 @@ export default function ResumeUploadCard({
               </div>
             </div>
           )}
+
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface px-3.5 py-3 transition-colors">
+            <input
+              type="checkbox"
+              checked={resumeConsent}
+              onChange={(e) => {
+                setResumeConsent(e.target.checked);
+                if (e.target.checked) setError('');
+              }}
+              required
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+            />
+            <span className="text-sm leading-relaxed text-content-muted">
+              I have read the{' '}
+              <Link
+                href="/candidate-resume-notice"
+                className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+              >
+                Candidate Resume & Recruitment Consulting Notice
+              </Link>{' '}
+              and understand how my resume and candidate information may be used.
+            </span>
+          </label>
 
           <Button type="submit" size="sm" loading={submitting} className="w-full sm:w-auto">
             <UploadIcon className="h-4 w-4" />

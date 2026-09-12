@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   Badge,
   Button,
@@ -325,6 +326,18 @@ export default function ReferralsPage() {
                   />
                 </div>
               </div>
+
+              {/* Referral programme terms */}
+              <p className="text-sm text-content-muted">
+                Rewards are subject to the{' '}
+                <Link
+                  href="/referral-terms"
+                  className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+                >
+                  Referral Programme Terms
+                </Link>
+                .
+              </p>
             </>
           )}
         </div>

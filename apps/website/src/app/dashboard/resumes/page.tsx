@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { fetchMyResumes } from '@/lib/services';
 import { Resume } from '@/lib/types';
@@ -51,6 +52,7 @@ export default function ResumesPage() {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [resumeConsent, setResumeConsent] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [listError, setListError] = useState('');
 
@@ -83,6 +85,14 @@ export default function ResumesPage() {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || uploading) return;
+
+    if (!resumeConsent) {
+      showToast(
+        'Please read and accept the Candidate Resume & Recruitment Consulting Notice before uploading.',
+        'error',
+      );
+      return;
+    }
 
     const validation = isValidFile(file);
     if (!validation.valid) {
@@ -158,6 +168,28 @@ export default function ResumesPage() {
                           <span>{formatFileSize(file.size)}</span>
                         </div>
                       )}
+                    </div>
+
+                    <div>
+                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface px-3.5 py-3">
+                        <input
+                          type="checkbox"
+                          checked={resumeConsent}
+                          onChange={(e) => setResumeConsent(e.target.checked)}
+                          required
+                          className="mt-0.5 h-4 w-4 shrink-0 accent-brand-600"
+                        />
+                        <span className="text-sm leading-relaxed text-content-muted">
+                          I have read the{' '}
+                          <Link
+                            href="/candidate-resume-notice"
+                            className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+                          >
+                            Candidate Resume & Recruitment Consulting Notice
+                          </Link>{' '}
+                          and understand how my resume and candidate information may be used.
+                        </span>
+                      </label>
                     </div>
 
                     <div>
