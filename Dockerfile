@@ -83,7 +83,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
 COPY package.json package-lock.json ./
-RUN npm prune --omit=dev && npx prisma generate --schema=prisma/schema.prisma
+RUN npm prune --omit=dev
 
 # ---------------------------------------------------------------------------
 # runtime — slim final image
