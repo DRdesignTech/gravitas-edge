@@ -18,7 +18,6 @@ const themeScript = `
 (function(){
   try {
     var t = localStorage.getItem('jp-admin-theme');
-    if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     document.documentElement.classList.toggle('dark', t === 'dark');
   } catch(e) {}
 })();
