@@ -28,4 +28,14 @@ export class QueryPlansDto {
   @Type(() => Boolean)
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({
+    example: true,
+    description:
+      'Include archived plans (deletedAt != null). When true, only archived plans are returned.',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  archived?: boolean;
 }

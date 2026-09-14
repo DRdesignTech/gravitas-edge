@@ -40,6 +40,7 @@ export interface Vault {
   status: string;
   sortOrder?: number;
   createdAt?: string;
+  deletedAt?: string | null;
   experienceLevels?: ExperienceLevel[];
   plans?: { id: string; name: string; isActive: boolean }[];
   _count?: { subscriptionAccess?: number };
@@ -50,10 +51,14 @@ export interface SubscriptionPlan {
   name: string;
   description?: string | null;
   price: number;
+  regularPrice: number;
+  discountPercentage: number;
   currency: string;
   durationDays: number;
   isActive: boolean;
+  status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
   createdAt?: string;
+  deletedAt?: string | null;
   vaults?: Vault[];
   _count?: { subscriptions?: number };
 }
@@ -62,7 +67,7 @@ export interface AdminSubscription {
   id: string;
   userId: string;
   user?: { id: string; email: string };
-  plan?: { id: string; name: string; price: number; currency: string } | null;
+  plan?: { id: string; name: string; price: number; regularPrice?: number; discountPercentage?: number; currency: string } | null;
   status: string;
   effectiveStatus?: string;
   startDate: string;

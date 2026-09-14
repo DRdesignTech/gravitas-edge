@@ -217,10 +217,40 @@ export default function Home() {
               />
             </div>
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {opportunities.map((o) => (
-                <OpportunityCard key={o.id} opportunity={o} />
-              ))}
+            <div className="relative overflow-hidden">
+              <div className="latest-marquee flex">
+                {[0, 1].map((half) => (
+                  <div key={half} className="flex shrink-0 gap-5 pr-5">
+                    {opportunities.map((o) => (
+                      <div
+                        key={`${o.id}-${half}`}
+                        className="w-80 shrink-0"
+                      >
+                        <OpportunityCard opportunity={o} static />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div
+                className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-surface to-transparent"
+                aria-hidden="true"
+              />
+              <div
+                className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-surface to-transparent"
+                aria-hidden="true"
+              />
+              <style dangerouslySetInnerHTML={{ __html: `
+                .latest-marquee { animation: latest-marquee 36s linear infinite; }
+                .latest-marquee:hover { animation-play-state: paused; }
+                @keyframes latest-marquee {
+                  from { transform: translateX(0); }
+                  to { transform: translateX(-50%); }
+                }
+                @media (prefers-reduced-motion: reduce) {
+                  .latest-marquee { animation: none; }
+                }
+              ` }} />
             </div>
           )}
         </div>

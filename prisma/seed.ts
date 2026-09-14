@@ -14,6 +14,11 @@
 
 import { PrismaClient, SubscriptionStatus, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import {
+  syncPricingCatalog,
+  CatalogSyncSummary,
+} from '../apps/api/src/subscriptions/pricing-catalog.sync';
+import { planName } from '../apps/api/src/subscriptions/pricing-catalog';
 
 const prisma = new PrismaClient();
 
@@ -120,25 +125,29 @@ async function main() {
   console.log('Experience levels seeded.');
 
   // ---------------------------------------------------------------------------
-  // VAULTS (premium + public)
+  // VAULTS + PRICING CATALOG (6 business vaults x 3 durations = 18 plans)
+  // Idempotent: re-running always converges onto the current catalog and never
+  // deletes data. Legacy plans/vaults are archived, never removed.
   // ---------------------------------------------------------------------------
-  const indiaCareer = await seedVault('India Career', 'INDIA', [career]);
-  const indiaProfessional = await seedVault('India Professional', 'INDIA', [professional]);
-  const indiaLeadership = await seedVault('India Leadership', 'INDIA', [leadership]);
-  const indiaExecutive = await seedVault('India Executive', 'INDIA', [executive]);
-  const globalAccess = await seedVault('Global Access', 'GLOBAL', []);
-  const middleEast = await seedVault('Middle East Opportunities', 'MIDDLE_EAST', []);
-  const international = await seedVault('International Opportunities', 'INTERNATIONAL', []);
-  console.log('Vaults seeded.');
+  const synced = await syncPricingCatalog(prisma);
+  console.log('Pricing catalog synced.', catalogSummaryParts(synced));
 
+  const vaultRows = await vaultLookup('Early Career Access Vault', 'Management Access Vault', 'Leadership Access Vault', 'Executive Access Vault', 'Remote Access Vault', 'UAE & Global Access Vault');
   const vaults = {
-    indiaCareer,
-    indiaProfessional,
-    indiaLeadership,
-    indiaExecutive,
-    globalAccess,
-    middleEast,
-    international,
+    earlyCareer: vaultRows['Early Career Access Vault'],
+    management: vaultRows['Management Access Vault'],
+    leadership: vaultRows['Leadership Access Vault'],
+    executive: vaultRows['Executive Access Vault'],
+    remote: vaultRows['Remote Access Vault'],
+    uae: vaultRows['UAE & Global Access Vault'],
+  };
+  const planVaultMap = await buildPlanVaultMap();
+  const planByKey = (vaultName: string, label: string) => {
+    const plan = planVaultMap.byName.get(planName(vaultName, label));
+    if (!plan) {
+      throw new Error(`[seed] catalog plan missing after sync: ${planName(vaultName, label)}`);
+    }
+    return plan;
   };
 
   // ---------------------------------------------------------------------------
@@ -157,76 +166,8 @@ async function main() {
 
   // ---------------------------------------------------------------------------
   // SUBSCRIPTION PLANS & VAULT MAPPINGS
+  // Created by syncPricingCatalog above (18 catalog plans + legacy archiving).
   // ---------------------------------------------------------------------------
-  const planIndia = await prisma.subscriptionPlan.upsert({
-    where: { name: 'India Access Plan' },
-    update: {},
-    create: {
-      name: 'India Access Plan',
-      description: 'Access to all India vaults',
-      price: 499,
-      currency: 'INR',
-      durationDays: 30,
-      isActive: true,
-    },
-  });
-  const planGlobal = await prisma.subscriptionPlan.upsert({
-    where: { name: 'Global Access Plan' },
-    update: {},
-    create: {
-      name: 'Global Access Plan',
-      description: 'Access to global, middle east and international vaults',
-      price: 999,
-      currency: 'INR',
-      durationDays: 30,
-      isActive: true,
-    },
-  });
-  const planAll = await prisma.subscriptionPlan.upsert({
-    where: { name: 'All Access Plan' },
-    update: {},
-    create: {
-      name: 'All Access Plan',
-      description: 'Access to all vaults',
-      price: 1499,
-      currency: 'INR',
-      durationDays: 90,
-      isActive: true,
-    },
-  });
-
-  await linkPlanVaults(planIndia.id, [
-    vaults.indiaCareer,
-    vaults.indiaProfessional,
-    vaults.indiaLeadership,
-    vaults.indiaExecutive,
-  ]);
-  await linkPlanVaults(planGlobal.id, [vaults.globalAccess, vaults.middleEast, vaults.international]);
-  await linkPlanVaults(planAll.id, [
-    vaults.indiaCareer,
-    vaults.indiaProfessional,
-    vaults.indiaLeadership,
-    vaults.indiaExecutive,
-    vaults.globalAccess,
-    vaults.middleEast,
-    vaults.international,
-  ]);
-  console.log('Subscription plans seeded.');
-
-  const plans = { planIndia, planGlobal, planAll };
-  const planVaultMap: Record<string, string[]> = {
-    [planIndia.id]: [vaults.indiaCareer.id, vaults.indiaProfessional.id, vaults.indiaLeadership.id, vaults.indiaExecutive.id],
-    [planGlobal.id]: [vaults.globalAccess.id, vaults.middleEast.id, vaults.international.id],
-    [planAll.id]: [
-      vaults.indiaCareer.id,
-      vaults.indiaProfessional.id,
-      vaults.indiaLeadership.id,
-      vaults.indiaExecutive.id,
-      vaults.globalAccess.id,
-      vaults.middleEast.id,
-      vaults.international.id,
-    ],
-  };
 
   // ---------------------------------------------------------------------------
   // ADMIN ACCOUNT (DEVELOPMENT/DEMO ONLY)
@@ -371,21 +312,21 @@ async function main() {
     status: SubscriptionStatus;
     startDaysAgo: number;
   }> = [
-    { email: 'demo.user1@example.com', plan: planAll, status: 'ACTIVE', startDaysAgo: 12 },
-    { email: 'demo.user2@example.com', plan: planGlobal, status: 'ACTIVE', startDaysAgo: 25 },
-    { email: 'demo.user3@example.com', plan: planIndia, status: 'ACTIVE', startDaysAgo: 18 },
-    { email: 'demo.user4@example.com', plan: planAll, status: 'EXPIRED', startDaysAgo: 60 },
-    { email: 'demo.user5@example.com', plan: planGlobal, status: 'EXPIRED', startDaysAgo: 140 },
-    { email: 'demo.user6@example.com', plan: planIndia, status: 'EXPIRED', startDaysAgo: 220 },
-    { email: 'demo.user7@example.com', plan: planAll, status: 'CANCELLED', startDaysAgo: 40 },
-    { email: 'demo.user8@example.com', plan: planGlobal, status: 'CANCELLED', startDaysAgo: 90 },
-    { email: 'demo.user9@example.com', plan: planIndia, status: 'PENDING', startDaysAgo: 2 },
-    { email: 'demo.user10@example.com', plan: planAll, status: 'ACTIVE', startDaysAgo: 5 },
-    { email: 'demo.user11@example.com', plan: planGlobal, status: 'ACTIVE', startDaysAgo: 55 },
-    { email: 'demo.user12@example.com', plan: planIndia, status: 'ACTIVE', startDaysAgo: 30 },
-    { email: 'demo.user13@example.com', plan: planAll, status: 'EXPIRED', startDaysAgo: 300 },
-    { email: 'demo.user14@example.com', plan: planGlobal, status: 'EXPIRED', startDaysAgo: 150 },
-    { email: 'demo.user15@example.com', plan: planIndia, status: 'PENDING', startDaysAgo: 1 },
+    { email: 'demo.user1@example.com', plan: planByKey('Executive Access Vault', '3 Months'), status: 'ACTIVE', startDaysAgo: 12 },
+    { email: 'demo.user2@example.com', plan: planByKey('Remote Access Vault', 'Monthly'), status: 'ACTIVE', startDaysAgo: 25 },
+    { email: 'demo.user3@example.com', plan: planByKey('Management Access Vault', 'Monthly'), status: 'ACTIVE', startDaysAgo: 18 },
+    { email: 'demo.user4@example.com', plan: planByKey('Early Career Access Vault', '3 Months'), status: 'EXPIRED', startDaysAgo: 60 },
+    { email: 'demo.user5@example.com', plan: planByKey('UAE & Global Access Vault', 'Monthly'), status: 'EXPIRED', startDaysAgo: 140 },
+    { email: 'demo.user6@example.com', plan: planByKey('Leadership Access Vault', 'Monthly'), status: 'EXPIRED', startDaysAgo: 220 },
+    { email: 'demo.user7@example.com', plan: planByKey('Executive Access Vault', '6 Months'), status: 'CANCELLED', startDaysAgo: 40 },
+    { email: 'demo.user8@example.com', plan: planByKey('Remote Access Vault', '3 Months'), status: 'CANCELLED', startDaysAgo: 90 },
+    { email: 'demo.user9@example.com', plan: planByKey('Early Career Access Vault', 'Monthly'), status: 'PENDING', startDaysAgo: 2 },
+    { email: 'demo.user10@example.com', plan: planByKey('Executive Access Vault', 'Monthly'), status: 'ACTIVE', startDaysAgo: 5 },
+    { email: 'demo.user11@example.com', plan: planByKey('UAE & Global Access Vault', '6 Months'), status: 'ACTIVE', startDaysAgo: 55 },
+    { email: 'demo.user12@example.com', plan: planByKey('Leadership Access Vault', '3 Months'), status: 'ACTIVE', startDaysAgo: 30 },
+    { email: 'demo.user13@example.com', plan: planByKey('Management Access Vault', '6 Months'), status: 'EXPIRED', startDaysAgo: 300 },
+    { email: 'demo.user14@example.com', plan: planByKey('Remote Access Vault', '6 Months'), status: 'EXPIRED', startDaysAgo: 150 },
+    { email: 'demo.user15@example.com', plan: planByKey('Early Career Access Vault', 'Monthly'), status: 'PENDING', startDaysAgo: 1 },
   ];
 
   const seededSubCount = { created: 0 };
@@ -426,7 +367,7 @@ async function main() {
         });
 
     // Vault access snapshots for the plan's vaults.
-    const vaultIds = planVaultMap[c.plan.id] ?? [];
+    const vaultIds = planVaultMap.byId[c.plan.id] ?? [];
     for (const vaultId of vaultIds) {
       await prisma.subscriptionVaultAccess.upsert({
         where: { subscriptionId_vaultId: { subscriptionId: subscription.id, vaultId } },
@@ -693,7 +634,7 @@ async function main() {
       minExp: 9,
       maxExp: 14,
       levelSlugs: ['leadership'],
-      vault: 'indiaLeadership',
+      vault: 'leadership',
       publishedDaysAgo: 25,
       description:
         'Lead a team of 12 engineers building distributed systems. Drive technical excellence, mentoring and delivery.',
@@ -711,7 +652,7 @@ async function main() {
       minExp: 12,
       maxExp: 20,
       levelSlugs: ['executive'],
-      vault: 'indiaExecutive',
+      vault: 'executive',
       publishedDaysAgo: 40,
       description:
         'Own the full technology vision and architecture for a funded early-stage SaaS startup. Hiring and platform strategy in scope.',
@@ -729,7 +670,7 @@ async function main() {
       minExp: 10,
       maxExp: 15,
       levelSlugs: ['leadership'],
-      vault: 'indiaLeadership',
+      vault: 'leadership',
       publishedDaysAgo: 35,
       description:
         'Design end-to-end architectures for enterprise clients, balancing scalability, cost and maintainability.',
@@ -747,7 +688,7 @@ async function main() {
       minExp: 12,
       maxExp: 18,
       levelSlugs: ['executive'],
-      vault: 'indiaExecutive',
+      vault: 'executive',
       publishedDaysAgo: 50,
       description:
         'Lead a large delivery unit, drive operational excellence, client satisfaction and predictable outcomes across multiple engagements.',
@@ -765,7 +706,7 @@ async function main() {
       minExp: 8,
       maxExp: 13,
       levelSlugs: ['leadership'],
-      vault: 'indiaLeadership',
+      vault: 'leadership',
       publishedDaysAgo: 16,
       description:
         'Lead technical design and guide a squad of engineers building a resilient, low-latency payments platform.',
@@ -783,7 +724,7 @@ async function main() {
       minExp: 14,
       maxExp: 22,
       levelSlugs: ['executive'],
-      vault: 'indiaExecutive',
+      vault: 'executive',
       publishedDaysAgo: 60,
       description:
         'Own engineering across multiple product lines, with responsibility for talent, culture, architecture and delivery.',
@@ -1009,7 +950,7 @@ async function main() {
       minExp: 10,
       maxExp: 16,
       levelSlugs: ['leadership'],
-      vault: 'globalAccess',
+      vault: 'remote',
       publishedDaysAgo: 44,
       description:
         'Provide technical leadership for distributed storage systems used by enterprise customers worldwide.',
@@ -1027,7 +968,7 @@ async function main() {
       minExp: 12,
       maxExp: 20,
       levelSlugs: ['executive'],
-      vault: 'globalAccess',
+      vault: 'remote',
       publishedDaysAgo: 55,
       description:
         'Lead and grow engineering teams across the EMEA region with accountability for delivery and hiring.',
@@ -1045,7 +986,7 @@ async function main() {
       minExp: 12,
       maxExp: 18,
       levelSlugs: ['executive'],
-      vault: 'middleEast',
+      vault: 'uae',
       publishedDaysAgo: 70,
       description:
         'Lead enterprise architecture engagements for large government and corporate clients in the Middle East.',
@@ -1063,7 +1004,7 @@ async function main() {
       minExp: 11,
       maxExp: 17,
       levelSlugs: ['leadership'],
-      vault: 'middleEast',
+      vault: 'uae',
       publishedDaysAgo: 48,
       description:
         'Owne regional IT operations, service delivery and strategic roadmaps across the GCC.',
@@ -1081,7 +1022,7 @@ async function main() {
       minExp: 12,
       maxExp: 20,
       levelSlugs: ['executive'],
-      vault: 'international',
+      vault: 'remote',
       publishedDaysAgo: 62,
       description:
         'Lead the technical vision for AI platform products used by global enterprises, setting engineering standards.',
@@ -1246,34 +1187,39 @@ type SubscriptionPlanLike = {
   durationDays: number;
 };
 
-async function seedVault(name: string, type: any, experienceLevels: any[]) {
-  const vault = await prisma.vault.upsert({
-    where: { name },
-    update: {},
-    create: { name, type, description: `${name} vault`, sortOrder: 0 },
-  });
-
-  for (const level of experienceLevels) {
-    await prisma.vaultExperienceLevel.upsert({
-      where: {
-        vaultId_experienceLevelId: { vaultId: vault.id, experienceLevelId: level.id },
-      },
-      update: {},
-      create: { vaultId: vault.id, experienceLevelId: level.id },
-    });
-  }
-
-  return vault;
+function catalogSummaryParts(s: CatalogSyncSummary): string {
+  return [
+    `vaults created ${s.vaultsCreated}`,
+    `updated ${s.vaultsUpdated}`,
+    `archived ${s.vaultsArchived}`,
+    `plans created ${s.plansCreated}`,
+    `updated ${s.plansUpdated}`,
+    `archived ${s.plansArchived}`,
+    `plan-vault links ${s.planVaultLinks}`,
+  ].join(', ');
 }
 
-async function linkPlanVaults(planId: string, vaults: any[]) {
-  for (const vault of vaults) {
-    await prisma.planVault.upsert({
-      where: { planId_vaultId: { planId, vaultId: vault.id } },
-      update: {},
-      create: { planId, vaultId: vault.id },
-    });
+async function vaultLookup(...names: string[]): Promise<Record<string, { id: string }>> {
+  const result: Record<string, { id: string }> = {};
+  for (const name of names) {
+    const vault = await prisma.vault.findUniqueOrThrow({ where: { name }, select: { id: true } });
+    result[name] = vault;
   }
+  return result;
+}
+
+async function buildPlanVaultMap(): Promise<{ byId: Record<string, string[]>; byName: Map<string, SubscriptionPlanLike> }> {
+  const plans = await prisma.subscriptionPlan.findMany({
+    where: { deletedAt: null },
+    include: { vaults: { select: { vaultId: true } } },
+  });
+  const byId: Record<string, string[]> = {};
+  const byName = new Map<string, SubscriptionPlanLike>();
+  for (const p of plans) {
+    byId[p.id] = p.vaults.map((v) => v.vaultId);
+    byName.set(p.name, p);
+  }
+  return { byId, byName };
 }
 
 main()

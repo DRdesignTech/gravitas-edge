@@ -8,6 +8,9 @@ import {
   Opportunity,
   OpportunityQuery,
   PaginatedResult,
+  PricingGroup,
+  PurchaseResult,
+  ConfirmPurchaseResult,
   ReferralCode,
   ReferralItem,
   ReferralQuery,
@@ -130,6 +133,18 @@ export function fetchMe() {
 
 export function fetchPublicPlans() {
   return api.get<SubscriptionPlan[]>('/subscriptions/plans');
+}
+
+export function fetchPublicPricing() {
+  return api.get<PricingGroup[]>('/subscriptions/pricing');
+}
+
+export function purchasePlan(planId: string, vaultId?: string) {
+  return api.post<PurchaseResult>('/subscriptions/purchase', { planId, ...(vaultId ? { vaultId } : {}) });
+}
+
+export function confirmPurchase(paymentId: string) {
+  return api.post<ConfirmPurchaseResult>('/subscriptions/purchase/confirm', { paymentId });
 }
 
 // ── Referral services ──────────────────────────────────────────────

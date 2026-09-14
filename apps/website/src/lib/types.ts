@@ -84,6 +84,47 @@ export interface SubscriptionPlan {
   vaults?: Vault[];
 }
 
+export interface PricingPlan {
+  id: string;
+  name: string;
+  price: number;
+  regularPrice: number;
+  discountedPrice: number;
+  discountPercentage: number;
+  currency: string;
+  durationDays: number;
+  durationLabel: string;
+}
+
+export interface PricingGroup {
+  vault: { id: string; name: string; description?: string | null };
+  plans: PricingPlan[];
+}
+
+export interface PurchaseResult {
+  paymentId: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  planId: string;
+  planName: string;
+  vaultId: string;
+  vaultName: string;
+  durationDays: number;
+  status: string;
+}
+
+export interface ConfirmPurchaseResult {
+  subscription: {
+    id: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    vaultAccess?: { vaultId: string; vaultName?: string | null }[];
+  };
+  payment: { id: string; status: string; orderId: string | null; amount: number; currency: string };
+}
+
 export interface Subscription {
   id: string;
   plan?: {
@@ -91,6 +132,9 @@ export interface Subscription {
     name?: string;
     description?: string | null;
     price?: number;
+    regularPrice?: number;
+    discountPercentage?: number;
+    discountedPrice?: number;
     currency?: string;
     durationDays?: number;
   };

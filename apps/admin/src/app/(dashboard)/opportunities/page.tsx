@@ -41,6 +41,85 @@ import {
 import { formatDate, titleCase, experienceLabel } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 
+type OpportunityView = 'grid' | 'list';
+
+function GridIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+      />
+    </svg>
+  );
+}
+
+function ListIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+      />
+    </svg>
+  );
+}
+
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: OpportunityView;
+  onChange: (v: OpportunityView) => void;
+}) {
+  const base =
+    'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400';
+  const active = 'bg-brand-600 text-white shadow-sm';
+  const idle = 'text-content-muted hover:text-content';
+  return (
+    <div
+      className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface p-1"
+      role="group"
+      aria-label="Toggle view"
+    >
+      <button
+        type="button"
+        onClick={() => onChange('grid')}
+        aria-pressed={view === 'grid'}
+        className={`${base} ${view === 'grid' ? active : idle}`}
+      >
+        <GridIcon className="h-4 w-4" />
+        Grid
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('list')}
+        aria-pressed={view === 'list'}
+        className={`${base} ${view === 'list' ? active : idle}`}
+      >
+        <ListIcon className="h-4 w-4" />
+        List
+      </button>
+    </div>
+  );
+}
+
 interface FormState {
   title: string;
   description: string;
@@ -100,6 +179,7 @@ export default function OpportunitiesPage() {
   const [employmentType, setEmploymentType] = useState('');
   const [vaultId, setVaultId] = useState('');
   const [page, setPage] = useState(1);
+  const [view, setView] = useState<OpportunityView>('grid');
 
   const [allVaults, setAllVaults] = useState<Vault[]>([]);
   const [allLevels, setAllLevels] = useState<ExperienceLevel[]>([]);
@@ -428,7 +508,69 @@ export default function OpportunitiesPage() {
         </Card>
       ) : data && data.items.length > 0 ? (
         <>
-          <Table columns={columns} data={data.items} />
+          <div className="mb-4 flex justify-end">
+            <ViewToggle view={view} onChange={setView} />
+          </div>
+          {view === 'grid' ? (
+            <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {data.items.map((o) => (
+                <article
+                  key={o.id}
+                  className="flex flex-col rounded-2xl border border-line bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-sm font-semibold text-content">{o.title}</h3>
+                      {o.externalRef && <p className="mt-0.5 text-xs text-content-faint">{o.externalRef}</p>}
+                    </div>
+                    <Badge variant={oppStatusVariant(o.status)}>{o.status}</Badge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {(o.vaults || []).map((v) => (
+                      <Badge key={v.id} variant="info">
+                        {v.name}
+                      </Badge>
+                    ))}
+                    {(o.vaults || []).length === 0 && <span className="text-content-faint">—</span>}
+                  </div>
+                  <dl className="mt-4 space-y-2 text-sm text-content-muted">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt>Company</dt>
+                      <dd className="truncate font-medium text-content">{o.company || '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt>Location</dt>
+                      <dd className="truncate text-content">{o.location || o.country || '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt>Salary</dt>
+                      <dd className="truncate text-content">{o.salary || '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt>Experience</dt>
+                      <dd className="whitespace-nowrap text-content">
+                        {experienceLabel(o.minExperience, o.maxExperience)}
+                      </dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt>Published</dt>
+                      <dd className="whitespace-nowrap text-content">{formatDate(o.publishedDate)}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-auto flex items-center justify-end gap-2 border-t border-line pt-4">
+                    <Button size="sm" variant="secondary" onClick={() => openEdit(o)}>
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => setDeleteTarget(o)}>
+                      Archive
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <Table columns={columns} data={data.items} />
+          )}
           <Pagination
             currentPage={data.meta.page}
             totalPages={data.meta.totalPages}

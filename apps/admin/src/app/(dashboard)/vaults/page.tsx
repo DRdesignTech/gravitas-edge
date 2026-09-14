@@ -6,6 +6,7 @@ import {
   adminCreateVault,
   adminUpdateVault,
   adminDeleteVault,
+  adminRestoreVault,
   adminListExperienceLevels,
   adminLinkVaultExperienceLevel,
   adminUnlinkVaultExperienceLevel,
@@ -154,6 +155,16 @@ export default function VaultsPage() {
     }
   };
 
+  const confirmRestore = async (v: Vault) => {
+    try {
+      await adminRestoreVault(v.id);
+      showToast('Vault restored to active', 'success');
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    }
+  };
+
   const openManage = async (v: Vault) => {
     setManageTarget(v);
     setLinkedIds(Array.isArray(v.experienceLevels) ? v.experienceLevels.map((el) => el.id) : []);
@@ -219,30 +230,44 @@ export default function VaultsPage() {
     {
       key: 'actions',
       label: '',
-      render: (v) => (
-        <>
-          <div className="hidden items-center gap-2 sm:flex">
-            <Button size="sm" variant="secondary" onClick={() => openManage(v)}>
-              Link levels
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>
-              Edit
-            </Button>
-            <Button size="sm" variant="danger" onClick={() => setDeleteTarget(v)}>
-              Archive
-            </Button>
-          </div>
-          <ActionMenu
-            className="sm:hidden"
-            label={`Actions for ${v.name}`}
-            items={[
-              { label: 'Link levels', onClick: () => openManage(v) },
-              { label: 'Edit', onClick: () => openEdit(v) },
-              { label: 'Archive', danger: true, onClick: () => setDeleteTarget(v) },
-            ]}
-          />
-        </>
-      ),
+      render: (v) =>
+        v.status === 'ARCHIVED' ? (
+          <>
+            <div className="hidden items-center gap-2 sm:flex">
+              <Button size="sm" variant="secondary" onClick={() => confirmRestore(v)}>
+                Restore
+              </Button>
+            </div>
+            <ActionMenu
+              className="sm:hidden"
+              label={`Actions for ${v.name}`}
+              items={[{ label: 'Restore', onClick: () => confirmRestore(v) }]}
+            />
+          </>
+        ) : (
+          <>
+            <div className="hidden items-center gap-2 sm:flex">
+              <Button size="sm" variant="secondary" onClick={() => openManage(v)}>
+                Link levels
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>
+                Edit
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => setDeleteTarget(v)}>
+                Archive
+              </Button>
+            </div>
+            <ActionMenu
+              className="sm:hidden"
+              label={`Actions for ${v.name}`}
+              items={[
+                { label: 'Link levels', onClick: () => openManage(v) },
+                { label: 'Edit', onClick: () => openEdit(v) },
+                { label: 'Archive', danger: true, onClick: () => setDeleteTarget(v) },
+              ]}
+            />
+          </>
+        ),
     },
   ];
 
@@ -396,7 +421,7 @@ export default function VaultsPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
         title="Archive vault"
-        message={`Archive "${deleteTarget?.name}"? This cannot be undone.`}
+        message={`Archive "${deleteTarget?.name}"? Existing subscription entitlements and opportunities remain intact. You can restore it later.`}
         confirmText="Archive"
         loading={deleting}
       />

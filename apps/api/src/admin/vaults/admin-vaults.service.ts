@@ -20,7 +20,8 @@ export class AdminVaultsService {
 
   async list(query: QueryVaultsDto): Promise<PaginatedResult<any>> {
     const params = buildPaginationParams(query.page, query.limit);
-    const where: Prisma.VaultWhereInput = { deletedAt: null };
+    const where: Prisma.VaultWhereInput =
+      query.status === 'ARCHIVED' ? { deletedAt: { not: null } } : { deletedAt: null };
 
     if (query.status) {
       where.status = query.status;
@@ -183,6 +184,26 @@ export class AdminVaultsService {
     };
   }
 
+  /** Restore an archived vault to the active business set. */
+  async restore(id: string, adminUserId: string, ipAddress?: string) {
+    await this.findVault(id);
+
+    const restored = await this.prisma.vault.update({
+      where: { id },
+      data: { status: VaultStatus.ACTIVE, deletedAt: null },
+    });
+
+    await this.audit.record({
+      action: 'VAULT_RESTORED',
+      entityType: 'Vault',
+      entityId: id,
+      adminUserId,
+      ipAddress,
+    });
+
+    return this.findOne(restored.id);
+  }
+
   // ---- Experience level linking -----------------------------------------
 
   async listExperienceLevels(vaultId: string) {
@@ -258,8 +279,9 @@ export class AdminVaultsService {
   }
 
   private async findVault(id: string) {
+    // Admin context: archived vaults stay visible so they can be audited/restored.
     const vault = await this.prisma.vault.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
       include: {
         experienceLevels: { select: { experienceLevel: true } },
         plans: { select: { plan: { select: { id: true, name: true, isActive: true } } } },

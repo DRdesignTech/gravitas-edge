@@ -6,6 +6,7 @@ import {
   adminCreatePlan,
   adminUpdatePlan,
   adminDeletePlan,
+  adminRestorePlan,
   adminListVaults,
   adminLinkPlanVault,
   adminUnlinkPlanVault,
@@ -22,6 +23,7 @@ import {
   Pagination,
   Select,
   Skeleton,
+  StatusBadge,
   Textarea,
   EmptyState,
   ErrorState,
@@ -33,22 +35,34 @@ import {
 import { formatMoney } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 
+const DURATION_OPTIONS = [
+  { value: '30', label: 'Monthly (30 days)' },
+  { value: '90', label: '3 Months (90 days)' },
+  { value: '180', label: '6 Months (180 days)' },
+];
+
 interface FormState {
   name: string;
   description: string;
   price: string;
+  regularPrice: string;
+  discountPercentage: string;
   currency: string;
   durationDays: string;
   isActive: boolean;
+  vaultId: string;
 }
 
 const emptyForm: FormState = {
   name: '',
   description: '',
   price: '',
+  regularPrice: '',
+  discountPercentage: '',
   currency: 'INR',
-  durationDays: '',
+  durationDays: '30',
   isActive: true,
+  vaultId: '',
 };
 
 export default function PlansPage() {
@@ -77,7 +91,8 @@ export default function PlansPage() {
       page,
       limit: 15,
       search,
-      isActive: isActive === '' ? undefined : isActive === 'true',
+      isActive: isActive === '' || isActive === 'archived' ? undefined : isActive === 'true',
+      archived: isActive === 'archived' ? true : undefined,
     })
       .then(setData)
       .catch((e) => setError(getErrorMessage(e)))
@@ -113,23 +128,63 @@ export default function PlansPage() {
       name: p.name,
       description: p.description ?? '',
       price: String(p.price),
+      regularPrice: String(p.regularPrice ?? p.price),
+      discountPercentage: String(p.discountPercentage ?? 0),
       currency: p.currency,
       durationDays: String(p.durationDays),
       isActive: p.isActive,
+      vaultId: (p.vaults && p.vaults[0]?.id) || '',
     });
     setFormOpen(true);
   };
 
   const save = async () => {
+    const price = Number(form.price);
+    const regularPrice = Number(form.regularPrice);
+    const discountPercentage = Number(form.discountPercentage);
+    const durationDays = Number(form.durationDays);
+
+    if (!form.name.trim()) {
+      showToast('Name is required', 'error');
+      return;
+    }
+    if (!(price >= 0)) {
+      showToast('Current price must be 0 or more', 'error');
+      return;
+    }
+    if (!(regularPrice >= 0)) {
+      showToast('Regular price must be 0 or more', 'error');
+      return;
+    }
+    if (price > regularPrice) {
+      showToast('Current price cannot exceed regular price', 'error');
+      return;
+    }
+    if (!Number.isInteger(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
+      showToast('Discount percentage must be a whole number between 0 and 100', 'error');
+      return;
+    }
+    if (![30, 90, 180].includes(durationDays)) {
+      showToast('Please choose a valid duration', 'error');
+      return;
+    }
+    if (!editing && !form.vaultId) {
+      showToast('A vault is required for a new pricing option', 'error');
+      return;
+    }
+
     setSaving(true);
     try {
       const body = {
         name: form.name,
         description: form.description || undefined,
-        price: form.price ? Number(form.price) : 0,
+        price,
+        regularPrice,
+        discountPercentage,
         currency: form.currency,
-        durationDays: form.durationDays ? Number(form.durationDays) : 0,
+        durationDays,
         isActive: form.isActive,
+        ...(editing ? {} : { vaultId: form.vaultId }),
       };
       if (editing) {
         await adminUpdatePlan(editing.id, body);
@@ -151,14 +206,30 @@ export default function PlansPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await adminDeletePlan(deleteTarget.id);
-      showToast('Plan archived', 'success');
+      const res: any = await adminDeletePlan(deleteTarget.id);
+      const refs = res?.references;
+      showToast(
+        refs
+          ? `Plan archived (${refs.subscriptions} subscriptions preserved)`
+          : 'Plan archived',
+        'success',
+      );
       setDeleteTarget(null);
       load();
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const confirmRestore = async (p: SubscriptionPlan) => {
+    try {
+      await adminRestorePlan(p.id);
+      showToast('Plan restored to the active catalog', 'success');
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
     }
   };
 
@@ -199,20 +270,8 @@ export default function PlansPage() {
       ),
     },
     {
-      key: 'price',
-      label: 'Price',
-      render: (p) => (
-        <span className="font-medium text-content">{formatMoney(p.price, p.currency)}</span>
-      ),
-    },
-    {
-      key: 'duration',
-      label: 'Duration',
-      render: (p) => <span className="text-content-muted">{p.durationDays} days</span>,
-    },
-    {
       key: 'vaults',
-      label: 'Vaults',
+      label: 'Vault',
       render: (p) =>
         (p.vaults || []).length === 0 ? (
           <span className="text-content-faint">—</span>
@@ -227,41 +286,89 @@ export default function PlansPage() {
         ),
     },
     {
+      key: 'duration',
+      label: 'Duration',
+      render: (p) => <span className="text-content-muted">{p.durationDays} days</span>,
+    },
+    {
+      key: 'regularPrice',
+      label: 'Regular',
+      render: (p) => (
+        <span className="text-content-muted line-through">
+          {formatMoney(p.regularPrice, p.currency)}
+        </span>
+      ),
+    },
+    {
+      key: 'price',
+      label: 'Current',
+      render: (p) => (
+        <span className="font-semibold text-content">{formatMoney(p.price, p.currency)}</span>
+      ),
+    },
+    {
+      key: 'discount',
+      label: 'Discount',
+      render: (p) =>
+        (p.discountPercentage ?? 0) > 0 ? (
+          <Badge variant="success">{p.discountPercentage}% OFF</Badge>
+        ) : (
+          <span className="text-content-faint">—</span>
+        ),
+    },
+    {
       key: 'status',
       label: 'Status',
-      render: (p) => (
-        <Badge variant={p.isActive ? 'success' : 'danger'}>
-          {p.isActive ? 'Active' : 'Inactive'}
-        </Badge>
-      ),
+      render: (p) =>
+        p.status ? (
+          <StatusBadge value={p.status} />
+        ) : (
+          <Badge variant={p.isActive ? 'success' : 'danger'}>
+            {p.isActive ? 'Active' : 'Inactive'}
+          </Badge>
+        ),
     },
     {
       key: 'actions',
       label: '',
-      render: (p) => (
-        <>
-          <div className="hidden items-center gap-2 sm:flex">
-            <Button size="sm" variant="secondary" onClick={() => openManage(p)}>
-              Link vaults
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => openEdit(p)}>
-              Edit
-            </Button>
-            <Button size="sm" variant="danger" onClick={() => setDeleteTarget(p)}>
-              Archive
-            </Button>
-          </div>
-          <ActionMenu
-            className="sm:hidden"
-            label={`Actions for ${p.name}`}
-            items={[
-              { label: 'Link vaults', onClick: () => openManage(p) },
-              { label: 'Edit', onClick: () => openEdit(p) },
-              { label: 'Archive', danger: true, onClick: () => setDeleteTarget(p) },
-            ]}
-          />
-        </>
-      ),
+      render: (p) =>
+        p.status === 'ARCHIVED' ? (
+          <>
+            <div className="hidden items-center gap-2 sm:flex">
+              <Button size="sm" variant="secondary" onClick={() => confirmRestore(p)}>
+                Restore
+              </Button>
+            </div>
+            <ActionMenu
+              className="sm:hidden"
+              label={`Actions for ${p.name}`}
+              items={[{ label: 'Restore', onClick: () => confirmRestore(p) }]}
+            />
+          </>
+        ) : (
+          <>
+            <div className="hidden items-center gap-2 sm:flex">
+              <Button size="sm" variant="secondary" onClick={() => openManage(p)}>
+                Link vaults
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => openEdit(p)}>
+                Edit
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => setDeleteTarget(p)}>
+                Archive
+              </Button>
+            </div>
+            <ActionMenu
+              className="sm:hidden"
+              label={`Actions for ${p.name}`}
+              items={[
+                { label: 'Link vaults', onClick: () => openManage(p) },
+                { label: 'Edit', onClick: () => openEdit(p) },
+                { label: 'Archive', danger: true, onClick: () => setDeleteTarget(p) },
+              ]}
+            />
+          </>
+        ),
     },
   ];
 
@@ -288,8 +395,8 @@ export default function PlansPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
           <Select
-            label="Active"
-            placeholder="All"
+            label="Status"
+            placeholder="All active"
             value={isActive}
             onChange={(e) => {
               setPage(1);
@@ -298,6 +405,7 @@ export default function PlansPage() {
             options={[
               { value: 'true', label: 'Active' },
               { value: 'false', label: 'Inactive' },
+              { value: 'archived', label: 'Archived' },
             ]}
           />
           <div className="flex items-end">
@@ -359,12 +467,38 @@ export default function PlansPage() {
           />
           <div className="grid grid-cols-3 gap-4">
             <Input
-              label="Price"
+              label="Current price"
               type="number"
               min={0}
               required
               value={form.price}
               onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+            />
+            <Input
+              label="Regular price"
+              type="number"
+              min={0}
+              required
+              value={form.regularPrice}
+              onChange={(e) => setForm((f) => ({ ...f, regularPrice: e.target.value }))}
+            />
+            <Input
+              label="Discount %"
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              required
+              value={form.discountPercentage}
+              onChange={(e) => setForm((f) => ({ ...f, discountPercentage: e.target.value }))}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Duration"
+              value={form.durationDays}
+              onChange={(e) => setForm((f) => ({ ...f, durationDays: e.target.value }))}
+              options={DURATION_OPTIONS}
             />
             <Input
               label="Currency"
@@ -373,15 +507,18 @@ export default function PlansPage() {
               value={form.currency}
               onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value.toUpperCase() }))}
             />
-            <Input
-              label="Duration (days)"
-              type="number"
-              min={1}
-              required
-              value={form.durationDays}
-              onChange={(e) => setForm((f) => ({ ...f, durationDays: e.target.value }))}
-            />
           </div>
+          {!editing && (
+            <Select
+              label="Vault"
+              placeholder="Select a vault"
+              value={form.vaultId}
+              onChange={(e) => setForm((f) => ({ ...f, vaultId: e.target.value }))}
+              options={allVaults
+                .filter((v) => v.status === 'ACTIVE')
+                .map((v) => ({ value: v.id, label: v.name }))}
+            />
+          )}
           <label className="flex items-center gap-2 text-sm text-content">
             <input
               type="checkbox"
@@ -432,7 +569,7 @@ export default function PlansPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
         title="Archive plan"
-        message={`Archive "${deleteTarget?.name}"? This cannot be undone.`}
+        message={`Archive "${deleteTarget?.name}"? It will be hidden from the public catalog but existing subscriptions and entitlements remain intact. You can restore it later.`}
         confirmText="Archive"
         loading={deleting}
       />

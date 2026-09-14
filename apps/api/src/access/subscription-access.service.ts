@@ -210,7 +210,10 @@ export class SubscriptionAccessService {
 
       return tx.subscription.findUniqueOrThrow({
         where: { id: created.id },
-        include: { vaultAccess: true, plan: true },
+        include: {
+          vaultAccess: { include: { vault: { select: { id: true, name: true } } } },
+          plan: true,
+        },
       });
     });
 

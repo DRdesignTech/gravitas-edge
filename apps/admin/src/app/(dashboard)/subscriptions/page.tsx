@@ -78,11 +78,24 @@ export default function SubscriptionsPage() {
     {
       key: 'amount',
       label: 'Amount',
-      render: (s) => (
-        <span className="text-content">
-          {s.plan ? formatMoney(s.plan.price, s.plan.currency) : '—'}
-        </span>
-      ),
+      render: (s) =>
+        s.plan ? (
+          <div>
+            {(s.plan.discountPercentage ?? 0) > 0 && s.plan.regularPrice && (
+              <span className="mr-1.5 text-xs text-content-faint line-through">
+                {formatMoney(s.plan.regularPrice, s.plan.currency)}
+              </span>
+            )}
+            <span className="text-content">{formatMoney(s.plan.price, s.plan.currency)}</span>
+            {(s.plan.discountPercentage ?? 0) > 0 && (
+              <span className="ml-1.5">
+                <Badge variant="success">{s.plan.discountPercentage}% OFF</Badge>
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="text-content">—</span>
+        ),
     },
     {
       key: 'start',

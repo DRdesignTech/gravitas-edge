@@ -5,6 +5,8 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  IsUUID,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -22,10 +24,31 @@ export class UpdatePlanDto {
   @MaxLength(1000)
   description?: string;
 
-  @ApiPropertyOptional({ example: 499, description: 'Price (>= 0)' })
+  @ApiPropertyOptional({
+    example: 1499,
+    description: 'Discounted price (>= 0). Actual amount charged.',
+  })
   @IsOptional()
   @Min(0)
   price?: number;
+
+  @ApiPropertyOptional({
+    example: 1999,
+    description: 'Original/list price (>= 0). Never used for payment.',
+  })
+  @IsOptional()
+  @Min(0)
+  regularPrice?: number;
+
+  @ApiPropertyOptional({
+    example: 25,
+    description: 'Displayed discount percentage (integer 0..100). Stored, never recomputed.',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  discountPercentage?: number;
 
   @ApiPropertyOptional({ example: 'INR', description: 'ISO 4217 currency code' })
   @IsOptional()
@@ -43,4 +66,9 @@ export class UpdatePlanDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ example: '5f8e...', description: 'Vault this plan grants access to' })
+  @IsOptional()
+  @IsUUID()
+  vaultId?: string;
 }

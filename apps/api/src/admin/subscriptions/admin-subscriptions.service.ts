@@ -33,7 +33,7 @@ export class AdminSubscriptionsService {
         take: limit,
         include: {
           user: { select: { id: true, email: true } },
-          plan: { select: { id: true, name: true, price: true, currency: true } },
+          plan: { select: { id: true, name: true, price: true, regularPrice: true, discountPercentage: true, currency: true } },
           vaultAccess: { select: { vaultId: true, vault: { select: { id: true, name: true } } } },
         },
       }),
@@ -129,7 +129,7 @@ export class AdminSubscriptionsService {
       } as unknown as Prisma.SubscriptionCreateInput,
       include: {
         user: { select: { id: true, email: true } },
-        plan: { select: { id: true, name: true, price: true, currency: true } },
+        plan: { select: { id: true, name: true, price: true, regularPrice: true, discountPercentage: true, currency: true } },
         vaultAccess: { select: { vaultId: true } },
       },
     });

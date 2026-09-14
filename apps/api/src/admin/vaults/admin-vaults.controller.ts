@@ -69,6 +69,12 @@ export class AdminVaultsController {
     return this.adminVaultsService.remove(id, user.id, this.clientIp(req));
   }
 
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore an archived vault to the active business set' })
+  restore(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
+    return this.adminVaultsService.restore(id, user.id, this.clientIp(req));
+  }
+
   // ---- Experience level linking ----
 
   @Get(':id/experience-levels')

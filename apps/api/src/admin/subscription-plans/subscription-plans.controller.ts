@@ -64,9 +64,15 @@ export class SubscriptionPlansController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Archive/delete a plan (blocked if it has subscriptions)' })
+  @ApiOperation({ summary: 'Archive a plan (soft; keeps subscriptions/entitlements intact)' })
   remove(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
     return this.subscriptionPlansService.remove(id, user.id, this.clientIp(req));
+  }
+
+  @Post(':id/restore')
+  @ApiOperation({ summary: 'Restore an archived plan back into the active catalog' })
+  restore(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
+    return this.subscriptionPlansService.restore(id, user.id, this.clientIp(req));
   }
 
   // ---- Plan-vault linking ----

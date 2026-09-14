@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { fetchVaults, fetchPublicPlans } from '@/lib/services';
-import { SubscriptionPlan, Vault } from '@/lib/types';
+import { useEffect, useState } from 'react';
+import { fetchVaults, fetchPublicPricing } from '@/lib/services';
+import { PricingGroup, Vault } from '@/lib/types';
 import { Button, Card, Skeleton, EmptyState, ErrorState } from '@/components/ui';
 import { VaultIcon } from '@/components/cards';
 import { formatMoney } from '@/lib/format';
@@ -11,13 +11,6 @@ import { getErrorMessage } from '@/lib/errors';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import InfoBanner from '@/components/marketing/InfoBanner';
 import ResumeUploadCard from '@/components/marketing/ResumeUploadCard';
-
-function durationLabel(days: number): string {
-  if (days <= 31) return '1 month';
-  if (days <= 95) return '3 months';
-  if (days <= 190) return '6 months';
-  return `${Math.round(days / 30)} months`;
-}
 
 function typeLabel(type: string): string {
   const map: Record<string, string> = {
@@ -32,17 +25,17 @@ function typeLabel(type: string): string {
 
 export default function VaultsPage() {
   const [vaults, setVaults] = useState<Vault[]>([]);
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [pricing, setPricing] = useState<PricingGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const load = () => {
     setLoading(true);
     setError('');
-    Promise.all([fetchVaults(), fetchPublicPlans()])
+    Promise.all([fetchVaults(), fetchPublicPricing()])
       .then(([v, p]) => {
         setVaults(v || []);
-        setPlans(p || []);
+        setPricing(p || []);
       })
       .catch((e) => setError(getErrorMessage(e)))
       .finally(() => setLoading(false));
@@ -51,20 +44,6 @@ export default function VaultsPage() {
   useEffect(() => {
     load();
   }, []);
-
-  const plansByVault = useMemo(() => {
-    const map = new Map<string, SubscriptionPlan[]>();
-    for (const plan of plans) {
-      for (const v of plan.vaults || []) {
-        if (!map.has(v.id)) map.set(v.id, []);
-        map.get(v.id)!.push(plan);
-      }
-    }
-    for (const [, list] of map) {
-      list.sort((a, b) => a.durationDays - b.durationDays);
-    }
-    return map;
-  }, [plans]);
 
   return (
     <div className="overflow-hidden">
@@ -129,57 +108,118 @@ export default function VaultsPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {vaults.map((v) => {
-                const vPlans = plansByVault.get(v.id) || [];
+                const vPlans = pricing.find((g) => g.vault.id === v.id)?.plans ?? [];
+                const maxDiscount = vPlans.reduce(
+                  (m, p) => Math.max(m, p.discountPercentage ?? 0),
+                  0,
+                );
+                const target = v.locked
+                  ? `/vaults/${v.id}`
+                  : `/opportunities?vaultId=${encodeURIComponent(v.id)}`;
                 return (
                   <div
                     key={v.id}
-                    className="flex flex-col rounded-2xl border border-line bg-surface p-6 shadow-card dark:bg-surface-elevated"
+                    className="group/vault relative flex flex-col overflow-hidden rounded-3xl border border-line bg-surface shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-300/70 hover:shadow-card-hover dark:bg-surface-elevated"
                   >
-                    <span className="text-xs font-semibold uppercase tracking-wider text-brand-600 dark:text-brand-400">
-                      {typeLabel(v.type)}
-                    </span>
-                    <h3 className="mt-2 text-lg font-bold text-content">{v.name}</h3>
-                    {v.description && (
-                      <p className="mt-2 text-sm text-content-muted">{v.description}</p>
-                    )}
-
-                    {vPlans.length > 0 ? (
-                      <div className="mt-5 space-y-2.5">
-                        {vPlans.map((plan) => (
-                          <div
-                            key={plan.id}
-                            className="flex items-baseline justify-between gap-3 rounded-xl bg-surface-muted px-4 py-2.5 dark:bg-surface"
-                          >
-                            <span className="text-sm font-medium text-content">
-                              {durationLabel(plan.durationDays)}
-                            </span>
-                            <span className="text-sm font-bold text-content">
-                              {formatMoney(plan.price, plan.currency)}
-                            </span>
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-brand-400 to-brand-600 opacity-0 transition-opacity duration-300 group-hover/vault:opacity-100" />
+                    <div className="flex flex-1 flex-col p-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400">
+                            <VaultIcon className="h-5 w-5" />
                           </div>
-                        ))}
+                          <div>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+                              {typeLabel(v.type)}
+                            </span>
+                            <h3 className="text-lg font-bold text-content">{v.name}</h3>
+                          </div>
+                        </div>
+                        {vPlans.length > 0 && maxDiscount > 0 && (
+                          <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                            Up to {maxDiscount}% OFF
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <p className="mt-5 text-sm text-content-faint">Pricing available soon.</p>
-                    )}
-
-                    <div className="mt-auto pt-6">
-                      {v.locked ? (
-                        <Link href={`/vaults/${v.id}`}>
-                          <Button
-                            className="w-full"
-                            variant={vPlans.length > 0 ? 'primary' : 'outline'}
-                          >
-                            View &amp; subscribe →
-                          </Button>
-                        </Link>
-                      ) : (
-                        <Link href={`/opportunities?vaultId=${encodeURIComponent(v.id)}`}>
-                          <Button className="w-full" variant="primary">
-                            View opportunities →
-                          </Button>
-                        </Link>
+                      {v.description && (
+                        <p className="mt-3 text-sm text-content-muted">{v.description}</p>
                       )}
+
+                      {vPlans.length > 0 ? (
+                        <div className="mt-5 space-y-3">
+                          {vPlans.map((p) => (
+                            <Link
+                              key={p.id}
+                              href={v.locked ? `${target}?plan=${p.id}` : target}
+                              className="group/tile block rounded-2xl border border-line bg-surface-muted p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-400/70 hover:bg-brand-50/40 hover:shadow-card hover:shadow-brand-500/5 dark:bg-surface dark:hover:bg-brand-950/30"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold text-content">
+                                  {p.durationLabel}
+                                </span>
+                                {(p.discountPercentage ?? 0) > 0 ? (
+                                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                                    {p.discountPercentage}% OFF
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
+                                    Standard
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-2">
+                                <span className="text-2xl font-extrabold tracking-tight text-content">
+                                  {formatMoney(
+                                    p.discountedPrice ?? p.price,
+                                    p.currency,
+                                  )}
+                                </span>
+                              </div>
+                              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <span className="text-xs text-content-faint line-through">
+                                  {formatMoney(p.regularPrice, p.currency)}
+                                </span>
+                                {(p.discountPercentage ?? 0) > 0 && (
+                                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                    Save{' '}
+                                    {formatMoney(
+                                      (p.regularPrice ?? p.discountedPrice) -
+                                        p.discountedPrice,
+                                      p.currency,
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-3 flex items-center justify-end">
+                                <span className="inline-flex translate-y-1 items-center gap-1 text-xs font-bold text-brand-600 opacity-0 transition-all duration-200 group-hover/tile:translate-y-0 group-hover/tile:opacity-100 dark:text-brand-400">
+                                  Select <span aria-hidden>→</span>
+                                </span>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-5 text-sm text-content-faint">Pricing available soon.</p>
+                      )}
+
+                      <div className="mt-auto pt-6">
+                        {v.locked ? (
+                          <Link href={`/vaults/${v.id}`}>
+                            <Button
+                              className="w-full"
+                              variant={vPlans.length > 0 ? 'primary' : 'outline'}
+                            >
+                              View &amp; subscribe →
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Link href={target}>
+                            <Button className="w-full" variant="primary">
+                              View opportunities →
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

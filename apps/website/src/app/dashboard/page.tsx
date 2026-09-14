@@ -602,7 +602,17 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
             {formatDate(sub.startDate)} → {formatDate(sub.endDate)}
             {sub.plan?.price !== undefined && (
               <span className="ml-2 font-medium text-content">
+                {(sub.plan.discountPercentage ?? 0) > 0 && sub.plan.regularPrice && (
+                  <span className="mr-1 text-xs font-normal text-content-faint line-through">
+                    {formatMoney(sub.plan.regularPrice, sub.plan.currency || 'INR')}
+                  </span>
+                )}
                 {formatMoney(sub.plan.price, sub.plan.currency || 'INR')}
+                {(sub.plan.discountPercentage ?? 0) > 0 && (
+                  <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                    {sub.plan.discountPercentage}% off
+                  </span>
+                )}
               </span>
             )}
           </p>

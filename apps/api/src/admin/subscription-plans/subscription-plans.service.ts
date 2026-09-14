@@ -31,9 +31,40 @@ export class SubscriptionPlansService {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Pricing validation. `price` is the ACTUAL amount charged; `regularPrice` is
+  // the list price used only for display.
+  // ---------------------------------------------------------------------------
+
+  private resolvePricing(
+    price?: number,
+    regularPrice?: number,
+    discountPercentage?: number,
+    current?: { price: number; regularPrice: number; discountPercentage: number },
+  ) {
+    const discounted = price ?? current?.price ?? 0;
+    const regular = regularPrice ?? current?.regularPrice ?? discounted;
+    const discount = discountPercentage ?? current?.discountPercentage ?? 0;
+
+    if (discounted < 0) {
+      throw new BadRequestException('Price cannot be negative');
+    }
+    if (regular < 0) {
+      throw new BadRequestException('Regular price cannot be negative');
+    }
+    if (discounted > regular) {
+      throw new BadRequestException('Discounted price cannot exceed regular price');
+    }
+    if (!Number.isInteger(discount) || discount < 0 || discount > 100) {
+      throw new BadRequestException('Discount percentage must be an integer between 0 and 100');
+    }
+    return { price: discounted, regularPrice: regular, discountPercentage: discount };
+  }
+
   async list(query: QueryPlansDto): Promise<PaginatedResult<any>> {
     const params = buildPaginationParams(query.page, query.limit);
-    const where: Prisma.SubscriptionPlanWhereInput = { deletedAt: null };
+    const where: Prisma.SubscriptionPlanWhereInput =
+      query.archived === true ? { deletedAt: { not: null } } : { deletedAt: null };
 
     if (query.isActive !== undefined) {
       where.isActive = query.isActive;
@@ -64,6 +95,7 @@ export class SubscriptionPlansService {
 
     const normalized = items.map((p) => ({
       ...p,
+      status: p.deletedAt ? 'ARCHIVED' : p.isActive ? 'ACTIVE' : 'INACTIVE',
       vaults: p.vaults.map((v) => v.vault),
     }));
 
@@ -77,12 +109,10 @@ export class SubscriptionPlansService {
 
   async create(dto: CreatePlanDto, adminUserId: string, ipAddress?: string) {
     this.assertCurrency(dto.currency);
-    if (dto.price < 0) {
-      throw new BadRequestException('Price cannot be negative');
-    }
     if (dto.durationDays <= 0) {
       throw new BadRequestException('Duration must be greater than 0');
     }
+    const pricing = this.resolvePricing(dto.price, dto.regularPrice, dto.discountPercentage);
 
     const existing = await this.prisma.subscriptionPlan.findUnique({
       where: { name: dto.name },
@@ -98,7 +128,9 @@ export class SubscriptionPlansService {
         data: {
           name: dto.name,
           description: dto.description ?? null,
-          price: dto.price,
+          price: pricing.price,
+          regularPrice: pricing.regularPrice,
+          discountPercentage: pricing.discountPercentage,
           currency: dto.currency.toUpperCase(),
           durationDays: dto.durationDays,
           isActive: dto.isActive ?? true,
@@ -110,7 +142,9 @@ export class SubscriptionPlansService {
         data: {
           name: dto.name,
           description: dto.description ?? null,
-          price: dto.price,
+          price: pricing.price,
+          regularPrice: pricing.regularPrice,
+          discountPercentage: pricing.discountPercentage,
           currency: dto.currency.toUpperCase(),
           durationDays: dto.durationDays,
           isActive: dto.isActive ?? true,
@@ -124,14 +158,24 @@ export class SubscriptionPlansService {
       entityId: plan.id,
       adminUserId,
       ipAddress,
-      details: { name: plan.name, price: plan.price, durationDays: plan.durationDays },
+      details: {
+        name: plan.name,
+        price: plan.price,
+        regularPrice: plan.regularPrice,
+        discountPercentage: plan.discountPercentage,
+        durationDays: plan.durationDays,
+      },
     });
+
+    if (dto.vaultId) {
+      await this.addVault(plan.id, dto.vaultId, adminUserId, ipAddress);
+    }
 
     return this.findOne(plan.id);
   }
 
   async update(id: string, dto: UpdatePlanDto, adminUserId: string, ipAddress?: string) {
-    await this.findPlan(id);
+    const current = await this.findPlan(id);
 
     if (dto.currency) {
       this.assertCurrency(dto.currency);
@@ -143,12 +187,21 @@ export class SubscriptionPlansService {
       }
     }
 
+    const pricing = this.resolvePricing(dto.price, dto.regularPrice, dto.discountPercentage, {
+      price: Number(current.price),
+      regularPrice: Number(current.regularPrice),
+      discountPercentage: current.discountPercentage,
+    });
+
     const plan = await this.prisma.subscriptionPlan.update({
       where: { id },
       data: {
         name: dto.name,
         description: dto.description,
-        price: dto.price,
+        price: dto.price !== undefined ? pricing.price : undefined,
+        regularPrice: dto.regularPrice !== undefined ? pricing.regularPrice : undefined,
+        discountPercentage:
+          dto.discountPercentage !== undefined ? pricing.discountPercentage : undefined,
         currency: dto.currency ? dto.currency.toUpperCase() : undefined,
         durationDays: dto.durationDays,
         isActive: dto.isActive,
@@ -164,22 +217,25 @@ export class SubscriptionPlansService {
       details: { changes: dto as Prisma.InputJsonObject },
     });
 
+    if (dto.vaultId) {
+      await this.addVault(id, dto.vaultId, adminUserId, ipAddress);
+    }
+
     return this.findOne(plan.id);
   }
 
   /**
-   * Archive/deactivate a plan. Hard deletion is forbidden if it is referenced
-   * by any subscription so historical entitlements stay auditable.
+   * Archive/deactivate a plan. Always a soft archive regardless of existing
+   * subscriptions - the plan stays referenceable by subscriptions/payments but
+   * is excluded from the public catalog. Existing entitlements are untouched.
    */
   async remove(id: string, adminUserId: string, ipAddress?: string) {
     await this.findPlan(id);
 
-    const subCount = await this.prisma.subscription.count({ where: { planId: id } });
-    if (subCount > 0) {
-      throw new BadRequestException(
-        'Cannot delete plan with existing subscriptions; deactivate it instead',
-      );
-    }
+    const [subCount, paymentCount] = await this.prisma.$transaction([
+      this.prisma.subscription.count({ where: { planId: id } }),
+      this.prisma.payment.count({ where: { subscription: { planId: id } } }),
+    ]);
 
     const plan = await this.prisma.subscriptionPlan.update({
       where: { id },
@@ -192,9 +248,36 @@ export class SubscriptionPlansService {
       entityId: id,
       adminUserId,
       ipAddress,
+      details: { references: { subscriptions: subCount, payments: paymentCount } },
     });
 
-    return { id: plan.id, archived: true, isActive: false };
+    return {
+      id: plan.id,
+      archived: true,
+      isActive: false,
+      status: 'ARCHIVED',
+      references: { subscriptions: subCount, payments: paymentCount },
+    };
+  }
+
+  /** Restore an archived plan back into the active catalog. */
+  async restore(id: string, adminUserId: string, ipAddress?: string) {
+    await this.findPlan(id);
+
+    const plan = await this.prisma.subscriptionPlan.update({
+      where: { id },
+      data: { isActive: true, deletedAt: null },
+    });
+
+    await this.audit.record({
+      action: 'PLAN_RESTORED',
+      entityType: 'SubscriptionPlan',
+      entityId: id,
+      adminUserId,
+      ipAddress,
+    });
+
+    return this.findOne(plan.id);
   }
 
   // ---- Plan-vault access linking ----
@@ -254,8 +337,9 @@ export class SubscriptionPlansService {
   }
 
   private async findPlan(id: string) {
+    // Admin context: archived plans stay visible so they can be audited/restored.
     const plan = await this.prisma.subscriptionPlan.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
       include: {
         vaults: {
           select: { vault: { select: { id: true, name: true, type: true, status: true } } },

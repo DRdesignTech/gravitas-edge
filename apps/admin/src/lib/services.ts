@@ -46,6 +46,7 @@ export interface PlanQuery {
   limit?: number;
   search?: string;
   isActive?: boolean;
+  archived?: boolean;
 }
 
 export interface SubscriptionQuery {
@@ -124,6 +125,10 @@ export function adminDeleteVault(id: string) {
   return api.del(`/admin/vaults/${id}`);
 }
 
+export function adminRestoreVault(id: string) {
+  return api.post<Vault>(`/admin/vaults/${id}/restore`);
+}
+
 export function adminLinkVaultExperienceLevel(vaultId: string, experienceLevelId: string) {
   return api.post<ExperienceLevel[]>(`/admin/vaults/${vaultId}/experience-levels`, {
     experienceLevelId,
@@ -170,6 +175,10 @@ export function adminUpdatePlan(id: string, body: Partial<SubscriptionPlan>) {
 
 export function adminDeletePlan(id: string) {
   return api.del(`/admin/subscription-plans/${id}`);
+}
+
+export function adminRestorePlan(id: string) {
+  return api.post<SubscriptionPlan>(`/admin/subscription-plans/${id}/restore`);
 }
 
 export function adminLinkPlanVault(planId: string, vaultId: string) {

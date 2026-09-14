@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { fetchVaults, fetchPublicPlans } from '@/lib/services';
-import { SubscriptionPlan, Vault } from '@/lib/types';
+import { fetchVaults, fetchPublicPricing } from '@/lib/services';
+import { PricingGroup, PricingPlan, Vault } from '@/lib/types';
 import { Button, Card, Skeleton, ErrorState } from '@/components/ui';
 import { formatMoney } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
@@ -12,13 +12,6 @@ import { useAuth } from '@/lib/auth';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import InfoBanner from '@/components/marketing/InfoBanner';
 import ResumeUploadCard from '@/components/marketing/ResumeUploadCard';
-
-function durationLabel(days: number): string {
-  if (days <= 31) return '1 Month';
-  if (days <= 95) return '3 Months';
-  if (days <= 190) return '6 Months';
-  return `${Math.round(days / 30)} Months`;
-}
 
 function typeLabel(type: string): string {
   const map: Record<string, string> = {
@@ -64,12 +57,13 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 export default function VaultDetailPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const vaultId = params.id;
   const router = useRouter();
   const { user } = useAuth();
 
   const [vaults, setVaults] = useState<Vault[]>([]);
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [pricing, setPricing] = useState<PricingGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -80,10 +74,10 @@ export default function VaultDetailPage() {
   useEffect(() => {
     setLoading(true);
     setError('');
-    Promise.all([fetchVaults(), fetchPublicPlans()])
+    Promise.all([fetchVaults(), fetchPublicPricing()])
       .then(([v, p]) => {
         setVaults(v || []);
-        setPlans(p || []);
+        setPricing(p || []);
       })
       .catch((e) => setError(getErrorMessage(e)))
       .finally(() => setLoading(false));
@@ -107,17 +101,21 @@ export default function VaultDetailPage() {
     setCheckingAccess(false);
   }, [loading, vault, user, router]);
 
-  const vaultPlans = useMemo(() => {
-    return plans
-      .filter((p) => p.vaults?.some((v) => v.id === vaultId))
-      .sort((a, b) => a.durationDays - b.durationDays);
-  }, [plans, vaultId]);
+  const vaultPlans = useMemo<PricingPlan[]>(() => {
+    return (pricing.find((g) => g.vault.id === vaultId)?.plans ?? []).slice().sort(
+      (a, b) => a.durationDays - b.durationDays,
+    );
+  }, [pricing, vaultId]);
 
   useEffect(() => {
     if (vaultPlans.length > 0 && !selectedPlanId) {
-      setSelectedPlanId(vaultPlans[0].id);
+      const requestedPlanId = searchParams.get('plan');
+      const preferred = requestedPlanId
+        ? vaultPlans.find((p) => p.id === requestedPlanId) ?? null
+        : null;
+      setSelectedPlanId((preferred ?? vaultPlans[0]).id);
     }
-  }, [vaultPlans, selectedPlanId]);
+  }, [vaultPlans, selectedPlanId, searchParams]);
 
   const selectedPlan = vaultPlans.find((p) => p.id === selectedPlanId) || null;
 
@@ -228,11 +226,16 @@ export default function VaultDetailPage() {
                   <div className="mt-5 space-y-3">
                     {vaultPlans.map((plan) => {
                       const isSelected = plan.id === selectedPlanId;
+                      const hasDiscount = (plan.discountPercentage ?? 0) > 0;
+                      const savings =
+                        hasDiscount && plan.regularPrice
+                          ? plan.regularPrice - (plan.discountedPrice ?? plan.price)
+                          : 0;
                       return (
                         <button
                           key={plan.id}
                           onClick={() => setSelectedPlanId(plan.id)}
-                          className={`flex w-full items-center justify-between rounded-xl border px-5 py-4 text-left transition-colors ${
+                          className={`flex w-full items-center justify-between gap-3 rounded-xl border px-5 py-4 text-left transition-colors ${
                             isSelected
                               ? 'border-brand-400 bg-brand-50 dark:border-brand-500 dark:bg-brand-950'
                               : 'border-line bg-surface hover:border-brand-200 dark:bg-surface-elevated dark:hover:border-brand-700'
@@ -241,12 +244,31 @@ export default function VaultDetailPage() {
                         >
                           <div>
                             <p className="text-base font-bold text-content">
-                              {durationLabel(plan.durationDays)}
+                              {plan.durationLabel}
                             </p>
                             <p className="mt-0.5 text-sm text-content-muted">{vault.name}</p>
+                            {hasDiscount && (
+                              <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                                  {plan.discountPercentage}% OFF
+                                </span>
+                                {savings > 0 && (
+                                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                    Save {formatMoney(savings, plan.currency)}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <span className="text-lg font-extrabold text-content">
-                            {formatMoney(plan.price, plan.currency)}
+                          <span className="flex shrink-0 flex-col items-end">
+                            {hasDiscount && (
+                              <span className="text-xs text-content-faint line-through">
+                                {formatMoney(plan.regularPrice, plan.currency)}
+                              </span>
+                            )}
+                            <span className="text-lg font-extrabold text-content">
+                              {formatMoney(plan.discountedPrice ?? plan.price, plan.currency)}
+                            </span>
                           </span>
                         </button>
                       );
@@ -274,11 +296,33 @@ export default function VaultDetailPage() {
                       />
                       <SummaryRow
                         label="Subscription duration"
-                        value={durationLabel(selectedPlan.durationDays)}
+                        value={selectedPlan.durationLabel}
                       />
+                      {(selectedPlan.discountPercentage ?? 0) > 0 && (
+                        <>
+                          <SummaryRow
+                            label="Regular price"
+                            value={formatMoney(
+                              selectedPlan.regularPrice,
+                              selectedPlan.currency,
+                            )}
+                          />
+                          <SummaryRow
+                            label="Discount"
+                            value={`${selectedPlan.discountPercentage}% (save ${formatMoney(
+                              (selectedPlan.regularPrice ?? 0) -
+                                (selectedPlan.discountedPrice ?? selectedPlan.price),
+                              selectedPlan.currency,
+                            )})`}
+                          />
+                        </>
+                      )}
                       <SummaryRow
                         label="Total payable amount"
-                        value={formatMoney(selectedPlan.price, selectedPlan.currency)}
+                        value={formatMoney(
+                          selectedPlan.discountedPrice ?? selectedPlan.price,
+                          selectedPlan.currency,
+                        )}
                       />
                       <SummaryRow
                         label="Taxes"

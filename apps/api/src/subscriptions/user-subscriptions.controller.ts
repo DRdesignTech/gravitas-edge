@@ -1,21 +1,49 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserSubscriptionsService } from './user-subscriptions.service';
+import { PricingService } from './pricing.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthenticatedUser } from '../common/types/auth.types';
+import { PurchasePlanDto } from './dto/purchase-plan.dto';
+import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto';
 
 @ApiTags('subscriptions')
 @ApiBearerAuth()
 @Controller('subscriptions')
 export class UserSubscriptionsController {
-  constructor(private readonly userSubscriptionsService: UserSubscriptionsService) {}
+  constructor(
+    private readonly userSubscriptionsService: UserSubscriptionsService,
+    private readonly pricingService: PricingService,
+  ) {}
 
   @Public()
   @Get('plans')
   @ApiOperation({ summary: 'Public catalog of active subscription plans' })
   listPublicPlans() {
     return this.userSubscriptionsService.listPublicPlans();
+  }
+
+  @Public()
+  @Get('pricing')
+  @ApiOperation({ summary: 'Public vault pricing matrix (6 vaults x 3 durations)' })
+  getPublicPricing() {
+    return this.pricingService.getPublicPricing();
+  }
+
+  @Post('purchase')
+  @ApiOperation({
+    summary:
+      'Start a purchase for an active plan (server-authoritative price), creating a payment session',
+  })
+  purchase(@CurrentUser() user: AuthenticatedUser, @Body() dto: PurchasePlanDto) {
+    return this.pricingService.purchase(user.id, dto);
+  }
+
+  @Post('purchase/confirm')
+  @ApiOperation({ summary: 'Confirm a purchase and activate the subscription with vault access' })
+  confirmPurchase(@CurrentUser() user: AuthenticatedUser, @Body() dto: ConfirmPurchaseDto) {
+    return this.pricingService.confirmPurchase(user.id, dto);
   }
 
   @Get('me')

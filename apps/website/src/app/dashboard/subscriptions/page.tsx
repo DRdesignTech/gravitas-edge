@@ -86,8 +86,18 @@ export default function SubscriptionsPage() {
                     </p>
                     {s.plan?.price !== undefined && (
                       <p className="mt-1 text-sm text-content">
-                        {formatMoney(s.plan.price, s.plan.currency || 'INR')} ·{' '}
-                        {s.plan.durationDays} days
+                        {(s.plan.discountPercentage ?? 0) > 0 && s.plan.regularPrice ? (
+                          <span className="text-content-faint line-through">
+                            {formatMoney(s.plan.regularPrice, s.plan.currency || 'INR')}{' '}
+                          </span>
+                        ) : null}
+                        {formatMoney(s.plan.price, s.plan.currency || 'INR')}
+                        {(s.plan.discountPercentage ?? 0) > 0 && (
+                          <Badge variant="success" className="ml-2">
+                            {s.plan.discountPercentage}% OFF
+                          </Badge>
+                        )}
+                        <span className="text-content-muted"> · {s.plan.durationDays} days</span>
                       </p>
                     )}
                   </div>

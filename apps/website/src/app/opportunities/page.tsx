@@ -15,8 +15,10 @@ import {
   ErrorState,
   EmptyState,
   SlidersIcon,
+  GridIcon,
+  ListIcon,
 } from '@/components/ui';
-import { SearchIcon, BriefcaseIcon } from '@/components/cards';
+import { SearchIcon, BriefcaseIcon, PinIcon } from '@/components/cards';
 import { displayExperience } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import { OPPORTUNITY_CATEGORIES, EMPLOYMENT_TYPES } from '@/lib/types';
@@ -61,6 +63,47 @@ function FunctionTag({ value }: { value?: string | null }) {
   );
 }
 
+type OpportunityView = 'grid' | 'list';
+
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: OpportunityView;
+  onChange: (v: OpportunityView) => void;
+}) {
+  const base =
+    'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400';
+  const active = 'bg-brand-600 text-white shadow-sm';
+  const idle = 'text-content-muted hover:text-content';
+  return (
+    <div
+      className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface p-1 dark:bg-surface-elevated"
+      role="group"
+      aria-label="Toggle view"
+    >
+      <button
+        type="button"
+        onClick={() => onChange('grid')}
+        aria-pressed={view === 'grid'}
+        className={`${base} ${view === 'grid' ? active : idle}`}
+      >
+        <GridIcon className="h-4 w-4" />
+        Grid
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('list')}
+        aria-pressed={view === 'list'}
+        className={`${base} ${view === 'list' ? active : idle}`}
+      >
+        <ListIcon className="h-4 w-4" />
+        List
+      </button>
+    </div>
+  );
+}
+
 function OpportunityPageContent() {
   const searchParams = useSearchParams();
   const vaultId = searchParams.get('vaultId') || '';
@@ -77,6 +120,7 @@ function OpportunityPageContent() {
   const [country, setCountry] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [page, setPage] = useState(1);
+  const [view, setView] = useState<OpportunityView>('grid');
 
   const hasActiveSubscription = user?.subscriptions?.some(
     (s: Subscription) => s.status === 'ACTIVE' && new Date(s.endDate) > new Date()
@@ -288,7 +332,7 @@ function OpportunityPageContent() {
           </Card>
 
           {/* Results count */}
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-content-muted">
               {!loading && (
                 <>
@@ -297,16 +341,19 @@ function OpportunityPageContent() {
                 </>
               )}
             </p>
-            <Select
-              className="w-40"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              aria-label="Sort"
-              options={[
-                { value: 'createdAt', label: 'Newest first' },
-                { value: 'title', label: 'Title' },
-              ]}
-            />
+            <div className="flex items-center gap-3">
+              <ViewToggle view={view} onChange={setView} />
+              <Select
+                className="w-40"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                aria-label="Sort"
+                options={[
+                  { value: 'createdAt', label: 'Newest first' },
+                  { value: 'title', label: 'Title' },
+                ]}
+              />
+            </div>
           </div>
 
           {/* Table */}
@@ -335,6 +382,60 @@ function OpportunityPageContent() {
             </Card>
           ) : (
             <>
+              {view === 'grid' ? (
+                <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {data.items.map((o) => (
+                    <article
+                      key={o.id}
+                      className="group flex flex-col rounded-2xl border border-line bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg dark:bg-surface-elevated"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-base font-semibold leading-snug text-content">
+                          {o.title}
+                        </h3>
+                        <FunctionTag value={o.functionalArea} />
+                      </div>
+                      <dl className="mt-4 space-y-2 text-sm text-content-muted">
+                        <div className="flex items-center gap-1.5">
+                          <PinIcon className="h-4 w-4 shrink-0 text-content-faint" />
+                          {o.location || o.country || '—'}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <BriefcaseIcon className="h-4 w-4 shrink-0 text-content-faint" />
+                          {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+                        </div>
+                      </dl>
+                      <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
+                        {o.isFullAccess ? (
+                          <span className="truncate text-sm font-medium text-content">
+                            {o.company || '—'}
+                          </span>
+                        ) : (
+                          <LockChip />
+                        )}
+                        {o.isFullAccess ? (
+                          o.applicationUrl ? (
+                            <a
+                              href={o.applicationUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="shrink-0 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                            >
+                              Apply →
+                            </a>
+                          ) : (
+                            <span className="shrink-0 text-xs text-content-faint">
+                              {o.applicationContact || '—'}
+                            </span>
+                          )
+                        ) : (
+                          <LockChip />
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
               <div className="mt-6 overflow-x-auto rounded-2xl border border-line">
                 <table className="min-w-full text-sm">
                   <thead>
@@ -392,6 +493,7 @@ function OpportunityPageContent() {
                   </tbody>
                 </table>
               </div>
+              )}
               <Pagination
                 className="mt-8"
                 currentPage={current}

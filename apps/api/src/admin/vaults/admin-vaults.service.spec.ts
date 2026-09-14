@@ -211,6 +211,50 @@ describe('AdminVaultsService', () => {
     });
   });
 
+  describe('restore + archived visibility', () => {
+    it('restores an archived vault to active', async () => {
+      prisma.vault.findFirst.mockResolvedValue({
+        id: 'v-1',
+        name: 'India Career',
+        status: 'ARCHIVED',
+        deletedAt: new Date(),
+        experienceLevels: [],
+        plans: [],
+      });
+      prisma.vault.update.mockResolvedValue({ id: 'v-1', name: 'India Career', status: 'ACTIVE' });
+      prisma.vault.findFirst.mockResolvedValue({
+        id: 'v-1',
+        name: 'India Career',
+        status: 'ACTIVE',
+        deletedAt: null,
+        experienceLevels: [],
+        plans: [],
+      });
+
+      const result = await service.restore('v-1', 'admin-1');
+      expect(result.status).toBe('ACTIVE');
+      expect(prisma.vault.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'ACTIVE', deletedAt: null }),
+        }),
+      );
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'VAULT_RESTORED' }),
+      );
+    });
+
+    it('lists archived vaults when filtering by ARCHIVED status', async () => {
+      prisma.vault.findMany.mockResolvedValue([]);
+      prisma.vault.count.mockResolvedValue(0);
+      await service.list({ page: 1, limit: 20, status: 'ARCHIVED' });
+      expect(prisma.vault.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: 'ARCHIVED', deletedAt: { not: null } }),
+        }),
+      );
+    });
+  });
+
   describe('experience level linking', () => {
     it('lists experience levels for a vault', async () => {
       prisma.vault.findFirst.mockResolvedValue({ id: 'v-1' });

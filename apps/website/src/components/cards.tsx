@@ -5,12 +5,15 @@ import { Opportunity, Vault } from '@/lib/types';
 import { Badge, AccessBadge, LockIcon } from '@/components/ui';
 import { titleCase, formatDate, displayExperience } from '@/lib/format';
 
-export function OpportunityCard({ opportunity: o }: { opportunity: Opportunity }) {
-  return (
-    <Link
-      href={`/opportunities/${o.id}`}
-      className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50"
-    >
+export function OpportunityCard({
+  opportunity: o,
+  static: isStatic = false,
+}: {
+  opportunity: Opportunity;
+  static?: boolean;
+}) {
+  const inner = (
+    <>
       <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
@@ -70,6 +73,18 @@ export function OpportunityCard({ opportunity: o }: { opportunity: Opportunity }
           </span>
         </div>
       </div>
+    </>
+  );
+
+  const wrapper = `group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50`;
+
+  if (isStatic) {
+    return <div className={wrapper}>{inner}</div>;
+  }
+
+  return (
+    <Link href={`/opportunities/${o.id}`} className={wrapper}>
+      {inner}
     </Link>
   );
 }
