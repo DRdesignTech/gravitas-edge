@@ -174,15 +174,34 @@ export class AuthService {
       },
     });
 
-    // Generic failure to avoid user enumeration.
-    if (!user || user.deletedAt || !user.passwordHash) {
+    if (!user || user.deletedAt) {
+      // The account does not exist (or was deleted). The UI uses this to offer
+      // a "Create an account" path. This intentionally reveals account existence
+      // so the sign-in page can guide new users; the password path below stays
+      // enumeration-safe.
+      await this.audit.record({
+        action: 'AUTH_LOGIN_FAILED',
+        entityType: 'User',
+        ipAddress,
+        details: { reason: 'ACCOUNT_NOT_FOUND', email },
+      });
+      throw new UnauthorizedException({
+        message: 'No account found with this email. Please create an account to continue.',
+        code: 'ACCOUNT_NOT_FOUND',
+      });
+    }
+
+    if (!user.passwordHash) {
       await this.audit.record({
         action: 'AUTH_LOGIN_FAILED',
         entityType: 'User',
         ipAddress,
         details: { reason: 'INVALID_CREDENTIALS', email },
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({
+        message: 'Invalid email or password.',
+        code: 'INVALID_CREDENTIALS',
+      });
     }
 
     if (user.status !== 'ACTIVE') {
@@ -193,7 +212,10 @@ export class AuthService {
         ipAddress,
         details: { reason: 'ACCOUNT_NOT_ACTIVE', status: user.status },
       });
-      throw new UnauthorizedException('Account is not active');
+      throw new UnauthorizedException({
+        message: 'Account is not active',
+        code: 'ACCOUNT_NOT_ACTIVE',
+      });
     }
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
@@ -205,7 +227,10 @@ export class AuthService {
         ipAddress,
         details: { reason: 'INVALID_PASSWORD' },
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({
+        message: 'Invalid email or password.',
+        code: 'INVALID_CREDENTIALS',
+      });
     }
 
     const roles = await this.getUserRoles(user.id);

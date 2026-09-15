@@ -17,6 +17,9 @@ interface ErrorResponse {
   path: string;
   method: string;
   timestamp: string;
+  // Optional stable machine-readable code so clients can map well-known
+  // failures (e.g. ACCOUNT_NOT_FOUND) without parsing free-form text.
+  code?: string;
 }
 
 @Catch()
@@ -31,10 +34,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let error = 'INTERNAL_SERVER_ERROR';
+    let code: string | undefined;
 
     if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
       const exceptionResponse = exception.getResponse();
+      code = (exceptionResponse as any)?.code;
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
@@ -91,6 +96,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       path: request.url,
       method: request.method,
       timestamp: new Date().toISOString(),
+      ...(code ? { code } : {}),
     };
 
     // Never leak stack traces or internal details.

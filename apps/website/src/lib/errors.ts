@@ -2,8 +2,9 @@
  * Human-friendly error handling for the Gravitas Edge Consulting apps.
  *
  * Never lets raw Prisma/DB/network/stack messages leak to the user. Maps
- * structured API errors to clear, actionable copy and falls back to a safe
- * generic message when the underlying error is unknown.
+ * structured API errors (including the backend's stable `code` field) to
+ * clear, actionable copy and falls back to a safe generic message when the
+ * underlying error is unknown.
  */
 
 export type ApiErrorKind =
@@ -21,9 +22,24 @@ export type ApiErrorKind =
 export interface ApiErrorInfo {
   kind: ApiErrorKind;
   message: string;
+  /** Stable backend error code (e.g. ACCOUNT_NOT_FOUND) when provided. */
+  code?: string;
 }
 
 const GENERIC = 'Something went wrong. Please try again.';
+
+const NO_ACCOUNT_MESSAGE =
+  'No account found with this email. Please create an account to continue.';
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
+const ACCOUNT_NOT_ACTIVE_MESSAGE =
+  'Your account is not active. Please contact support to get help.';
+
+/** Backend login failure codes mapped to copy that never reveals internals. */
+const CODE_MESSAGES: Record<string, string> = {
+  ACCOUNT_NOT_FOUND: NO_ACCOUNT_MESSAGE,
+  INVALID_CREDENTIALS: INVALID_CREDENTIALS_MESSAGE,
+  ACCOUNT_NOT_ACTIVE: ACCOUNT_NOT_ACTIVE_MESSAGE,
+};
 
 const NETWORK_HINTS = /failed to fetch|networkerror|load failed|fetch failed|econnrefused|socket/i;
 
@@ -62,7 +78,7 @@ function kindMessage(kind: ApiErrorKind, _status?: number): string {
     case 'server':
       return "We couldn't process that right now. Please try again in a moment.";
     case 'auth':
-      return 'The email or password is incorrect. Please try again.';
+      return INVALID_CREDENTIALS_MESSAGE;
     case 'conflict':
       return 'That already exists or is being used. Please try something else.';
     default:
@@ -73,12 +89,36 @@ function kindMessage(kind: ApiErrorKind, _status?: number): string {
 /**
  * Parse any thrown value into a safe, human-friendly ApiErrorInfo.
  * Never exposes raw stack traces, Prisma errors, database names or tokens.
+ *
+ * A structured `code` on the error (ApiError.code / backend `code` field) takes
+ * precedence so well-known failures map to precise copy. Otherwise the message
+ * keywords and HTTP status drive the classification.
  */
 export function parseApiError(error: unknown, status?: number): ApiErrorInfo {
   if (!error) return { kind: 'unknown', message: GENERIC };
 
   const raw =
     error instanceof Error ? error.message : typeof error === 'string' ? error : String(error);
+
+  const statusCode =
+    typeof status === 'number'
+      ? status
+      : typeof error === 'object' && error !== null && 'status' in error
+        ? (error as any).status
+        : undefined;
+  const errorCode =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? (error as any).code
+      : undefined;
+
+  // Stable backend codes always win over message sniffing.
+  if (typeof errorCode === 'string' && CODE_MESSAGES[errorCode]) {
+    return {
+      kind: 'auth',
+      code: errorCode,
+      message: CODE_MESSAGES[errorCode],
+    };
+  }
 
   // Trim technical prefixes so they never reach the user.
   const cleaned = raw
@@ -88,22 +128,29 @@ export function parseApiError(error: unknown, status?: number): ApiErrorInfo {
     .replace(/\s+at\s+\S+.*$/s, '')
     .trim();
 
-  const kind = inferKind(cleaned, status);
+  const kind = inferKind(cleaned, statusCode);
+
+  // The legacy "Invalid credentials" message from the login endpoint must never
+  // render verbatim; translate it to the enumeration-safe copy.
+  if (/invalid credentials/i.test(cleaned)) {
+    return { kind: 'auth', message: INVALID_CREDENTIALS_MESSAGE };
+  }
 
   // For auth/validation/conflict/not-found, prefer the server's own message
   // when it's short and specific, otherwise fall back to the kind message.
   const specificKinds: ApiErrorKind[] = ['auth', 'validation', 'conflict', 'not_found'];
   if (specificKinds.includes(kind)) {
+    if (kind === 'auth') {
+      return { kind: 'auth', message: INVALID_CREDENTIALS_MESSAGE };
+    }
     const short = cleaned.length > 0 && cleaned.length <= 160;
     if (short && !NETWORK_HINTS.test(cleaned)) {
-      // Server-provided validation fragments arrive lowercase; sentence-case them
-      // so they read as a complete, human-friendly message.
       const sentenceCased = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
       return { kind, message: sentenceCased };
     }
   }
 
-  return { kind, message: kindMessage(kind, status) };
+  return { kind, message: kindMessage(kind, statusCode) };
 }
 
 /** True when the error indicates an expired/invalid session. */

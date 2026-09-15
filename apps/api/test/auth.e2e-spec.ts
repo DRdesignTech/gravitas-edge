@@ -69,10 +69,12 @@ describe('Auth e2e', () => {
     expect(loginRes.body.data.refreshToken).toBeDefined();
 
     // Wrong password
-    await request(app.getHttpServer())
+    const wrongPass = await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email, password: 'WrongPass1!' })
       .expect(401);
+    expect(wrongPass.body.code).toBe('INVALID_CREDENTIALS');
+    expect(wrongPass.body.message).toBe('Invalid email or password.');
 
     // Me
     const accessToken = loginRes.body.data.accessToken;
@@ -120,6 +122,28 @@ describe('Auth e2e', () => {
       .expect(400);
 
     await request(app.getHttpServer()).post('/api/auth/refresh').send({}).expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'not-an-email', password })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email, password: '' })
+      .expect(400);
+  });
+
+  it('returns ACCOUNT_NOT_FOUND for an unregistered email login', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: `e2e-nobody-${unique}@example.com`, password })
+      .expect(401);
+    expect(res.body.success).toBe(false);
+    expect(res.body.code).toBe('ACCOUNT_NOT_FOUND');
+    expect(res.body.message).toBe(
+      'No account found with this email. Please create an account to continue.',
+    );
   });
 
   it('creates an admin email check password hash is bcrypt', async () => {

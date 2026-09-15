@@ -39,13 +39,15 @@ export function clearSessionExpiredNotification(): void {
   }
 }
 
-/** Error carrying an optional HTTP status so the UI can react (e.g. session). */
+/** Error carrying an optional HTTP status and stable code so the UI can react. */
 export class ApiError extends Error {
   status?: number;
-  constructor(message: string, status?: number) {
+  code?: string;
+  constructor(message: string, status?: number, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -88,14 +90,22 @@ export async function apiFetch<T = any>(path: string, options: RequestInit = {})
   }
 
   if (res.status === 401) {
-    clearAuthAndRedirect(token != null);
-    throw new ApiError('Unauthorized', res.status);
+    const body = await res.json().catch(() => null);
+    const msg = typeof body?.message === 'string' ? body.message : 'Unauthorized';
+    const code = typeof body?.code === 'string' ? body.code : undefined;
+    // Only treat a 401 as a session expiry when a token was actually being
+    // used. A 401 on login/register (no token) is a credentials failure - the
+    // server's message/code must be preserved, never replaced with a generic
+    // "Unauthorized" or a redirect to /login.
+    if (token) clearAuthAndRedirect(true);
+    throw new ApiError(msg, res.status, code);
   }
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     const msg = typeof body?.message === 'string' ? body.message : `Request failed (${res.status})`;
-    throw new ApiError(msg, res.status);
+    const code = typeof body?.code === 'string' ? body.code : undefined;
+    throw new ApiError(msg, res.status, code);
   }
 
   const text = await res.text();
@@ -130,7 +140,8 @@ export async function uploadFile<T = any>(
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     const msg = typeof body?.message === 'string' ? body.message : `Upload failed (${res.status})`;
-    throw new ApiError(msg, res.status);
+    const code = typeof body?.code === 'string' ? body.code : undefined;
+    throw new ApiError(msg, res.status, code);
   }
   const json = await res.json();
   return (json && json.success === true ? json.data : json) as T;

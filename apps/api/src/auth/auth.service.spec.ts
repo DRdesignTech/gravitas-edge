@@ -215,6 +215,22 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
+    const throwingResponse = (e: unknown) =>
+      (e as any)?.getResponse?.() ?? (e as any).response;
+
+    async function expectLoginCode(
+      dto: Parameters<AuthService['login']>[0],
+      expectedCode: string,
+    ) {
+      try {
+        await service.login(dto, 'ip');
+      } catch (e) {
+        expect(throwingResponse(e).code).toBe(expectedCode);
+        return;
+      }
+      throw new Error('Expected login to throw');
+    }
+
     it('logs in valid user and returns tokens', async () => {
       prisma.user.findFirst.mockResolvedValue({
         id: userId,
@@ -233,7 +249,7 @@ describe('AuthService', () => {
       expect(bcrypt.compare).toHaveBeenCalledWith('StrongPass123!', passwordHash);
     });
 
-    it('rejects wrong password', async () => {
+    it('rejects wrong password with INVALID_CREDENTIALS (enumeration-safe)', async () => {
       prisma.user.findFirst.mockResolvedValue({
         id: userId,
         email,
@@ -242,19 +258,28 @@ describe('AuthService', () => {
         deletedAt: null,
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
-      await expect(service.login({ email, password: 'wrong' }, 'ip')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expectLoginCode({ email, password: 'wrong' }, 'INVALID_CREDENTIALS');
     });
 
-    it('rejects unknown user', async () => {
+    it('rejects unknown user with ACCOUNT_NOT_FOUND', async () => {
       prisma.user.findFirst.mockResolvedValue(null);
-      await expect(service.login({ email, password: 'x' }, 'ip')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expectLoginCode({ email, password: 'x' }, 'ACCOUNT_NOT_FOUND');
     });
 
-    it('rejects suspended user', async () => {
+    it('rejects unknown user with a helpful message', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+      try {
+        await service.login({ email, password: 'x' }, 'ip');
+      } catch (e) {
+        expect(throwingResponse(e).message).toBe(
+          'No account found with this email. Please create an account to continue.',
+        );
+        return;
+      }
+      throw new Error('Expected login to throw');
+    });
+
+    it('rejects suspended user with ACCOUNT_NOT_ACTIVE', async () => {
       prisma.user.findFirst.mockResolvedValue({
         id: userId,
         email,
@@ -262,12 +287,10 @@ describe('AuthService', () => {
         status: 'SUSPENDED',
         deletedAt: null,
       });
-      await expect(service.login({ email, password: 'x' }, 'ip')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expectLoginCode({ email, password: 'x' }, 'ACCOUNT_NOT_ACTIVE');
     });
 
-    it('rejects a soft-deleted user at login', async () => {
+    it('rejects a soft-deleted user at login as ACCOUNT_NOT_FOUND', async () => {
       prisma.user.findFirst.mockResolvedValue({
         id: userId,
         email,
@@ -275,9 +298,7 @@ describe('AuthService', () => {
         status: 'INACTIVE',
         deletedAt: new Date(),
       });
-      await expect(service.login({ email, password: 'x' }, 'ip')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expectLoginCode({ email, password: 'x' }, 'ACCOUNT_NOT_FOUND');
     });
   });
 
