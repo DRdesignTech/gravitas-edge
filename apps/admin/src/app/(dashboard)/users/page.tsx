@@ -183,7 +183,7 @@ export default function UsersPage() {
     setSaving(true);
     try {
       await adminDeleteUser(id);
-      showToast('User archived', 'success');
+      showToast('User permanently deleted', 'success');
       setDeleteTarget(null);
       load();
     } catch (err) {
@@ -384,8 +384,8 @@ export default function UsersPage() {
         }
       >
         <p className="text-sm text-content-muted">
-          Are you sure you want to delete {deleteTarget?.email}? This will set their status to
-          INACTIVE.
+          Are you sure you want to permanently delete {deleteTarget?.email}? This action is
+          irreversible and will remove the account and all of their data.
         </p>
       </Modal>
     </div>

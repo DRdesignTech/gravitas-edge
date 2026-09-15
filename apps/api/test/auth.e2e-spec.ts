@@ -127,12 +127,12 @@ describe('Auth e2e', () => {
       .post('/api/auth/register')
       .send({ email: `bcrypt-check-${unique}@example.com`, password, fullName: 'B' })
       .expect(201);
-    const saved = await prisma.user.findUnique({
+    const saved = await prisma.user.findFirst({
       where: { email: `bcrypt-check-${unique}@example.com` },
     });
     expect(saved).toBeTruthy();
     expect(saved!.passwordHash).toMatch(/^\$2[aby]\$/);
     expect(bcrypt.compareSync(password, saved!.passwordHash!)).toBe(true);
-    await prisma.user.delete({ where: { email: saved!.email } });
+    await prisma.user.delete({ where: { id: saved!.id } });
   });
 });

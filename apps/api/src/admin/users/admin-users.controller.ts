@@ -65,7 +65,7 @@ export class AdminUsersController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete/soft-delete a user' })
+  @ApiOperation({ summary: 'Permanently delete a user' })
   remove(@Param('id') id: string, @CurrentUser() actor: AuthenticatedUser, @Req() req: Request) {
     return this.adminUsersService.remove(id, actor, this.clientIp(req));
   }

@@ -9,7 +9,7 @@ import { linkGuestResume } from '@/lib/services';
 import { Button, Card, Input, Alert, useToast } from '@/components/ui';
 import BrandLogo, { BRAND_NAME } from '@/components/brand/BrandLogo';
 import { getErrorMessage } from '@/lib/errors';
-import { getPasswordError, PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password';
+import { getPasswordError } from '@/lib/password';
 
 const REFERRAL_CODE_RE = /^REF-[A-Z2-9]{10}$/;
 
@@ -38,6 +38,10 @@ function RegisterForm() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
+
+  const livePasswordError = password.length > 0 ? getPasswordError(password) : undefined;
+  const passwordMessage = fieldErrors.password ?? livePasswordError;
+  const showPasswordMessage = !!passwordMessage;
 
   const clearField = (field: keyof FieldErrors) =>
     setFieldErrors((f) => ({ ...f, [field]: undefined }));
@@ -82,12 +86,12 @@ function RegisterForm() {
   };
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-4 sm:py-6">
+      <div className="w-full max-w-[30rem]">
         <Card className="p-2">
           <div className="mb-2 text-center">
-            <BrandLogo className="mx-auto h-20 w-auto" showName={false} />{' '}
-            <h1 className="mt-4 text-xl font-bold tracking-tight text-content sm:text-2xl">
+            <BrandLogo className="mx-auto h-16 w-auto" showName={false} />{' '}
+            <h1 className="mt-2 text-xl font-bold tracking-tight text-content sm:text-2xl">
               Create your account
             </h1>
             <p className="mt-1 text-sm text-content-muted">
@@ -122,7 +126,7 @@ function RegisterForm() {
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-3" noValidate>
             <Input
               label="Full name"
               autoComplete="name"
@@ -159,14 +163,20 @@ function RegisterForm() {
                   clearField('password');
                   clearField('confirm');
                 }}
-                aria-describedby="password-requirements"
+                aria-invalid={showPasswordMessage}
+                aria-describedby={showPasswordMessage ? 'password-requirements' : undefined}
+                className={showPasswordMessage ? '!border-red-500 focus:!ring-red-500/50' : undefined}
                 placeholder="Enter your password"
-                error={fieldErrors.password}
                 required
               />
-              <p id="password-requirements" className="mt-1.5 text-xs leading-relaxed text-content-muted">
-                {PASSWORD_REQUIREMENTS_TEXT}
-              </p>
+              {showPasswordMessage && (
+                <p
+                  id="password-requirements"
+                  className="mt-1.5 text-xs leading-relaxed text-red-600 dark:text-red-400"
+                >
+                  {passwordMessage}
+                </p>
+              )}
             </div>
             <Input
               label="Confirm password"
@@ -183,7 +193,7 @@ function RegisterForm() {
             />
             <div>
               <label
-                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors ${
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-2.5 transition-colors ${
                   fieldErrors.terms ? 'border-red-500/60 bg-red-50/30' : 'border-line bg-surface'
                 }`}
               >
@@ -225,7 +235,7 @@ function RegisterForm() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-content-muted">
+          <p className="mt-4 text-center text-sm text-content-muted">
             Already have an account?{' '}
             <Link
               href="/login"

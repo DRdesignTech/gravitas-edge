@@ -129,8 +129,8 @@ enum SourceType {
 
 model User {
   id                    String     @id @default(uuid())
-  email                 String     @unique
-  phone                 String?    @unique
+  email                 String
+  phone                 String?
   passwordHash          String?
   status                UserStatus @default(ACTIVE)
   emailVerified         Boolean    @default(false)

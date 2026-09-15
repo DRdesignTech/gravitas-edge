@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -35,7 +36,9 @@ export class AuthService {
   async register(dto: RegisterDto, ipAddress?: string) {
     const email = dto.email.trim().toLowerCase();
 
-    const existing = await this.prisma.user.findUnique({ where: { email } });
+    // Only an account that is NOT soft-deleted occupies the email. A soft-deleted
+    // (deletedAt IS NOT NULL) user no longer blocks re-registration.
+    const existing = await this.prisma.user.findFirst({ where: { email, deletedAt: null } });
     if (existing) {
       await this.audit.record({
         action: 'AUTH_REGISTER_FAILED',
@@ -47,8 +50,8 @@ export class AuthService {
     }
 
     if (dto.phone) {
-      const phoneTaken = await this.prisma.user.findUnique({
-        where: { phone: dto.phone },
+      const phoneTaken = await this.prisma.user.findFirst({
+        where: { phone: dto.phone, deletedAt: null },
       });
       if (phoneTaken) {
         await this.audit.record({
@@ -63,38 +66,69 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    const { user, attributedReferral } = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.user.create({
-        data: {
-          email,
-          phone: dto.phone ?? null,
-          passwordHash,
-          status: 'ACTIVE',
-        },
-      });
-
-      const userRole = await tx.role.findUnique({ where: { name: 'USER' } });
-      if (userRole) {
-        await tx.userRole.create({ data: { userId: created.id, roleId: userRole.id } });
-      }
-
-      if (dto.fullName || dto.phone || dto.location) {
-        await tx.userProfile.create({
+    // Race condition guard: two concurrent registrations with the same email can
+    // both pass the findFirst check above and race on the DB insert. The partial
+    // unique index (deletedAt IS NULL) catches the second insert as P2002; here
+    // we translate that into a clean ConflictException so the client still gets
+    // a meaningful error instead of an opaque 500.
+    let user: any;
+    let attributedReferral: any;
+    try {
+      ({ user, attributedReferral } = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
           data: {
-            userId: created.id,
-            fullName: dto.fullName ?? null,
+            email,
             phone: dto.phone ?? null,
-            location: dto.location ?? null,
+            passwordHash,
+            status: 'ACTIVE',
           },
         });
+
+        const userRole = await tx.role.findUnique({ where: { name: 'USER' } });
+        if (userRole) {
+          await tx.userRole.create({ data: { userId: created.id, roleId: userRole.id } });
+        }
+
+        if (dto.fullName || dto.phone || dto.location) {
+          await tx.userProfile.create({
+            data: {
+              userId: created.id,
+              fullName: dto.fullName ?? null,
+              phone: dto.phone ?? null,
+              location: dto.location ?? null,
+            },
+          });
+        }
+
+        const attribution = dto.referralCode
+          ? await this.referrals.attributeReferralInTx(tx, dto.referralCode, created.id)
+          : null;
+
+        return { user: created, attributedReferral: attribution };
+      }));
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const target = Array.isArray(error.meta?.target)
+          ? error.meta.target.join(',')
+          : String(error.meta?.target ?? '');
+
+        const isPhone = target.toLowerCase().includes('phone');
+        const reason = isPhone ? 'PHONE_IN_USE' : 'EMAIL_IN_USE';
+
+        await this.audit.record({
+          action: 'AUTH_REGISTER_FAILED',
+          entityType: 'User',
+          ipAddress,
+          details: { reason, email },
+        });
+
+        throw new ConflictException(
+          isPhone ? 'Phone already registered' : 'Email already registered',
+        );
       }
 
-      const attribution = dto.referralCode
-        ? await this.referrals.attributeReferralInTx(tx, dto.referralCode, created.id)
-        : null;
-
-      return { user: created, attributedReferral: attribution };
-    });
+      throw error;
+    }
 
     if (attributedReferral) {
       // Recorded after commit: interactive transactions hold a DB connection,
@@ -129,7 +163,7 @@ export class AuthService {
   async login(dto: LoginDto, ipAddress?: string) {
     const email = dto.email.trim().toLowerCase();
 
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: { email },
       select: {
         id: true,

@@ -126,7 +126,7 @@ export default function CandidatesPage() {
     setLoading(true);
     try {
       await adminDeleteUser(deleteTarget.id);
-      showToast('User archived', 'success');
+      showToast('User permanently deleted', 'success');
       setDeleteTarget(null);
       load();
     } catch (err) {

@@ -39,7 +39,9 @@ export class UsersService {
     const user = await this.findUserWithProfile(userId);
 
     if (dto.phone && dto.phone !== user.phone) {
-      const taken = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+      const taken = await this.prisma.user.findFirst({
+        where: { phone: dto.phone, deletedAt: null },
+      });
       if (taken && taken.id !== userId) {
         throw new ConflictException('Phone already registered');
       }

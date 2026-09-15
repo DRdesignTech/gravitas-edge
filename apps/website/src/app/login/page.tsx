@@ -40,16 +40,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center px-4 py-12">
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-4 sm:py-6">
       <SessionExpiredNotifier />
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-[30rem]">
         <Card className="p-2">
           <div className="mb-2 text-center">
-            <BrandLogo className="mx-auto h-20 w-auto" showName={false} />
-            <h1 className="mt-4 text-xl font-bold tracking-tight text-content sm:text-2xl">
+            <BrandLogo className="mx-auto h-16 w-auto" showName={false} />
+            <h1 className="mt-2 text-xl font-bold tracking-tight text-content sm:text-2xl">
               Sign in to {BRAND_NAME}
             </h1>
-            <p className="mt-1 text-sm text-content-muted">Welcome back.</p>
+            <p className="mt-1.5 text-base font-semibold text-content-muted">Welcome back.</p>
           </div>
 
           {error && (
@@ -58,7 +58,7 @@ export default function LoginPage() {
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-3" noValidate>
             <Input
               label="Email"
               type="email"
@@ -90,7 +90,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-content-muted">
+          <p className="mt-4 text-center text-sm text-content-muted">
             Don&apos;t have an account?{' '}
             <Link
               href="/register"

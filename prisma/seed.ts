@@ -174,23 +174,28 @@ async function main() {
   //   Email:      SEED_ADMIN_EMAIL  (env override)
   //   Password:   SEED_ADMIN_PASSWORD  (env override)
   // ---------------------------------------------------------------------------
-  const admin = await prisma.user.upsert({
-    where: { email: ADMIN_EMAIL },
-    update: {
-      status: 'ACTIVE',
-      emailVerified: true,
-      deletedAt: null,
-      passwordHash: await bcrypt.hash(ADMIN_PASSWORD, DEMO_HASH_ROUNDS),
-    },
-    create: {
-      email: ADMIN_EMAIL,
-      phone: null,
-      passwordHash: await bcrypt.hash(ADMIN_PASSWORD, DEMO_HASH_ROUNDS),
-      status: 'ACTIVE',
-      emailVerified: true,
-      createdAt: daysAgo(400),
-    },
-  });
+  const adminHash = await bcrypt.hash(ADMIN_PASSWORD, DEMO_HASH_ROUNDS);
+  const existingAdmin = await prisma.user.findFirst({ where: { email: ADMIN_EMAIL } });
+  const admin = existingAdmin
+    ? await prisma.user.update({
+        where: { id: existingAdmin.id },
+        data: {
+          status: 'ACTIVE',
+          emailVerified: true,
+          deletedAt: null,
+          passwordHash: adminHash,
+        },
+      })
+    : await prisma.user.create({
+        data: {
+          email: ADMIN_EMAIL,
+          phone: null,
+          passwordHash: adminHash,
+          status: 'ACTIVE',
+          emailVerified: true,
+          createdAt: daysAgo(400),
+        },
+      });
 
   // Ensure the ADMIN role is linked (idempotent).
   const hasAdminRole = await prisma.userRole.findUnique({

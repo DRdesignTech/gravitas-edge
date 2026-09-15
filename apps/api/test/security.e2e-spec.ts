@@ -71,7 +71,7 @@ describe('Security e2e (rate limiting / authz)', () => {
 
     expect(res.body.success).toBe(false);
 
-    const saved = await prisma.user.findUnique({
+    const saved = await prisma.user.findFirst({
       where: { email: `e2e-sec-priv-${unique}@example.com` },
       include: { roles: { include: { role: true } } },
     });

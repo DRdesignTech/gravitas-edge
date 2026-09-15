@@ -40,7 +40,7 @@ describe('Referrals e2e', () => {
 
   afterAll(async () => {
     for (const email of [referredEmail, referrerEmail]) {
-      const user = await prisma.user.findUnique({ where: { email } });
+      const user = await prisma.user.findFirst({ where: { email } });
       if (user) {
         await prisma.referral.deleteMany({ where: { referredUserId: user.id } });
         await prisma.referral.deleteMany({ where: { referrerId: user.id } });

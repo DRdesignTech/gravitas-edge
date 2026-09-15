@@ -45,7 +45,8 @@ export class AdminUsersService {
   async list(query: QueryUsersDto): Promise<PaginatedResult<any>> {
     const params = buildPaginationParams(query.page, query.limit);
 
-    const where: Prisma.UserWhereInput = { deletedAt: null };
+    // Users are permanently deleted, so there is no soft-delete filter to apply.
+    const where: Prisma.UserWhereInput = {};
 
     if (query.status) {
       where.status = query.status;
@@ -165,7 +166,7 @@ export class AdminUsersService {
   async create(dto: CreateUserDto, actor: AuthenticatedUser, ipAddress?: string) {
     const { email, password, role = 'USER', status = 'ACTIVE' } = dto;
 
-    const existing = await this.prisma.user.findUnique({ where: { email } });
+    const existing = await this.prisma.user.findFirst({ where: { email, deletedAt: null } });
     if (existing) {
       throw new BadRequestException('User with this email already exists');
     }
@@ -205,10 +206,14 @@ export class AdminUsersService {
       throw new BadRequestException('Cannot delete your own account');
     }
 
-    await this.prisma.user.update({
-      where: { id },
-      data: { status: 'INACTIVE', deletedAt: new Date() },
-    });
+    // Permanently delete the user. Dependent records are removed via the FK
+    // cascade/SetNull behaviors declaratively configured in schema.prisma:
+    //   Cascade:  UserRole, UserProfile, Subscription, Referral (both sides),
+    //             Resume, CandidateProfile, Payment
+    //   SetNull:  Opportunity.createdBy, GuestResume.linkedUserId,
+    //             AuditLog.adminUserId, AuditLog.userId
+    // The delete is atomic: either everything is removed or nothing is on error.
+    await this.prisma.user.delete({ where: { id } });
 
     await this.audit.record({
       action: 'USER_DELETED',
@@ -216,9 +221,9 @@ export class AdminUsersService {
       entityId: id,
       adminUserId: actor.id,
       ipAddress,
-      details: { reason: 'Admin soft-delete' },
+      details: { reason: 'Admin permanent delete' },
     });
 
-    return { message: 'User archived successfully' };
+    return { message: 'User permanently deleted' };
   }
 }

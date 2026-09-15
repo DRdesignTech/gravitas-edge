@@ -60,6 +60,7 @@ describe('AuthService', () => {
     return {
       user: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         findMany: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
@@ -113,7 +114,7 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('registers a new user with default USER role and returns tokens', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.role.findUnique.mockResolvedValue({ id: 'role-user', name: 'USER' });
       prisma.$transaction.mockImplementation((fn: any) =>
         fn({
@@ -143,7 +144,7 @@ describe('AuthService', () => {
     });
 
     it('attributes a referral when registration includes a referral code', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       prisma.role.findUnique.mockResolvedValue({ id: 'role-user', name: 'USER' });
       prisma.$transaction.mockImplementation((fn: any) =>
         fn({
@@ -173,16 +174,49 @@ describe('AuthService', () => {
     });
 
     it('rejects duplicate email', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 'x', email });
+      prisma.user.findFirst.mockResolvedValue({ id: 'x', email });
       await expect(
         service.register({ email, password: 'StrongPass123!' }, '127.0.0.1'),
       ).rejects.toThrow(ConflictException);
+    });
+
+    it('does not treat a soft-deleted account as occupying the email', async () => {
+      // A soft-deleted row (deletedAt set) must not block re-registration:
+      // the uniqueness check filters to deletedAt: null.
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.role.findUnique.mockResolvedValue({ id: 'role-user', name: 'USER' });
+      prisma.$transaction.mockImplementation((fn: any) =>
+        fn({
+          user: {
+            create: async (d: any) => ({ id: userId, email: d.email, ...d }),
+            update: jest.fn(),
+            findFirst: async () => null,
+          },
+          role: { findUnique: async () => ({ id: 'role-user', name: 'USER' }) },
+          userRole: { create: jest.fn() },
+          userProfile: { create: jest.fn() },
+        }),
+      );
+      prisma.userRole.findMany.mockResolvedValue([{ role: { name: 'USER' } }]);
+      jwt.signAsync.mockResolvedValue('access').mockResolvedValueOnce('access');
+
+      const result = await service.register(
+        { email: ' previously-deleted@example.com ', password: 'StrongPass123!' },
+        '127.0.0.1',
+      );
+
+      expect(result.accessToken).toBeDefined();
+      expect(prisma.user.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ deletedAt: null }),
+        }),
+      );
     });
   });
 
   describe('login', () => {
     it('logs in valid user and returns tokens', async () => {
-      prisma.user.findUnique.mockResolvedValue({
+      prisma.user.findFirst.mockResolvedValue({
         id: userId,
         email,
         passwordHash,
@@ -200,7 +234,7 @@ describe('AuthService', () => {
     });
 
     it('rejects wrong password', async () => {
-      prisma.user.findUnique.mockResolvedValue({
+      prisma.user.findFirst.mockResolvedValue({
         id: userId,
         email,
         passwordHash,
@@ -214,19 +248,32 @@ describe('AuthService', () => {
     });
 
     it('rejects unknown user', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
       await expect(service.login({ email, password: 'x' }, 'ip')).rejects.toThrow(
         UnauthorizedException,
       );
     });
 
     it('rejects suspended user', async () => {
-      prisma.user.findUnique.mockResolvedValue({
+      prisma.user.findFirst.mockResolvedValue({
         id: userId,
         email,
         passwordHash,
         status: 'SUSPENDED',
         deletedAt: null,
+      });
+      await expect(service.login({ email, password: 'x' }, 'ip')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('rejects a soft-deleted user at login', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        id: userId,
+        email,
+        passwordHash,
+        status: 'INACTIVE',
+        deletedAt: new Date(),
       });
       await expect(service.login({ email, password: 'x' }, 'ip')).rejects.toThrow(
         UnauthorizedException,
