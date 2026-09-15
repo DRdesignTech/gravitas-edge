@@ -9,6 +9,7 @@ import { linkGuestResume } from '@/lib/services';
 import { Button, Card, Input, Alert, useToast } from '@/components/ui';
 import BrandLogo, { BRAND_NAME } from '@/components/brand/BrandLogo';
 import { getErrorMessage } from '@/lib/errors';
+import { getPasswordError, PASSWORD_REQUIREMENTS_TEXT } from '@/lib/password';
 
 const REFERRAL_CODE_RE = /^REF-[A-Z2-9]{10}$/;
 
@@ -47,7 +48,8 @@ function RegisterForm() {
     const next: FieldErrors = {};
     if (!fullName.trim()) next.fullName = 'Please enter your full name.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Please enter a valid email.';
-    if (password.length < 6) next.password = 'Password must be at least 6 characters.';
+    const passwordError = getPasswordError(password);
+    if (passwordError) next.password = passwordError;
     if (confirm !== password) next.confirm = 'Passwords do not match.';
     if (!agreedTerms)
       next.terms = 'Please accept the Privacy Policy and Terms & Conditions to continue.';
@@ -146,19 +148,26 @@ function RegisterForm() {
               error={fieldErrors.email}
               required
             />
-            <Input
-              label="Password"
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                clearField('password');
-              }}
-              placeholder="At least 6 characters"
-              error={fieldErrors.password}
-              required
-            />
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  clearField('password');
+                  clearField('confirm');
+                }}
+                aria-describedby="password-requirements"
+                placeholder="Enter your password"
+                error={fieldErrors.password}
+                required
+              />
+              <p id="password-requirements" className="mt-1.5 text-xs leading-relaxed text-content-muted">
+                {PASSWORD_REQUIREMENTS_TEXT}
+              </p>
+            </div>
             <Input
               label="Confirm password"
               type="password"

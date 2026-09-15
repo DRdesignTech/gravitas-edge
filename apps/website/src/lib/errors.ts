@@ -96,7 +96,10 @@ export function parseApiError(error: unknown, status?: number): ApiErrorInfo {
   if (specificKinds.includes(kind)) {
     const short = cleaned.length > 0 && cleaned.length <= 160;
     if (short && !NETWORK_HINTS.test(cleaned)) {
-      return { kind, message: cleaned };
+      // Server-provided validation fragments arrive lowercase; sentence-case them
+      // so they read as a complete, human-friendly message.
+      const sentenceCased = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      return { kind, message: sentenceCased };
     }
   }
 
