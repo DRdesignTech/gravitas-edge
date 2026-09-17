@@ -120,8 +120,20 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 1. HERO — #home                                                */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="home" className={`${NAVY} relative scroll-mt-20`}>
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <section id="home" className={`${NAVY} relative scroll-mt-20 overflow-hidden`}>
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-[position:center] lg:bg-[position:center_35%]"
+          style={{
+            backgroundImage: "url('/images/hero.png')",
+            backgroundSize: 'cover',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-[#0A1730]/55 via-[#0A1730]/20 to-transparent"
+        />
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
             <div>
               <Eyebrow invert>CURATED OPPORTUNITY INTELLIGENCE</Eyebrow>
@@ -162,23 +174,23 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white p-7 shadow-xl sm:p-8">
-              <Eyebrow>WHAT GRAVITAS EDGE DOES</Eyebrow>
-              <h2 className="mt-4 text-2xl font-bold leading-snug tracking-tight text-[#0A1730] sm:text-[1.65rem]">
+            <div className="rounded-2xl border border-white/25 bg-black/20 p-7 backdrop-blur-sm sm:p-8">
+              <Eyebrow invert>WHAT GRAVITAS EDGE DOES</Eyebrow>
+              <h2 className="mt-4 text-2xl font-bold leading-snug tracking-tight text-white sm:text-[1.65rem]">
                 Brings fragmented opportunity information into focus.
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+              <p className="mt-3 text-sm leading-relaxed text-slate-200/90">
                 The value is not in claiming every opportunity is exclusive. It is in sourcing,
                 organising and presenting useful opportunity information in one place.
               </p>
-              <dl className="mt-6 border-t border-slate-100">
+              <dl className="mt-6 border-t border-white/15">
                 {heroRows.map((row) => (
                   <div
                     key={row.label}
-                    className="flex items-center justify-between gap-4 border-b border-slate-100 py-3"
+                    className="flex items-center justify-between gap-4 border-b border-white/15 py-3"
                   >
-                    <dt className="text-sm text-slate-600">{row.label}</dt>
-                    <dd className="text-sm font-semibold text-brand-400">{row.value}</dd>
+                    <dt className="text-sm text-slate-200/90">{row.label}</dt>
+                    <dd className="text-sm font-semibold text-brand-300">{row.value}</dd>
                   </div>
                 ))}
               </dl>
