@@ -13,7 +13,7 @@ import InfoCard from '@/components/marketing/InfoCard';
 import HowItWorks from '@/components/marketing/HowItWorks';
 import LiveFreePreview from '@/components/marketing/LiveFreePreview';
 import PricingSection from '@/components/marketing/PricingSection';
-import WhatsAppConnect from '@/components/marketing/WhatsAppConnect';
+import WhatsAppChannel from '@/components/marketing/WhatsAppChannel';
 import FaqSection from '@/components/marketing/FaqSection';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
 import { scrollToHash } from '@/lib/scroll';
@@ -291,10 +291,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       <section id="whatsapp-free" className="scroll-mt-20 border-t border-line bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <WhatsAppConnect
-            title="Not ready to subscribe? Stay connected for free."
-            description="Join the free Gravitas Edge WhatsApp Channel to follow selected opportunity updates and see what is being added across the Opportunity Vaults. The WhatsApp Channel keeps you updated on opportunities and Vault activity. Full opportunity details and available recruiter, hiring manager, consultant or application contact information remain available through the relevant Opportunity Vault."
-            actionLabel="Join Free WhatsApp Channel"
+          <WhatsAppChannel
             note={
               <HomeAnchor href="#vaults" className="font-medium underline underline-offset-2 hover:text-emerald-900 dark:hover:text-emerald-100">
                 Explore Opportunity Vaults below →
@@ -365,7 +362,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       <section id="whatsapp-free-2" className="scroll-mt-20 border-t border-line bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-          <WhatsAppConnect
+          <WhatsAppChannel
             title="Want to follow the opportunities without subscribing yet?"
             description="Stay connected through the free Gravitas Edge WhatsApp Channel to see selected opportunity updates and what is being added across the Vaults. Full job details and available recruiter, hiring manager, consultant or application contact information are not provided through the free channel. These remain part of the relevant Opportunity Vault access."
             actionLabel="Continue with Free WhatsApp Updates"
