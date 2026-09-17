@@ -12,7 +12,7 @@ const poppins = Poppins({
 export const metadata = {
   title: 'Gravitas Edge Consulting — Find your next opportunity',
   description:
-    'Discover curated job opportunities across India and the globe. Unlock premium referral vaults and advance your career.',
+    'Discover curated job opportunities across India and the globe. Unlock premium opportunity vaults and advance your career.',
 };
 
 const themeScript = `

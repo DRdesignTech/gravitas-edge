@@ -2,19 +2,21 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import ThemeToggle from '@/components/theme/ThemeToggle';
 import { CloseIcon } from '@/components/ui';
 import BrandLogo from '@/components/brand/BrandLogo';
+import { scrollToAnchor } from '@/lib/scroll';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/how-it-works', label: 'How It Works' },
-  { href: '/opportunities', label: 'Free Preview' },
-  { href: '/vaults', label: 'Vaults' },
+  { href: '#home', label: 'Home' },
+  { href: '#free-preview', label: 'Free Preview' },
+  { href: '#vaults', label: 'Opportunity Vaults' },
+  { href: '#plans', label: 'Plans' },
   { href: '/upload-resume', label: 'Resume' },
-  { href: '/faq', label: 'FAQ' },
+  { href: '#how-it-works', label: 'How It Works' },
+  { href: '#faq', label: 'FAQ' },
 ];
 
 const userMenuLinks = [
@@ -43,12 +45,21 @@ function getProfileImageUrl(img: string | null | undefined) {
 export default function Header() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [hash, setHash] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMobileOpen(false), [pathname]);
   useEffect(() => setUserMenuOpen(false), [pathname]);
+
+  useEffect(() => {
+    setHash(window.location.hash);
+    const onHashChange = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -60,36 +71,68 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+  const handleNav = (e: React.MouseEvent, href: string) => {
+    if (!href.startsWith('#')) return;
+    e.preventDefault();
+    setMobileOpen(false);
+    setUserMenuOpen(false);
+    const id = href.replace(/^#/, '');
+    if (pathname === '/') {
+      scrollToAnchor(id);
+      window.history.replaceState(null, '', href);
+      setHash(href);
+    } else {
+      router.push(`/${href}`);
+    }
+  };
+
+  const isActive = (href: string) => {
+    if (href.startsWith('#')) {
+      if (pathname !== '/') return false;
+      return href === '#home' ? !hash || hash === href : hash === href;
+    }
+    return href === '/' ? pathname === '/' : pathname.startsWith(href);
+  };
+
+  const navLinkClass = (href: string) =>
+    `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+      isActive(href)
+        ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
+        : 'text-content-muted hover:bg-surface-muted hover:text-content'
+    }`;
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3 sm:gap-10">
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-3 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-10">
+          <a
+            href="#home"
+            onClick={(e) => handleNav(e, '#home')}
+            className="flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             aria-label="Gravitas Edge Consulting home"
           >
             <BrandLogo
-              className="h-9 w-auto"
-              nameClassName="hidden text-base font-bold tracking-tight text-content sm:inline sm:text-lg"
+              className="h-10 w-auto sm:h-12"
+              nameClassName="hidden text-base font-bold tracking-tight text-content lg:inline lg:text-lg"
             />
-          </Link>
+          </a>
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive(link.href)
-                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
-                    : 'text-content-muted hover:bg-surface-muted hover:text-content'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) =>
+              link.href.startsWith('#') ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleNav(e, link.href)}
+                  className={navLinkClass(link.href)}
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link key={link.href} href={link.href} className={navLinkClass(link.href)}>
+                  {link.label}
+                </Link>
+              ),
+            )}
           </nav>
         </div>
 
@@ -149,8 +192,31 @@ export default function Header() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 lg:hidden">
-          <ThemeToggle />
+        <div className="flex items-center gap-1.5 lg:hidden">
+          {/* Compact mobile: Free Preview → Sign In → Menu */}
+          <a
+            href="#free-preview"
+            onClick={(e) => handleNav(e, '#free-preview')}
+            className="whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-medium text-brand-600 transition-colors hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950"
+          >
+            Free Preview
+          </a>
+          {user ? (
+            <Link
+              href="/dashboard"
+              aria-label="Go to dashboard"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300"
+            >
+              {initials(user.profile?.fullName, user.email)}
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="whitespace-nowrap rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
+            >
+              Sign In
+            </Link>
+          )}
           <button
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle menu"
@@ -182,21 +248,41 @@ export default function Header() {
       {mobileOpen && (
         <div className="border-t border-line bg-surface px-4 pb-6 pt-3 lg:hidden">
           <nav className="space-y-1" aria-label="Primary mobile">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
-                  isActive(link.href)
-                    ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
-                    : 'text-content-muted hover:bg-surface-muted hover:text-content'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) =>
+              link.href.startsWith('#') ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleNav(e, link.href)}
+                  className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
+                    isActive(link.href)
+                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
+                      : 'text-content-muted hover:bg-surface-muted hover:text-content'
+                  }`}
+                >
+                  {link.label}
+                </a>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-content-muted hover:bg-surface-muted hover:text-content"
+                >
+                  {link.label}
+                </Link>
+              ),
+            )}
           </nav>
-          <div className="my-2 border-t border-line" />
+          <Link
+            href="/contact"
+            className="block rounded-lg px-3 py-2.5 text-sm font-medium text-content-muted hover:bg-surface-muted hover:text-content"
+          >
+            Contact
+          </Link>
+          <div className="my-2 flex items-center justify-between border-y border-line py-2.5">
+            <span className="px-3 text-sm font-medium text-content">Appearance</span>
+            <ThemeToggle />
+          </div>
           {user ? (
             <>
               {userMenuLinks.map((link) => (
@@ -216,7 +302,7 @@ export default function Header() {
               </button>
             </>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <Link
                 href="/login"
                 className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-brand-700"

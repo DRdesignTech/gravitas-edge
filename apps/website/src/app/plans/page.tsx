@@ -61,11 +61,11 @@ export default function PlansPage() {
           Vault Access Plans
         </span>
         <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-content sm:text-5xl">
-          Unlock your next chapter
+          Choose how long you need access.
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-content-muted">
-          Each vault unlocks a curated set of referral opportunities. Pick the vault that fits your
-          career stage and choose how long you need access — upgrade or cancel anytime.
+          Select the Opportunity Vault relevant to your search and choose your preferred access
+          period.
         </p>
       </div>
 
@@ -110,7 +110,7 @@ export default function PlansPage() {
                       {hasDiscount && (
                         <Badge
                           variant="success"
-                          className="absolute -top-2.5 right-3 px-2.5 py-0.5 text-xs font-bold shadow-sm"
+                          className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 text-xs font-bold shadow-sm"
                         >
                           {plan.discountPercentage}% OFF
                         </Badge>
@@ -175,10 +175,10 @@ export default function PlansPage() {
       <p className="mt-10 text-center text-sm text-content-faint">
         Have questions? Contact us at{' '}
         <Link
-          href="mailto:support@careervault.example"
+          href="mailto:support@gravitasedgeconsulting.com"
           className="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
         >
-          support@careervault.example
+          support@gravitasedgeconsulting.com
         </Link>
       </p>
     </div>

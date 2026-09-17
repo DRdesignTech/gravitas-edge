@@ -176,7 +176,7 @@ export default function ReferralsPage() {
     if (!summary?.referralLink) return;
     const data = {
       title: 'Refer & earn',
-      text: `Join me on Gravitas Edge Consulting — you get premium referral vaults. Use my code ${summary.referralCode}`,
+      text: `Join me on Gravitas Edge Consulting — you get premium opportunity vaults. Use my code ${summary.referralCode}`,
       url: summary.referralLink,
     };
     if (typeof navigator.share === 'function') {
