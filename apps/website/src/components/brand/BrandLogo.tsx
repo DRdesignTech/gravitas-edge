@@ -14,7 +14,7 @@ export default function BrandLogo({
   nameClassName = 'text-lg font-bold tracking-tight text-content',
 }: BrandLogoProps) {
   return (
-    <span className="flex items-center gap-2.5">
+    <span className="inline-flex items-center gap-2.5">
       <span className="flex shrink-0 items-center justify-center rounded-full bg-white p-2 shadow-sm">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

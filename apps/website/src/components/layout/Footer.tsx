@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import BrandLogo, { BRAND_NAME } from '@/components/brand/BrandLogo';
+import BrandLogo from '@/components/brand/BrandLogo';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
 
 const sectionLinks = [
@@ -72,7 +72,7 @@ export default function Footer() {
             </Link>
           </nav>
           <p className="mt-4 text-center text-sm text-content-faint">
-            © {year} {BRAND_NAME}. All rights reserved.
+            © {year} Designed, Developed &amp; Marketed by PR Digital Marketing Gwalior
           </p>
         </div>
       </div>

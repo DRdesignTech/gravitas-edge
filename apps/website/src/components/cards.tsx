@@ -185,15 +185,31 @@ function ArrowRightIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
-export function VaultCard({ vault: v }: { vault: Vault }) {
+export function VaultCard({
+  vault: v,
+  recommended = false,
+}: {
+  vault: Vault;
+  recommended?: boolean;
+}) {
   const unlocked = !v.locked;
   return (
     <Link
       href={unlocked ? `/opportunities?vaultId=${encodeURIComponent(v.id)}` : `/vaults/${v.id}`}
-      className={`group flex h-full flex-col rounded-2xl border bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50 ${
-        v.locked ? 'border-line' : 'border-brand-200 dark:border-brand-500/40'
+      className={`group relative flex h-full flex-col rounded-2xl border bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50 ${
+        recommended
+          ? 'border-brand-400 ring-2 ring-brand-500/25 dark:border-brand-500/70 dark:ring-brand-400/20'
+          : v.locked
+            ? 'border-line'
+            : 'border-brand-200 dark:border-brand-500/40'
       }`}
     >
+      {recommended && (
+        <span className="absolute -top-2.5 right-4 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-400/30">
+          <SparkleIcon className="h-3 w-3" />
+          Recommended for you
+        </span>
+      )}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span
@@ -355,6 +371,19 @@ export function SearchIcon({ className = 'h-5 w-5' }: { className?: string }) {
         strokeLinejoin="round"
         d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
       />
+    </svg>
+  );
+}
+
+export function SparkleIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path d="M12 2l1.1 5.5L18 9l-4.9 1.5L12 16l-1.1-5.5L6 9l4.9-1.5L12 2zm6.5 10l.6 2.9L22 15l-2.9.9L18.5 19l-.6-3.1L15 15l2.9-.9L18.5 12zM5.5 12l.6 2.9L9 15l-2.9.9L5.5 19l-.6-3.1L2 15l2.9-.9L5.5 12z" />
     </svg>
   );
 }

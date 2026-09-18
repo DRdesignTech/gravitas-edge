@@ -154,8 +154,15 @@ export default function VaultsPage() {
                               className="group/tile block rounded-2xl border border-line bg-surface-muted p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-400/70 hover:bg-brand-50/40 hover:shadow-card hover:shadow-brand-500/5 dark:bg-surface dark:hover:bg-brand-950/30"
                             >
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-sm font-semibold text-content">
-                                  {p.durationLabel}
+                                <span className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-content">
+                                    {p.durationLabel}
+                                  </span>
+                                  {p.durationDays === 90 && (
+                                    <span className="rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white dark:bg-brand-500">
+                                      Most Popular
+                                    </span>
+                                  )}
                                 </span>
                                 {(p.discountPercentage ?? 0) > 0 ? (
                                   <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">

@@ -112,7 +112,8 @@ export default function LoginPage() {
         </div>
 
         <p className="relative text-xs text-brand-200/60">
-          © {new Date().getFullYear()} {BRAND_NAME}. All rights reserved.
+          © {new Date().getFullYear()} Designed, Developed &amp; Marketed by PR Digital Marketing
+          Gwalior
         </p>
       </div>
 

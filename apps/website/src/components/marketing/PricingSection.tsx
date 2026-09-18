@@ -102,8 +102,13 @@ export default function PricingSection({
                             {plan.discountPercentage}% OFF
                           </span>
                         )}
-                        <p className="text-xs font-semibold uppercase tracking-wider text-content-faint">
+                        <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs font-semibold uppercase tracking-wider text-content-faint">
                           {plan.durationLabel}
+                          {plan.durationDays === 90 && (
+                            <span className="rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white dark:bg-brand-500">
+                              Most Popular
+                            </span>
+                          )}
                         </p>
                         <div className="mt-3 flex min-h-[3.25rem] flex-col">
                           {hasDiscount && (

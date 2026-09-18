@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { fetchOpportunities, fetchPublicPricing, fetchVaults } from '@/lib/services';
 import { Opportunity, PaginatedResult, PricingGroup, Vault } from '@/lib/types';
 import { Skeleton, ErrorState, EmptyState } from '@/components/ui';
 import { VaultCard } from '@/components/cards';
+import VaultFinder from '@/components/marketing/VaultFinder';
 import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import Eyebrow from '@/components/marketing/Eyebrow';
@@ -78,6 +79,7 @@ export default function Home() {
   const [pricing, setPricing] = useState<PricingGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [recommendedVaultIds, setRecommendedVaultIds] = useState<Set<string>>(new Set());
 
   const load = () => {
     setLoading(true);
@@ -114,6 +116,14 @@ export default function Home() {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  const visibleVaults = useMemo(() => {
+    const list = [...vaults];
+    if (recommendedVaultIds.size === 0) return list;
+    const recommended = list.filter((v) => recommendedVaultIds.has(v.id));
+    const rest = list.filter((v) => !recommendedVaultIds.has(v.id));
+    return [...recommended, ...rest];
+  }, [vaults, recommendedVaultIds]);
 
   return (
     <div className="overflow-x-clip">
@@ -327,6 +337,14 @@ export default function Home() {
             )}
           </div>
 
+          {!loading && !error && vaults.length > 0 && (
+            <VaultFinder
+              vaults={vaults}
+              recommended={recommendedVaultIds}
+              onRecommendedChange={setRecommendedVaultIds}
+            />
+          )}
+
           {loading ? (
             <div className="grid gap-5 md:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -343,9 +361,13 @@ export default function Home() {
               />
             </div>
           ) : (
-            <div className="grid gap-5 md:grid-cols-3">
-              {vaults.map((v) => (
-                <VaultCard key={v.id} vault={v} />
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {visibleVaults.map((v) => (
+                <VaultCard
+                  key={v.id}
+                  vault={v}
+                  recommended={recommendedVaultIds.has(v.id)}
+                />
               ))}
             </div>
           )}

@@ -243,8 +243,13 @@ export default function VaultDetailPage() {
                           aria-pressed={isSelected}
                         >
                           <div>
-                            <p className="text-base font-bold text-content">
+                            <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-base font-bold text-content">
                               {plan.durationLabel}
+                              {plan.durationDays === 90 && (
+                                <span className="rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white dark:bg-brand-500">
+                                  Most Popular
+                                </span>
+                              )}
                             </p>
                             <p className="mt-0.5 text-sm text-content-muted">{vault.name}</p>
                             {hasDiscount && (

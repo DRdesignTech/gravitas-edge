@@ -14,12 +14,12 @@ export default function BrandLogo({
   nameClassName = 'text-sm font-bold tracking-tight text-content',
 }: BrandLogoProps) {
   return (
-    <span className="flex items-center gap-2.5">
+    <span className="inline-flex items-center gap-2.5">
       <Image
         src="/brand/logo.png"
         alt="Gravitas Edge Consulting logo"
-        width={1459}
-        height={1078}
+        width={1254}
+        height={1254}
         priority
         className={className}
         style={{ objectFit: 'contain' }}
