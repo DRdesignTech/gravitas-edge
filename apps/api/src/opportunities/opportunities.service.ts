@@ -7,6 +7,7 @@ import {
   buildPaginationParams,
   PaginatedResult,
 } from '../common/pagination/pagination.util';
+import { maskProtectedValue } from '@job-portal/shared';
 
 export interface UserOpportunityQuery {
   page?: number;
@@ -56,10 +57,20 @@ export interface PublicOpportunityDto {
   vaults: VaultRef[];
   isPremium: boolean;
   isFullAccess: boolean;
+  qualification?: string | null;
   description?: string | null;
   applicationUrl?: string | null;
   applicationContact?: string | null;
   source?: string | null;
+  /** Safe masked teaser of the protected fields (7-9) for callers without Vault access. */
+  lockedPreview?: LockedPreview;
+}
+
+export interface LockedPreview {
+  qualification: string | null;
+  otherDetails: string | null;
+  howToApply: string | null;
+  applicationContact: string | null;
 }
 
 @Injectable()
@@ -160,10 +171,15 @@ export class OpportunitiesService {
 
   /**
    * Serialize a published opportunity for the public list and detail endpoints.
-   * Basic metadata is always returned (locked premium jobs appear as teasers);
-   * full details (description, application/contact) are only included when the
-   * caller has full access: non-premium jobs always, premium jobs only when an
-   * active subscription grants at least one of the job's vaults.
+   * Fields 1-6 (title, industry, company, salary, location, experience) are
+   * always returned in full. The protected fields 7-9 (qualification, other
+   * details / description, how to apply / application URL + contact) are only
+   * returned with their original values when the caller has full access:
+   * non-premium jobs always, premium jobs only when an active subscription
+   * grants at least one of the job's vaults.
+   *
+   * For callers WITHOUT access, only a server-side masked `lockedPreview`
+   * teaser is returned — the original protected values never leave the server.
    */
   private serializeOpportunity(o: any, accessibleVaultIdSet: Set<string>): PublicOpportunityDto {
     const vaults = Array.isArray(o.vaults)
@@ -199,14 +215,28 @@ export class OpportunitiesService {
     };
 
     if (!isFullAccess) {
-      return base;
+      return {
+        ...base,
+        lockedPreview: this.lockedPreview(o),
+      };
     }
 
     return { ...base, ...this.privateFields(o) };
   }
 
+  private lockedPreview(o: any): LockedPreview {
+    const howToApply = o.applicationUrl || o.applicationContact || null;
+    return {
+      qualification: maskProtectedValue(o.qualification),
+      otherDetails: maskProtectedValue(o.description),
+      howToApply: maskProtectedValue(howToApply),
+      applicationContact: maskProtectedValue(o.applicationContact),
+    };
+  }
+
   private privateFields(o: any) {
     return {
+      qualification: o.qualification,
       description: o.description,
       applicationUrl: o.applicationUrl,
       applicationContact: o.applicationContact,

@@ -35,6 +35,19 @@ describe('opportunity-import.util', () => {
         ['title', 'industry', 'salary', 'location', 'experienceText', 'date', 'externalRef'].sort(),
       );
     });
+
+    it('maps qualification and how-to-apply headers to canonical fields', () => {
+      const colMap = mapHeadersToFields([
+        'Qualification',
+        'Other Details',
+        'How to Apply',
+        'How to Apply Email',
+        'How to Apply URL',
+      ]);
+      expect(Object.values(colMap).sort()).toEqual(
+        ['applicationContact', 'applicationUrl', 'description', 'qualification'].sort(),
+      );
+    });
   });
 
   describe('parseDateCell', () => {

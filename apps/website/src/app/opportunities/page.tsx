@@ -18,8 +18,16 @@ import {
   GridIcon,
   ListIcon,
 } from '@/components/ui';
-import { SearchIcon, BriefcaseIcon, PinIcon } from '@/components/cards';
-import { displayExperience } from '@/lib/format';
+import {
+  SearchIcon,
+  BriefcaseIcon,
+  PinIcon,
+  LayersIcon,
+  BarsIcon,
+  ProtectedFields,
+} from '@/components/cards';
+import { Badge, LockIcon } from '@/components/ui';
+import { displayExperience, formatDate } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import { OPPORTUNITY_CATEGORIES, EMPLOYMENT_TYPES } from '@/lib/types';
 import Eyebrow from '@/components/marketing/Eyebrow';
@@ -30,28 +38,6 @@ const PAGE_SIZE = 10;
 
 function titleOption(v: string) {
   return v.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function LockChip() {
-  return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-      <svg
-        className="h-3 w-3"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={2}
-        stroke="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-        />
-      </svg>
-      Subscriber access
-    </span>
-  );
 }
 
 function FunctionTag({ value }: { value?: string | null }) {
@@ -123,7 +109,7 @@ function OpportunityPageContent() {
   const [view, setView] = useState<OpportunityView>('grid');
 
   const hasActiveSubscription = user?.subscriptions?.some(
-    (s: Subscription) => s.status === 'ACTIVE' && new Date(s.endDate) > new Date()
+    (s: Subscription) => s.status === 'ACTIVE' && new Date(s.endDate) > new Date(),
   );
   const isSubscriber = Boolean(user && hasActiveSubscription);
 
@@ -241,22 +227,22 @@ function OpportunityPageContent() {
             {vaultId
               ? 'VAULT OPPORTUNITIES'
               : isSubscriber
-              ? 'SUBSCRIBER ACCESS'
-              : 'LIVE FREE PREVIEW'}
+                ? 'SUBSCRIBER ACCESS'
+                : 'LIVE FREE PREVIEW'}
           </Eyebrow>
           <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl">
             {vaultId
               ? `Opportunities in ${vault?.name ?? 'this vault'}`
               : isSubscriber
-              ? 'Your active subscription unlocks full opportunity details below.'
-              : 'Review the opportunity flow before making any subscription decision.'}
+                ? 'Your active subscription unlocks full opportunity details below.'
+                : 'Review the opportunity flow before making any subscription decision.'}
           </h1>
           <p className="mt-6 max-w-3xl text-base leading-relaxed text-slate-300 sm:text-lg">
             {vaultId
               ? 'Every opportunity below belongs to this Vault. Full company, source, contact and application details are unlocked by your active subscription, while remaining fields stay visible.'
               : isSubscriber
-              ? 'You are viewing the live opportunity database with full subscriber access. Company names, sources, contacts and application links are visible for opportunities in your unlocked vaults.'
-              : 'This is the same live opportunity database used across the platform. Non-subscribers can browse the records and visible fields without subscribing. Protected company, source, contact and detailed application information unlock only with the relevant active subscription.'}
+                ? 'You are viewing the live opportunity database with full subscriber access. Company names, sources, contacts and application links are visible for opportunities in your unlocked vaults.'
+                : 'This is the same live opportunity database used across the platform. Non-subscribers can browse the records and visible fields without subscribing. Protected company, source, contact and detailed application information unlock only with the relevant active subscription.'}
           </p>
         </div>
       </section>
@@ -395,24 +381,39 @@ function OpportunityPageContent() {
                         </h3>
                         <FunctionTag value={o.functionalArea} />
                       </div>
+                      <p className="mt-1 truncate text-sm font-medium text-content">
+                        {o.company || '—'}
+                      </p>
                       <dl className="mt-4 space-y-2 text-sm text-content-muted">
+                        {o.industry && (
+                          <div className="flex items-center gap-1.5">
+                            <LayersIcon className="h-4 w-4 shrink-0 text-content-faint" />
+                            {o.industry}
+                          </div>
+                        )}
+                        {o.salary && (
+                          <div className="flex items-center gap-1.5 font-semibold text-brand-700 dark:text-brand-300">
+                            <BriefcaseIcon className="h-4 w-4 shrink-0 text-content-faint" />
+                            {o.salary}
+                          </div>
+                        )}
                         <div className="flex items-center gap-1.5">
                           <PinIcon className="h-4 w-4 shrink-0 text-content-faint" />
                           {o.location || o.country || '—'}
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <BriefcaseIcon className="h-4 w-4 shrink-0 text-content-faint" />
+                          <BarsIcon className="h-4 w-4 shrink-0 text-content-faint" />
                           {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
                         </div>
                       </dl>
+
+                      {o.isPremium && (
+                        <div className="mt-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/40 p-3 dark:border-amber-500/25 dark:bg-amber-500/5">
+                          <ProtectedFields opportunity={o} />
+                        </div>
+                      )}
+
                       <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
-                        {o.isFullAccess ? (
-                          <span className="truncate text-sm font-medium text-content">
-                            {o.company || '—'}
-                          </span>
-                        ) : (
-                          <LockChip />
-                        )}
                         {o.isFullAccess ? (
                           o.applicationUrl ? (
                             <a
@@ -424,75 +425,114 @@ function OpportunityPageContent() {
                               Apply →
                             </a>
                           ) : (
-                            <span className="shrink-0 text-xs text-content-faint">
+                            <span className="shrink-0 truncate text-xs text-content-faint">
                               {o.applicationContact || '—'}
                             </span>
                           )
                         ) : (
-                          <LockChip />
+                          <Link
+                            href="/plans"
+                            className="inline-flex items-center gap-1 shrink-0 text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                          >
+                            <LockIcon className="h-3.5 w-3.5" />
+                            Unlock Full Access
+                          </Link>
                         )}
+                        <span className="flex items-center gap-2">
+                          <Badge variant="info">{titleOption(o.category)}</Badge>
+                          {o.publishedDate && (
+                            <span className="hidden text-xs text-content-faint sm:inline">
+                              {formatDate(o.publishedDate)}
+                            </span>
+                          )}
+                        </span>
                       </div>
                     </article>
                   ))}
                 </div>
               ) : (
-              <div className="mt-6 overflow-x-auto rounded-2xl border border-line">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#0A1730] text-left text-xs font-semibold uppercase tracking-wider text-slate-300">
-                      <th className="whitespace-nowrap px-5 py-3">Role</th>
-                      <th className="whitespace-nowrap px-5 py-3">Location</th>
-                      <th className="whitespace-nowrap px-5 py-3">Experience</th>
-                      <th className="whitespace-nowrap px-5 py-3">Function</th>
-                      <th className="whitespace-nowrap px-5 py-3">Company / Source</th>
-                      <th className="whitespace-nowrap px-5 py-3">Application Details</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line bg-surface dark:bg-surface-elevated">
-                    {data.items.map((o) => (
-                      <tr key={o.id} className="transition-colors hover:bg-surface-muted">
-                        <td className="px-5 py-3.5 font-medium text-content">{o.title}</td>
-                        <td className="px-5 py-3.5 text-content-muted">
-                          {o.location || o.country || '—'}
-                        </td>
-                        <td className="whitespace-nowrap px-5 py-3.5 text-content-muted">
-                          {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <FunctionTag value={o.functionalArea} />
-                        </td>
-                        <td className="px-5 py-3.5">
-                          {o.isFullAccess ? (
-                            o.company || <span className="text-content-faint">—</span>
-                          ) : (
-                            <LockChip />
-                          )}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          {o.isFullAccess ? (
-                            o.applicationUrl ? (
-                              <a
-                                href={o.applicationUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                              >
-                                Apply →
-                              </a>
-                            ) : o.applicationContact ? (
-                              <span className="text-content-muted">{o.applicationContact}</span>
-                            ) : (
-                              <span className="text-content-faint">—</span>
-                            )
-                          ) : (
-                            <LockChip />
-                          )}
-                        </td>
+                <div className="mt-6 overflow-x-auto rounded-2xl border border-line">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="bg-[#0A1730] text-left text-xs font-semibold uppercase tracking-wider text-slate-300">
+                        <th className="whitespace-nowrap px-5 py-3">Role</th>
+                        <th className="whitespace-nowrap px-5 py-3">Company</th>
+                        <th className="whitespace-nowrap px-5 py-3">Salary</th>
+                        <th className="whitespace-nowrap px-5 py-3">Location</th>
+                        <th className="whitespace-nowrap px-5 py-3">Experience</th>
+                        <th className="whitespace-nowrap px-5 py-3">Function</th>
+                        <th className="whitespace-nowrap px-5 py-3">Qualification</th>
+                        <th className="whitespace-nowrap px-5 py-3">
+                          Other Details / How to Apply
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-line bg-surface dark:bg-surface-elevated">
+                      {data.items.map((o) => (
+                        <tr key={o.id} className="transition-colors hover:bg-surface-muted">
+                          <td className="px-5 py-3.5 font-medium text-content">{o.title}</td>
+                          <td className="px-5 py-3.5 text-content">
+                            {o.company || <span className="text-content-faint">—</span>}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5 text-content-muted">
+                            {o.salary || <span className="text-content-faint">—</span>}
+                          </td>
+                          <td className="px-5 py-3.5 text-content-muted">
+                            {o.location || o.country || '—'}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5 text-content-muted">
+                            {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <FunctionTag value={o.functionalArea} />
+                          </td>
+                          <td className="px-5 py-3.5 max-w-xs truncate">
+                            {o.isFullAccess ? (
+                              o.qualification || <span className="text-content-faint">—</span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 text-content-faint truncate max-w-full">
+                                <LockIcon className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                {o.lockedPreview?.qualification || 'Vault Access'}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5 max-w-xs truncate">
+                            {o.isFullAccess ? (
+                              o.applicationUrl ? (
+                                <a
+                                  href={o.applicationUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 truncate block max-w-full"
+                                >
+                                  Apply →
+                                </a>
+                              ) : o.applicationContact ? (
+                                <span className="text-content-muted truncate block max-w-full">{o.applicationContact}</span>
+                              ) : o.description ? (
+                                <span className="line-clamp-2 text-content-muted block max-w-full">{o.description}</span>
+                              ) : (
+                                <span className="text-content-faint">—</span>
+                              )
+                            ) : (
+                              <span className="flex flex-wrap items-center gap-1.5 text-content-faint truncate max-w-full">
+                                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 shrink-0">
+                                  <LockIcon className="h-3.5 w-3.5" />
+                                  {o.lockedPreview?.otherDetails || 'Other Details'}
+                                </span>
+                                <span className="text-content-faint shrink-0">·</span>
+                                <span className="inline-flex items-center gap-1 shrink-0">
+                                  <LockIcon className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                                  {o.lockedPreview?.howToApply || 'How to Apply'}
+                                </span>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
               <Pagination
                 className="mt-8"
@@ -505,7 +545,7 @@ function OpportunityPageContent() {
         </div>
       </section>
 
-{/* SECTION 4 — NEXT STEP */}
+      {/* SECTION 4 — NEXT STEP */}
       <section className="bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="max-w-2xl">
@@ -514,24 +554,22 @@ function OpportunityPageContent() {
               {vaultId
                 ? 'Everything here belongs to one Vault.'
                 : isSubscriber
-                ? 'You have full subscriber access.'
-                : 'Found the opportunity mix relevant?'}
+                  ? 'You have full subscriber access.'
+                  : 'Found the opportunity mix relevant?'}
             </h2>
             <p className="mt-4 text-base leading-relaxed text-content-muted">
               {vaultId
                 ? `You are viewing the opportunities inside ${vault?.name ?? 'this vault'}. Full company, source, contact and application details unlock with an active subscription for this Vault.`
                 : isSubscriber
-                ? 'Your active subscription gives you access to full opportunity details for unlocked vaults. Company names, sources, contacts and application links are visible where your subscription applies.'
-                : 'Continue to Vaults & Plans to identify which access level matches your geography and experience. If the preview is not useful to you right now, there is no need to subscribe.'}
+                  ? 'Your active subscription gives you access to full opportunity details for unlocked vaults. Company names, sources, contacts and application links are visible where your subscription applies.'
+                  : 'Continue to Vaults & Plans to identify which access level matches your geography and experience. If the preview is not useful to you right now, there is no need to subscribe.'}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href={vaultId ? `/vaults/${vaultId}` : '/vaults'}
                 className="inline-flex items-center gap-2 rounded-xl bg-brand-400 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2"
               >
-                {vaultId
-                  ? `Manage ${vault?.name ?? 'this Vault'} access`
-                  : 'View Vaults & Plans'}
+                {vaultId ? `Manage ${vault?.name ?? 'this Vault'} access` : 'View Vaults & Plans'}
                 <span aria-hidden="true">→</span>
               </Link>
               {vaultId && (

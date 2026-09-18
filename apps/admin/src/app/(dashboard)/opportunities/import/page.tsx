@@ -213,6 +213,9 @@ export default function ImportOpportunitiesPage() {
                                   row.fields?.minExperience
                                     ? `${row.fields.minExperience}+ yrs`
                                     : null,
+                                  row.fields?.qualification,
+                                  row.fields?.description,
+                                  row.fields?.howToApply,
                                 ]
                                   .filter(Boolean)
                                   .filter((x) => String(x).trim() !== '')

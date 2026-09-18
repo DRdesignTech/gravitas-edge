@@ -5,6 +5,106 @@ import { Opportunity, Vault } from '@/lib/types';
 import { Badge, AccessBadge, LockIcon } from '@/components/ui';
 import { titleCase, formatDate, displayExperience } from '@/lib/format';
 
+export interface ProtectedField {
+  label: string;
+  value: string | null | undefined;
+  isEmail?: boolean;
+}
+
+/**
+ * Website-side masking helper for display purposes.
+ * The API returns masked values (first/last char with stars), but we apply
+ * additional formatting for better display: text truncation, word-break,
+ * and email-like formatting for contact fields.
+ */
+export function formatMaskedValue(value: string | null | undefined, isEmail = false): string {
+  if (!value) return '';
+  // If the value already looks like it has email structure (contains @),
+  // preserve that structure but mask the local part and domain.
+  // Otherwise, return as-is (API already masked with first/last char).
+  if (isEmail && value.includes('@')) {
+    const [local, domain] = value.split('@');
+    const maskedLocal = local.length > 2 ? `${local[0]}${'*'.repeat(Math.min(local.length - 2, 6))}${local[local.length - 1]}` : local;
+    const domainParts = domain.split('.');
+    const maskedDomain = domainParts.map((part, i) => {
+      if (i === domainParts.length - 1) return part; // Keep TLD
+      return part.length > 2 ? `${part[0]}${'*'.repeat(Math.min(part.length - 2, 4))}${part[part.length - 1]}` : part;
+    }).join('.');
+    return `${maskedLocal}@${maskedDomain}`;
+  }
+  return value;
+}
+
+/**
+ * Protected opportunity fields (Qualification, Other Details, How to Apply —
+ * UI fields 7-9). When the user lacks Vault access the API returns these only
+ * as a masked `lockedPreview`; with access the full original values are shown.
+ * The masked values come pre-sanitized from the server — never from the client.
+ */
+export function ProtectedFields({
+  opportunity: o,
+  showLock = true,
+}: {
+  opportunity: Opportunity;
+  showLock?: boolean;
+}) {
+  const locked = !o.isFullAccess;
+
+  const rows: ProtectedField[] = locked
+    ? [
+        { label: 'Qualification', value: o.lockedPreview?.qualification },
+        { label: 'Other Details', value: o.lockedPreview?.otherDetails },
+        { label: 'How to Apply', value: o.lockedPreview?.howToApply, isEmail: true },
+        { label: 'Application Contact', value: o.lockedPreview?.applicationContact, isEmail: true },
+      ]
+    : [
+        { label: 'Qualification', value: o.qualification },
+        { label: 'Other Details', value: o.description },
+        { label: 'How to Apply', value: o.applicationUrl || o.applicationContact, isEmail: !o.applicationUrl && !!o.applicationContact },
+        { label: 'Application Contact', value: o.applicationContact, isEmail: true },
+      ];
+
+  return (
+    <dl className="space-y-2">
+      {rows.map((row) => {
+        if (row.value === null || row.value === undefined || row.value === '') {
+          if (!locked) return null;
+          return (
+            <div key={row.label} className="flex items-center justify-between gap-3">
+              <dt className="text-xs font-medium uppercase tracking-wider text-content-faint">
+                {row.label}
+              </dt>
+              <dd className="inline-flex items-center gap-1 text-sm italic text-content-faint">
+                {showLock && <LockIcon className="h-3.5 w-3.5" />}
+                Vault Access
+              </dd>
+            </div>
+          );
+        }
+        const displayValue = locked ? formatMaskedValue(row.value, row.isEmail) : row.value;
+        return (
+          <div key={row.label} className="flex items-baseline justify-between gap-3">
+            <dt className="shrink-0 text-xs font-medium uppercase tracking-wider text-content-faint">
+              {row.label}
+            </dt>
+            <dd className="flex min-w-0 items-center gap-1.5 text-right text-sm text-content truncate">
+              <span className={locked ? 'select-none text-content-faint truncate' : 'truncate'} style={{ maxWidth: '100%' }}>
+                {displayValue}
+              </span>
+              {locked && showLock && (
+                <LockIcon
+                  className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+                  aria-label={`${row.label} locked`}
+                />
+              )}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
+  );
+}
+
 export function OpportunityCard({
   opportunity: o,
   static: isStatic = false,
@@ -65,6 +165,12 @@ export function OpportunityCard({
             {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
           </MetaChip>
         </div>
+
+        {o.isPremium && (
+          <div className="mt-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/40 p-3 dark:border-amber-500/25 dark:bg-amber-500/5">
+            <ProtectedFields opportunity={o} />
+          </div>
+        )}
 
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
           <Badge variant="info">{titleCase(o.category)}</Badge>
@@ -377,12 +483,7 @@ export function SearchIcon({ className = 'h-5 w-5' }: { className?: string }) {
 
 export function SparkleIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
-    <svg
-      className={className}
-      fill="currentColor"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 2l1.1 5.5L18 9l-4.9 1.5L12 16l-1.1-5.5L6 9l4.9-1.5L12 2zm6.5 10l.6 2.9L22 15l-2.9.9L18.5 19l-.6-3.1L15 15l2.9-.9L18.5 12zM5.5 12l.6 2.9L9 15l-2.9.9L5.5 19l-.6-3.1L2 15l2.9-.9L5.5 12z" />
     </svg>
   );

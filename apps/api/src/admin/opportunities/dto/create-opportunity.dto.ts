@@ -24,6 +24,15 @@ export class CreateOpportunityDto {
   @MaxLength(5000)
   description?: string;
 
+  @ApiPropertyOptional({
+    example: 'B.Tech / BE / MCA',
+    description: 'Required qualification for the role',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  qualification?: string;
+
   @ApiPropertyOptional({ example: 'Acme Corp' })
   @IsOptional()
   @IsString()

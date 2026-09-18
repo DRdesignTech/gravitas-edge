@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { OpportunitiesService } from './opportunities.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
+import { maskProtectedValue } from '@job-portal/shared';
 
 function mockPrismaService() {
   return {
@@ -34,6 +35,7 @@ describe('OpportunitiesService', () => {
     id: 'opp-1',
     title: 'Senior Dev',
     description: 'Great role',
+    qualification: 'B.Tech',
     company: 'Acme',
     location: 'Bangalore',
     country: 'India',
@@ -112,8 +114,24 @@ describe('OpportunitiesService', () => {
       expect(result.items[0].isPremium).toBe(true);
       expect(result.items[0].isFullAccess).toBe(false);
       expect(result.items[0].description).toBeUndefined();
+      expect(result.items[0].qualification).toBeUndefined();
       expect(result.items[0].applicationContact).toBeUndefined();
       expect(result.items[0].vaults).toEqual([{ id: 'v-1', name: 'v-1', type: 'INDIA' }]);
+    });
+
+    it('returns masked lockedPreview teasers (never originals) for locked premium jobs', async () => {
+      access.getAccessibleVaultIds.mockResolvedValue([]);
+      prisma.opportunity.findMany.mockResolvedValue([premiumOpportunity(['v-1'])]);
+      prisma.opportunity.count.mockResolvedValue(1);
+
+      const result = await service.listForUser('user-1', { page: 1, limit: 20 });
+      const item = result.items[0];
+      const preview = item.lockedPreview;
+      expect(preview).toBeDefined();
+      expect(preview?.otherDetails).toBe(`G${'*'.repeat(8)}e`);
+      expect(preview?.qualification).toBe('B****h');
+      expect(preview?.howToApply).toBe(`h${'*'.repeat(20)}m`);
+      expect(preview?.applicationContact).toBe(`h${'*'.repeat(9)}m`);
     });
 
     it('does not apply vault restriction to the list query (teasers are returned)', async () => {
@@ -261,7 +279,9 @@ describe('OpportunitiesService', () => {
       expect(result.isPremium).toBe(true);
       expect(result.isFullAccess).toBe(true);
       expect(result.description).toBe('Great role');
+      expect(result.qualification).toBe('B.Tech');
       expect(result.applicationContact).toBe('hr@acme.com');
+      expect(result.lockedPreview).toBeUndefined();
       expect(result.vaults).toHaveLength(1);
     });
 
@@ -282,7 +302,13 @@ describe('OpportunitiesService', () => {
       expect(result.isFullAccess).toBe(false);
       expect(result.applicationContact).toBeUndefined();
       expect(result.applicationUrl).toBeUndefined();
+      expect(result.description).toBeUndefined();
       expect(result.source).toBeUndefined();
+      expect(result.lockedPreview).toBeDefined();
+      expect(result.lockedPreview?.qualification).toBe('B****h');
+      expect(result.lockedPreview?.otherDetails).toBe(`G${'*'.repeat(8)}e`);
+      expect(result.lockedPreview?.howToApply).toBe(`h${'*'.repeat(20)}m`);
+      expect(result.lockedPreview?.applicationContact).toBe(`h${'*'.repeat(9)}m`);
     });
 
     it('does not unlock a premium job from another vault (vault A sub vs vault B job)', async () => {
@@ -316,6 +342,28 @@ describe('OpportunitiesService', () => {
     it('throws NotFoundException for a nonexistent opportunity', async () => {
       prisma.opportunity.findFirst.mockResolvedValue(null);
       await expect(service.findOneForUser('bad-id', 'user-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('maskProtectedValue (shared utility)', () => {
+    it('preserves empty/null/undefined values', () => {
+      expect(maskProtectedValue(null)).toBeNull();
+      expect(maskProtectedValue(undefined)).toBeNull();
+      expect(maskProtectedValue('')).toBe('');
+    });
+
+    it('returns short values unchanged', () => {
+      expect(maskProtectedValue('A')).toBe('A');
+      expect(maskProtectedValue('AB')).toBe('AB');
+    });
+
+    it('masks the middle of longer values, keeping first and last character', () => {
+      expect(maskProtectedValue('Manager')).toBe('M*****r');
+      expect(maskProtectedValue('B.Tech')).toBe('B****h');
+      expect(maskProtectedValue('Recruitment Team')).toBe('R**************m');
+      expect(maskProtectedValue('Delhi')).toBe('D***i');
+      expect(maskProtectedValue('hr@acme.com')).toBe(`h${'*'.repeat(9)}m`);
+      expect(maskProtectedValue('https://apply.acme.com')).toBe(`h${'*'.repeat(20)}m`);
     });
   });
 });

@@ -48,6 +48,7 @@ export interface Opportunity {
   id: string;
   title: string;
   description?: string | null;
+  qualification?: string | null;
   company?: string | null;
   location?: string | null;
   country?: string | null;
@@ -71,6 +72,13 @@ export interface Opportunity {
   vaults?: Vault[];
   isPremium?: boolean;
   isFullAccess?: boolean;
+  /** Server-masked teaser of protected fields 7-9 for callers without Vault access. */
+  lockedPreview?: {
+    qualification: string | null;
+    otherDetails: string | null;
+    howToApply: string | null;
+    applicationContact: string | null;
+  };
 }
 
 export interface SubscriptionPlan {

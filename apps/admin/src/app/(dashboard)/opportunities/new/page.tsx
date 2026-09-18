@@ -26,6 +26,7 @@ import { getErrorMessage } from '@/lib/errors';
 interface FormState {
   title: string;
   description: string;
+  qualification: string;
   company: string;
   location: string;
   country: string;
@@ -56,6 +57,7 @@ export default function NewOpportunityPage() {
   const [form, setForm] = useState<FormState>({
     title: '',
     description: '',
+    qualification: '',
     company: '',
     location: '',
     country: '',
@@ -106,6 +108,7 @@ export default function NewOpportunityPage() {
       await adminCreateOpportunity({
         title: form.title,
         description: form.description || undefined,
+        qualification: form.qualification || undefined,
         company: form.company || undefined,
         location: form.location || undefined,
         country: form.country || undefined,
@@ -131,6 +134,7 @@ export default function NewOpportunityPage() {
         ...f,
         title: '',
         description: '',
+        qualification: '',
         company: '',
         location: '',
         country: '',
@@ -186,6 +190,11 @@ export default function NewOpportunityPage() {
               rows={3}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+            <Input
+              label="Qualification"
+              value={form.qualification}
+              onChange={(e) => setForm((f) => ({ ...f, qualification: e.target.value }))}
             />
             <div className="grid grid-cols-2 gap-4">
               <Input

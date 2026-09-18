@@ -10,12 +10,15 @@ import { PinIcon, BriefcaseIcon, LayersIcon, GlobeIcon } from '@/components/card
 import { formatDate, titleCase, displayExperience } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 
-function DetailRow({ label, value }: { label: string; value?: React.ReactNode }) {
+function DetailRow({ label, value, isEmail }: { label: string; value?: React.ReactNode; isEmail?: boolean }) {
   if (value === undefined || value === null || value === '') return null;
+  const stringValue = typeof value === 'string' ? value : String(value);
+  // For locked preview masked values, apply email-aware formatting if needed
+  const displayValue = isEmail && stringValue.includes('@') ? stringValue : stringValue;
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-0.5 min-w-0">
       <dt className="text-xs font-medium uppercase tracking-wider text-content-faint">{label}</dt>
-      <dd className="mt-0.5 text-sm text-content">{value}</dd>
+      <dd className="mt-0.5 text-sm text-content truncate max-w-full break-words overflow-hidden">{displayValue}</dd>
     </div>
   );
 }
@@ -157,13 +160,14 @@ export default function OpportunityPage() {
           {o.employmentType && (
             <DetailRow label="Employment type" value={titleCase(o.employmentType)} />
           )}
+          {o.qualification && <DetailRow label="Qualification" value={o.qualification} />}
           <DetailRow label="Published" value={formatDate(o.publishedDate)} />
           <DetailRow label="Expires" value={formatDate(o.expiryDate)} />
         </dl>
       </Card>
 
       {o.isFullAccess === false ? (
-        /* Subscription gate */
+        /* Subscription gate — fields 7-9 shown as safe masked teasers */
         <Card className="mt-6 border-brand-200 bg-brand-50/50 dark:border-brand-800 dark:bg-brand-950/30">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-brand-600 dark:bg-brand-950 dark:text-brand-300">
@@ -172,13 +176,25 @@ export default function OpportunityPage() {
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-content">Full job details locked</h2>
               <p className="mt-1 text-sm text-content-muted">
-                Subscribe to unlock the complete opportunity information — including the full
-                description and direct hiring contact.
+                Qualification, other details and how to apply for this role unlock with the relevant
+                Vault access. What you see below is a masked preview — no original details are
+                revealed.
               </p>
             </div>
             <Link href="/plans" className="shrink-0 sm:ml-auto">
               <Button>Unlock Full Access</Button>
             </Link>
+          </div>
+
+          <div className="mt-6 grid gap-x-8 gap-y-4 border-t border-line pt-6 sm:grid-cols-2">
+            {o.lockedPreview && (
+              <>
+                <DetailRow label="Qualification" value={o.lockedPreview.qualification} />
+                <DetailRow label="Other Details" value={o.lockedPreview.otherDetails} />
+                <DetailRow label="How to Apply" value={o.lockedPreview.howToApply} isEmail={true} />
+                <DetailRow label="Application Contact" value={o.lockedPreview.applicationContact} isEmail={true} />
+              </>
+            )}
           </div>
         </Card>
       ) : (

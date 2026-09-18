@@ -147,6 +147,7 @@ export class AdminOpportunitiesService {
     const data: Prisma.OpportunityCreateInput = {
       title: dto.title,
       description: dto.description ?? null,
+      qualification: dto.qualification ?? null,
       company: dto.company ?? null,
       location: dto.location ?? null,
       country: dto.country ?? null,
@@ -233,6 +234,7 @@ export class AdminOpportunitiesService {
 
     if (dto.title !== undefined) data.title = dto.title;
     if (dto.description !== undefined) data.description = dto.description;
+    if (dto.qualification !== undefined) data.qualification = dto.qualification;
     if (dto.company !== undefined) data.company = dto.company;
     if (dto.location !== undefined) data.location = dto.location;
     if (dto.country !== undefined) data.country = dto.country;
@@ -621,6 +623,7 @@ export class AdminOpportunitiesService {
     const data: Prisma.OpportunityCreateInput = {
       title: fields.title!.trim(),
       description: fields.description?.trim() || null,
+      qualification: fields.qualification?.trim() || null,
       company: fields.company?.trim() || null,
       location: fields.location?.trim() || null,
       country: fields.country?.trim() || null,
@@ -647,6 +650,8 @@ export class AdminOpportunitiesService {
 
     const preview: Record<string, unknown> = {
       title: data.title,
+      description: data.description,
+      qualification: data.qualification,
       company: data.company,
       location: data.location,
       country: data.country,

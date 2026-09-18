@@ -215,13 +215,9 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    const throwingResponse = (e: unknown) =>
-      (e as any)?.getResponse?.() ?? (e as any).response;
+    const throwingResponse = (e: unknown) => (e as any)?.getResponse?.() ?? (e as any).response;
 
-    async function expectLoginCode(
-      dto: Parameters<AuthService['login']>[0],
-      expectedCode: string,
-    ) {
+    async function expectLoginCode(dto: Parameters<AuthService['login']>[0], expectedCode: string) {
       try {
         await service.login(dto, 'ip');
       } catch (e) {

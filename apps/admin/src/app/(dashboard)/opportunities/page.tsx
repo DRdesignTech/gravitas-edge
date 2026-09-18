@@ -123,6 +123,7 @@ function ViewToggle({
 interface FormState {
   title: string;
   description: string;
+  qualification: string;
   company: string;
   location: string;
   country: string;
@@ -147,6 +148,7 @@ interface FormState {
 const emptyForm: FormState = {
   title: '',
   description: '',
+  qualification: '',
   company: '',
   location: '',
   country: '',
@@ -232,6 +234,7 @@ export default function OpportunitiesPage() {
     setForm({
       title: o.title,
       description: o.description ?? '',
+      qualification: o.qualification ?? '',
       company: o.company ?? '',
       location: o.location ?? '',
       country: o.country ?? '',
@@ -261,6 +264,7 @@ export default function OpportunitiesPage() {
       const body = {
         title: form.title,
         description: form.description || undefined,
+        qualification: form.qualification || undefined,
         company: form.company || undefined,
         location: form.location || undefined,
         country: form.country || undefined,
@@ -371,6 +375,11 @@ export default function OpportunitiesPage() {
           {experienceLabel(o.minExperience, o.maxExperience)}
         </span>
       ),
+    },
+    {
+      key: 'qualification',
+      label: 'Qualification',
+      render: (o) => <span className="text-content-muted">{o.qualification || '—'}</span>,
     },
     {
       key: 'status',
@@ -521,7 +530,9 @@ export default function OpportunitiesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-semibold text-content">{o.title}</h3>
-                      {o.externalRef && <p className="mt-0.5 text-xs text-content-faint">{o.externalRef}</p>}
+                      {o.externalRef && (
+                        <p className="mt-0.5 text-xs text-content-faint">{o.externalRef}</p>
+                      )}
                     </div>
                     <Badge variant={oppStatusVariant(o.status)}>{o.status}</Badge>
                   </div>
@@ -552,9 +563,17 @@ export default function OpportunitiesPage() {
                         {experienceLabel(o.minExperience, o.maxExperience)}
                       </dd>
                     </div>
+                    {o.qualification && (
+                      <div className="flex items-baseline justify-between gap-3">
+                        <dt>Qualification</dt>
+                        <dd className="truncate text-content">{o.qualification}</dd>
+                      </div>
+                    )}
                     <div className="flex items-baseline justify-between gap-3">
                       <dt>Published</dt>
-                      <dd className="whitespace-nowrap text-content">{formatDate(o.publishedDate)}</dd>
+                      <dd className="whitespace-nowrap text-content">
+                        {formatDate(o.publishedDate)}
+                      </dd>
                     </div>
                   </dl>
                   <div className="mt-auto flex items-center justify-end gap-2 border-t border-line pt-4">
@@ -614,6 +633,11 @@ export default function OpportunitiesPage() {
             rows={3}
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+          />
+          <Input
+            label="Qualification"
+            value={form.qualification}
+            onChange={(e) => setForm((f) => ({ ...f, qualification: e.target.value }))}
           />
           <div className="grid grid-cols-2 gap-4">
             <Input

@@ -92,7 +92,7 @@ export default function WhatsAppChannel({
   note,
 }: WhatsAppChannelProps) {
   return (
-    <div className="relative rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/80 to-emerald-50/40 p-7 shadow-[0_28px_90px_-40px_rgba(16,185,129,0.55)] sm:p-10 lg:rounded-[2.5rem] lg:p-14 dark:border-emerald-500/25 dark:from-[#0B1A14] dark:via-emerald-950/40 dark:to-[#0B1A14] dark:shadow-[0_28px_90px_-40px_rgba(0,0,0,0.7)]">
+    <div className="relative overflow-hidden lg:overflow-visible rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/80 to-emerald-50/40 p-7 shadow-[0_28px_90px_-40px_rgba(16,185,129,0.55)] sm:p-10 lg:rounded-[2.5rem] lg:p-14 dark:border-emerald-500/25 dark:from-[#0B1A14] dark:via-emerald-950/40 dark:to-[#0B1A14] dark:shadow-[0_28px_90px_-40px_rgba(0,0,0,0.7)]">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-emerald-100/80 blur-3xl dark:bg-emerald-700/15"
@@ -131,18 +131,18 @@ export default function WhatsAppChannel({
             {description}
           </p>
 
-          <ul className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <ul className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-4">
             {benefits.map((benefit) => {
               const Icon = benefit.icon;
               return (
                 <li
                   key={benefit.label}
-                  className="flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-white/80 px-3 py-2.5 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/[0.07]"
+                  className="flex items-center gap-1 rounded-xl border border-emerald-100 bg-white/80 px-1.5 py-1.5 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/[0.07]"
                 >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
-                    <Icon className="h-4 w-4" />
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                    <Icon className="h-3.5 w-3.5" />
                   </span>
-                  <span className="text-xs font-semibold leading-tight text-[#0A1730] sm:text-sm dark:text-slate-100">
+                  <span className="text-[11px] font-semibold leading-tight text-[#0A1730] sm:text-xs dark:text-slate-100">
                     {benefit.label}
                   </span>
                 </li>
@@ -153,7 +153,7 @@ export default function WhatsAppChannel({
 
         <div className="relative">
           <div className="relative mx-auto w-full max-w-[250px] lg:max-w-[265px]">
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10">
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 hidden lg:block">
               {floatingBadges.map((badge) => {
                 const Icon = badge.icon;
                 return (
@@ -168,7 +168,7 @@ export default function WhatsAppChannel({
               })}
             </div>
 
-            <div className="relative w-full rounded-[2.4rem] border-[6px] border-[#0B2A20] bg-white shadow-2xl dark:shadow-black/60">
+            <div className="relative w-full rounded-[2.4rem] border-[6px] border-[#0B2A20] bg-white shadow-2xl dark:shadow-black/60 overflow-hidden">
               <div className="flex items-center justify-between gap-2 rounded-t-[1.95rem] bg-[#075E54] px-3 py-2.5">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#128C7E]">
@@ -192,13 +192,13 @@ export default function WhatsAppChannel({
                     <p className="text-[8px] font-bold uppercase tracking-wide text-[#128C7E]">
                       Opportunity Updates
                     </p>
-                    <p className="mt-0.5 text-[11px] leading-snug text-slate-700">
+                    <p className="mt-0.5 text-[11px] leading-snug text-slate-700 break-words">
                       Selected opportunity updates, shared as they are sourced.
                     </p>
                   </div>
                 </div>
                 <div className="flex justify-end">
-                  <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[#DCF8C6] px-3 py-2 text-[11px] leading-snug text-slate-800 shadow-sm">
+                  <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[#DCF8C6] px-3 py-2 text-[11px] leading-snug text-slate-800 shadow-sm break-words">
                     New or updated application routes as they become available.
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export default function WhatsAppChannel({
                     <p className="text-[8px] font-bold uppercase tracking-wide text-[#128C7E]">
                       Vault Activity
                     </p>
-                    <p className="mt-0.5 text-[11px] leading-snug text-slate-700">
+                    <p className="mt-0.5 text-[11px] leading-snug text-slate-700 break-words">
                       Vault activity and additions, posted here.
                     </p>
                   </div>

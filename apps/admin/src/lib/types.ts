@@ -67,7 +67,14 @@ export interface AdminSubscription {
   id: string;
   userId: string;
   user?: { id: string; email: string };
-  plan?: { id: string; name: string; price: number; regularPrice?: number; discountPercentage?: number; currency: string } | null;
+  plan?: {
+    id: string;
+    name: string;
+    price: number;
+    regularPrice?: number;
+    discountPercentage?: number;
+    currency: string;
+  } | null;
   status: string;
   effectiveStatus?: string;
   startDate: string;
@@ -81,6 +88,7 @@ export interface Opportunity {
   id: string;
   title: string;
   description?: string | null;
+  qualification?: string | null;
   company?: string | null;
   location?: string | null;
   country?: string | null;
