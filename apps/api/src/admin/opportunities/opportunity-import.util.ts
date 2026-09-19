@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import * as XLSX from 'xlsx';
 
 export interface ParsedRow {
@@ -136,45 +135,177 @@ export function findHeaderRow(
   return null;
 }
 
-export function selectSheetName(
-  workbook: XLSX.WorkBook,
-  vaultName: string,
-  fileExt: string,
-): string {
-  if (fileExt === 'csv') {
-    if (!workbook.SheetNames.length) {
-      throw new BadRequestException('File contains no sheets');
+export interface VaultRef {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export type SheetMatchResult =
+  | { status: 'matched'; vault: VaultRef; confidence: number }
+  | { status: 'ambiguous'; candidates: VaultRef[]; confidence: number }
+  | { status: 'unmatched'; confidence: number };
+
+/**
+ * Words that add no identifying meaning when comparing a sheet name with a
+ * vault name (e.g. "Remote Access Vault" vs "Remote Access").
+ */
+const GENERIC_VAULT_WORDS = new Set([
+  'vault',
+  'vaults',
+  'access',
+  'accesses',
+  'opportunity',
+  'opportunities',
+  'job',
+  'jobs',
+  'board',
+  'and',
+  'or',
+  'the',
+  'at',
+  'in',
+  'for',
+  'of',
+]);
+
+/**
+ * Lower-cases a vault/sheet name, expands "&" to "and", collapses punctuation
+ * (hyphens, underscores, slashes) and whitespace into single spaces.
+ */
+export function normalizeVaultText(value: string): string {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * The meaningful identity tokens of a sheet or vault name, excluding generic
+ * filler words such as "vault", "access", "&"/"and".
+ */
+export function meaningfulTokens(value: string): string[] {
+  return normalizeVaultText(value)
+    .split(/\s+/)
+    .filter((w) => w.length > 0 && !GENERIC_VAULT_WORDS.has(w));
+}
+
+export function isJobSheet(workbook: XLSX.WorkBook, sheetName: string): boolean {
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+    header: 1,
+    defval: null,
+    raw: true,
+  }) as unknown[][];
+  return findHeaderRow(rows) !== null;
+}
+
+export function listJobSheets(workbook: XLSX.WorkBook): {
+  jobSheets: string[];
+  metaSheets: string[];
+} {
+  const jobSheets: string[] = [];
+  const metaSheets: string[] = [];
+  for (const name of workbook.SheetNames) {
+    if (isJobSheet(workbook, name)) jobSheets.push(name);
+    else metaSheets.push(name);
+  }
+  return { jobSheets, metaSheets };
+}
+
+/**
+ * Matches a sheet name to a vault using normalized meaningful tokens.
+ *
+ * - Case-insensitive, ignores "vault"/"access"/"&"/punctuation/spacing.
+ * - Requires a strong overlap (the sheet's meaningful tokens must mostly be
+ *   contained within the vault name).
+ * - Never falls back to substring guessing: if several vaults tie it is
+ *   reported as ambiguous so the caller can skip instead of picking blindly.
+ */
+export function matchSheetToVault(sheetName: string, vaults: VaultRef[]): SheetMatchResult {
+  const sheetTokens = meaningfulTokens(sheetName);
+  if (vaults.length === 0 || sheetTokens.length === 0) {
+    return { status: 'unmatched', confidence: 0 };
+  }
+
+  const sheetNorm = normalizeVaultText(sheetName);
+
+  interface Candidate {
+    vault: VaultRef;
+    sheetCover: number;
+    vaultCover: number;
+    similarity: number;
+    exact: boolean;
+    overlap: number;
+  }
+
+  const candidates: Candidate[] = [];
+  for (const vault of vaults) {
+    const vaultTokens = meaningfulTokens(vault.name);
+    const vaultNorm = normalizeVaultText(vault.name);
+    const vaultSet = new Set(vaultTokens);
+
+    let overlap = 0;
+    for (const token of sheetTokens) {
+      if (vaultSet.has(token)) overlap++;
     }
-    return workbook.SheetNames[0];
+    if (overlap === 0) continue;
+
+    const sheetCover = overlap / sheetTokens.length;
+    const vaultCover = overlap / (vaultTokens.length || 1);
+
+    // The sheet's meaningful keywords must be largely covered by the vault.
+    // A single-token sheet (e.g. "Executive") still requires that token to be
+    // part of the vault, which prevents accidental prefix/substring matches.
+    if (sheetCover < 0.5) continue;
+
+    const exact = vaultNorm === sheetNorm;
+    const similarity = exact ? 1 : sheetCover * vaultCover;
+    candidates.push({ vault, sheetCover, vaultCover, similarity, exact, overlap });
   }
 
-  const jobSheets = workbook.SheetNames.filter((name) => {
-    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[name], {
-      header: 1,
-      defval: null,
-      raw: true,
-    }) as unknown[][];
-    return findHeaderRow(rows) !== null;
-  });
-
-  if (jobSheets.length === 0) {
-    throw new BadRequestException(
-      'No job sheet found in the workbook (a job sheet needs a header row with columns like Role, Salary, Location, Experience)',
-    );
+  if (candidates.length === 0) {
+    return { status: 'unmatched', confidence: 0 };
   }
 
-  if (jobSheets.length === 1) {
-    return jobSheets[0];
+  candidates.sort(
+    (a, b) =>
+      b.similarity - a.similarity ||
+      Number(b.exact) - Number(a.exact) ||
+      b.overlap - a.overlap ||
+      a.vault.name.localeCompare(b.vault.name),
+  );
+
+  const top = candidates[0];
+  const runnerUp = candidates[1];
+
+  const clearWinner =
+    runnerUp === undefined ||
+    top.similarity > runnerUp.similarity + 1e-9 ||
+    (top.exact && !runnerUp.exact && top.overlap >= runnerUp.overlap);
+
+  if (clearWinner) {
+    return { status: 'matched', vault: top.vault, confidence: top.similarity };
   }
 
-  const target = vaultName.trim().toLowerCase();
-  const match = jobSheets.find((name) => name.trim().toLowerCase() === target);
-  if (!match) {
-    throw new BadRequestException(
-      `Workbook contains ${jobSheets.length} job sheets (${jobSheets.join(', ')}) but none exactly matches the selected vault "${vaultName}". Rename the vault to match a sheet name or import a file with a single job sheet.`,
-    );
+  return {
+    status: 'ambiguous',
+    candidates: candidates.map((c) => c.vault),
+    confidence: top.similarity,
+  };
+}
+
+export function describeSheetMatchFailure(
+  sheetName: string,
+  result: Extract<SheetMatchResult, { status: 'unmatched' | 'ambiguous' }>,
+): string {
+  if (result.status === 'ambiguous') {
+    const names = result.candidates.map((c) => `"${c.name}"`).join(', ');
+    return `Sheet "${sheetName}" matches multiple vaults (${names}). Please rename the sheet or import it individually into a specific vault.`;
   }
-  return match;
+  return `Could not find a matching vault for sheet "${sheetName}". No opportunity data from this sheet will be imported.`;
 }
 
 export function parseSheetRows(ws: XLSX.WorkSheet): ParsedRow[] {

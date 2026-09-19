@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminPreviewImport, adminImportOpportunities, adminListVaults } from '@/lib/services';
-import { Vault, ImportPreviewRow } from '@/lib/types';
+import {
+  Vault,
+  ImportPreviewRow,
+  ImportPreviewResponse,
+  ImportPreviewSheet,
+  ImportSheetSelection,
+} from '@/lib/types';
 import {
   Alert,
   Badge,
@@ -24,14 +30,11 @@ export default function ImportOpportunitiesPage() {
   const [vaultId, setVaultId] = useState('');
   const [defaultStatus, setDefaultStatus] = useState('PUBLISHED');
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<{
-    sheetName: string;
-    summary: { total: number; valid: number; invalid: number; duplicate: number; skipped: number };
-    rows: ImportPreviewRow[];
-  } | null>(null);
+  const [preview, setPreview] = useState<ImportPreviewResponse | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
+  const [edits, setEdits] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     adminListVaults({ page: 1, limit: 100 })
@@ -45,11 +48,12 @@ export default function ImportOpportunitiesPage() {
     setError('');
     try {
       const res = await adminPreviewImport(file, vaultId, defaultStatus);
-      setPreview({
-        sheetName: res.sheetName,
-        summary: res.summary,
-        rows: res.rows,
-      });
+      setPreview(res);
+      const initial: Record<string, boolean> = {};
+      for (const sheet of res.sheets) {
+        initial[sheet.sheetName] = sheet.matchStatus === 'matched';
+      }
+      setEdits(initial);
     } catch (e) {
       setError(getErrorMessage(e));
       setPreview(null);
@@ -63,12 +67,19 @@ export default function ImportOpportunitiesPage() {
     setImporting(true);
     setError('');
     try {
-      const res = await adminImportOpportunities(file, vaultId, defaultStatus);
+      const selections: ImportSheetSelection[] = (preview?.sheets ?? [])
+        .filter((s) => s.matchStatus !== 'meta')
+        .map((s) => ({
+          sheetName: s.sheetName,
+          include: edits[s.sheetName] ?? s.matchStatus === 'matched',
+        }));
+      const res = await adminImportOpportunities(file, vaultId, defaultStatus, selections);
       showToast(
         `Imported ${res.imported}, failed ${res.failed}, skipped ${res.skipped}`,
         'success',
       );
       setPreview(null);
+      setEdits({});
       setFile(null);
     } catch (e) {
       setError(getErrorMessage(e));
@@ -87,6 +98,38 @@ export default function ImportOpportunitiesPage() {
         : c === 'INVALID'
           ? 'danger'
           : 'neutral';
+
+  const sheetStatusVariant = (
+    s: ImportPreviewSheet,
+  ): 'success' | 'danger' | 'warning' | 'neutral' =>
+    s.status === 'IMPORTED' ? 'success' : s.status === 'EMPTY' ? 'neutral' : 'danger';
+
+  const isIncluded = (sheetName: string): boolean => edits[sheetName] ?? false;
+
+  const editableSheets = preview?.sheets ?? [];
+  const importableValid = editableSheets.reduce(
+    (n, s) => n + (isIncluded(s.sheetName) ? s.summary.valid : 0),
+    0,
+  );
+  const includedEmpty = editableSheets.some(
+    (s) => isIncluded(s.sheetName) && s.summary.valid === 0,
+  );
+
+  const rowDetail = (row: ImportPreviewRow): string =>
+    row.classification === 'VALID'
+      ? [
+          row.fields?.location,
+          row.fields?.industry,
+          row.fields?.salary,
+          row.fields?.minExperience ? `${row.fields.minExperience}+ yrs` : null,
+          row.fields?.qualification,
+          row.fields?.description,
+          row.fields?.howToApply,
+        ]
+          .filter(Boolean)
+          .filter((x) => String(x).trim() !== '')
+          .join(' · ')
+      : (row.reason ?? '');
 
   return (
     <div>
@@ -110,6 +153,7 @@ export default function ImportOpportunitiesPage() {
               onChange={(e) => {
                 setVaultId(e.target.value);
                 setPreview(null);
+                setEdits({});
               }}
               options={vaults.map((v) => ({ value: v.id, label: v.name }))}
             />
@@ -119,6 +163,7 @@ export default function ImportOpportunitiesPage() {
               onChange={(e) => {
                 setDefaultStatus(e.target.value);
                 setPreview(null);
+                setEdits({});
               }}
               options={OPPORTUNITY_STATUSES.filter((s) => s !== 'ARCHIVED' && s !== 'EXPIRED').map(
                 (s) => ({ value: s, label: titleCase(s) }),
@@ -133,13 +178,17 @@ export default function ImportOpportunitiesPage() {
                 onChange={(e) => {
                   setFile(e.target.files?.[0] || null);
                   setPreview(null);
+                  setEdits({});
                 }}
               />
             </div>
             <p className="text-xs leading-relaxed text-content-muted">
-              For a multi-sheet Excel workbook, the sheet whose name matches the selected vault is
-              imported. Rows marked &quot;remove from the vault&quot; are skipped, and empty rows
-              are ignored. Latest 500 rows are processed.
+              For a multi-sheet Excel workbook, each job sheet is matched to a vault using its name.
+              A sheet whose keywords match a vault is imported into that vault; sheets that cannot
+              be matched (or match multiple vaults) are skipped with an explanation. A single-sheet
+              workbook is imported into the selected destination vault. Rows marked &quot;remove
+              from the vault&quot; are skipped, and empty rows are ignored. Latest 500 rows per
+              sheet are processed.
             </p>
             {error && <Alert variant="error">{error}</Alert>}
             <Button
@@ -158,7 +207,7 @@ export default function ImportOpportunitiesPage() {
             <Skeleton className="h-80 rounded-2xl" />
           ) : preview ? (
             <>
-              <Card title={`Previewing “${preview.sheetName}”`}>
+              <Card title="Import preview">
                 <div className="grid grid-cols-4 gap-3">
                   <div className="rounded-lg bg-surface-muted p-4 text-center dark:bg-line/30">
                     <p className="text-2xl font-bold">{preview.summary.total}</p>
@@ -180,58 +229,138 @@ export default function ImportOpportunitiesPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 max-h-[420px] overflow-y-auto rounded-xl border border-line">
-                  <table className="min-w-full divide-y divide-line text-sm">
-                    <thead className="sticky top-0 bg-surface-muted dark:bg-surface">
-                      <tr>
-                        {['Row', 'Result', 'Title', 'Detail'].map((h) => (
-                          <th
-                            key={h}
-                            className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-content-muted"
-                          >
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-line">
-                      {preview.rows.map((row) => (
-                        <tr key={row.excelRow}>
-                          <td className="px-4 py-2 text-content-muted">{row.excelRow}</td>
-                          <td className="px-4 py-2">
-                            <Badge variant={classificationVariant(row.classification)}>
-                              {row.classification}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-2 font-medium text-content">{row.title || '—'}</td>
-                          <td className="px-4 py-2 text-content-muted">
-                            {row.classification === 'VALID'
-                              ? [
-                                  row.fields?.location,
-                                  row.fields?.industry,
-                                  row.fields?.salary,
-                                  row.fields?.minExperience
-                                    ? `${row.fields.minExperience}+ yrs`
-                                    : null,
-                                  row.fields?.qualification,
-                                  row.fields?.description,
-                                  row.fields?.howToApply,
-                                ]
-                                  .filter(Boolean)
-                                  .filter((x) => String(x).trim() !== '')
-                                  .join(' · ')
-                              : row.reason}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="mt-5">
+                  <h3 className="mb-2 text-sm font-semibold text-content">Sheets & vaults</h3>
+                  <p className="mb-3 text-xs text-content-muted">
+                    Tick the sheets you want to import — each imports into its matched vault. Untick
+                    any sheet to skip it, so you can import only the vaults you need. Sheets without
+                    a matching vault cannot be imported.
+                  </p>
+                  <ul className="space-y-2">
+                    {editableSheets.map((sheet) => {
+                      const included = isIncluded(sheet.sheetName);
+                      const isMeta = sheet.matchStatus === 'meta';
+                      const canImport = sheet.matchStatus === 'matched' && Boolean(sheet.vault);
+                      return (
+                        <li key={sheet.sheetName} className="rounded-lg border border-line p-3">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <label className="flex cursor-pointer items-center gap-2">
+                              <input
+                                type="checkbox"
+                                disabled={!canImport}
+                                checked={included}
+                                onChange={(e) =>
+                                  setEdits((prev) => ({
+                                    ...prev,
+                                    [sheet.sheetName]: e.target.checked,
+                                  }))
+                                }
+                                className="h-4 w-4 accent-emerald-600 disabled:cursor-not-allowed disabled:opacity-40"
+                              />
+                              <span className="text-sm font-medium text-content">
+                                {sheet.sheetName}
+                              </span>
+                            </label>
+                            <Badge variant={sheetStatusVariant(sheet)}>{sheet.matchStatus}</Badge>
+                            <span className="text-xs text-content-muted">
+                              {isMeta
+                                ? 'no job data'
+                                : `${sheet.summary.total} rows · ${sheet.summary.valid} valid`}
+                            </span>
+                            {canImport && sheet.vault && (
+                              <span className="ml-auto text-xs text-content-muted">
+                                → {sheet.vault.name}
+                              </span>
+                            )}
+                          </div>
+                          {(!included || !canImport) && sheet.reason && (
+                            <p className="mt-1.5 text-xs text-content-muted">{sheet.reason}</p>
+                          )}
+                          {canImport && !included && (
+                            <p className="mt-1.5 text-xs text-content-muted">
+                              Excluded — this sheet will not be imported.
+                            </p>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                <div className="mt-5 space-y-5">
+                  {editableSheets.map((sheet) =>
+                    sheet.status === 'IMPORTED' ? (
+                      <div key={sheet.sheetName}>
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <h4 className="text-sm font-semibold text-content">
+                            {sheet.sheetName}
+                            {sheet.vault ? (
+                              <span className="ml-2 font-normal text-content-muted">
+                                → {sheet.vault.name}
+                              </span>
+                            ) : null}
+                          </h4>
+                          <span className="text-xs text-content-muted">
+                            {sheet.summary.total} rows
+                          </span>
+                        </div>
+                        <div className="max-h-[420px] overflow-y-auto rounded-xl border border-line">
+                          <table className="min-w-full divide-y divide-line text-sm">
+                            <thead className="sticky top-0 bg-surface-muted dark:bg-surface">
+                              <tr>
+                                {['Row', 'Result', 'Title', 'Detail'].map((h) => (
+                                  <th
+                                    key={h}
+                                    className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-content-muted"
+                                  >
+                                    {h}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-line">
+                              {sheet.rows.map((row) => (
+                                <tr key={`${sheet.sheetName}-${row.excelRow}`}>
+                                  <td className="px-4 py-2 text-content-muted">{row.excelRow}</td>
+                                  <td className="px-4 py-2">
+                                    <Badge variant={classificationVariant(row.classification)}>
+                                      {row.classification}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-2 font-medium text-content">
+                                    {row.title || '—'}
+                                  </td>
+                                  <td className="px-4 py-2 text-content-muted">{rowDetail(row)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={sheet.sheetName} className="rounded-lg border border-line p-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold text-content">{sheet.sheetName}</h4>
+                          <Badge variant={sheetStatusVariant(sheet)}>{sheet.status}</Badge>
+                        </div>
+                        {sheet.reason && (
+                          <p className="mt-1 text-xs text-content-muted">{sheet.reason}</p>
+                        )}
+                      </div>
+                    ),
+                  )}
                 </div>
 
                 <div className="mt-5 flex items-center justify-between gap-3">
                   <p className="text-xs text-content-muted">
-                    Valid rows will be imported, invalid and duplicate rows will be skipped. This
-                    action is logged to the audit trail.
+                    Valid rows from the ticked sheets will be imported into their matched vaults.
+                    Unticked sheets and invalid/duplicate rows are skipped. This action is logged to
+                    the audit trail.
+                    {includedEmpty && (
+                      <span className="mt-1 block text-amber-700">
+                        One or more ticked sheets have no valid rows and will import nothing.
+                      </span>
+                    )}
                   </p>
                   <div className="flex gap-2">
                     <Button variant="secondary" onClick={runPreview} loading={analyzing}>
@@ -240,9 +369,9 @@ export default function ImportOpportunitiesPage() {
                     <Button
                       onClick={runImport}
                       loading={importing}
-                      disabled={preview.summary.valid === 0}
+                      disabled={importableValid === 0}
                     >
-                      Confirm & import ({preview.summary.valid})
+                      Confirm & import ({importableValid})
                     </Button>
                   </div>
                 </div>

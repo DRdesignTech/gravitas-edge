@@ -11,13 +11,16 @@ import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { QueryOpportunitiesDto } from './dto/query-opportunities.dto';
 import {
+  describeSheetMatchFailure,
   isBlankRow,
+  listJobSheets,
+  matchSheetToVault,
   parseCsvRows,
   parseDateCell,
   parseExperience,
   parseSheetRows,
   ParsedRow,
-  selectSheetName,
+  VaultRef,
 } from './opportunity-import.util';
 
 const IMPORT_LIMIT = 500;
@@ -38,13 +41,48 @@ const EMPLOYMENT_TYPE_VALUES = [
 
 type ImportClassification = 'VALID' | 'INVALID' | 'DUPLICATE' | 'SKIPPED';
 
-interface ImportAnalysisRow {
+export type SheetMatchStatus = 'matched' | 'unmatched' | 'ambiguous' | 'meta';
+
+export interface ImportSummary {
+  total: number;
+  valid: number;
+  invalid: number;
+  duplicate: number;
+  skipped: number;
+}
+
+export interface ImportAnalysisRow {
   excelRow: number;
   classification: ImportClassification;
   title?: string | null;
   reason?: string;
   data?: Prisma.OpportunityCreateInput;
   dataPreview?: Record<string, unknown> | null;
+}
+
+interface ParsedSheet {
+  sheetName: string;
+  rows: ParsedRow[];
+  vault: VaultRef | null;
+  matchStatus: SheetMatchStatus;
+  matchReason: string | null;
+}
+
+export type SheetAnalysisState = 'IMPORTED' | 'EMPTY' | 'SKIPPED';
+
+export interface SheetAnalysis {
+  sheetName: string;
+  state: SheetAnalysisState;
+  matchStatus: SheetMatchStatus;
+  vault: VaultRef | null;
+  reason: string | null;
+  summary: ImportSummary;
+  rows: ImportAnalysisRow[];
+}
+
+export interface SheetSelection {
+  sheetName: string;
+  include: boolean;
 }
 
 @Injectable()
@@ -352,19 +390,41 @@ export class AdminOpportunitiesService {
     adminUserId: string,
     ipAddress?: string,
     defaultStatus: OpportunityStatus = 'PUBLISHED',
+    selections?: SheetSelection[],
   ): Promise<{
     imported: number;
     failed: number;
     skipped: number;
     errors: Array<{ row: number; title?: string; error: string }>;
+    sheets: Array<{
+      sheetName: string;
+      vaultName: string;
+      imported: number;
+      failed: number;
+      skipped: number;
+    }>;
   }> {
     if (!file) {
       throw new BadRequestException('A file is required');
     }
-    const vault = await this.resolveVault(vaultId);
+    const selectedVault = await this.resolveVault(vaultId);
     const effectiveStatus = (this.parseEnum(defaultStatus, STATUS_VALUES, 'PUBLISHED') ??
       'PUBLISHED') as OpportunityStatus;
-    const analysis = await this.analyze(file, vault, adminUserId, effectiveStatus);
+    const allVaults = await this.vaultCandidates(selectedVault);
+    const parsed = await this.parseSheets(file, selectedVault, allVaults);
+    this.validateSelections(selections, parsed);
+    const sheetAnalyses = await this.analyzeSheets(
+      parsed.sheets,
+      adminUserId,
+      effectiveStatus,
+      selections,
+    );
+
+    const importable = sheetAnalyses.filter((s) => s.state === 'IMPORTED');
+    const totalValid = importable.reduce((sum, s) => sum + s.summary.valid, 0);
+    if (totalValid === 0) {
+      throw new BadRequestException(this.describeNoImportableSheets(parsed.sheets, sheetAnalyses));
+    }
 
     const results = {
       imported: 0,
@@ -372,26 +432,48 @@ export class AdminOpportunitiesService {
       skipped: 0,
       errors: [] as Array<{ row: number; title?: string; error: string }>,
     };
+    const sheetResults: Array<{
+      sheetName: string;
+      vaultName: string;
+      imported: number;
+      failed: number;
+      skipped: number;
+    }> = [];
 
-    for (const row of analysis.rows) {
-      if (row.classification === 'INVALID' || row.classification === 'DUPLICATE') {
-        results.failed++;
-        results.errors.push({
-          row: row.excelRow,
-          title: row.title ?? undefined,
-          error: row.reason ?? 'Invalid row',
-        });
+    for (const analysis of importable) {
+      const vault = analysis.vault!;
+      const sheetResult = {
+        sheetName: analysis.sheetName,
+        vaultName: vault.name,
+        imported: 0,
+        failed: 0,
+        skipped: analysis.summary.skipped,
+      };
+
+      for (const row of analysis.rows) {
+        if (row.classification === 'INVALID' || row.classification === 'DUPLICATE') {
+          results.failed++;
+          sheetResult.failed++;
+          results.errors.push({
+            row: row.excelRow,
+            title: row.title ?? undefined,
+            error: row.reason ?? 'Invalid row',
+          });
+        }
       }
-    }
-    results.skipped = analysis.rows.filter((r) => r.classification === 'SKIPPED').length;
+      results.skipped += analysis.summary.skipped;
 
-    const validRows = analysis.rows.filter((r) => r.classification === 'VALID');
-    for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
-      const batch = validRows.slice(i, i + BATCH_SIZE);
-      const batchResults = await this.importBatch(batch, vault);
-      results.imported += batchResults.imported;
-      results.failed += batchResults.failed;
-      results.errors.push(...batchResults.errors);
+      const validRows = analysis.rows.filter((r) => r.classification === 'VALID');
+      for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+        const batch = validRows.slice(i, i + BATCH_SIZE);
+        const batchResults = await this.importBatch(batch, vault);
+        results.imported += batchResults.imported;
+        results.failed += batchResults.failed;
+        sheetResult.imported += batchResults.imported;
+        sheetResult.failed += batchResults.failed;
+        results.errors.push(...batchResults.errors);
+      }
+      sheetResults.push(sheetResult);
     }
 
     await this.audit.record({
@@ -400,17 +482,18 @@ export class AdminOpportunitiesService {
       adminUserId,
       ipAddress,
       details: {
-        vaultId,
-        vaultName: vault.name,
-        sheetName: analysis.sheetName,
-        totalRows: analysis.rows.length,
+        vaultId: selectedVault.id,
+        vaultName: selectedVault.name,
+        multiSheet: parsed.sourceType === 'xlsx' && parsed.sheets.length > 1,
+        sheets: sheetResults,
+        totalRows: importable.reduce((sum, s) => sum + s.summary.total, 0),
         imported: results.imported,
         failed: results.failed,
         skipped: results.skipped,
       } as Prisma.InputJsonObject,
     });
 
-    return results;
+    return { ...results, sheets: sheetResults };
   }
 
   async previewImport(
@@ -422,62 +505,196 @@ export class AdminOpportunitiesService {
     if (!file) {
       throw new BadRequestException('A file is required');
     }
-    const vault = await this.resolveVault(vaultId);
+    const selectedVault = await this.resolveVault(vaultId);
     const effectiveStatus = (this.parseEnum(defaultStatus, STATUS_VALUES, 'PUBLISHED') ??
       'PUBLISHED') as OpportunityStatus;
-    const analysis = await this.analyze(file, vault, adminUserId, effectiveStatus);
+    const allVaults = await this.vaultCandidates(selectedVault);
+    const parsed = await this.parseSheets(file, selectedVault, allVaults);
+    const sheetAnalyses = await this.analyzeSheets(parsed.sheets, adminUserId, effectiveStatus);
 
     return {
-      vault: { id: vault.id, name: vault.name, type: vault.type },
-      sheetName: analysis.sheetName,
-      summary: analysis.summary,
-      rows: analysis.rows.map((row) => ({
-        excelRow: row.excelRow,
-        classification: row.classification,
-        title: row.title ?? null,
-        reason: row.reason ?? null,
-        fields: row.dataPreview ?? null,
+      sourceType: parsed.sourceType,
+      selectedVault: { id: selectedVault.id, name: selectedVault.name, type: selectedVault.type },
+      sheets: sheetAnalyses.map((sheet) => ({
+        sheetName: sheet.sheetName,
+        status: sheet.state,
+        matchStatus: sheet.matchStatus,
+        vault: sheet.vault,
+        reason: sheet.reason,
+        summary: sheet.summary,
+        rows: sheet.rows.map((row) => ({
+          excelRow: row.excelRow,
+          classification: row.classification,
+          title: row.title ?? null,
+          reason: row.reason ?? null,
+          fields: row.dataPreview ?? null,
+        })),
       })),
+      summary: this.aggregateSummary(sheetAnalyses),
+      matchedSheets: sheetAnalyses
+        .filter((s) => s.matchStatus === 'matched')
+        .map((s) => ({ sheetName: s.sheetName, vaultName: s.vault?.name ?? null })),
+      unmatchedSheets: sheetAnalyses
+        .filter((s) => s.matchStatus !== 'matched')
+        .map((s) => ({
+          sheetName: s.sheetName,
+          reason: s.reason ?? 'No matching vault found',
+        })),
     };
   }
 
-  private async analyze(
-    file: Express.Multer.File,
-    vault: { id: string; name: string; type: string },
+  private async analyzeSheets(
+    sheets: ParsedSheet[],
     adminUserId: string,
     defaultStatus: OpportunityStatus,
-  ): Promise<{
-    sheetName: string;
-    rows: ImportAnalysisRow[];
-    summary: { total: number; valid: number; invalid: number; duplicate: number; skipped: number };
-  }> {
-    const { sheetName, rows } = await this.parseRows(file, vault.name);
-    const meaningfulRows = rows.filter((row) => !isBlankRow(row));
-    if (meaningfulRows.length === 0) {
-      throw new BadRequestException('No rows found in the file');
-    }
-    if (meaningfulRows.length > IMPORT_LIMIT) {
-      throw new BadRequestException(
-        `Import limited to ${IMPORT_LIMIT} rows per file (${meaningfulRows.length} non-empty rows detected)`,
+    selections?: SheetSelection[],
+  ): Promise<SheetAnalysis[]> {
+    const selectionBySheet = new Map<string, SheetSelection | undefined>();
+    for (const sheet of sheets) {
+      selectionBySheet.set(
+        sheet.sheetName,
+        selections?.find((sel) => sel.sheetName === sheet.sheetName),
       );
     }
 
-    const existing = await this.prisma.opportunity.findMany({
-      where: { deletedAt: null, vaults: { some: { vaultId: vault.id } } },
-      select: { title: true, externalRef: true },
-    });
-    const existingTitles = new Set(existing.map((o) => o.title.trim().toLowerCase()));
-    const existingRefs = new Set(
-      existing
-        .map((o) => o.externalRef?.trim().toLowerCase())
-        .filter((v): v is string => Boolean(v)),
-    );
+    const existingByVault = new Map<string, Set<string>>();
+    const existingRefsByVault = new Map<string, Set<string>>();
 
-    const seenTitles = new Set<string>();
-    const seenRefs = new Set<string>();
+    const vaultIds = [
+      ...new Set(sheets.map((s) => s.vault?.id).filter((id): id is string => Boolean(id))),
+    ];
+    for (const vaultId of vaultIds) {
+      const existing = await this.prisma.opportunity.findMany({
+        where: { deletedAt: null, vaults: { some: { vaultId } } },
+        select: { title: true, externalRef: true },
+      });
+      existingByVault.set(vaultId, new Set(existing.map((o) => o.title.trim().toLowerCase())));
+      existingRefsByVault.set(
+        vaultId,
+        new Set(
+          existing
+            .map((o) => o.externalRef?.trim().toLowerCase())
+            .filter((v): v is string => Boolean(v)),
+        ),
+      );
+    }
+
+    const seenTitlesByVault = new Map<string, Set<string>>();
+    const seenRefsByVault = new Map<string, Set<string>>();
+
+    const analyzedSheets: SheetAnalysis[] = [];
+    for (const sheet of sheets) {
+      const selection = selectionBySheet.get(sheet.sheetName);
+
+      if (sheet.matchStatus === 'meta') {
+        analyzedSheets.push({
+          sheetName: sheet.sheetName,
+          state: 'SKIPPED',
+          matchStatus: 'meta',
+          vault: null,
+          reason: sheet.matchReason ?? 'Sheet does not contain job data.',
+          summary: this.emptySummary(),
+          rows: [],
+        });
+        continue;
+      }
+
+      if (selection && selection.include === false) {
+        analyzedSheets.push({
+          sheetName: sheet.sheetName,
+          state: 'SKIPPED',
+          matchStatus: sheet.matchStatus,
+          vault: null,
+          reason: `Sheet "${sheet.sheetName}" was excluded by the admin and will not be imported.`,
+          summary: this.emptySummary(),
+          rows: [],
+        });
+        continue;
+      }
+
+      if (!sheet.vault) {
+        analyzedSheets.push({
+          sheetName: sheet.sheetName,
+          state: 'SKIPPED',
+          matchStatus: sheet.matchStatus,
+          vault: null,
+          reason: selection?.include
+            ? `Sheet "${sheet.sheetName}" has no matching vault and cannot be imported.`
+            : (sheet.matchReason ?? 'No matching vault found'),
+          summary: this.emptySummary(),
+          rows: [],
+        });
+        continue;
+      }
+
+      const meaningfulRows = sheet.rows.filter((row) => !isBlankRow(row));
+      if (meaningfulRows.length === 0) {
+        analyzedSheets.push({
+          sheetName: sheet.sheetName,
+          state: 'EMPTY',
+          matchStatus: sheet.matchStatus,
+          vault: sheet.vault,
+          reason: `No importable rows found in sheet "${sheet.sheetName}".`,
+          summary: this.emptySummary(),
+          rows: [],
+        });
+        continue;
+      }
+
+      const vault = sheet.vault;
+      const existingTitles = existingByVault.get(vault.id) ?? new Set<string>();
+      const existingRefs = existingRefsByVault.get(vault.id) ?? new Set<string>();
+      let seenTitles = seenTitlesByVault.get(vault.id);
+      let seenRefs = seenRefsByVault.get(vault.id);
+      if (!seenTitles) {
+        seenTitles = new Set<string>();
+        seenTitlesByVault.set(vault.id, seenTitles);
+        seenRefs = new Set<string>();
+        seenRefsByVault.set(vault.id, seenRefs);
+      }
+      const safeSeenRefs = seenRefs!;
+
+      // Take the latest 500 rows if there are more than the limit
+      // (matches UI: "Latest 500 rows are processed").
+      const rowsToAnalyze = meaningfulRows.slice(-IMPORT_LIMIT);
+      const rows = this.analyzeSheetRows(
+        rowsToAnalyze,
+        vault,
+        adminUserId,
+        defaultStatus,
+        seenTitles,
+        safeSeenRefs,
+        existingTitles,
+        existingRefs,
+      );
+
+      analyzedSheets.push({
+        sheetName: sheet.sheetName,
+        state: 'IMPORTED',
+        matchStatus: sheet.matchStatus,
+        vault,
+        reason: null,
+        summary: this.buildSummary(rows),
+        rows,
+      });
+    }
+
+    return analyzedSheets;
+  }
+
+  private analyzeSheetRows(
+    rows: ParsedRow[],
+    vault: VaultRef,
+    adminUserId: string,
+    defaultStatus: OpportunityStatus,
+    seenTitles: Set<string>,
+    seenRefs: Set<string>,
+    existingTitles: Set<string>,
+    existingRefs: Set<string>,
+  ): ImportAnalysisRow[] {
     const analyzed: ImportAnalysisRow[] = [];
 
-    for (const row of meaningfulRows) {
+    for (const row of rows) {
       if (row.removalNote) {
         analyzed.push({
           excelRow: row.excelRow,
@@ -547,15 +764,7 @@ export class AdminOpportunitiesService {
       });
     }
 
-    const summary = {
-      total: analyzed.length,
-      valid: analyzed.filter((r) => r.classification === 'VALID').length,
-      invalid: analyzed.filter((r) => r.classification === 'INVALID').length,
-      duplicate: analyzed.filter((r) => r.classification === 'DUPLICATE').length,
-      skipped: analyzed.filter((r) => r.classification === 'SKIPPED').length,
-    };
-
-    return { sheetName, rows: analyzed, summary };
+    return analyzed;
   }
 
   private detectDuplicate(
@@ -720,25 +929,140 @@ export class AdminOpportunitiesService {
     return results;
   }
 
-  private async parseRows(
+  private async parseSheets(
     file: Express.Multer.File,
-    vaultName: string,
-  ): Promise<{ sheetName: string; rows: ParsedRow[] }> {
+    selectedVault: VaultRef,
+    allVaults: VaultRef[],
+  ): Promise<{ sourceType: 'csv' | 'xlsx'; sheets: ParsedSheet[] }> {
     const ext = file.originalname.split('.').pop()?.toLowerCase();
 
     if (ext === 'csv') {
       const rows = await parseCsvRows(file.buffer);
-      return { sheetName: '(CSV file)', rows };
+      return {
+        sourceType: 'csv',
+        sheets: [
+          {
+            sheetName: '(CSV file)',
+            rows,
+            vault: selectedVault,
+            matchStatus: 'matched',
+            matchReason: null,
+          },
+        ],
+      };
     }
     if (ext === 'xlsx' || ext === 'xls') {
       const XLSX = await import('xlsx');
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
-      const sheetName = selectSheetName(workbook, vaultName, ext);
-      const rows = parseSheetRows(workbook.Sheets[sheetName]);
-      return { sheetName, rows };
+      if (workbook.SheetNames.length === 0) {
+        throw new BadRequestException('File contains no sheets');
+      }
+
+      const { jobSheets, metaSheets } = listJobSheets(workbook);
+      if (jobSheets.length === 0) {
+        throw new BadRequestException(
+          'No job sheet found in the workbook (a job sheet needs a header row with columns like Role, Salary, Location, Experience)',
+        );
+      }
+
+      const sheets: ParsedSheet[] = [];
+
+      for (const name of jobSheets) {
+        if (jobSheets.length === 1) {
+          // Single-job-sheet workbook: import into the user-selected destination vault.
+          sheets.push({
+            sheetName: name,
+            rows: parseSheetRows(workbook.Sheets[name]),
+            vault: selectedVault,
+            matchStatus: 'matched',
+            matchReason: null,
+          });
+          continue;
+        }
+
+        const match = matchSheetToVault(name, allVaults);
+        sheets.push({
+          sheetName: name,
+          rows: parseSheetRows(workbook.Sheets[name]),
+          vault: match.status === 'matched' ? match.vault : null,
+          matchStatus: match.status,
+          matchReason: match.status === 'matched' ? null : describeSheetMatchFailure(name, match),
+        });
+      }
+
+      for (const name of metaSheets) {
+        sheets.push({
+          sheetName: name,
+          rows: [],
+          vault: null,
+          matchStatus: 'meta',
+          matchReason: `Sheet "${name}" does not contain job data (no job header row found) and will be ignored.`,
+        });
+      }
+
+      return { sourceType: 'xlsx', sheets };
     }
 
     throw new BadRequestException('Unsupported file type. Use CSV or Excel (.xlsx/.xls)');
+  }
+
+  private async vaultCandidates(selectedVault: VaultRef): Promise<VaultRef[]> {
+    const activeVaults = await this.prisma.vault.findMany({
+      where: { deletedAt: null, status: 'ACTIVE' },
+      select: { id: true, name: true, type: true },
+    });
+    const candidates = activeVaults.filter((v) => v.id !== selectedVault.id);
+    return [selectedVault, ...candidates];
+  }
+
+  private validateSelections(
+    selections: SheetSelection[] | undefined,
+    parsed: { sheets: ParsedSheet[] },
+  ): void {
+    if (!selections || selections.length === 0) return;
+    const sheetNames = new Set(parsed.sheets.map((s) => s.sheetName));
+    for (const selection of selections) {
+      if (!sheetNames.has(selection.sheetName)) {
+        throw new BadRequestException(
+          `Unknown sheet "${selection.sheetName}" in import selections`,
+        );
+      }
+    }
+  }
+
+  private describeNoImportableSheets(sheets: ParsedSheet[], analyses: SheetAnalysis[]): string {
+    const details = analyses
+      .filter((a) => a.state !== 'IMPORTED')
+      .map((a) => `"${a.sheetName}"${a.reason ? ` — ${a.reason}` : ''}`)
+      .join('; ');
+    const sheetCount = sheets.length;
+    return `No opportunities could be imported from this file (${sheetCount} sheet${sheetCount === 1 ? '' : 's'}). ${details}`;
+  }
+
+  private emptySummary(): ImportSummary {
+    return { total: 0, valid: 0, invalid: 0, duplicate: 0, skipped: 0 };
+  }
+
+  private buildSummary(rows: ImportAnalysisRow[]): ImportSummary {
+    return {
+      total: rows.length,
+      valid: rows.filter((r) => r.classification === 'VALID').length,
+      invalid: rows.filter((r) => r.classification === 'INVALID').length,
+      duplicate: rows.filter((r) => r.classification === 'DUPLICATE').length,
+      skipped: rows.filter((r) => r.classification === 'SKIPPED').length,
+    };
+  }
+
+  private aggregateSummary(sheetAnalyses: SheetAnalysis[]): ImportSummary {
+    const summary = this.emptySummary();
+    for (const sheet of sheetAnalyses) {
+      summary.total += sheet.summary.total;
+      summary.valid += sheet.summary.valid;
+      summary.invalid += sheet.summary.invalid;
+      summary.duplicate += sheet.summary.duplicate;
+      summary.skipped += sheet.summary.skipped;
+    }
+    return summary;
   }
 
   private async resolveVault(vaultId: string) {

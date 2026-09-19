@@ -123,11 +123,36 @@ export interface ImportPreviewRow {
   fields: Record<string, unknown> | null;
 }
 
-export interface ImportPreviewResponse {
-  vault: { id: string; name: string; type: string };
+export interface ImportSheetSummary {
+  total: number;
+  valid: number;
+  invalid: number;
+  duplicate: number;
+  skipped: number;
+}
+
+export interface ImportPreviewSheet {
   sheetName: string;
-  summary: { total: number; valid: number; invalid: number; duplicate: number; skipped: number };
+  status: 'IMPORTED' | 'EMPTY' | 'SKIPPED';
+  matchStatus: 'matched' | 'unmatched' | 'ambiguous' | 'meta';
+  vault: { id: string; name: string; type: string } | null;
+  reason: string | null;
+  summary: ImportSheetSummary;
   rows: ImportPreviewRow[];
+}
+
+export interface ImportPreviewResponse {
+  sourceType: 'csv' | 'xlsx';
+  selectedVault: { id: string; name: string; type: string };
+  sheets: ImportPreviewSheet[];
+  summary: ImportSheetSummary;
+  matchedSheets: Array<{ sheetName: string; vaultName: string | null }>;
+  unmatchedSheets: Array<{ sheetName: string; reason: string }>;
+}
+
+export interface ImportSheetSelection {
+  sheetName: string;
+  include: boolean;
 }
 
 export interface PaginatedResult<T> {

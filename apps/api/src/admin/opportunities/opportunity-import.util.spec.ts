@@ -2,12 +2,15 @@ import { join } from 'path';
 import * as XLSX from 'xlsx';
 import {
   findHeaderRow,
+  listJobSheets,
   mapHeadersToFields,
+  matchSheetToVault,
+  meaningfulTokens,
   normalizeHeaderKey,
+  normalizeVaultText,
   parseDateCell,
   parseExperience,
   parseSheetRows,
-  selectSheetName,
 } from './opportunity-import.util';
 
 describe('opportunity-import.util', () => {
@@ -111,20 +114,179 @@ describe('opportunity-import.util', () => {
     });
   });
 
+  describe('vault matching', () => {
+    const vaults = [
+      { id: 'remote', name: 'Remote Access Vault', type: 'INTERNATIONAL' },
+      { id: 'uae', name: 'UAE & Global Access Vault', type: 'MIDDLE_EAST' },
+      { id: 'executive', name: 'Executive Access Vault', type: 'INDIA' },
+      { id: 'leadership', name: 'Leadership Access Vault', type: 'INDIA' },
+      { id: 'management', name: 'Management Access Vault', type: 'INDIA' },
+      { id: 'early', name: 'Early Career Access Vault', type: 'INDIA' },
+    ];
+
+    const expectedMatches: Record<string, string> = {
+      'Remote Access': 'Remote Access Vault',
+      'UAE & Global': 'UAE & Global Access Vault',
+      Executive: 'Executive Access Vault',
+      Leadership: 'Leadership Access Vault',
+      Management: 'Management Access Vault',
+      'Early Career': 'Early Career Access Vault',
+    };
+
+    for (const [sheet, vaultName] of Object.entries(expectedMatches)) {
+      it(`matches "${sheet}" to "${vaultName}"`, () => {
+        const result = matchSheetToVault(sheet, vaults);
+        expect(result.status).toBe('matched');
+        if (result.status === 'matched') expect(result.vault.name).toBe(vaultName);
+      });
+    }
+
+    it('is case-insensitive and ignores extra words, spacing, hyphens and "&"', () => {
+      expect(matchSheetToVault('executive', vaults).status).toBe('matched');
+      expect(matchSheetToVault('Executive Access', vaults).status).toBe('matched');
+      expect(matchSheetToVault('Executive Access Vault', vaults).status).toBe('matched');
+      expect(matchSheetToVault('  executive--access_vault ', vaults).status).toBe('matched');
+      expect(matchSheetToVault('uae-and-global', vaults).status).toBe('matched');
+      expect(matchSheetToVault('management_vault', vaults).status).toBe('matched');
+    });
+
+    it('does not match unrelated or overly-broad sheet names', () => {
+      expect(matchSheetToVault('Sales', vaults).status).toBe('unmatched');
+      expect(matchSheetToVault('Finance', vaults).status).toBe('unmatched');
+      expect(matchSheetToVault('Vault', vaults).status).toBe('unmatched');
+      expect(matchSheetToVault('Access', vaults).status).toBe('unmatched');
+      expect(matchSheetToVault('', vaults).status).toBe('unmatched');
+    });
+
+    it('reports ambiguity instead of guessing when two vaults are equally strong', () => {
+      const withTwin = [...vaults, { id: 'remote2', name: 'Remote Vault', type: 'INTERNATIONAL' }];
+      const result = matchSheetToVault('Remote', withTwin);
+      expect(result.status).toBe('ambiguous');
+      if (result.status === 'ambiguous') {
+        expect(result.candidates.map((c) => c.name).sort()).toEqual(
+          ['Remote Access Vault', 'Remote Vault'].sort(),
+        );
+      }
+    });
+
+    it('prefers an exact normalized match when several vaults share tokens', () => {
+      const withSub = [
+        ...vaults,
+        { id: 'intl', name: 'Remote Access International Vault', type: 'INTERNATIONAL' },
+      ];
+      const result = matchSheetToVault('Remote Access Vault', withSub);
+      expect(result.status).toBe('matched');
+      if (result.status === 'matched') {
+        expect(result.vault.name).toBe('Remote Access Vault');
+      }
+    });
+
+    it('normalizes vault-like text predictably', () => {
+      expect(normalizeVaultText('Executive Access Vault')).toBe('executive access vault');
+      expect(normalizeVaultText('UAE & Global')).toBe('uae and global');
+      expect(meaningfulTokens('Remote Access Vault')).toEqual(['remote']);
+      expect(meaningfulTokens('Vault')).toEqual([]);
+    });
+  });
+
+  describe('For Sparsh (1).xlsx workbook', () => {
+    const workbook = XLSX.readFile(join(__dirname, '../../../test/fixtures/For Sparsh (1).xlsx'));
+    const vaults = [
+      { id: 'remote', name: 'Remote Access Vault', type: 'INTERNATIONAL' },
+      { id: 'uae', name: 'UAE & Global Access Vault', type: 'MIDDLE_EAST' },
+      { id: 'executive', name: 'Executive Access Vault', type: 'INDIA' },
+      { id: 'leadership', name: 'Leadership Access Vault', type: 'INDIA' },
+      { id: 'management', name: 'Management Access Vault', type: 'INDIA' },
+      { id: 'early', name: 'Early Career Access Vault', type: 'INDIA' },
+    ];
+
+    it('identifies all keyword-named job sheets and the pricing meta sheet', () => {
+      const { jobSheets, metaSheets } = listJobSheets(workbook);
+      expect(jobSheets).toEqual([
+        'Remote Access',
+        'UAE & Global',
+        'Executive',
+        'Leadership',
+        'Management',
+        'Early Career',
+      ]);
+      expect(metaSheets).toEqual(['Vaults & Prices']);
+    });
+
+    it('maps every job sheet to its corresponding vault', () => {
+      const { jobSheets } = listJobSheets(workbook);
+      const expected: Record<string, string> = {
+        'Remote Access': 'Remote Access Vault',
+        'UAE & Global': 'UAE & Global Access Vault',
+        Executive: 'Executive Access Vault',
+        Leadership: 'Leadership Access Vault',
+        Management: 'Management Access Vault',
+        'Early Career': 'Early Career Access Vault',
+      };
+      for (const sheet of jobSheets) {
+        const result = matchSheetToVault(sheet, vaults);
+        expect(result.status).toBe('matched');
+        if (result.status === 'matched') expect(result.vault.name).toBe(expected[sheet]);
+      }
+    });
+
+    it('counts per-sheet titled rows for the keyword-named sheets', () => {
+      const expected: Record<string, number> = {
+        'Remote Access': 75,
+        'UAE & Global': 179,
+        Executive: 147,
+        Leadership: 206,
+        Management: 228,
+        'Early Career': 93,
+      };
+      for (const [sheet, count] of Object.entries(expected)) {
+        const rows = parseSheetRows(workbook.Sheets[sheet]);
+        expect(rows.filter((r) => r.fields.title).length).toBe(count);
+      }
+    });
+
+    it('treats the pricing sheet as a non-job sheet', () => {
+      const rows = XLSX.utils.sheet_to_json(workbook.Sheets['Vaults & Prices'], {
+        header: 1,
+        defval: null,
+      });
+      expect(findHeaderRow(rows as unknown[][])).toBeNull();
+    });
+  });
+
   describe('client workbook', () => {
     const workbook = XLSX.readFile(
       join(__dirname, '../../../test/fixtures/gravitas-edge-job-board.xlsx'),
     );
 
-    it('selects exactly one sheet matching the vault name in a multi-sheet workbook', () => {
-      expect(selectSheetName(workbook, 'UAE & GCC Access', 'xlsx')).toBe('UAE & GCC Access');
-      expect(selectSheetName(workbook, ' Management Access ', 'xlsx')).toBe('Management Access');
+    it('fuzzy-matches keyword sheet names to the corresponding vaults', () => {
+      const vaults = [
+        { id: 'remote', name: 'Remote Access Vault', type: 'INTERNATIONAL' },
+        { id: 'uae', name: 'UAE & Global Access Vault', type: 'MIDDLE_EAST' },
+        { id: 'executive', name: 'Executive Access Vault', type: 'INDIA' },
+        { id: 'leadership', name: 'Leadership Access Vault', type: 'INDIA' },
+        { id: 'management', name: 'Management Access Vault', type: 'INDIA' },
+        { id: 'early', name: 'Early Career Access Vault', type: 'INDIA' },
+      ];
+      const uae = matchSheetToVault('UAE & GCC Access', vaults);
+      expect(uae.status).toBe('matched');
+      if (uae.status === 'matched') expect(uae.vault.id).toBe('uae');
+
+      const management = matchSheetToVault(' Management Access ', vaults);
+      expect(management.status).toBe('matched');
+      if (management.status === 'matched') expect(management.vault.id).toBe('management');
     });
 
-    it('throws when no sheet exactly matches the selected vault', () => {
-      expect(() => selectSheetName(workbook, 'Design Vault', 'xlsx')).toThrow(
-        /none exactly matches the selected vault/,
-      );
+    it('does not match an unknown vault-like keyword to any sheet', () => {
+      const vaults = [
+        { id: 'remote', name: 'Remote Access Vault', type: 'INTERNATIONAL' },
+        { id: 'uae', name: 'UAE & Global Access Vault', type: 'MIDDLE_EAST' },
+        { id: 'executive', name: 'Executive Access Vault', type: 'INDIA' },
+        { id: 'leadership', name: 'Leadership Access Vault', type: 'INDIA' },
+        { id: 'management', name: 'Management Access Vault', type: 'INDIA' },
+        { id: 'early', name: 'Early Career Access Vault', type: 'INDIA' },
+      ];
+      expect(matchSheetToVault('Design', vaults).status).toBe('unmatched');
     });
 
     it('parses Remote Access rows and resolves month-name dates', () => {

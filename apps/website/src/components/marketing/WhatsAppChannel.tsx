@@ -131,18 +131,18 @@ export default function WhatsAppChannel({
             {description}
           </p>
 
-          <ul className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-4">
+          <ul className="mt-8 grid grid-cols-2 gap-3">
             {benefits.map((benefit) => {
               const Icon = benefit.icon;
               return (
                 <li
                   key={benefit.label}
-                  className="flex items-center gap-1 rounded-xl border border-emerald-100 bg-white/80 px-1.5 py-1.5 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/[0.07]"
+                  className="flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-white/80 px-3 py-2.5 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/[0.07]"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
-                    <Icon className="h-3.5 w-3.5" />
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                    <Icon className="h-4 w-4" />
                   </span>
-                  <span className="text-[11px] font-semibold leading-tight text-[#0A1730] sm:text-xs dark:text-slate-100">
+                  <span className="text-xs font-semibold leading-tight text-[#0A1730] sm:text-sm dark:text-slate-100">
                     {benefit.label}
                   </span>
                 </li>

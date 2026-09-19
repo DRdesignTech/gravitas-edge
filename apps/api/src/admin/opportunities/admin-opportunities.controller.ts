@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -91,6 +92,7 @@ export class AdminOpportunitiesController {
     @UploadedFile() file: Express.Multer.File,
     @Body('vaultId') vaultId: string,
     @Body('defaultStatus') defaultStatus: OpportunityStatus,
+    @Body('selections') selections: string | undefined,
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
   ) {
@@ -100,6 +102,7 @@ export class AdminOpportunitiesController {
       user.id,
       this.clientIp(req),
       defaultStatus,
+      this.parseSelections(selections),
     );
   }
 
@@ -120,6 +123,27 @@ export class AdminOpportunitiesController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.opportunitiesService.previewImport(file, vaultId, user.id, defaultStatus);
+  }
+
+  private parseSelections(
+    raw?: string,
+  ): Array<{ sheetName: string; include: boolean }> | undefined {
+    if (!raw) return undefined;
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) {
+        throw new BadRequestException('Invalid sheet selections: expected an array');
+      }
+      for (const item of parsed) {
+        if (!item || typeof item.sheetName !== 'string' || typeof item.include !== 'boolean') {
+          throw new BadRequestException('Invalid sheet selections: malformed entry');
+        }
+      }
+      return parsed;
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException('Invalid sheet selections: malformed JSON');
+    }
   }
 
   private clientIp(req: Request): string | undefined {

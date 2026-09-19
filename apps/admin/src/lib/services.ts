@@ -266,13 +266,22 @@ export function adminUpdateReferralSlab(id: string, body: Partial<ReferralSlab>)
   return api.patch<ReferralSlab>(`/admin/referral-slabs/${id}`, body);
 }
 
-export function adminImportOpportunities(file: File, vaultId: string, defaultStatus?: string) {
+export function adminImportOpportunities(
+  file: File,
+  vaultId: string,
+  defaultStatus?: string,
+  selections?: Array<{ sheetName: string; include: boolean }>,
+) {
   return uploadFile<{
     imported: number;
     failed: number;
     skipped: number;
     errors: Array<{ row: number; title?: string; error: string }>;
-  }>('/admin/opportunities/import', file, { vaultId, ...(defaultStatus ? { defaultStatus } : {}) });
+  }>('/admin/opportunities/import', file, {
+    vaultId,
+    ...(defaultStatus ? { defaultStatus } : {}),
+    ...(selections ? { selections: JSON.stringify(selections) } : {}),
+  });
 }
 
 export function adminPreviewImport(file: File, vaultId: string, defaultStatus?: string) {

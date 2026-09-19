@@ -1,5 +1,8 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import * as XLSX from 'xlsx';
 import { AdminOpportunitiesService } from './admin-opportunities.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
@@ -345,12 +348,31 @@ describe('AdminOpportunitiesService', () => {
         size: content.length,
       }) as Express.Multer.File;
 
+    const xlsxFile = (
+      sheets: Array<{ name: string; rows: (string | null)[][] }>,
+      originalname = 'jobs.xlsx',
+    ): Express.Multer.File => {
+      const workbook = XLSX.utils.book_new();
+      for (const sheet of sheets) {
+        const ws = XLSX.utils.aoa_to_sheet(sheet.rows);
+        XLSX.utils.book_append_sheet(workbook, ws, sheet.name);
+      }
+      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+      return { originalname, buffer, size: buffer.length } as Express.Multer.File;
+    };
+
+    const canonicalVaults = [
+      { id: 'remote', name: 'Remote Access Vault', type: 'INTERNATIONAL' },
+      { id: 'uae', name: 'UAE & Global Access Vault', type: 'MIDDLE_EAST' },
+      { id: 'executive', name: 'Executive Access Vault', type: 'INDIA' },
+      { id: 'leadership', name: 'Leadership Access Vault', type: 'INDIA' },
+      { id: 'management', name: 'Management Access Vault', type: 'INDIA' },
+      { id: 'early', name: 'Early Career Access Vault', type: 'INDIA' },
+    ];
+
     beforeEach(() => {
-      prisma.vault.findFirst.mockResolvedValue({
-        id: 'vault-uae',
-        name: 'UAE & GCC Access',
-        type: 'MIDDLE_EAST',
-      });
+      prisma.vault.findFirst.mockResolvedValue(canonicalVaults[0]);
+      prisma.vault.findMany.mockResolvedValue(canonicalVaults);
       prisma.opportunity.findMany.mockResolvedValue([]);
       prisma.opportunity.create.mockResolvedValue({ id: 'opp-imported', title: 'Imported' });
     });
@@ -363,19 +385,27 @@ describe('AdminOpportunitiesService', () => {
     });
 
     it('previews rows as VALID without persisting anything', async () => {
+      prisma.vault.findFirst.mockResolvedValue({
+        id: 'vault-uae',
+        name: 'UAE & GCC Access',
+        type: 'MIDDLE_EAST',
+      });
       const file = csvFile(
         'Title,Salary,Experience,Location\nSenior DevOps,Up to AED 7000 monthly,5+ years,Dubai',
       );
       const result = await service.previewImport(file, 'vault-uae', 'admin-1');
 
-      expect(result.sheetName).toBe('(CSV file)');
-      expect(result.summary.valid).toBe(1);
-      expect(result.rows[0].classification).toBe('VALID');
-      expect(result.rows[0].fields?.salary).toBe('Up to AED 7000 monthly');
-      expect(result.rows[0].fields?.experienceText).toBe('5+ years');
-      expect(result.rows[0].fields?.minExperience).toBe(5);
-      expect(result.rows[0].fields?.category).toBe('MIDDLE_EAST');
-      expect(result.rows[0].fields?.status).toBe('PUBLISHED');
+      expect(result.sourceType).toBe('csv');
+      expect(result.selectedVault.id).toBe('vault-uae');
+      const sheet = result.sheets[0];
+      expect(sheet.sheetName).toBe('(CSV file)');
+      expect(sheet.summary.valid).toBe(1);
+      expect(sheet.rows[0].classification).toBe('VALID');
+      expect(sheet.rows[0].fields?.salary).toBe('Up to AED 7000 monthly');
+      expect(sheet.rows[0].fields?.experienceText).toBe('5+ years');
+      expect(sheet.rows[0].fields?.minExperience).toBe(5);
+      expect(sheet.rows[0].fields?.category).toBe('MIDDLE_EAST');
+      expect(sheet.rows[0].fields?.status).toBe('PUBLISHED');
       expect(prisma.opportunity.create).not.toHaveBeenCalled();
     });
 
@@ -386,17 +416,17 @@ describe('AdminOpportunitiesService', () => {
       const file = csvFile('Title\nDuplicate Dev\nFresh Role');
       const result = await service.previewImport(file, 'vault-uae', 'admin-1');
 
-      const dup = result.rows.find((r) => r.title === 'Duplicate Dev');
+      const dup = result.sheets[0].rows.find((r) => r.title === 'Duplicate Dev');
       expect(dup?.classification).toBe('DUPLICATE');
       expect(dup?.reason).toBe('Duplicate title already exists in vault');
-      expect(result.summary.duplicate).toBe(1);
+      expect(result.sheets[0].summary.duplicate).toBe(1);
     });
 
     it('flags repeated titles within the same file', async () => {
       const file = csvFile('Title\nRepeat Role\nRepeat Role');
       const result = await service.previewImport(file, 'vault-uae', 'admin-1');
 
-      const matches = result.rows.filter((r) => r.title === 'Repeat Role');
+      const matches = result.sheets[0].rows.filter((r) => r.title === 'Repeat Role');
       expect(matches[0].classification).toBe('VALID');
       expect(matches[1].classification).toBe('DUPLICATE');
       expect(matches[1].reason).toBe('Duplicate title within file');
@@ -406,12 +436,12 @@ describe('AdminOpportunitiesService', () => {
       const file = csvFile('Title,Salary\nAlpha,100\n,Beta\n,');
       const result = await service.previewImport(file, 'vault-uae', 'admin-1');
 
-      const invalid = result.rows.find((r) => r.classification === 'INVALID');
-      const skipped = result.rows.find((r) => r.classification === 'SKIPPED');
+      const invalid = result.sheets[0].rows.find((r) => r.classification === 'INVALID');
+      const skipped = result.sheets[0].rows.find((r) => r.classification === 'SKIPPED');
       expect(invalid?.reason).toBe('Missing required field: title');
       expect(skipped).toBeUndefined();
-      expect(result.summary.invalid).toBe(1);
-      expect(result.summary.skipped).toBe(0);
+      expect(result.sheets[0].summary.invalid).toBe(1);
+      expect(result.sheets[0].summary.skipped).toBe(0);
     });
 
     it('imports valid rows into the vault and ignores empty rows', async () => {
@@ -425,12 +455,263 @@ describe('AdminOpportunitiesService', () => {
       );
     });
 
-    it('rejects files over the import limit', async () => {
+    it('truncates to latest 500 rows when file exceeds import limit', async () => {
       const header = 'Title\n';
       const fill = Array.from({ length: 501 }, (_, i) => `Job ${i}`).join('\n');
+      const result = await service.previewImport(csvFile(header + fill), 'vault-uae', 'admin-1');
+      expect(result.sheets[0].summary.total).toBe(500);
+    });
+
+    it('single-sheet workbooks import into the selected destination vault regardless of name', async () => {
+      const file = xlsxFile([
+        {
+          name: 'Whatever',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['Remote Role', '1000', 'Remote', '5+ years'],
+          ],
+        },
+      ]);
+      const result = await service.previewImport(file, 'remote', 'admin-1');
+      expect(result.sourceType).toBe('xlsx');
+      expect(result.sheets).toHaveLength(1);
+      const sheet = result.sheets[0];
+      expect(sheet.matchStatus).toBe('matched');
+      expect(sheet.vault?.id).toBe('remote');
+      expect(sheet.summary.valid).toBe(1);
+    });
+
+    it('maps each keyword-named sheet of "For Sparsh (1).xlsx" to the matching vault', async () => {
+      const file = {
+        originalname: 'For Sparsh (1).xlsx',
+        buffer: readFileSync(join(__dirname, '../../../test/fixtures/For Sparsh (1).xlsx')),
+        size: 0,
+      } as Express.Multer.File;
+
+      const result = await service.previewImport(file, 'remote', 'admin-1');
+
+      expect(result.sourceType).toBe('xlsx');
+      expect(result.sheets).toHaveLength(7);
+      expect(result.matchedSheets.map((s) => s.vaultName)).toEqual([
+        'Remote Access Vault',
+        'UAE & Global Access Vault',
+        'Executive Access Vault',
+        'Leadership Access Vault',
+        'Management Access Vault',
+        'Early Career Access Vault',
+      ]);
+
+      const bySheet = Object.fromEntries(result.sheets.map((s) => [s.sheetName, s]));
+
+      expect(bySheet['Vaults & Prices']?.matchStatus).toBe('meta');
+      expect(bySheet['Vaults & Prices']?.reason).toContain('does not contain job data');
+      expect(result.unmatchedSheets.map((s) => s.sheetName)).toContain('Vaults & Prices');
+
+      expect(bySheet['Remote Access']?.vault?.id).toBe('remote');
+      expect(bySheet['UAE & Global']?.vault?.id).toBe('uae');
+      expect(bySheet['Executive']?.vault?.id).toBe('executive');
+      expect(bySheet['Leadership']?.vault?.id).toBe('leadership');
+      expect(bySheet['Management']?.vault?.id).toBe('management');
+      expect(bySheet['Early Career']?.vault?.id).toBe('early');
+
+      expect(bySheet['Remote Access']?.summary.valid).toBe(61);
+      expect(bySheet['Executive']?.summary.valid).toBe(109);
+      expect(bySheet['Management']?.summary.valid).toBe(183);
+      expect(bySheet['UAE & Global']?.summary.valid).toBe(137);
+    });
+
+    it('skips a job sheet with no matching vault and keeps processing the rest', async () => {
+      const file = xlsxFile([
+        {
+          name: 'Executive',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['CXO Role', '5000', 'Dubai', '10+ years'],
+          ],
+        },
+        {
+          name: 'Sales',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['Account Executive', '3000', 'Remote', '3+ years'],
+          ],
+        },
+      ]);
+
+      const result = await service.previewImport(file, 'executive', 'admin-1');
+
+      expect(result.sheets).toHaveLength(2);
+      const sales = result.sheets.find((s) => s.sheetName === 'Sales');
+      expect(sales?.status).toBe('SKIPPED');
+      expect(sales?.matchStatus).toBe('unmatched');
+      expect(sales?.reason).toContain('Could not find a matching vault for sheet "Sales"');
+      expect(result.unmatchedSheets.find((s) => s.sheetName === 'Sales')?.reason).toContain(
+        'No opportunity data from this sheet will be imported',
+      );
+
+      const executive = result.sheets.find((s) => s.sheetName === 'Executive');
+      expect(executive?.summary.valid).toBe(1);
+      expect(result.matchedSheets.map((s) => s.sheetName)).toContain('Executive');
+    });
+
+    it('reports ambiguous matches instead of guessing', async () => {
+      prisma.vault.findMany.mockResolvedValue([
+        { id: 'erp', name: 'Executive ERP Vault', type: 'INDIA' },
+        { id: 'crm', name: 'Executive CRM Vault', type: 'INDIA' },
+      ]);
+      prisma.vault.findFirst.mockResolvedValue({
+        id: 'erp',
+        name: 'Executive ERP Vault',
+        type: 'INDIA',
+      });
+
+      const file = xlsxFile([
+        {
+          name: 'Executive',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['ERP Lead', '4000', 'Remote', '8+ years'],
+          ],
+        },
+        {
+          name: 'Sales',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['Account Executive', '3000', 'Remote', '3+ years'],
+          ],
+        },
+      ]);
+
+      const result = await service.previewImport(file, 'erp', 'admin-1');
+      const executive = result.sheets.find((s) => s.sheetName === 'Executive');
+      expect(executive?.status).toBe('SKIPPED');
+      expect(executive?.matchStatus).toBe('ambiguous');
+      expect(executive?.reason).toContain('matches multiple vaults');
+    });
+
+    it('throws a descriptive error when nothing in the workbook can be imported', async () => {
+      const file = xlsxFile([
+        {
+          name: 'Sales',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['Account Executive', '3000', 'Remote', '3+ years'],
+          ],
+        },
+        {
+          name: 'Finance',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['CFO', '8000', 'Remote', '12+ years'],
+          ],
+        },
+      ]);
+
+      await expect(service.import(file, 'vault-uae', 'admin-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.import(file, 'vault-uae', 'admin-1')).rejects.toThrow(
+        /Could not find a matching vault for sheet "Sales"/,
+      );
+    });
+
+    it('skips an unmatched sheet even when it is included in the selections', async () => {
+      const file = xlsxFile([
+        {
+          name: 'Executive',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['CXO Role', '5000', 'Dubai', '10+ years'],
+          ],
+        },
+        {
+          name: 'Sales',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['Account Executive', '3000', 'Remote', '3+ years'],
+          ],
+        },
+      ]);
+
+      const result = await service.import(file, 'executive', 'admin-1', undefined, 'PUBLISHED', [
+        { sheetName: 'Sales', include: true },
+      ]);
+
+      expect(result.imported).toBe(1);
+      expect(result.sheets).toEqual(
+        expect.arrayContaining([expect.objectContaining({ sheetName: 'Executive', imported: 1 })]),
+      );
+      expect(result.sheets.find((s) => s.sheetName === 'Sales')).toBeUndefined();
+    });
+
+    it('skips a matched sheet the admin excludes', async () => {
+      const file = xlsxFile([
+        {
+          name: 'Executive',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['CXO Role', '5000', 'Dubai', '10+ years'],
+          ],
+        },
+        {
+          name: 'Leadership',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['Director Role', '6000', 'Remote', '8+ years'],
+          ],
+        },
+      ]);
+
+      const result = await service.import(file, 'executive', 'admin-1', undefined, 'PUBLISHED', [
+        { sheetName: 'Executive', include: false },
+      ]);
+
+      expect(result.imported).toBe(1);
+      const executive = result.sheets.find((s) => s.sheetName === 'Executive');
+      expect(executive).toBeUndefined();
+      const leadership = result.sheets.find((s) => s.sheetName === 'Leadership');
+      expect(leadership?.imported).toBe(1);
+    });
+
+    it('imports every matched sheet into its own vault when no selections are given', async () => {
+      const file = xlsxFile([
+        {
+          name: 'Executive',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['CXO Role', '5000', 'Dubai', '10+ years'],
+          ],
+        },
+        {
+          name: 'Management',
+          rows: [
+            ['Role', 'Salary', 'Location', 'Experience'],
+            ['Manager Role', '4000', 'Remote', '5+ years'],
+          ],
+        },
+      ]);
+
+      const result = await service.import(file, 'executive', 'admin-1');
+
+      expect(result.imported).toBe(2);
+      expect(result.sheets).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ sheetName: 'Executive', vaultName: 'Executive Access Vault' }),
+          expect.objectContaining({
+            sheetName: 'Management',
+            vaultName: 'Management Access Vault',
+          }),
+        ]),
+      );
+    });
+
+    it('rejects selections referencing unknown sheets', async () => {
+      const file = csvFile('Title\nDev');
       await expect(
-        service.previewImport(csvFile(header + fill), 'vault-uae', 'admin-1'),
-      ).rejects.toThrow(/limited to 500 rows/);
+        service.import(file, 'vault-uae', 'admin-1', undefined, 'PUBLISHED', [
+          { sheetName: 'Nope', include: false },
+        ]),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });
