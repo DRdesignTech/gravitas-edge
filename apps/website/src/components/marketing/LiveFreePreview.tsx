@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Opportunity } from '@/lib/types';
 import { Skeleton, ErrorState, EmptyState } from '@/components/ui';
 import { OpportunityCard, SearchIcon } from '@/components/cards';
@@ -21,10 +21,23 @@ export default function LiveFreePreview({
   onRetry: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const canCollapse = opportunities.length > INITIAL_COUNT;
   const visible = expanded
     ? opportunities.length
     : Math.min(INITIAL_COUNT, opportunities.length);
+
+  const filteredOpportunities = useMemo(() => {
+    if (!searchQuery.trim()) return opportunities;
+    const query = searchQuery.toLowerCase();
+    return opportunities.filter((o) =>
+      o.title?.toLowerCase().includes(query) ||
+      o.company?.toLowerCase().includes(query) ||
+      o.location?.toLowerCase().includes(query) ||
+      o.experienceLevels?.some((e) => e.name.toLowerCase().includes(query)) ||
+      o.source?.toLowerCase().includes(query)
+    );
+  }, [opportunities, searchQuery]);
 
   return (
     <section id="free-preview" className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50">
@@ -41,6 +54,39 @@ export default function LiveFreePreview({
           </p>
         </div>
 
+        {!loading && !error && opportunities.length > 0 && (
+          <div className="mb-6">
+            <label htmlFor="free-preview-search" className="sr-only">
+              Search opportunities
+            </label>
+            <div className="relative max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto sm:mx-0">
+              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-content-muted/50" aria-hidden="true" />
+              <input
+                id="free-preview-search"
+                type="search"
+                placeholder="Search by role, company, location, experience..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.stopPropagation()}
+                className="w-full rounded-xl border border-line bg-surface px-5 py-4 pl-14 text-base text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                aria-label="Search opportunities by title, company, or location"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-content-muted hover:text-content transition-colors"
+                  aria-label="Clear search"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -49,23 +95,25 @@ export default function LiveFreePreview({
           </div>
         ) : error ? (
           <ErrorState message={error} onRetry={onRetry} />
-        ) : opportunities.length === 0 ? (
+        ) : filteredOpportunities.length === 0 ? (
           <div className="rounded-2xl border border-line bg-surface dark:bg-surface-elevated">
             <EmptyState
               icon={<SearchIcon className="h-6 w-6" />}
-              title="No opportunities yet"
-              description="Check back soon — new opportunities are added regularly."
+              title={searchQuery ? 'No matching opportunities' : 'No opportunities yet'}
+              description={searchQuery
+                ? 'Try adjusting your search or clear the filter.'
+                : 'Check back soon — new opportunities are added regularly.'}
             />
           </div>
         ) : (
           <>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {opportunities.slice(0, visible).map((o) => (
+              {filteredOpportunities.slice(0, visible).map((o) => (
                 <OpportunityCard key={o.id} opportunity={o} />
               ))}
             </div>
 
-            {canCollapse && (
+            {filteredOpportunities.length > INITIAL_COUNT && (
               <div className="mt-8 text-center">
                 <button
                   type="button"
