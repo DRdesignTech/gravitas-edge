@@ -151,11 +151,11 @@ export default function Home() {
         </div>
         <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-40 lg:pb-64">
           <div className="max-w-3xl">
-            <Eyebrow invert>CURATED OPPORTUNITY INTELLIGENCE</Eyebrow>
-            <h1 className="mt-5 max-w-2xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl">
+            <Eyebrow invert className="hero-reveal hero-reveal-1">CURATED OPPORTUNITY INTELLIGENCE</Eyebrow>
+            <h1 className="mt-5 max-w-2xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl hero-reveal hero-reveal-2">
               A clearer view of opportunities beyond the usual job search.
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg hero-reveal hero-reveal-3">
               Not every opportunity reaches the usual job portals. Many roles circulate directly
               through hiring managers, recruiters, consultants, company channels and professional
               networks, making them easy to miss when your search is limited to conventional job
@@ -163,7 +163,7 @@ export default function Home() {
               relevant roles and available application routes together in one structured place.
             </p>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 hero-reveal hero-reveal-4">
               <button
                 type="button"
                 onClick={() => scrollTo('free-preview')}
@@ -180,11 +180,36 @@ export default function Home() {
               </button>
             </div>
 
-            <p className="mt-8 max-w-xl text-sm leading-relaxed text-slate-300">
+            <p className="mt-8 max-w-xl text-sm leading-relaxed text-slate-300 hero-reveal hero-reveal-5">
               See what is available first. Decide for yourself whether Gravitas Edge adds value to
               your search.
             </p>
           </div>
+          <style jsx>{`
+            .hero-reveal {
+              opacity: 0;
+              transform: translateY(20px);
+              animation: heroReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+            .hero-reveal-1 { animation-delay: 0ms; }
+            .hero-reveal-2 { animation-delay: 100ms; }
+            .hero-reveal-3 { animation-delay: 200ms; }
+            .hero-reveal-4 { animation-delay: 300ms; }
+            .hero-reveal-5 { animation-delay: 400ms; }
+            @keyframes heroReveal {
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .hero-reveal {
+                opacity: 1;
+                transform: none;
+                animation: none;
+              }
+            }
+          `}</style>
         </div>
       </section>
 
