@@ -24,10 +24,11 @@ import {
   PinIcon,
   LayersIcon,
   BarsIcon,
+  GlobeIcon,
   ProtectedFields,
 } from '@/components/cards';
 import { Badge, LockIcon } from '@/components/ui';
-import { displayExperience, formatDate } from '@/lib/format';
+import { displayExperience, formatDate, hasExperience, isMeaningful } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import { OPPORTUNITY_CATEGORIES, EMPLOYMENT_TYPES } from '@/lib/types';
 import Eyebrow from '@/components/marketing/Eyebrow';
@@ -58,35 +59,126 @@ function ViewToggle({
   view: OpportunityView;
   onChange: (v: OpportunityView) => void;
 }) {
-  const base =
-    'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400';
-  const active = 'bg-brand-600 text-white shadow-sm';
-  const idle = 'text-content-muted hover:text-content';
   return (
     <div
-      className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface p-1 dark:bg-surface-elevated"
+      className="inline-flex items-center gap-0.5 rounded-xl border border-line bg-surface p-0.5 shadow-sm dark:bg-surface-elevated"
       role="group"
-      aria-label="Toggle view"
+      aria-label="Choose view layout"
     >
       <button
         type="button"
         onClick={() => onChange('grid')}
         aria-pressed={view === 'grid'}
-        className={`${base} ${view === 'grid' ? active : idle}`}
+        aria-label="Grid view"
+        title="Grid view"
+        className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
+          view === 'grid' ? 'bg-brand-600 text-white shadow-sm' : 'text-content-muted hover:text-content'
+        }`}
       >
         <GridIcon className="h-4 w-4" />
-        Grid
       </button>
       <button
         type="button"
         onClick={() => onChange('list')}
         aria-pressed={view === 'list'}
-        className={`${base} ${view === 'list' ? active : idle}`}
+        aria-label="List view"
+        title="List view"
+        className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
+          view === 'list' ? 'bg-brand-600 text-white shadow-sm' : 'text-content-muted hover:text-content'
+        }`}
       >
         <ListIcon className="h-4 w-4" />
-        List
       </button>
     </div>
+  );
+}
+
+const READ_VIEW_KEY = 'opportunities-view';
+
+function readInitialView(): OpportunityView {
+  if (typeof window === 'undefined') return 'grid';
+  try {
+    if (window.sessionStorage.getItem(READ_VIEW_KEY) === 'list') return 'list';
+  } catch {
+    // Ignore storage failures.
+  }
+  return 'grid';
+}
+
+function MetaChip({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <span className="inline-flex max-w-full items-center gap-1.5 truncate rounded-full border border-line bg-surface-muted/70 px-2.5 py-1 text-xs font-medium text-content-muted dark:bg-surface">
+      <span className="shrink-0 text-content-faint">{icon}</span>
+      <span className="truncate">{children}</span>
+    </span>
+  );
+}
+
+function OpportunityMeta({ o }: { o: Opportunity }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {o.location && (
+        <MetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>{o.location}</MetaChip>
+      )}
+      {o.country && (
+        <MetaChip icon={<GlobeIcon className="h-3.5 w-3.5" />}>{o.country}</MetaChip>
+      )}
+      {o.employmentType && (
+        <MetaChip icon={<BriefcaseIcon className="h-3.5 w-3.5" />}>
+          {titleOption(o.employmentType)}
+        </MetaChip>
+      )}
+      {o.industry && (
+        <MetaChip icon={<LayersIcon className="h-3.5 w-3.5" />}>{o.industry}</MetaChip>
+      )}
+      {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+        <MetaChip icon={<BarsIcon className="h-3.5 w-3.5" />}>
+          {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+        </MetaChip>
+      )}
+    </div>
+  );
+}
+
+function PremiumLockedBox({ o }: { o: Opportunity }) {
+  return (
+    <div className="rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/50 via-surface to-surface p-3.5 dark:border-amber-500/20 dark:from-amber-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
+      <div className="mb-2.5 flex items-center gap-1.5">
+        <LockIcon className="h-3.5 w-3.5 shrink-0 text-amber-600/80 dark:text-amber-400/80" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
+          Unlock full details
+        </span>
+      </div>
+      <ProtectedFields opportunity={o} />
+    </div>
+  );
+}
+
+function OpportunityAction({ o }: { o: Opportunity }) {
+  if (o.isFullAccess) {
+    return o.applicationUrl ? (
+      <a
+        href={o.applicationUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex shrink-0 items-center gap-1 truncate rounded-full bg-brand-50 px-3.5 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
+      >
+        Apply <span aria-hidden="true">→</span>
+      </a>
+    ) : (
+      <span className="shrink-0 truncate rounded-full border border-line bg-surface-muted/70 px-3.5 py-1.5 text-xs text-content-muted">
+        {o.applicationContact || 'Contact details'}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href="/plans"
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-sm font-semibold text-amber-700 transition-colors hover:border-amber-300 hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
+    >
+      <LockIcon className="h-3.5 w-3.5" />
+      Unlock Full Access
+    </Link>
   );
 }
 
@@ -106,7 +198,16 @@ function OpportunityPageContent() {
   const [country, setCountry] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<OpportunityView>('grid');
+  const [view, setView] = useState<OpportunityView>(readInitialView);
+
+  const handleViewChange = (v: OpportunityView) => {
+    setView(v);
+    try {
+      window.sessionStorage.setItem(READ_VIEW_KEY, v);
+    } catch {
+      // Ignore storage failures.
+    }
+  };
 
   const hasActiveSubscription = user?.subscriptions?.some(
     (s: Subscription) => s.status === 'ACTIVE' && new Date(s.endDate) > new Date(),
@@ -328,7 +429,7 @@ function OpportunityPageContent() {
               )}
             </p>
             <div className="flex items-center gap-3">
-              <ViewToggle view={view} onChange={setView} />
+              <ViewToggle view={view} onChange={handleViewChange} />
               <Select
                 className="w-40"
                 value={sortBy}
@@ -369,173 +470,126 @@ function OpportunityPageContent() {
           ) : (
             <>
               {view === 'grid' ? (
-                <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                   {data.items.map((o) => (
                     <article
                       key={o.id}
-                      className="group flex flex-col rounded-2xl border border-line bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg dark:bg-surface-elevated"
+                      className="group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="text-base font-semibold leading-snug text-content">
-                          {o.title}
-                        </h3>
-                        <FunctionTag value={o.functionalArea} />
-                      </div>
-                      <p className="mt-1 truncate text-sm font-medium text-content">
-                        {o.company || '—'}
-                      </p>
-                      <dl className="mt-4 space-y-2 text-sm text-content-muted">
-                        {o.industry && (
-                          <div className="flex items-center gap-1.5">
-                            <LayersIcon className="h-4 w-4 shrink-0 text-content-faint" />
-                            {o.industry}
-                          </div>
-                        )}
-                        {o.salary && (
-                          <div className="flex items-center gap-1.5 font-semibold text-brand-700 dark:text-brand-300">
-                            <BriefcaseIcon className="h-4 w-4 shrink-0 text-content-faint" />
-                            {o.salary}
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1.5">
-                          <PinIcon className="h-4 w-4 shrink-0 text-content-faint" />
-                          {o.location || o.country || '—'}
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <BarsIcon className="h-4 w-4 shrink-0 text-content-faint" />
-                          {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-                        </div>
-                      </dl>
-
-                      {o.isPremium && (
-                        <div className="mt-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/40 p-3 dark:border-amber-500/25 dark:bg-amber-500/5">
-                          <ProtectedFields opportunity={o} />
-                        </div>
-                      )}
-
-                      <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
-                        {o.isFullAccess ? (
-                          o.applicationUrl ? (
-                            <a
-                              href={o.applicationUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="shrink-0 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                            >
-                              Apply →
-                            </a>
-                          ) : (
-                            <span className="shrink-0 truncate text-xs text-content-faint">
-                              {o.applicationContact || '—'}
+                      <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
+                      <div className="flex flex-1 flex-col p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-400 text-base font-bold text-white shadow-sm dark:from-brand-400 dark:to-brand-300">
+                              {(o.company || o.title || '?')[0]?.toUpperCase()}
                             </span>
-                          )
-                        ) : (
-                          <Link
-                            href="/plans"
-                            className="inline-flex items-center gap-1 shrink-0 text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                            <div className="min-w-0">
+                              <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
+                                {o.title}
+                              </h3>
+                              <p className="mt-0.5 truncate text-sm font-medium text-content-muted">
+                                {o.company || '—'}
+                              </p>
+                            </div>
+                          </div>
+                          <FunctionTag value={o.functionalArea} />
+                        </div>
+
+                        {isMeaningful(o.salary) && (
+                          <p
+                            className="mt-4 truncate text-base font-bold text-brand-700 dark:text-brand-300"
+                            title={o.salary}
                           >
-                            <LockIcon className="h-3.5 w-3.5" />
-                            Unlock Full Access
-                          </Link>
+                            {o.salary}
+                          </p>
                         )}
-                        <span className="flex items-center gap-2">
-                          <Badge variant="info">{titleOption(o.category)}</Badge>
-                          {o.publishedDate && (
-                            <span className="hidden text-xs text-content-faint sm:inline">
-                              {formatDate(o.publishedDate)}
-                            </span>
-                          )}
-                        </span>
+
+                        <div className="mt-3">
+                          <OpportunityMeta o={o} />
+                        </div>
+
+                        {o.isPremium && (
+                          <div className="mt-4">
+                            <PremiumLockedBox o={o} />
+                          </div>
+                        )}
+
+                        <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
+                          <OpportunityAction o={o} />
+                          <span className="flex items-center gap-2">
+                            <Badge variant="info">{titleOption(o.category)}</Badge>
+                            {o.publishedDate && (
+                              <span className="hidden text-xs text-content-faint sm:inline">
+                                {formatDate(o.publishedDate)}
+                              </span>
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </article>
                   ))}
                 </div>
               ) : (
-                <div className="mt-6 overflow-x-auto rounded-2xl border border-line">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr className="bg-[#0A1730] text-left text-xs font-semibold uppercase tracking-wider text-slate-300">
-                        <th className="whitespace-nowrap px-5 py-3">Role</th>
-                        <th className="whitespace-nowrap px-5 py-3">Company</th>
-                        <th className="whitespace-nowrap px-5 py-3">Salary</th>
-                        <th className="whitespace-nowrap px-5 py-3">Location</th>
-                        <th className="whitespace-nowrap px-5 py-3">Experience</th>
-                        <th className="whitespace-nowrap px-5 py-3">Function</th>
-                        <th className="whitespace-nowrap px-5 py-3">Qualification</th>
-                        <th className="whitespace-nowrap px-5 py-3">
-                          Other Details / How to Apply
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-line bg-surface dark:bg-surface-elevated">
-                      {data.items.map((o) => (
-                        <tr key={o.id} className="transition-colors hover:bg-surface-muted">
-                          <td className="px-5 py-3.5 font-medium text-content">{o.title}</td>
-                          <td className="px-5 py-3.5 text-content">
-                            {o.company || <span className="text-content-faint">—</span>}
-                          </td>
-                          <td className="whitespace-nowrap px-5 py-3.5 text-content-muted">
-                            {o.salary || <span className="text-content-faint">—</span>}
-                          </td>
-                          <td className="px-5 py-3.5 text-content-muted">
-                            {o.location || o.country || '—'}
-                          </td>
-                          <td className="whitespace-nowrap px-5 py-3.5 text-content-muted">
-                            {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <FunctionTag value={o.functionalArea} />
-                          </td>
-                          <td className="px-5 py-3.5 max-w-xs truncate">
-                            {o.isFullAccess ? (
-                              o.qualification || <span className="text-content-faint">—</span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 text-content-faint truncate max-w-full">
-                                <LockIcon className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                                {o.lockedPreview?.qualification || 'Vault Access'}
+                <div className="mt-6 space-y-4">
+                  {data.items.map((o) => (
+                    <article
+                      key={o.id}
+                      className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50 sm:p-6 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-6"
+                    >
+                      <span className="absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
+                      <div className="min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-400 text-base font-bold text-white shadow-sm dark:from-brand-400 dark:to-brand-300">
+                              {(o.company || o.title || '?')[0]?.toUpperCase()}
+                            </span>
+                            <div className="min-w-0">
+                              <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
+                                {o.title}
+                              </h3>
+                              <p className="mt-0.5 truncate text-sm font-medium text-content-muted">
+                                {o.company || '—'}
+                              </p>
+                            </div>
+                          </div>
+                          <FunctionTag value={o.functionalArea} />
+                        </div>
+
+                        {isMeaningful(o.salary) && (
+                          <p
+                            className="mt-3 truncate text-base font-bold text-brand-700 dark:text-brand-300"
+                            title={o.salary}
+                          >
+                            {o.salary}
+                          </p>
+                        )}
+
+                        <div className="mt-3">
+                          <OpportunityMeta o={o} />
+                        </div>
+                      </div>
+
+                      <div className="min-w-0 space-y-4 lg:border-l lg:border-line lg:pl-6">
+                        {o.isPremium && <PremiumLockedBox o={o} />}
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+                          <OpportunityAction o={o} />
+                          <span className="flex items-center gap-2">
+                            <Badge variant="info">{titleOption(o.category)}</Badge>
+                            {o.publishedDate && (
+                              <span className="text-xs text-content-faint">
+                                {formatDate(o.publishedDate)}
                               </span>
                             )}
-                          </td>
-                          <td className="px-5 py-3.5 max-w-xs truncate">
-                            {o.isFullAccess ? (
-                              o.applicationUrl ? (
-                                <a
-                                  href={o.applicationUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 truncate block max-w-full"
-                                >
-                                  Apply →
-                                </a>
-                              ) : o.applicationContact ? (
-                                <span className="text-content-muted truncate block max-w-full">{o.applicationContact}</span>
-                              ) : o.description ? (
-                                <span className="line-clamp-2 text-content-muted block max-w-full">{o.description}</span>
-                              ) : (
-                                <span className="text-content-faint">—</span>
-                              )
-                            ) : (
-                              <span className="flex flex-wrap items-center gap-1.5 text-content-faint truncate max-w-full">
-                                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 shrink-0">
-                                  <LockIcon className="h-3.5 w-3.5" />
-                                  {o.lockedPreview?.otherDetails || 'Other Details'}
-                                </span>
-                                <span className="text-content-faint shrink-0">·</span>
-                                <span className="inline-flex items-center gap-1 shrink-0">
-                                  <LockIcon className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                                  {o.lockedPreview?.howToApply || 'How to Apply'}
-                                </span>
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </span>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
                 </div>
               )}
               <Pagination
-                className="mt-8"
+                className="mt-10"
                 currentPage={current}
                 totalPages={totalPages}
                 onPageChange={setPage}

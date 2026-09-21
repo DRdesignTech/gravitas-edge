@@ -22,7 +22,7 @@ import {
 } from '@/lib/types';
 import { Badge, Button, EmptyState, ErrorState, Skeleton, StatusBadge } from '@/components/ui';
 import { BriefcaseIcon, LayersIcon, VaultIcon } from '@/components/cards';
-import { formatDate, formatMoney, titleCase, displayExperience } from '@/lib/format';
+import { formatDate, formatMoney, titleCase, displayExperience, hasExperience, isMeaningful } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 
 const RECENT_LIMIT = 5;
@@ -671,11 +671,13 @@ function OpportunityMiniRow({ opportunity: o }: { opportunity: Opportunity }) {
               <PinIcon className="h-3.5 w-3.5" /> {o.location}
             </span>
           )}
-          <span className="inline-flex items-center gap-1">
-            <BarsIcon className="h-3.5 w-3.5" />{' '}
-            {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-          </span>
-          {o.salary && (
+          {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+            <span className="inline-flex items-center gap-1">
+              <BarsIcon className="h-3.5 w-3.5" />{' '}
+              {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+            </span>
+          )}
+          {isMeaningful(o.salary) && (
             <span className="font-semibold text-brand-700 dark:text-brand-300">{o.salary}</span>
           )}
         </div>

@@ -56,6 +56,48 @@ export function displayExperience(
   max?: number | null,
 ): string {
   const text = experienceText?.trim();
-  if (text) return text;
+  if (isMeaningful(text)) return text;
   return experienceLabel(min, max);
+}
+
+export function hasExperience(
+  experienceText?: string | null,
+  min?: number | null,
+  max?: number | null,
+): boolean {
+  return Boolean(
+    isMeaningful(experienceText) ||
+      (min !== undefined && min !== null) ||
+      (max !== undefined && max !== null),
+  );
+}
+
+const EMPTY_PLACEHOLDERS = new Set([
+  'not mentioned',
+  'not specified',
+  'not provided',
+  'not given',
+  'not available',
+  'n/a',
+  'na',
+  'none',
+  'nil',
+  'unknown',
+  'tbd',
+  'to be determined',
+  'to be announced',
+  '-',
+  '—',
+  '–',
+]);
+
+/**
+ * Returns true when the value actually contains meaningful content.
+ * Placeholder strings like "Not Mentioned", "N/A" or "—" are treated
+ * as empty so UI elements can hide instead of showing noise.
+ */
+export function isMeaningful(value?: string | null): value is string {
+  const v = value?.trim().toLowerCase() ?? '';
+  if (!v) return false;
+  return !EMPTY_PLACEHOLDERS.has(v);
 }

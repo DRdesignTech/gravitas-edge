@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Opportunity, Vault } from '@/lib/types';
 import { Badge, AccessBadge, LockIcon } from '@/components/ui';
-import { titleCase, formatDate, displayExperience } from '@/lib/format';
+import { titleCase, formatDate, displayExperience, hasExperience, isMeaningful } from '@/lib/format';
 
 export interface ProtectedField {
   label: string;
@@ -114,15 +114,15 @@ export function OpportunityCard({
 }) {
   const inner = (
     <>
-      <span className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
+      <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-base font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-400 text-base font-bold text-white shadow-sm dark:from-brand-400 dark:to-brand-300">
               {(o.company || o.title || '?')[0]?.toUpperCase()}
             </span>
             <div className="min-w-0">
-              <h3 className="truncate font-semibold text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
+              <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
                 {o.title}
               </h3>
               {o.company && (
@@ -137,7 +137,7 @@ export function OpportunityCard({
           )}
         </div>
 
-        {o.salary ? (
+        {isMeaningful(o.salary) ? (
           <p
             className="mt-4 truncate text-base font-bold text-brand-700 dark:text-brand-300"
             title={o.salary}
@@ -146,7 +146,7 @@ export function OpportunityCard({
           </p>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           {o.location && (
             <MetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>{o.location}</MetaChip>
           )}
@@ -161,13 +161,21 @@ export function OpportunityCard({
               {titleCase(o.employmentType)}
             </MetaChip>
           )}
-          <MetaChip icon={<BarsIcon className="h-3.5 w-3.5" />}>
-            {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-          </MetaChip>
+          {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+            <MetaChip icon={<BarsIcon className="h-3.5 w-3.5" />}>
+              {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+            </MetaChip>
+          )}
         </div>
 
         {o.isPremium && (
-          <div className="mt-4 rounded-xl border border-dashed border-amber-200 bg-amber-50/40 p-3 dark:border-amber-500/25 dark:bg-amber-500/5">
+          <div className="mt-4 rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/50 via-surface to-surface p-3.5 dark:border-amber-500/20 dark:from-amber-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
+            <div className="mb-2.5 flex items-center gap-1.5">
+              <LockIcon className="h-3.5 w-3.5 shrink-0 text-amber-600/80 dark:text-amber-400/80" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
+                Unlock full details
+              </span>
+            </div>
             <ProtectedFields opportunity={o} />
           </div>
         )}
@@ -213,7 +221,7 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
             {o.isPremium && <Badge variant="premium">Premium</Badge>}
           </div>
           {o.company && <p className="mt-0.5 text-sm text-content-muted">{o.company}</p>}
-          {o.salary && (
+          {isMeaningful(o.salary) && (
             <p
               className="mt-1.5 text-sm font-bold text-brand-700 dark:text-brand-300"
               title={o.salary}
@@ -242,10 +250,12 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
                 <BriefcaseIcon className="h-4 w-4" /> {titleCase(o.employmentType)}
               </span>
             )}
-            <span className="inline-flex items-center gap-1.5">
-              <BarsIcon className="h-4 w-4" />{' '}
-              {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-            </span>
+            {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+              <span className="inline-flex items-center gap-1.5">
+                <BarsIcon className="h-4 w-4" />{' '}
+                {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -270,9 +280,9 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
 
 function MetaChip({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg bg-surface-muted px-2.5 py-1 text-xs font-medium text-content-muted dark:bg-surface">
-      {icon}
-      {children}
+    <span className="inline-flex max-w-full items-center gap-1.5 truncate rounded-full border border-line bg-surface-muted/70 px-2.5 py-1 text-xs font-medium text-content-muted dark:bg-surface">
+      <span className="shrink-0 text-content-faint">{icon}</span>
+      <span className="truncate">{children}</span>
     </span>
   );
 }

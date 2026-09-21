@@ -7,7 +7,7 @@ import { fetchOpportunity } from '@/lib/services';
 import { Opportunity } from '@/lib/types';
 import { Badge, Button, Card, Skeleton, EmptyState, LockIcon } from '@/components/ui';
 import { PinIcon, BriefcaseIcon, LayersIcon, GlobeIcon } from '@/components/cards';
-import { formatDate, titleCase, displayExperience } from '@/lib/format';
+import { formatDate, titleCase, displayExperience, hasExperience, isMeaningful } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 
 function DetailRow({ label, value, isEmail }: { label: string; value?: React.ReactNode; isEmail?: boolean }) {
@@ -142,7 +142,7 @@ export default function OpportunityPage() {
           {o.title}
         </h1>
         <p className="mt-2 text-lg text-content-muted">{o.company || 'Company not disclosed'}</p>
-        {o.salary && (
+        {isMeaningful(o.salary) && (
           <p className="mt-3 text-xl font-bold text-brand-700 dark:text-brand-300">{o.salary}</p>
         )}
       </header>
@@ -151,10 +151,12 @@ export default function OpportunityPage() {
         <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
           {o.location && <DetailRow label="Location" value={o.location} />}
           {o.country && <DetailRow label="Country" value={o.country} />}
-          <DetailRow
-            label="Experience"
-            value={displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-          />
+          {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+            <DetailRow
+              label="Experience"
+              value={displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+            />
+          )}
           {o.industry && <DetailRow label="Industry" value={o.industry} />}
           {o.functionalArea && <DetailRow label="Function" value={o.functionalArea} />}
           {o.employmentType && (
@@ -271,10 +273,12 @@ export default function OpportunityPage() {
             <BriefcaseIcon className="h-4 w-4" /> {titleCase(o.employmentType)}
           </span>
         )}
-        <span className="inline-flex items-center gap-1.5">
-          <LayersIcon className="h-4 w-4" />{' '}
-          {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-        </span>
+        {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+          <span className="inline-flex items-center gap-1.5">
+            <LayersIcon className="h-4 w-4" />{' '}
+            {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+          </span>
+        )}
       </div>
     </div>
   );
