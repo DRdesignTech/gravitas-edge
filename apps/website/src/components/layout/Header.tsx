@@ -11,11 +11,11 @@ import { scrollToAnchor } from '@/lib/scroll';
 
 const navLinks = [
   { href: '#home', label: 'Home' },
+  { href: '#how-it-works', label: 'How It Works' },
   { href: '#free-preview', label: 'Free Preview' },
   { href: '#vaults', label: 'Opportunity Vaults' },
   { href: '#plans', label: 'Plans' },
   { href: '/upload-resume', label: 'Resume' },
-  { href: '#how-it-works', label: 'How It Works' },
   { href: '#faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact Us' },
 ];
