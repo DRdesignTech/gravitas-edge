@@ -55,7 +55,7 @@ export default function SubscriptionsPage() {
           <EmptyState
             icon={<LayersIcon className="h-6 w-6" />}
             title="You don't have an active subscription yet"
-            description="Unlock curated premium vaults and opportunities."
+            description="Unlock premium vaults and opportunities."
             action={
               <Link href="/plans">
                 <Button>View plans</Button>

@@ -116,9 +116,9 @@ export default function CookieConsent() {
         >
           <div className="mx-auto flex max-w-3xl flex-col gap-4 sm:flex-row sm:items-center">
             <p className="flex-1 text-sm leading-relaxed text-content-muted">
-              This website uses essential technologies to operate securely and, where enabled,
-              non-essential cookies or similar technologies to understand and improve website usage.
-              You can choose whether to allow non-essential technologies.
+              We use essential technologies to keep this website working and secure. Where you allow
+              it, we also use non-essential cookies to understand and improve how the website is
+              used. You can choose what to allow.
             </p>
             <div className="flex flex-shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
               <Button onClick={acceptAll}>Accept All</Button>
@@ -161,7 +161,7 @@ export default function CookieConsent() {
           />
           <ToggleRow
             label="Advertising / Marketing"
-            description="Used where enabled to make content more relevant. Not activated before consent."
+            description="If you allow it, helps show content more relevant to you. Not used before you agree."
             checked={marketing}
             onChange={setMarketing}
           />

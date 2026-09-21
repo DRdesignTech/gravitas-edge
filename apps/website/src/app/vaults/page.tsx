@@ -55,9 +55,9 @@ export default function VaultsPage() {
             Choose access that matches your search.
           </h1>
           <p className="mt-6 max-w-3xl text-base leading-relaxed text-slate-300 sm:text-lg">
-            Every Vault is structured around a clear geography or experience segment. If you have
-            already reviewed the live preview, compare the Vaults below and choose the access that
-            best matches your geography and experience level.
+            Each Vault is built around a clear location or experience level. If you have already
+            reviewed the live preview, compare the Vaults below and choose the access that best
+            matches your location and experience level.
           </p>
         </div>
       </section>
@@ -67,8 +67,8 @@ export default function VaultsPage() {
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
           <InfoBanner>
             <strong>What the subscription covers:</strong> You are not paying to apply for a job.
-            Your subscription covers the work involved in sourcing, curating, consolidating,
-            reviewing and presenting opportunity information conveniently in one place.
+            Your subscription covers the work of finding, checking and organising job information
+            conveniently in one place.
             <br />
             <span className="mt-2 block">
               Not yet reviewed the live database?{' '}
@@ -176,10 +176,7 @@ export default function VaultsPage() {
                               </div>
                               <div className="mt-2">
                                 <span className="text-2xl font-extrabold tracking-tight text-content">
-                                  {formatMoney(
-                                    p.discountedPrice ?? p.price,
-                                    p.currency,
-                                  )}
+                                  {formatMoney(p.discountedPrice ?? p.price, p.currency)}
                                 </span>
                               </div>
                               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -190,8 +187,7 @@ export default function VaultsPage() {
                                   <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                     Save{' '}
                                     {formatMoney(
-                                      (p.regularPrice ?? p.discountedPrice) -
-                                        p.discountedPrice,
+                                      (p.regularPrice ?? p.discountedPrice) - p.discountedPrice,
                                       p.currency,
                                     )}
                                   </span>

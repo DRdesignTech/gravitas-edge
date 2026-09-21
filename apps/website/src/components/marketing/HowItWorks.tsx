@@ -6,14 +6,13 @@ const steps = [
   {
     index: '01',
     title: 'Explore Free Opportunities',
-    description:
-      'Browse current opportunities without subscribing. The full free preview is available right on this page.',
+    description: 'Browse current opportunities without subscribing. No account or payment needed.',
   },
   {
     index: '02',
     title: 'Find Relevant Roles',
     description:
-      'See whether available opportunities match your experience, geography and career interests before taking any next step.',
+      'See whether the opportunities match your experience, location and career interests before you decide anything.',
   },
   {
     index: '03',
@@ -23,9 +22,9 @@ const steps = [
   },
   {
     index: '04',
-    title: 'Unlock & Apply',
+    title: 'Open & Apply',
     description:
-      'Subscribe to access the complete opportunity information and the available application or contact route, then pursue relevant roles.',
+      'Subscribe to see the full job details and the application or contact details, then go after the roles you like.',
   },
 ];
 

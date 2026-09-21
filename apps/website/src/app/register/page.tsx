@@ -95,7 +95,7 @@ function RegisterForm() {
               Create your account
             </h1>
             <p className="mt-1 text-sm text-content-muted">
-              Start discovering your next opportunity with {BRAND_NAME}.
+              Create a free account to explore {BRAND_NAME} opportunities.
             </p>
           </div>
 
@@ -165,7 +165,9 @@ function RegisterForm() {
                 }}
                 aria-invalid={showPasswordMessage}
                 aria-describedby={showPasswordMessage ? 'password-requirements' : undefined}
-                className={showPasswordMessage ? '!border-red-500 focus:!ring-red-500/50' : undefined}
+                className={
+                  showPasswordMessage ? '!border-red-500 focus:!ring-red-500/50' : undefined
+                }
                 placeholder="Enter your password"
                 required
               />

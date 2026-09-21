@@ -76,7 +76,7 @@ interface ResumeUploadCardProps {
 
 export default function ResumeUploadCard({
   heading = 'Upload Your Resume',
-  description = 'Upload your resume to help us understand your profile and keep it available for relevant Gravitas Edge opportunities.',
+  description = 'Upload your resume so it is ready whenever a relevant Gravitas Edge opportunity comes up.',
   compact = false,
 }: ResumeUploadCardProps) {
   const { user } = useAuth();

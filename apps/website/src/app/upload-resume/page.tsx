@@ -17,8 +17,8 @@ export default function UploadResumePage() {
             Upload your resume.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
-            Keep a copy of your resume with Gravitas Edge so the right opportunities can reach you.
-            You can start the upload without an account.
+            Keep your resume with Gravitas Edge so the right opportunities can reach you. No account
+            is needed to start.
           </p>
         </div>
       </section>
@@ -43,7 +43,7 @@ export default function UploadResumePage() {
 
           <ResumeUploadCard
             heading="Upload Your Resume"
-            description="Upload your resume to help us understand your profile and keep it available for relevant Gravitas Edge opportunities."
+            description="Upload your resume so it is ready whenever a relevant Gravitas Edge opportunity comes up."
           />
         </div>
       </section>

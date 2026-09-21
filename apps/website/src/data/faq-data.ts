@@ -34,35 +34,35 @@ export const faqData: FaqItem[] = [
     id: 1,
     question: 'What is Gravitas Edge Consulting?',
     answer:
-      'Gravitas Edge Consulting provides curated career opportunities and hiring-market intelligence for professionals across India and international markets. We identify relevant opportunities, curate and validate the available information, and provide subscribers with access to opportunity details and direct recruiter or hiring-manager contact information. Our model is designed to give professionals better access to relevant opportunities without acting as a recruitment agency or placement service.',
+      'Gravitas Edge Consulting shares job opportunities and what employers are looking for with professionals in India and other countries. We find relevant jobs, check the information we share, and give subscribers the job details plus the recruiter or hiring manager\u2019s contact details. This is an information service, not a recruitment agency or placement service.',
     category: 'about-gravitas-edge',
   },
   {
     id: 2,
     question: 'What exactly do I get with a Gravitas Edge subscription?',
     answer:
-      'Depending on the access you subscribe to, you receive: curated job opportunities relevant to your experience level or target geography, complete opportunity details, direct recruiter or hiring-manager contact information, application instructions and relevant contact details, access to the applicable opportunity vault, and relevant hiring-market intelligence and opportunity updates. We only publish opportunities where a relevant direct hiring contact is available.',
+      'Depending on the plan you choose, you receive: jobs that match your experience level or target location, complete job details, the recruiter or hiring manager\u2019s contact details, the application instructions and contact details where available, access to the right Opportunity Vault, and helpful job-market updates. We only publish a job when we have a relevant direct hiring contact for it.',
     category: 'about-gravitas-edge',
   },
   {
     id: 3,
     question: 'Is Gravitas Edge a recruitment agency?',
     answer:
-      'No. Gravitas Edge is an opportunity and hiring-intelligence platform. We do not represent candidates to employers, guarantee interviews, or act as a placement agency. Applications are made directly by candidates to the relevant employer, recruiter or hiring contact.',
+      'No. Gravitas Edge is a job-information platform. We do not represent candidates to employers, guarantee interviews, or place people in jobs. You apply directly to the employer, recruiter or hiring contact shown in the job.',
     category: 'about-gravitas-edge',
   },
   {
     id: 4,
     question: 'Do you provide direct placement or job guarantees?',
     answer:
-      'No. We do not guarantee a job, interview, shortlist, offer or placement. What we provide is access to curated opportunities and direct hiring contacts that can help you approach relevant opportunities more effectively.',
+      'No. We do not guarantee a job, interview, shortlist, offer or placement. We give you access to selected jobs and direct hiring contacts so you can approach relevant opportunities more effectively.',
     category: 'about-gravitas-edge',
   },
   {
     id: 5,
     question: 'Do you provide resume/CV assistance?',
     answer:
-      'Not at present. Resume writing, CV preparation and related career-support services are not currently part of the subscription. Additional career-support services may be introduced in the future.',
+      'Not at present. Resume writing, CV preparation and similar career-support services are not part of the subscription right now. These services may be added in the future.',
     category: 'about-gravitas-edge',
   },
 
@@ -71,28 +71,28 @@ export const faqData: FaqItem[] = [
     id: 6,
     question: 'What opportunity vaults are available?',
     answer:
-      'Our current structure includes India Opportunities: Career Access (0\u20135 years), Professional Access (5\u201310 years), Leadership Access (10\u201315 years), and Executive Access (15+ years). Global Opportunities include Global Access (all experience levels) for professionals seeking opportunities outside India, with a primary focus on the Middle East and other international markets.',
+      'India vaults: Career Access (0\u20135 years), Professional Access (5\u201310 years), Leadership Access (10\u201315 years), and Executive Access (15+ years). For jobs outside India there is Global Access (all experience levels), with a main focus on the Middle East and other international markets.',
     category: 'opportunity-vaults',
   },
   {
     id: 7,
     question: 'How do I know which India vault is right for me?',
     answer:
-      'Choose your India access primarily based on your total professional experience: 0\u20135 years for Career Access, 5\u201310 years for Professional Access, 10\u201315 years for Leadership Access, and 15+ years for Executive Access. The experience bands are designed to keep opportunities broadly relevant to your career stage. Actual requirements will vary by individual role.',
+      'Pick based on your total work experience: 0\u20135 years for Career Access, 5\u201310 years for Professional Access, 10\u201315 years for Leadership Access, and 15+ years for Executive Access. These bands keep the jobs broadly in line with your career stage, but each role has its own requirements.',
     category: 'opportunity-vaults',
   },
   {
     id: 8,
     question: 'Does Global Access have an experience limit?',
     answer:
-      'No. Global Access is open to professionals at all experience levels. It is intended for candidates targeting opportunities outside India, with a primary focus on the Middle East and other international markets.',
+      'No. Global Access is open to professionals at all experience levels. It is for candidates looking for jobs outside India, with a main focus on the Middle East and other international markets.',
     category: 'opportunity-vaults',
   },
   {
     id: 9,
     question: 'Does Global Access only contain Middle East jobs?',
     answer:
-      'No. The Middle East is the primary focus, but Global Access can also include relevant opportunities in other international markets.',
+      'No. The Middle East is the main focus, but Global Access can also include relevant jobs in other international markets.',
     category: 'opportunity-vaults',
   },
 
@@ -101,49 +101,49 @@ export const faqData: FaqItem[] = [
     id: 10,
     question: 'Where do the opportunities come from?',
     answer:
-      'Opportunities are sourced through multiple channels and reviewed before being added to the relevant vault. Depending on the opportunity, information may come from employers, recruiters, professional networks, hiring channels and other credible sources.',
+      'Jobs are collected from several channels and checked before being added to a vault. The information may come from employers, recruiters, professional networks, hiring channels and other reliable sources, depending on the job.',
     category: 'jobs-and-opportunities',
   },
   {
     id: 11,
     question: 'Are the jobs verified?',
     answer:
-      'We curate and validate opportunities before publishing them based on the information available to us. A key part of our curation process is the availability of a direct hiring contact. We only publish opportunities where we have a relevant recruiter, hiring manager or other direct hiring contact available. Hiring situations can still change quickly \u2014 a company may close a role, pause hiring, change requirements or stop accepting applications after an opportunity has been published.',
+      'We select and check jobs before publishing them, based on the information available to us. A key part of this is having a direct hiring contact. We only publish a job when we have a relevant recruiter, hiring manager or other direct hiring contact for it. Hiring situations can still change quickly \u2014 a company may close a role, pause hiring, change requirements or stop accepting applications after a job is published.',
     category: 'jobs-and-opportunities',
   },
   {
     id: 12,
     question: 'Are these real jobs or just job links collected from job portals?',
     answer:
-      'The purpose of Gravitas Edge is not simply to reproduce generic job-board listings. We focus on opportunities where we have access to relevant direct hiring contact information, allowing subscribers to approach the opportunity through a more direct route. The value of the service is the curation, relevance and direct hiring access, rather than simply providing a list of job links.',
+      'Gravitas Edge is not a simple list of job-board links. We focus on jobs where we have a relevant direct hiring contact, so you can approach the opportunity through a more direct route. The value is the selection, the relevance and the direct hiring access \u2014 not just a list of links.',
     category: 'jobs-and-opportunities',
   },
   {
     id: 13,
     question: 'Will every job have a recruiter or hiring-manager contact?',
     answer:
-      'Yes. We only publish opportunities where direct contact information is available. Depending on the opportunity, the contact may be a recruiter, hiring manager or another relevant person involved in the hiring process. If we do not have an appropriate direct hiring contact for an opportunity, we do not add that opportunity to the vault.',
+      'Yes. We only publish jobs where direct contact information is available. The contact may be a recruiter, hiring manager or another person involved in hiring. If we do not have an appropriate direct hiring contact for a job, we do not add it to the vault.',
     category: 'jobs-and-opportunities',
   },
   {
     id: 14,
     question: 'Can I apply directly to the hiring manager or recruiter?',
     answer:
-      'Yes. Where a direct hiring contact is provided, you can use the information to approach the relevant person directly. The opportunity will also include the available application instructions where applicable.',
+      'Yes. Where a direct hiring contact is provided, you can use it to approach the right person directly. The job also shows the available application instructions where applicable.',
     category: 'jobs-and-opportunities',
   },
   {
     id: 15,
     question: 'Do you contact recruiters on my behalf?',
     answer:
-      'No. Gravitas Edge provides the opportunity and direct hiring contact information. Candidates are responsible for contacting recruiters, hiring managers or employers and submitting their applications.',
+      'No. Gravitas Edge provides the job and the direct hiring contact details. You are responsible for contacting recruiters, hiring managers or employers and sending your application.',
     category: 'jobs-and-opportunities',
   },
   {
     id: 16,
     question: 'Can you promote my profile to recruiters?',
     answer:
-      'No. The subscription does not currently include individual candidate promotion, candidate marketing or direct placement services.',
+      'No. The subscription does not currently include profile promotion, candidate marketing or placement services.',
     category: 'jobs-and-opportunities',
   },
 
@@ -152,63 +152,63 @@ export const faqData: FaqItem[] = [
     id: 17,
     question: 'Do I have to pay to apply for a job?',
     answer:
-      'No. You do not pay the employer or recruiter to apply for a job. Gravitas Edge is a paid subscription service that provides access to curated opportunities and direct hiring information. The subscription is for access to the service, not a fee for applying to an individual job.',
+      'No. You never pay an employer or recruiter to apply for a job. Gravitas Edge is a paid subscription that gives you access to selected jobs and direct hiring information. The payment is for access to the service, not for applying to any individual job.',
     category: 'subscription-and-payment',
   },
   {
     id: 18,
     question: 'Why should I pay for access when jobs are available online for free?',
     answer:
-      'Many job openings are publicly visible. The difference is that Gravitas Edge focuses on curation, relevance and direct hiring access. We specifically focus on opportunities where relevant recruiter or hiring-contact information is available, which can save candidates the time and effort of independently searching for both the opportunity and the right person to approach. If you are comfortable independently searching job boards and identifying relevant hiring contacts yourself, you may not need a paid opportunity-access service.',
+      'Many jobs are public. The difference is that Gravitas Edge focuses on selection, relevance and direct hiring access. We focus on jobs where the recruiter or hiring contact details are available, which can save you the time of searching for both the job and the right person to contact. If you are comfortable finding job boards and hiring contacts yourself, you may not need a paid service.',
     category: 'subscription-and-payment',
   },
   {
     id: 19,
     question: 'Is the subscription a payment for a guaranteed job?',
     answer:
-      'No. You are paying for access to the Gravitas Edge opportunity vault and its curated information. There is no payment for a guaranteed interview, shortlist, job offer or placement.',
+      'No. You are paying for access to the Gravitas Edge vault and its selected information. There is no payment for a guaranteed interview, shortlist, job offer or placement.',
     category: 'subscription-and-payment',
   },
   {
     id: 20,
     question: 'Can I see what kind of opportunities are available before subscribing?',
     answer:
-      'Yes. We provide previews so that you can assess whether the opportunities are relevant to your experience, industry and career objectives before subscribing. We recommend reviewing the available preview before purchasing.',
+      'Yes. We provide previews so you can decide whether the jobs suit your experience, industry and career goals before subscribing. We recommend reviewing the preview before buying.',
     category: 'subscription-and-payment',
   },
   {
     id: 21,
     question: "Should I subscribe if I don't see relevant opportunities in the preview?",
     answer:
-      'No. Our recommendation is straightforward: review the preview first and subscribe only if you see sufficient relevance for your career objectives.',
+      'No. Our advice is simple: review the preview first and subscribe only if you see enough relevance for your career goals.',
     category: 'subscription-and-payment',
   },
   {
     id: 22,
     question: 'How long does the subscription last?',
     answer:
-      'The subscription period depends on the plan selected at the time of purchase. Once you subscribe, you receive access to the applicable opportunity vault for the full duration of the selected subscription period.',
+      'It depends on the plan you choose at the time of purchase. Once you subscribe, you get access to the relevant vault for the full length of the selected period.',
     category: 'subscription-and-payment',
   },
   {
     id: 23,
     question: 'Can I cancel my subscription?',
     answer:
-      'Yes. You can cancel your subscription at any time to prevent future renewal, where applicable. However, we do not offer refunds. This is because access is provided immediately upon subscription and includes access to the available opportunity database and previously collated information from the moment your subscription begins.',
+      'Yes. You can cancel at any time to stop future renewal, where it applies. However, we do not offer refunds. This is because access starts immediately when you subscribe and includes access to the available job database and previously gathered information from the moment your subscription begins.',
     category: 'subscription-and-payment',
   },
   {
     id: 24,
     question: "Why don't you offer refunds?",
     answer:
-      'Our business model is based on immediate digital access. Once you subscribe, you receive immediate access to the available opportunity database and previously collated information. This information cannot be returned or withdrawn in the same way as a physical product. For this reason, all subscriptions are non-refundable. You will be asked to acknowledge and accept this condition before completing your payment. We strongly recommend reviewing the available preview and selecting the appropriate access before subscribing.',
+      'Because access is digital and immediate. As soon as you subscribe, you get access to the available job database and previously gathered information. This information cannot be returned like a physical product, so all subscriptions are non-refundable. You will be asked to accept this before paying. We strongly recommend reviewing the preview and choosing the right access before subscribing.',
     category: 'subscription-and-payment',
   },
   {
     id: 25,
     question: 'Is the subscription automatically renewed?',
     answer:
-      'If automatic renewal applies to your selected plan, this will be clearly indicated during the purchase process. You can cancel your subscription to prevent future renewal.',
+      'If automatic renewal applies to your plan, this will be clearly shown during the purchase process. You can cancel your subscription to stop future renewal.',
     category: 'subscription-and-payment',
   },
 
@@ -217,28 +217,28 @@ export const faqData: FaqItem[] = [
     id: 26,
     question: 'What payment methods do you accept?',
     answer:
-      'Payments are processed through our secure payment gateway and the payment methods available to you will be displayed at checkout. Depending on your location and the payment gateway, available methods may include cards, UPI, net banking and other supported payment methods.',
+      'Payments are processed through our secure payment gateway, and the payment methods available to you are shown at checkout. Depending on your location and the gateway, these may include cards, UPI, net banking and other supported methods.',
     category: 'payments',
   },
   {
     id: 27,
     question: 'What happens if my auto-renewal payment fails?',
     answer:
-      'If automatic renewal applies to your plan and the renewal payment fails, you may receive a payment notification or renewal reminder. If the renewal is not completed, access to the relevant opportunity vault may be paused or expire once the existing subscription period ends.',
+      'If automatic renewal applies to your plan and the payment fails, you may receive a payment notification or reminder. If the renewal is not completed, access to the relevant vault may be paused or end once the current period finishes.',
     category: 'payments',
   },
   {
     id: 28,
     question: 'Will I receive a receipt or payment confirmation?',
     answer:
-      'Yes. A payment confirmation is generated for successful transactions. The applicable payment or subscription information will also be available through the payment or account system used for your purchase.',
+      'Yes. A payment confirmation is generated for successful payments. The payment or subscription details are also available through the payment or account system used for your purchase.',
     category: 'payments',
   },
   {
     id: 29,
     question: 'Do I need to confirm anything before completing payment?',
     answer:
-      'Yes. Before completing payment, you will be required to acknowledge the applicable subscription terms, including the non-refundable nature of the subscription.',
+      'Yes. Before paying, you must accept the subscription terms, including that the subscription is non-refundable.',
     category: 'payments',
   },
 
@@ -247,49 +247,49 @@ export const faqData: FaqItem[] = [
     id: 30,
     question: 'How do I receive access after payment?',
     answer:
-      'After successful payment, you will receive instructions to access the relevant opportunity vault through the Gravitas Edge website. Access is generally provided immediately after successful payment.',
+      'After a successful payment, you receive instructions to access the relevant vault through the Gravitas Edge website. Access is usually provided immediately after payment.',
     category: 'access-and-delivery',
   },
   {
     id: 31,
     question: 'I paid but cannot access the opportunity vault. What should I do?',
     answer:
-      'First, check your payment confirmation and the email associated with your purchase. If you have completed payment but cannot access the relevant opportunity vault, contact the Gravitas Edge team and we will help resolve the access issue.',
+      'First, check your payment confirmation and the email linked to your purchase. If you have paid but still cannot access the relevant vault, contact the Gravitas Edge team and we will help fix the issue.',
     category: 'access-and-delivery',
   },
   {
     id: 32,
     question: 'Where are the opportunities posted?',
     answer:
-      'The opportunity vaults are available through the Gravitas Edge website. Subscribers can access the relevant vault based on the subscription they have selected.',
+      'The vaults are available through the Gravitas Edge website. Subscribers can access the vault that matches the plan they chose.',
     category: 'access-and-delivery',
   },
   {
     id: 33,
     question: 'Are opportunities posted every day?',
     answer:
-      'No. The vault is updated on a regular basis, generally on a weekly cycle, with additional opportunities sometimes added during weekends or when relevant opportunities become available. We do not position the service as a daily job-alert feed.',
+      'No. The vault is updated on a regular basis, usually weekly, with extra jobs sometimes added on weekends or when relevant jobs become available. This is not a daily job-alert feed.',
     category: 'access-and-delivery',
   },
   {
     id: 34,
     question: "Why aren't opportunities posted every day?",
     answer:
-      'Each opportunity needs to be sourced, reviewed, curated and prepared before publication. The objective is to provide relevant opportunities with direct hiring contacts rather than simply maximize the number of posts.',
+      'Every job needs to be found, checked, selected and prepared before publishing. The aim is to give you relevant jobs with direct hiring contacts, not simply to post as many jobs as possible.',
     category: 'access-and-delivery',
   },
   {
     id: 35,
     question: 'How many jobs will I receive every week?',
     answer:
-      'We do not guarantee a fixed number of opportunities. The volume depends on the market, hiring activity, geography, experience level and the number of relevant positions available at any given time. Some periods may have significantly more suitable opportunities than others.',
+      'We do not guarantee a fixed number. The volume depends on the market, hiring activity, location, experience level and how many relevant jobs are available at the time. Some periods may have far more suitable jobs than others.',
     category: 'access-and-delivery',
   },
   {
     id: 36,
     question: 'Do you provide individual attention to every subscriber?',
     answer:
-      'No. Gravitas Edge is a curated opportunity-access service, not a one-to-one executive search or career consulting service. We do not currently provide individual candidate promotion, personal job-search management or direct placement support.',
+      'No. Gravitas Edge is a selected job-access service, not a one-to-one executive search or career consulting service. We do not currently provide profile promotion, personal job-search management or placement support.',
     category: 'access-and-delivery',
   },
 
@@ -298,28 +298,28 @@ export const faqData: FaqItem[] = [
     id: 37,
     question: 'How do I create a Gravitas Edge account?',
     answer:
-      'You can create an account directly on the Gravitas Edge website using your email address. Account creation is free and does not require a paid subscription. An active account is required to subscribe to an opportunity vault.',
+      'You can create an account directly on the Gravitas Edge website using your email address. Creating an account is free and does not require a paid subscription. You need an account to subscribe to a vault.',
     category: 'account-and-website-access',
   },
   {
     id: 38,
     question: 'Can I access multiple vaults with one account?',
     answer:
-      'Yes. Your account can hold access to more than one opportunity vault at the same time. For example, you may subscribe to an India-based access category and Global Access separately. Each subscription is managed independently within your account.',
+      'Yes. Your account can hold access to more than one vault at the same time. For example, you may subscribe to an India vault and Global Access separately. Each subscription is managed individually within your account.',
     category: 'account-and-website-access',
   },
   {
     id: 39,
     question: 'Where can I see my subscription status and expiry date?',
     answer:
-      'Your account dashboard allows you to view your active access, subscription status and applicable expiry or renewal information.',
+      'Your account dashboard shows your active access, subscription status and the relevant expiry or renewal information.',
     category: 'account-and-website-access',
   },
   {
     id: 40,
     question: 'Can I download or export the opportunity list?',
     answer:
-      'No. The platform is designed for browsing and filtering opportunities directly through the website. Bulk downloading or exporting the opportunity database is not available. This helps protect the integrity of the curated information and ensures that the database remains part of the subscriber-only platform rather than being redistributed outside it.',
+      'No. The platform is designed for browsing and filtering jobs directly on the website. Bulk downloading or exporting the job database is not available. This helps protect the selected information and keeps the database inside the subscriber-only platform rather than being shared elsewhere.',
     category: 'account-and-website-access',
   },
 
@@ -328,28 +328,28 @@ export const faqData: FaqItem[] = [
     id: 41,
     question: 'Can professionals outside India subscribe to Global Access?',
     answer:
-      'Yes. Global Access is designed for professionals seeking opportunities outside India and is not restricted to Indian residents.',
+      'Yes. Global Access is for professionals looking for jobs outside India and is not limited to Indian residents.',
     category: 'international-opportunities',
   },
   {
     id: 42,
     question: 'Which international markets do you cover?',
     answer:
-      'The primary focus is the Middle East, along with relevant opportunities in other international markets. Coverage depends on market conditions and the availability of suitable opportunities with direct hiring contacts.',
+      'The main focus is the Middle East, along with relevant jobs in other international markets. Coverage depends on market conditions and on suitable jobs being available with direct hiring contacts.',
     category: 'international-opportunities',
   },
   {
     id: 43,
     question: 'Can I use Global Access if I have no international experience?',
     answer:
-      'Yes. International experience is not a requirement for Global Access. The relevant consideration is whether your profile meets the eligibility requirements of the individual opportunity.',
+      'Yes. International experience is not a requirement for Global Access. What matters is whether your profile meets the requirements of the individual job.',
     category: 'international-opportunities',
   },
   {
     id: 44,
     question: 'Do you arrange visas or work permits?',
     answer:
-      'No. Visa sponsorship, work permits and immigration support are determined by the employer and applicable immigration authorities. Where an opportunity explicitly mentions sponsorship or relocation support, that information may be included in the opportunity details. We do not provide immigration services.',
+      'No. Visa sponsorship, work permits and immigration support are decided by the employer and the relevant immigration authorities. If a job clearly mentions sponsorship or relocation support, that may be shown in the job details. We do not provide immigration services.',
     category: 'international-opportunities',
   },
 
@@ -358,35 +358,35 @@ export const faqData: FaqItem[] = [
     id: 45,
     question: 'Who do I apply to after finding an opportunity?',
     answer:
-      'You apply directly to the employer, recruiter, hiring manager or application channel specified in the opportunity. Gravitas Edge does not submit applications on behalf of subscribers.',
+      'You apply directly to the employer, recruiter, hiring manager or application channel shown in the job. Gravitas Edge does not send applications on your behalf.',
     category: 'applications-and-employers',
   },
   {
     id: 46,
     question: 'Does Gravitas Edge guarantee that a recruiter will respond?',
     answer:
-      'No. Once you contact a recruiter or hiring manager, the response is entirely at their discretion.',
+      'No. Once you contact a recruiter or hiring manager, whether they respond is entirely up to them.',
     category: 'applications-and-employers',
   },
   {
     id: 47,
     question: 'Can I contact the hiring manager directly?',
     answer:
-      'Yes. Where a hiring manager\u2019s contact information is available, you can use it to approach them directly. However, having a direct contact does not guarantee a response, interview or selection.',
+      'Yes. Where the hiring manager\u2019s contact details are available, you can use them to reach out directly. However, having a direct contact does not guarantee a response, interview or selection.',
     category: 'applications-and-employers',
   },
   {
     id: 48,
     question: 'What if a job has already closed?',
     answer:
-      'Hiring status can change after an opportunity is published. If you discover that an opportunity has closed, you should rely on the employer\u2019s latest information and application status. We work to keep the vault relevant, but no job-information service can guarantee that every opening remains active indefinitely after publication.',
+      'Hiring status can change after a job is published. If you find that a job has closed, rely on the employer\u2019s latest information and application status. We work to keep the vault relevant, but no job-information service can guarantee that every opening stays active forever.',
     category: 'applications-and-employers',
   },
   {
     id: 49,
     question: 'Can I suggest a company or role that should be covered?',
     answer:
-      'Yes. If you have a specific company, industry, geography or type of role you want us to monitor, you can share the requirement with the Gravitas Edge team. This does not guarantee that a matching opportunity will be added, as we only publish opportunities where suitable direct hiring contact information is available.',
+      'Yes. If you want us to watch a specific company, industry, location or type of role, share the requirement with the Gravitas Edge team. This does not guarantee that a matching job will be added, because we only publish jobs where suitable direct hiring contact details are available.',
     category: 'applications-and-employers',
   },
 
@@ -395,49 +395,49 @@ export const faqData: FaqItem[] = [
     id: 50,
     question: 'Do you provide resume writing or CV assistance?',
     answer:
-      'Not at present. This is not currently part of the subscription. We plan to introduce resume/CV assistance and additional career-support services in the future.',
+      'Not at present. This is not part of the subscription right now. We plan to add resume/CV assistance and other career-support services in the future.',
     category: 'services-not-currently-included',
   },
   {
     id: 51,
     question: 'Do you provide interview preparation?',
     answer:
-      'Not at present. Interview preparation is not currently part of the subscription. Additional career-support services may be introduced in the future.',
+      'Not at present. Interview preparation is not part of the subscription right now. Additional career-support services may be added in the future.',
     category: 'services-not-currently-included',
   },
   {
     id: 52,
     question: 'Do you provide career coaching?',
     answer:
-      'Not at present. The current service focuses on opportunity access and hiring-market intelligence. Additional career-support services may be introduced in the future.',
+      'Not at present. The current service focuses on job access and job-market information. Additional career-support services may be added in the future.',
     category: 'services-not-currently-included',
   },
   {
     id: 53,
     question: 'Do you provide executive coaching?',
     answer:
-      'Not at present. Executive coaching is not currently part of the subscription. Additional services may be introduced in the future.',
+      'Not at present. Executive coaching is not part of the subscription right now. Additional services may be added in the future.',
     category: 'services-not-currently-included',
   },
   {
     id: 54,
     question: 'Do you guarantee interviews or job offers?',
     answer:
-      'No. We provide access to opportunities and direct hiring contacts. The decision to respond, interview or hire remains entirely with the employer or hiring team.',
+      'No. We provide access to jobs and direct hiring contacts. The decision to respond, interview or hire stays entirely with the employer or hiring team.',
     category: 'services-not-currently-included',
   },
   {
     id: 55,
     question: 'Do you apply for jobs on behalf of subscribers?',
     answer:
-      'No. Candidates are responsible for applying directly to employers, recruiters or hiring managers.',
+      'No. You are responsible for applying directly to employers, recruiters or hiring managers.',
     category: 'services-not-currently-included',
   },
   {
     id: 56,
     question: 'Do you negotiate salaries with employers?',
     answer:
-      'No. Salary discussions and negotiations take place directly between the candidate and the employer or hiring representative.',
+      'No. Salary talks and negotiations happen directly between you and the employer or hiring representative.',
     category: 'services-not-currently-included',
   },
   {
@@ -451,7 +451,7 @@ export const faqData: FaqItem[] = [
     id: 58,
     question: 'Do you guarantee recruiter or hiring-manager access for every opportunity?',
     answer:
-      'We only publish opportunities where relevant direct hiring contact information is available. The contact may be a recruiter, hiring manager or another relevant hiring contact depending on the opportunity.',
+      'We only publish jobs where relevant direct hiring contact details are available. The contact may be a recruiter, hiring manager or another relevant hiring contact, depending on the job.',
     category: 'services-not-currently-included',
   },
 
@@ -460,35 +460,35 @@ export const faqData: FaqItem[] = [
     id: 59,
     question: 'Is Gravitas Edge affiliated with the companies whose jobs you publish?',
     answer:
-      'Not necessarily. Publishing an opportunity does not mean that Gravitas Edge is an authorised recruitment partner or representative of the employer. Unless explicitly stated, candidates should treat Gravitas Edge as the source providing curated opportunity information, not as the employer\u2019s recruitment representative.',
+      'Not necessarily. Publishing a job does not mean Gravitas Edge is an authorised recruitment partner or representative of the employer. Unless clearly stated, treat Gravitas Edge as the source sharing selected job information, not as the employer\u2019s recruitment representative.',
     category: 'transparency',
   },
   {
     id: 60,
     question: 'Do I pay Gravitas Edge to get hired by a company?',
     answer:
-      'No. Your subscription payment is for access to Gravitas Edge\u2019s opportunity and hiring-intelligence service. You should never be required to pay an employer or recruiter simply to obtain a job offer.',
+      'No. Your subscription payment is for access to Gravitas Edge\u2019s job and hiring-information service. You should never be asked to pay an employer or recruiter simply to get a job offer.',
     category: 'transparency',
   },
   {
     id: 61,
     question: 'How do I know whether a recruiter contact is genuine?',
     answer:
-      'We make reasonable efforts to validate the information available to us before publishing an opportunity. However, candidates should independently verify recruiter identity and employer details before sharing sensitive personal information or making any payment.',
+      'We make reasonable efforts to check the information available to us before publishing a job. However, you should independently verify the recruiter\u2019s identity and the employer\u2019s details before sharing sensitive personal information or making any payment.',
     category: 'transparency',
   },
   {
     id: 62,
     question: "Why don't you publish every recruiter contact publicly?",
     answer:
-      'Direct hiring contacts are an important part of the value provided through the paid opportunity access. Publicly publishing every contact would remove the distinction between the free preview and the paid service.',
+      'Direct hiring contacts are a key part of the value of paid access. Publishing every contact publicly would remove the difference between the free preview and the paid service.',
     category: 'transparency',
   },
   {
     id: 63,
     question: "Why don't you publish the complete job details publicly?",
     answer:
-      'Our free channels and public content are designed to provide selected opportunities, previews and hiring-market intelligence. Paid opportunity access provides the fuller opportunity information and direct hiring contact details.',
+      'Our free channels and public content share selected jobs, previews and job-market information. Paid access provides the fuller job details and direct hiring contact information.',
     category: 'transparency',
   },
 
@@ -497,14 +497,14 @@ export const faqData: FaqItem[] = [
     id: 64,
     question: 'How should I use the opportunity vault?',
     answer:
-      'The vault works best when you actively use the information provided. We recommend: review opportunities relevant to your experience, read the complete job requirements, identify the most appropriate hiring contact, use the recruiter or hiring-manager contact provided, tailor your application to the specific role, and apply promptly because hiring requirements can change.',
+      'The vault works best when you actively use the information. We recommend: review jobs relevant to your experience, read the full job requirements, identify the right hiring contact, use the recruiter or hiring-manager contact provided, tailor your application to the specific role, and apply promptly because hiring requirements can change.',
     category: 'getting-the-most-value',
   },
   {
     id: 65,
     question: 'Is Gravitas Edge suitable for everyone?',
     answer:
-      'No. It is most useful for professionals who are actively exploring career opportunities and want curated access to relevant openings and direct hiring contacts. If you are looking for someone to apply for jobs on your behalf, guarantee placement or provide one-to-one recruitment services, this service is not designed for you.',
+      'No. It is most useful for professionals who are actively exploring career opportunities and want selected access to relevant openings and direct hiring contacts. If you want someone to apply on your behalf, guarantee placement or provide one-to-one recruitment services, this service is not for you.',
     category: 'getting-the-most-value',
   },
   {
@@ -512,21 +512,21 @@ export const faqData: FaqItem[] = [
     question:
       'What is the biggest difference between the free content and paid opportunity access?',
     answer:
-      'Our free content provides selected opportunities, previews and hiring-market intelligence. Paid access provides the relevant opportunity vault, including the fuller opportunity information and direct hiring contact details.',
+      'Our free content shares selected jobs, previews and job-market information. Paid access gives you the relevant vault, including the fuller job details and direct hiring contact information.',
     category: 'getting-the-most-value',
   },
   {
     id: 67,
     question: 'Can I subscribe to multiple access categories?',
     answer:
-      'Yes, where the available subscription options allow it. For example, a professional may choose an India access category based on experience while separately seeking international opportunities through Global Access.',
+      'Yes, where the available options allow it. For example, you may choose an India vault based on your experience while separately seeking international jobs through Global Access.',
     category: 'getting-the-most-value',
   },
   {
     id: 68,
     question: 'What if I am between two experience categories?',
     answer:
-      'Choose the access category that best matches your current career stage and the type of roles you are targeting. If your primary objective is to target international opportunities, Global Access is open to all experience levels and may be more appropriate.',
+      'Choose the category that best matches your current career stage and the type of roles you want. If your main goal is international jobs, Global Access is open to all experience levels and may be the better fit.',
     category: 'getting-the-most-value',
   },
 
@@ -535,14 +535,14 @@ export const faqData: FaqItem[] = [
     id: 69,
     question: 'I was previously a subscriber through Telegram. Do I need to do anything?',
     answer:
-      'If you were an active subscriber through the previous Telegram-based delivery system, you will receive instructions on setting up your Gravitas Edge website account and transferring or confirming your existing access during the transition to the Gravitas Edge website and removing the old Telegram-based system.',
+      'If you were an active subscriber through the old Telegram-based system, you will receive instructions on setting up your Gravitas Edge website account and transferring or confirming your existing access during the move to the website and the removal of the old Telegram system.',
     category: 'previous-subscribers',
   },
   {
     id: 70,
     question: 'Will I lose access during the move to the website?',
     answer:
-      'Existing active subscribers will retain access for the duration of their existing subscription. If you experience any access issue during the transition, contact the Gravitas Edge team and we will assist with resolving it.',
+      'Existing active subscribers keep access for the duration of their existing subscription. If you face any access issue during the move, contact the Gravitas Edge team and we will help resolve it.',
     category: 'previous-subscribers',
   },
   {
@@ -550,7 +550,7 @@ export const faqData: FaqItem[] = [
     question:
       'I already paid through the previous payment platform. Is my subscription still valid?',
     answer:
-      'Yes. If you have an active subscription purchased through the previous payment system, it remains valid for the duration originally purchased. Once that subscription expires, any renewal will take place through the Gravitas Edge website.',
+      'Yes. If you have an active subscription bought through the previous payment system, it remains valid for the length you originally paid for. Once it expires, any renewal will happen through the Gravitas Edge website.',
     category: 'previous-subscribers',
   },
 
@@ -559,14 +559,14 @@ export const faqData: FaqItem[] = [
     id: 72,
     question: 'Where can I find your Terms of Service, Privacy Policy and Refund Policy?',
     answer:
-      'The applicable Terms of Service, Privacy Policy and Refund Policy are available through the Gravitas Edge website footer and are also linked at the relevant stages of the subscription and payment process. We recommend reviewing these policies before completing a subscription.',
+      'The Terms of Service, Privacy Policy and Refund Policy are available in the footer of the Gravitas Edge website and are also linked at the relevant stages of the subscription and payment process. We recommend reviewing these before completing a subscription.',
     category: 'legal-and-policies',
   },
   {
     id: 73,
     question: "I have a question that isn't answered here. What should I do?",
     answer:
-      'Contact the Gravitas Edge team with your specific question. Before subscribing, we recommend reviewing the available preview and choosing the access category that best matches your experience level and target market. Gravitas Edge is built around a simple principle: Better opportunities. Better access. Better information. The goal is not to promise a job. The goal is to give professionals better access to relevant opportunities and the direct hiring information they need to pursue them.',
+      'Contact the Gravitas Edge team with your question. Before subscribing, we recommend reviewing the preview and choosing the access category that best matches your experience level and target market. Gravitas Edge is built around a simple principle: Better opportunities. Better access. Better information. Our goal is not to promise a job. It is to give professionals better access to relevant opportunities and the direct hiring information they need to pursue them.',
     category: 'legal-and-policies',
   },
 ];

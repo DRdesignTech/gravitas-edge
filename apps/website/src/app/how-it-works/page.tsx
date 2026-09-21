@@ -7,19 +7,19 @@ const steps = [
     index: '01',
     title: 'Explore the live Free Preview',
     description:
-      'Browse the current opportunity database as a non-subscriber. Relevant public fields remain visible while protected company, source and application details stay locked.',
+      'Browse the current jobs without subscribing. Public details stay visible while company, source and application details remain locked.',
   },
   {
     index: '02',
     title: 'Choose the Vault that fits',
     description:
-      'Match your target geography and experience level to the most relevant Vault. You can hold more than one active Vault if your search spans multiple segments.',
+      'Pick the Vault that best matches your location and experience level. You can hold more than one active Vault if your search covers several areas.',
   },
   {
     index: '03',
     title: 'Subscribe and unlock access',
     description:
-      'Select a 1, 3 or 6-month plan. Once activated, sign in to view the complete subscriber fields available within your selected Vault.',
+      'Select a 1, 3 or 6-month plan. Once active, sign in to view the full subscriber details inside your chosen Vault.',
   },
 ];
 
@@ -57,9 +57,8 @@ export default function HowItWorksPage() {
             See what is available. Decide what is relevant. Subscribe only when it makes sense.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
-            The process is intentionally simple. Your subscription decision should be based on the
-            opportunities you can actually see in the live preview, not just on the name of a Vault
-            or a promise of what may be inside.
+            The process is intentionally simple. Base your decision on the jobs you can actually see
+            in the live preview — not just the name of a Vault or a promise of what may be inside.
           </p>
         </div>
       </section>
@@ -86,13 +85,12 @@ export default function HowItWorksPage() {
             <div className="flex flex-col rounded-2xl bg-[#0A1730] p-7 sm:p-9">
               <Eyebrow invert>WHY THE PREVIEW MATTERS</Eyebrow>
               <h2 className="mt-4 max-w-md text-2xl font-bold leading-snug tracking-tight text-white sm:text-3xl">
-                We would rather you decide with visibility than subscribe on assumption.
+                We want you to decide after seeing the opportunities, not on guesswork.
               </h2>
               <p className="mt-4 max-w-lg text-sm leading-relaxed text-slate-300 sm:text-base">
-                The Free Preview shows the live opportunity flow available on the platform. Review
-                it first. If the current mix is relevant to your search, continue to the Vaults and
-                choose your access. If it is not adding value today, there is no reason to subscribe
-                yet.
+                The Free Preview shows the current jobs available on the platform. Review it first.
+                If they fit your search, continue to the Vaults and choose your access. If they do
+                not add value right now, there is no reason to subscribe yet.
               </p>
               <div className="mt-8">
                 <Link
@@ -111,8 +109,7 @@ export default function HowItWorksPage() {
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-content-muted sm:text-base">
                 From the preview, continue directly to Vaults &amp; Plans. There you can compare the
-                six Vaults, understand who each is intended for and select the access period that
-                suits you.
+                Vaults, see who each one is for and select the access period that suits you.
               </p>
               <ul className="mt-7 space-y-3 border-t border-line pt-6">
                 {afterPreview.map((item) => (

@@ -102,16 +102,16 @@ export default function VaultDetailPage() {
   }, [loading, vault, user, router]);
 
   const vaultPlans = useMemo<PricingPlan[]>(() => {
-    return (pricing.find((g) => g.vault.id === vaultId)?.plans ?? []).slice().sort(
-      (a, b) => a.durationDays - b.durationDays,
-    );
+    return (pricing.find((g) => g.vault.id === vaultId)?.plans ?? [])
+      .slice()
+      .sort((a, b) => a.durationDays - b.durationDays);
   }, [pricing, vaultId]);
 
   useEffect(() => {
     if (vaultPlans.length > 0 && !selectedPlanId) {
       const requestedPlanId = searchParams.get('plan');
       const preferred = requestedPlanId
-        ? vaultPlans.find((p) => p.id === requestedPlanId) ?? null
+        ? (vaultPlans.find((p) => p.id === requestedPlanId) ?? null)
         : null;
       setSelectedPlanId((preferred ?? vaultPlans[0]).id);
     }
@@ -175,8 +175,8 @@ export default function VaultDetailPage() {
           </h1>
           {vault.description && (
             <p className="mt-6 max-w-3xl text-base leading-relaxed text-slate-300 sm:text-lg">
-              {vault.description}. Your subscription unlocks the protected details available within
-              this Vault.
+              {vault.description}. Your subscription unlocks the protected details inside this
+              Vault.
             </p>
           )}
         </div>
@@ -212,7 +212,7 @@ export default function VaultDetailPage() {
               {/* SECTION 3 — OPTIONAL RESUME */}
               <ResumeUploadCard
                 heading="Optional: upload your resume"
-                description="Your resume may be considered where Gravitas Edge is directly supporting a relevant recruitment mandate. As platform capabilities evolve, it may also help us improve the relevance of opportunities presented to you."
+                description="Your resume may be considered where Gravitas Edge is directly involved in a company's recruitment for a relevant role. As the platform grows, it may also help us show you more relevant opportunities."
               />
             </div>
 
@@ -307,10 +307,7 @@ export default function VaultDetailPage() {
                         <>
                           <SummaryRow
                             label="Regular price"
-                            value={formatMoney(
-                              selectedPlan.regularPrice,
-                              selectedPlan.currency,
-                            )}
+                            value={formatMoney(selectedPlan.regularPrice, selectedPlan.currency)}
                           />
                           <SummaryRow
                             label="Discount"
@@ -339,7 +336,7 @@ export default function VaultDetailPage() {
                       />
                       <SummaryRow
                         label="Access includes"
-                        value="Curated employment opportunities in the selected Vault with relevant application or contact routes, plus new opportunities added during the active period."
+                        value="Selected employment opportunities in the chosen Vault with the relevant application or contact details, plus new opportunities added during your active period."
                       />
                       <SummaryRow
                         label="Access activation"
@@ -434,8 +431,8 @@ export default function VaultDetailPage() {
               {/* AFTER ACTIVATION */}
               <div className="rounded-2xl border border-line bg-surface p-6 dark:bg-surface-elevated">
                 <p className="text-sm leading-relaxed text-content-muted">
-                  After activation, sign in to access the complete Vault directly on the Gravitas
-                  Edge website.
+                  After activation, sign in to access the full Vault directly on the Gravitas Edge
+                  website.
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-content-muted">
                   Subscriber benefit: your account will also include a referral section where

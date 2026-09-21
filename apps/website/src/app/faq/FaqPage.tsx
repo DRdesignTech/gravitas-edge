@@ -212,8 +212,8 @@ export default function FaqPage() {
           How can we help?
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-base text-content-muted sm:text-lg">
-          Everything you need to know about Gravitas Edge, our opportunity access, subscriptions,
-          hiring contacts and how the platform works.
+          Answers to common questions about Gravitas Edge, jobs, subscriptions, hiring contacts and
+          how the platform works.
         </p>
       </div>
 

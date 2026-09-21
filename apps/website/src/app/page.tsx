@@ -40,28 +40,28 @@ function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
 const whatWeDoCards = [
   {
     index: '01',
-    title: 'Hiring is distributed',
+    title: 'Jobs come through many channels',
     description:
-      'Relevant roles may appear through company teams, recruiters, consultants, networks and portals - not through one single channel.',
+      'Good jobs can appear through company teams, recruiters, consultants, networks and portals - not just one place.',
   },
   {
     index: '02',
-    title: 'Context matters',
+    title: 'Details matter',
     description:
-      'A role title alone is rarely enough. Geography, experience fit, source and the available application route all matter when deciding where to focus.',
+      'A job title alone is not enough. Location, experience fit, source and how to apply all matter when deciding where to focus.',
   },
   {
     index: '03',
-    title: 'Your time should be focused',
+    title: 'Your time is valuable',
     description:
-      'We organise opportunity information so you can assess relevance faster and spend more time on opportunities that deserve your attention.',
+      'We organise job information so you can quickly see which opportunities are worth your time.',
   },
 ];
 
 const whatWeDoPoints = [
-  'Curated Opportunities',
-  'Organised by Geography and Experience Level',
-  'Application Routes Provided',
+  'Selected Opportunities',
+  'Jobs by Location and Experience',
+  'How to Apply',
   'Save Time',
 ];
 
@@ -144,14 +144,16 @@ export default function Home() {
         >
           <div className="mx-auto max-w-7xl">
             <p className="max-w-3xl pl-4 sm:pl-8 text-lg font-semibold leading-snug text-white sm:text-xl">
-              More opportunities.<br />
-              A wider perspective.
+              More opportunities.
+              <br />A wider perspective.
             </p>
           </div>
         </div>
         <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-40 lg:pb-64">
           <div className="max-w-3xl">
-            <Eyebrow invert className="hero-reveal hero-reveal-1">CURATED OPPORTUNITY INTELLIGENCE</Eyebrow>
+            <Eyebrow invert className="hero-reveal hero-reveal-1">
+              CURATED OPPORTUNITY INTELLIGENCE
+            </Eyebrow>
             <h1 className="mt-5 max-w-2xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl hero-reveal hero-reveal-2">
               A clearer view of opportunities beyond the usual job search.
             </h1>
@@ -191,11 +193,21 @@ export default function Home() {
               transform: translateY(20px);
               animation: heroReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             }
-            .hero-reveal-1 { animation-delay: 0ms; }
-            .hero-reveal-2 { animation-delay: 100ms; }
-            .hero-reveal-3 { animation-delay: 200ms; }
-            .hero-reveal-4 { animation-delay: 300ms; }
-            .hero-reveal-5 { animation-delay: 400ms; }
+            .hero-reveal-1 {
+              animation-delay: 0ms;
+            }
+            .hero-reveal-2 {
+              animation-delay: 100ms;
+            }
+            .hero-reveal-3 {
+              animation-delay: 200ms;
+            }
+            .hero-reveal-4 {
+              animation-delay: 300ms;
+            }
+            .hero-reveal-5 {
+              animation-delay: 400ms;
+            }
             @keyframes heroReveal {
               to {
                 opacity: 1;
@@ -216,14 +228,17 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 2. WHY GRAVITAS EDGE — #why-gravitas-edge                       */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="why-gravitas-edge" className="scroll-mt-20 border-t border-line bg-surface-muted">
+      <section
+        id="why-gravitas-edge"
+        className="scroll-mt-20 border-t border-line bg-surface-muted"
+      >
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
           <div className="mx-auto max-w-3xl text-center">
             <Eyebrow>WHY GRAVITAS EDGE</Eyebrow>
             <p className="mt-6 text-lg leading-relaxed text-content-muted sm:text-xl">
-              Job postings often don&apos;t include a way to apply directly — no email, no contact,
-              just an invite to reach out. Gravitas Edge closes that gap by giving you direct access
-              to the recruiter or hiring manager behind the role.
+              Many job posts do not show how to apply — no email, no contact, just a request to
+              reach out. Gravitas Edge fills that gap by giving you the recruiter or hiring
+              manager&apos;s contact details directly.
             </p>
           </div>
         </div>
@@ -241,14 +256,17 @@ export default function Home() {
                 What Gravitas Edge does.
               </h2>
               <p className="mt-4 text-base leading-relaxed text-content-muted">
-                Relevant opportunities are spread across different channels and can be difficult to
-                track consistently. Gravitas Edge identifies, curates and organises them by
-                geography and experience level, while providing the available application or contact
-                route wherever identified, so you can focus on opportunities relevant to your search.
+                Good jobs are spread across many channels and are easy to miss. Gravitas Edge finds
+                and selects them, sorts them by location and experience level, and gives you the
+                application or contact details where available — so you can focus on the jobs that
+                fit your search.
               </p>
               <ul className="mt-8 space-y-3">
                 {whatWeDoPoints.map((point) => (
-                  <li key={point} className="flex items-start gap-2.5 text-sm font-medium text-content">
+                  <li
+                    key={point}
+                    className="flex items-start gap-2.5 text-sm font-medium text-content"
+                  >
                     <span className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-500/10 p-1 text-emerald-600 dark:text-emerald-400">
                       <CheckAccent className="h-3.5 w-3.5" />
                     </span>
@@ -276,7 +294,10 @@ export default function Home() {
       {/* 5. LIVE FREE PREVIEW — #free-preview                           */}
       {/* ══════════════════════════════════════════════════════════════ */}
       {loading ? (
-        <section id="free-preview" className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50">
+        <section
+          id="free-preview"
+          className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
+        >
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -286,18 +307,16 @@ export default function Home() {
           </div>
         </section>
       ) : error ? (
-        <section id="free-preview" className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50">
+        <section
+          id="free-preview"
+          className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
+        >
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
             <ErrorState message={error} onRetry={load} />
           </div>
         </section>
       ) : (
-        <LiveFreePreview
-          opportunities={opportunities}
-          loading={false}
-          error=""
-          onRetry={load}
-        />
+        <LiveFreePreview opportunities={opportunities} loading={false} error="" onRetry={load} />
       )}
 
       {/* ══════════════════════════════════════════════════════════════ */}
@@ -307,7 +326,10 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <WhatsAppChannel
             note={
-              <HomeAnchor href="#vaults" className="font-medium underline underline-offset-2 hover:text-emerald-900 dark:hover:text-emerald-100">
+              <HomeAnchor
+                href="#vaults"
+                className="font-medium underline underline-offset-2 hover:text-emerald-900 dark:hover:text-emerald-100"
+              >
                 Explore Opportunity Vaults below →
               </HomeAnchor>
             }
@@ -318,7 +340,10 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 7. OPPORTUNITY VAULTS — #vaults                                */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="vaults" className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50">
+      <section
+        id="vaults"
+        className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
+      >
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-2xl">
@@ -327,8 +352,8 @@ export default function Home() {
                 Found something relevant? Choose access that matches your search.
               </h2>
               <p className="mt-2 text-sm text-content-muted sm:text-base">
-                Choose the Opportunity Vault that matches your geography and experience level to
-                access the complete opportunity information and available application/contact routes.
+                Pick the Vault that matches your location and experience to get full job details and
+                the application or contact details.
               </p>
             </div>
             {user && (
@@ -367,11 +392,7 @@ export default function Home() {
           ) : (
             <div className="mt-10 grid gap-5 md:grid-cols-3">
               {visibleVaults.map((v) => (
-                <VaultCard
-                  key={v.id}
-                  vault={v}
-                  recommended={recommendedVaultIds.has(v.id)}
-                />
+                <VaultCard key={v.id} vault={v} recommended={recommendedVaultIds.has(v.id)} />
               ))}
             </div>
           )}
@@ -390,7 +411,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <WhatsAppChannel
             title="Want to follow the opportunities without subscribing yet?"
-            description="Stay connected through the free Gravitas Edge WhatsApp Channel to see selected opportunity updates and what is being added across the Vaults. Full job details and available recruiter, hiring manager, consultant or application contact information are not provided through the free channel. These remain part of the relevant Opportunity Vault access."
+            description="Follow the free Gravitas Edge WhatsApp Channel to see selected opportunity updates and what is being added to the Vaults. The free channel does not share full job details or recruiter, hiring manager, consultant or application contact details. Those stay within the relevant Opportunity Vault access."
             actionLabel="Continue with Free WhatsApp Updates"
           />
         </div>
@@ -403,7 +424,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <Eyebrow invert>WHAT OUR SUBSCRIBERS SAY</Eyebrow>
           <h2 className="mt-4 max-w-2xl text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            Real outcomes from professionals who acted before the market moved.
+            Real results from professionals who took action early.
           </h2>
 
           <div className="mt-12 grid gap-6 sm:grid-cols-2">

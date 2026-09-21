@@ -461,14 +461,14 @@ function OpportunityPageContent() {
               ? `Opportunities in ${vault?.name ?? 'this vault'}`
               : isSubscriber
                 ? 'Your active subscription unlocks full opportunity details below.'
-                : 'Review the opportunity flow before making any subscription decision.'}
+                : 'Review the current opportunities before you decide about a subscription.'}
           </h1>
           <p className="mt-6 max-w-3xl text-base leading-relaxed text-slate-300 sm:text-lg">
             {vaultId
               ? 'Every opportunity below belongs to this Vault. Full company, source, contact and application details are unlocked by your active subscription, while remaining fields stay visible.'
               : isSubscriber
                 ? 'You are viewing the live opportunity database with full subscriber access. Company names, sources, contacts and application links are visible for opportunities in your unlocked vaults.'
-                : 'This is the same live opportunity database used across the platform. Non-subscribers can browse the records and visible fields without subscribing. Protected company, source, contact and detailed application information unlock only with the relevant active subscription.'}
+                : 'These are the same opportunities used across the platform. You can browse them and see the visible details without subscribing. Company, source, contact and detailed application information become available only with the relevant active subscription.'}
           </p>
         </div>
       </section>
@@ -741,7 +741,7 @@ function OpportunityPageContent() {
                 ? `You are viewing the opportunities inside ${vault?.name ?? 'this vault'}. Full company, source, contact and application details unlock with an active subscription for this Vault.`
                 : isSubscriber
                   ? 'Your active subscription gives you access to full opportunity details for unlocked vaults. Company names, sources, contacts and application links are visible where your subscription applies.'
-                  : 'Continue to Vaults & Plans to identify which access level matches your geography and experience. If the preview is not useful to you right now, there is no need to subscribe.'}
+                  : 'Continue to Vaults & Plans to find the access level that matches your location and experience. If the preview is not useful to you right now, there is no need to subscribe.'}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link

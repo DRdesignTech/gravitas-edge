@@ -23,7 +23,13 @@ import {
 } from '@/components/cards';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
-import { displayExperience, formatDate, hasExperience, isMeaningful, titleCase } from '@/lib/format';
+import {
+  displayExperience,
+  formatDate,
+  hasExperience,
+  isMeaningful,
+  titleCase,
+} from '@/lib/format';
 
 const INITIAL_COUNT = 6;
 const VIEW_KEY = 'free-preview-view';
@@ -54,19 +60,18 @@ export default function LiveFreePreview({
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<PreviewView>(readInitialView);
   const canCollapse = opportunities.length > INITIAL_COUNT;
-  const visible = expanded
-    ? opportunities.length
-    : Math.min(INITIAL_COUNT, opportunities.length);
+  const visible = expanded ? opportunities.length : Math.min(INITIAL_COUNT, opportunities.length);
 
   const filteredOpportunities = useMemo(() => {
     if (!searchQuery.trim()) return opportunities;
     const query = searchQuery.toLowerCase();
-    return opportunities.filter((o) =>
-      o.title?.toLowerCase().includes(query) ||
-      o.company?.toLowerCase().includes(query) ||
-      o.location?.toLowerCase().includes(query) ||
-      o.experienceLevels?.some((e) => e.name.toLowerCase().includes(query)) ||
-      o.source?.toLowerCase().includes(query)
+    return opportunities.filter(
+      (o) =>
+        o.title?.toLowerCase().includes(query) ||
+        o.company?.toLowerCase().includes(query) ||
+        o.location?.toLowerCase().includes(query) ||
+        o.experienceLevels?.some((e) => e.name.toLowerCase().includes(query)) ||
+        o.source?.toLowerCase().includes(query),
     );
   }, [opportunities, searchQuery]);
 
@@ -80,7 +85,10 @@ export default function LiveFreePreview({
   };
 
   return (
-    <section id="free-preview" className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50">
+    <section
+      id="free-preview"
+      className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
+    >
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mb-8 max-w-2xl">
           <Eyebrow>LIVE FREE PREVIEW</Eyebrow>
@@ -88,16 +96,18 @@ export default function LiveFreePreview({
             See what is available before you subscribe.
           </h2>
           <p className="mt-2 text-sm text-content-muted sm:text-base">
-            Browse current opportunities below — the same roles being curated across the Gravitas
-            Edge Opportunity Vaults — before deciding whether paid access makes sense for your
-            search.
+            Browse the jobs below — the same ones being added to the Gravitas Edge Opportunity
+            Vaults — before you decide whether paid access is right for your search.
           </p>
         </div>
 
         {!loading && !error && filteredOpportunities.length > 0 && (
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full max-w-2xl md:max-w-3xl">
-              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50" aria-hidden="true" />
+              <SearchIcon
+                className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50"
+                aria-hidden="true"
+              />
               <input
                 id="free-preview-search"
                 type="search"
@@ -115,7 +125,14 @@ export default function LiveFreePreview({
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-content-muted hover:text-content transition-colors"
                   aria-label="Clear search"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -133,7 +150,9 @@ export default function LiveFreePreview({
                 aria-label="Grid view"
                 title="Grid view"
                 className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
-                  view === 'grid' ? 'bg-brand-600 text-white shadow-sm' : 'text-content-muted hover:text-content'
+                  view === 'grid'
+                    ? 'bg-brand-600 text-white shadow-sm'
+                    : 'text-content-muted hover:text-content'
                 }`}
               >
                 <GridIcon className="h-4 w-4" />
@@ -145,7 +164,9 @@ export default function LiveFreePreview({
                 aria-label="List view"
                 title="List view"
                 className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
-                  view === 'list' ? 'bg-brand-600 text-white shadow-sm' : 'text-content-muted hover:text-content'
+                  view === 'list'
+                    ? 'bg-brand-600 text-white shadow-sm'
+                    : 'text-content-muted hover:text-content'
                 }`}
               >
                 <ListIcon className="h-4 w-4" />
@@ -167,9 +188,11 @@ export default function LiveFreePreview({
             <EmptyState
               icon={<SearchIcon className="h-6 w-6" />}
               title={searchQuery ? 'No matching opportunities' : 'No opportunities yet'}
-              description={searchQuery
-                ? 'Try adjusting your search or clear the filter.'
-                : 'Check back soon — new opportunities are added regularly.'}
+              description={
+                searchQuery
+                  ? 'Try adjusting your search or clear the filter.'
+                  : 'Check back soon — new opportunities are added regularly.'
+              }
             />
           </div>
         ) : (
@@ -204,9 +227,13 @@ export default function LiveFreePreview({
                           </div>
                         </div>
                         {o.isPremium ? (
-                          <Badge variant="premium" className="shrink-0">Premium</Badge>
+                          <Badge variant="premium" className="shrink-0">
+                            Premium
+                          </Badge>
                         ) : (
-                          <Badge variant="success" className="shrink-0">Open</Badge>
+                          <Badge variant="success" className="shrink-0">
+                            Open
+                          </Badge>
                         )}
                       </div>
 
@@ -221,13 +248,19 @@ export default function LiveFreePreview({
 
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {o.location && (
-                          <ListMetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>{o.location}</ListMetaChip>
+                          <ListMetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>
+                            {o.location}
+                          </ListMetaChip>
                         )}
                         {o.country && (
-                          <ListMetaChip icon={<GlobeIcon className="h-3.5 w-3.5" />}>{o.country}</ListMetaChip>
+                          <ListMetaChip icon={<GlobeIcon className="h-3.5 w-3.5" />}>
+                            {o.country}
+                          </ListMetaChip>
                         )}
                         {o.industry && (
-                          <ListMetaChip icon={<LayersIcon className="h-3.5 w-3.5" />}>{o.industry}</ListMetaChip>
+                          <ListMetaChip icon={<LayersIcon className="h-3.5 w-3.5" />}>
+                            {o.industry}
+                          </ListMetaChip>
                         )}
                         {o.employmentType && (
                           <ListMetaChip icon={<BriefcaseIcon className="h-3.5 w-3.5" />}>
@@ -291,7 +324,11 @@ export default function LiveFreePreview({
                     stroke="currentColor"
                     aria-hidden="true"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                    />
                   </svg>
                 </button>
               </div>
@@ -300,7 +337,7 @@ export default function LiveFreePreview({
             <div className="mt-10 flex flex-col items-start gap-2 rounded-2xl border border-line bg-surface-muted px-5 py-4 text-sm text-content-muted dark:bg-surface/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <p>
                 Full company, source, contact and application details for premium opportunities
-                unlock with the relevant Opportunity Vault access.
+                become available with the relevant Opportunity Vault access.
               </p>
               <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1">
                 <HomeAnchor

@@ -12,7 +12,16 @@ function WhatsAppIcon({ className = 'h-5 w-5' }: { className?: string }) {
 
 function ClockIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7v5l3 2" />
     </svg>
@@ -21,7 +30,16 @@ function ClockIcon({ className = 'h-4 w-4' }: { className?: string }) {
 
 function CheckCircleIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <circle cx="12" cy="12" r="9" />
       <path d="M8.5 12.25l2.5 2.5 4.5-5" />
     </svg>
@@ -30,7 +48,16 @@ function CheckCircleIcon({ className = 'h-4 w-4' }: { className?: string }) {
 
 function LayersIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M12 3l9 5-9 5-9-5 9-5z" />
       <path d="M3 13l9 5 9-5" />
     </svg>
@@ -39,7 +66,16 @@ function LayersIcon({ className = 'h-4 w-4' }: { className?: string }) {
 
 function BellIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.7 21a2 2 0 01-3.4 0" />
     </svg>
@@ -56,7 +92,16 @@ function BoltIcon({ className = 'h-4 w-4' }: { className?: string }) {
 
 function MicIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <rect x="9" y="2.5" width="6" height="11.5" rx="3" />
       <path d="M5 11a7 7 0 0014 0" />
       <path d="M12 18v3" />
@@ -73,7 +118,7 @@ const benefits = [
 
 const floatingBadges = [
   { label: 'Real-time Updates', icon: BoltIcon, position: '-left-[20px] -top-[5px]' },
-  { label: 'Curated Opportunities', icon: CheckCircleIcon, position: '-right-[20px] top-1/4' },
+  { label: 'Selected Opportunities', icon: CheckCircleIcon, position: '-right-[20px] top-1/4' },
   { label: 'Vault Activity', icon: LayersIcon, position: '-left-[20px] bottom-24' },
   { label: 'Be the First to Know', icon: BellIcon, position: '-right-[20px] -bottom-[5px]' },
 ];
@@ -87,7 +132,7 @@ interface WhatsAppChannelProps {
 
 export default function WhatsAppChannel({
   title = 'Not ready to subscribe? Stay connected for free.',
-  description = 'Join the free Gravitas Edge WhatsApp Channel to follow selected opportunity updates and see what is being added across the Opportunity Vaults. The channel keeps you updated on opportunities and Vault activity. Full opportunity details and available recruiter, hiring manager, consultant or application contact information remain available through the relevant Opportunity Vault.',
+  description = 'Join the free Gravitas Edge WhatsApp Channel to follow selected opportunity updates and see what is being added to the Opportunity Vaults. The channel keeps you updated on opportunities and Vault activity. Full job details and recruiter, hiring manager, consultant or application contact details are available through the relevant Opportunity Vault.',
   actionLabel = 'Join Free WhatsApp Channel',
   note,
 }: WhatsAppChannelProps) {
@@ -153,7 +198,10 @@ export default function WhatsAppChannel({
 
         <div className="relative">
           <div className="relative mx-auto w-full max-w-[250px] lg:max-w-[265px]">
-            <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 hidden lg:block">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-10 hidden lg:block"
+            >
               {floatingBadges.map((badge) => {
                 const Icon = badge.icon;
                 return (

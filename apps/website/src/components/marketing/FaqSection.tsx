@@ -65,14 +65,16 @@ export default function FaqSection() {
 
   return (
     <section id="faq" className="scroll-mt-20 border-t border-line bg-white dark:bg-surface-muted">
-      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <Eyebrow>FAQ</Eyebrow>
-        <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
-          Frequently asked questions.
-        </h2>
-        <p className="mt-4 text-base leading-relaxed text-content-muted">
-          The quick answers most people look for before exploring the Vaults and subscribing.
-        </p>
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <div className="max-w-2xl">
+          <Eyebrow>FAQ</Eyebrow>
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
+            Frequently asked questions.
+          </h2>
+          <p className="mt-4 text-base leading-relaxed text-content-muted">
+            The quick answers most people look for before exploring the Vaults and subscribing.
+          </p>
+        </div>
 
         <div className="mt-8 rounded-2xl border border-line bg-surface px-5 py-1 shadow-card dark:bg-surface-elevated sm:px-7">
           {featured.map((item) => (
@@ -80,7 +82,7 @@ export default function FaqSection() {
           ))}
         </div>
 
-        <div className="mt-6 text-center sm:text-left">
+        <div className="mt-6">
           <Link
             href="/faq"
             className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-content shadow-sm transition-colors hover:border-brand-300 hover:bg-surface-muted dark:bg-surface-elevated"
