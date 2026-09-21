@@ -17,6 +17,7 @@ const navLinks = [
   { href: '/upload-resume', label: 'Resume' },
   { href: '#how-it-works', label: 'How It Works' },
   { href: '#faq', label: 'FAQ' },
+  { href: '/contact', label: 'Contact Us' },
 ];
 
 const userMenuLinks = [
@@ -95,7 +96,7 @@ export default function Header() {
   };
 
   const navLinkClass = (href: string) =>
-    `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+    `rounded-lg px-2 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
       isActive(href)
         ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
         : 'text-content-muted hover:bg-surface-muted hover:text-content'
@@ -103,8 +104,8 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-3 sm:px-6 lg:px-8">
-        <div className="flex min-w-0 items-center gap-3 sm:gap-10">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-6">
           <a
             href="#home"
             onClick={(e) => handleNav(e, '#home')}
@@ -116,7 +117,7 @@ export default function Header() {
               nameClassName="hidden text-base font-bold tracking-tight text-content lg:inline lg:text-lg"
             />
           </a>
-          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-x-1 lg:flex" aria-label="Primary">
             {navLinks.map((link) =>
               link.href.startsWith('#') ? (
                 <a
@@ -136,7 +137,7 @@ export default function Header() {
           </nav>
         </div>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           <ThemeToggle />
           {user ? (
             <div className="relative" ref={menuRef}>
@@ -247,14 +248,14 @@ export default function Header() {
 
       {mobileOpen && (
         <div className="border-t border-line bg-surface px-4 pb-6 pt-3 lg:hidden">
-          <nav className="space-y-1" aria-label="Primary mobile">
+          <nav className="space-y-1" aria-label="Primary mobile" style={{ overflowWrap: 'anywhere' }}>
             {navLinks.map((link) =>
               link.href.startsWith('#') ? (
                 <a
                   key={link.href}
                   href={link.href}
                   onClick={(e) => handleNav(e, link.href)}
-                  className={`block rounded-lg px-3 py-2.5 text-sm font-medium ${
+                  className={`block rounded-lg px-3 py-2.5 text-sm font-medium whitespace-normal break-words ${
                     isActive(link.href)
                       ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
                       : 'text-content-muted hover:bg-surface-muted hover:text-content'
@@ -266,19 +267,13 @@ export default function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-content-muted hover:bg-surface-muted hover:text-content"
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium whitespace-normal break-words text-content-muted hover:bg-surface-muted hover:text-content"
                 >
                   {link.label}
                 </Link>
               ),
             )}
           </nav>
-          <Link
-            href="/contact"
-            className="block rounded-lg px-3 py-2.5 text-sm font-medium text-content-muted hover:bg-surface-muted hover:text-content"
-          >
-            Contact
-          </Link>
           <div className="my-2 flex items-center justify-between border-y border-line py-2.5">
             <span className="px-3 text-sm font-medium text-content">Appearance</span>
             <ThemeToggle />
@@ -289,7 +284,7 @@ export default function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-content hover:bg-surface-muted"
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium whitespace-normal break-words text-content hover:bg-surface-muted"
                 >
                   {link.label}
                 </Link>
