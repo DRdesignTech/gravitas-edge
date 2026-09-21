@@ -37,13 +37,6 @@ function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
-const heroRows = [
-  { label: 'Opportunities across channels', value: 'Curated' },
-  { label: 'Experience & geography', value: 'Structured' },
-  { label: 'Available application route', value: 'Presented' },
-  { label: 'New opportunity flow', value: 'Updated' },
-];
-
 const whatWeDoCards = [
   {
     index: '01',
@@ -143,68 +136,54 @@ export default function Home() {
           aria-hidden="true"
           className="absolute inset-0 bg-gradient-to-r from-[#0A1730]/55 via-[#0A1730]/20 to-transparent"
         />
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
-            <div>
-              <Eyebrow invert>CURATED OPPORTUNITY INTELLIGENCE</Eyebrow>
-              <h1 className="mt-5 max-w-2xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl">
-                A clearer view of opportunities beyond the usual job search.
-              </h1>
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
-                Not every opportunity is surfaced consistently across conventional job portals.
-                Roles can circulate through hiring teams, recruiters, consultants and professional
-                networks, while public listings may not always tell you where the hiring process
-                currently stands. Gravitas Edge brings relevant opportunities together in one
-                structured, easier-to-assess place.
-              </p>
+        {/* Image overlay text on lower portion */}
+        <div
+          aria-hidden="true"
+          className="absolute bottom-8 left-0 right-0 px-4 lg:px-8 lg:bottom-12"
+          style={{ background: 'linear-gradient(to top, #0A1730 0%, transparent 60%)' }}
+        >
+          <div className="mx-auto max-w-7xl">
+            <p className="max-w-3xl pl-4 sm:pl-8 text-lg font-semibold leading-snug text-white sm:text-xl">
+              More opportunities.<br />
+              A wider perspective.
+            </p>
+          </div>
+        </div>
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-40 lg:pb-64">
+          <div className="max-w-3xl">
+            <Eyebrow invert>CURATED OPPORTUNITY INTELLIGENCE</Eyebrow>
+            <h1 className="mt-5 max-w-2xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl">
+              A clearer view of opportunities beyond the usual job search.
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
+              Not every opportunity reaches the usual job portals. Many roles circulate directly
+              through hiring managers, recruiters, consultants, company channels and professional
+              networks, making them easy to miss when your search is limited to conventional job
+              sites. Gravitas Edge focuses on finding and curating these opportunities, bringing
+              relevant roles and available application routes together in one structured place.
+            </p>
 
-              <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <button
-                  type="button"
-                  onClick={() => scrollTo('free-preview')}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1730] sm:w-auto"
-                >
-                  Explore Free Opportunities
-                </button>
-                <button
-                  type="button"
-                  onClick={() => scrollTo('how-it-works')}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/5 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1730] sm:w-auto"
-                >
-                  See How It Works <span aria-hidden="true">↓</span>
-                </button>
-              </div>
-
-              <p className="mt-8 flex max-w-xl items-start gap-2.5 text-sm leading-relaxed text-slate-300">
-                <span className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-500/10 p-1 text-emerald-400">
-                  <CheckAccent className="h-3.5 w-3.5" />
-                </span>
-                Curated for visibility, not hype. The objective is to help you see relevant
-                opportunities and the available route to pursue them more clearly.
-              </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <button
+                type="button"
+                onClick={() => scrollTo('free-preview')}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1730] sm:w-auto"
+              >
+                Explore Free Opportunities
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollTo('how-it-works')}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/5 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1730] sm:w-auto"
+              >
+                See How It Works <span aria-hidden="true">↓</span>
+              </button>
             </div>
 
-            <div className="rounded-2xl border border-white/25 bg-black/20 p-7 backdrop-blur-sm sm:p-8">
-              <Eyebrow invert>WHAT GRAVITAS EDGE DOES</Eyebrow>
-              <h2 className="mt-4 text-2xl font-bold leading-snug tracking-tight text-white sm:text-[1.65rem]">
-                Brings fragmented opportunity information into focus.
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-slate-200/90">
-                The value is not in claiming every opportunity is exclusive. It is in sourcing,
-                organising and presenting useful opportunity information in one place.
-              </p>
-              <dl className="mt-6 border-t border-white/15">
-                {heroRows.map((row) => (
-                  <div
-                    key={row.label}
-                    className="flex items-center justify-between gap-4 border-b border-white/15 py-3"
-                  >
-                    <dt className="text-sm text-slate-200/90">{row.label}</dt>
-                    <dd className="text-sm font-semibold text-brand-300">{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+            <p className="mt-8 max-w-xl text-sm leading-relaxed text-slate-300">
+              See what is available first. Decide for yourself whether Gravitas Edge adds value to
+              your search.
+            </p>
           </div>
         </div>
       </section>
