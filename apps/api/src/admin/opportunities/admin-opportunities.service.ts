@@ -384,6 +384,25 @@ export class AdminOpportunitiesService {
     return { id, archived: true };
   }
 
+  /** Permanently delete an opportunity (hard delete; join rows cascade). */
+  async hardDelete(id: string, adminUserId: string, ipAddress?: string) {
+    const opportunity = await this.prisma.opportunity.findFirst({ where: { id } });
+    if (!opportunity) throw new NotFoundException('Opportunity not found');
+
+    await this.prisma.opportunity.delete({ where: { id } });
+
+    await this.audit.record({
+      action: 'OPPORTUNITY_DELETED',
+      entityType: 'Opportunity',
+      entityId: id,
+      adminUserId,
+      ipAddress,
+      details: { title: opportunity.title, category: opportunity.category },
+    });
+
+    return { id, deleted: true };
+  }
+
   async import(
     file: Express.Multer.File,
     vaultId: string,

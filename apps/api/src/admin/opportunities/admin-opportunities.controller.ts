@@ -78,6 +78,13 @@ export class AdminOpportunitiesController {
     return this.opportunitiesService.remove(id, user.id, this.clientIp(req));
   }
 
+  @Delete(':id/permanent')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Permanently delete an opportunity (hard delete)' })
+  hardDelete(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
+    return this.opportunitiesService.hardDelete(id, user.id, this.clientIp(req));
+  }
+
   @Post('import')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(

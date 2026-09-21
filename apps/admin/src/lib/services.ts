@@ -125,6 +125,10 @@ export function adminDeleteVault(id: string) {
   return api.del(`/admin/vaults/${id}`);
 }
 
+export function adminDeleteVaultPermanent(id: string) {
+  return api.del(`/admin/vaults/${id}/permanent`);
+}
+
 export function adminRestoreVault(id: string) {
   return api.post<Vault>(`/admin/vaults/${id}/restore`);
 }
@@ -177,6 +181,10 @@ export function adminDeletePlan(id: string) {
   return api.del(`/admin/subscription-plans/${id}`);
 }
 
+export function adminDeletePlanPermanent(id: string) {
+  return api.del(`/admin/subscription-plans/${id}/permanent`);
+}
+
 export function adminRestorePlan(id: string) {
   return api.post<SubscriptionPlan>(`/admin/subscription-plans/${id}/restore`);
 }
@@ -220,6 +228,10 @@ export function adminUpdateOpportunity(
 
 export function adminDeleteOpportunity(id: string) {
   return api.del(`/admin/opportunities/${id}`);
+}
+
+export function adminDeleteOpportunityPermanent(id: string) {
+  return api.del(`/admin/opportunities/${id}/permanent`);
 }
 
 export function adminListReferrals(query: AdminReferralQuery = {}) {

@@ -204,6 +204,40 @@ export class AdminVaultsService {
     return this.findOne(restored.id);
   }
 
+  /**
+   * Permanently delete a vault (hard delete) after confirming nothing still
+   * references it. Referenced vaults are refused so live subscription grants,
+   * plan links, and opportunity links are never silently removed.
+   */
+  async hardDelete(id: string, adminUserId: string, ipAddress?: string) {
+    await this.findVault(id);
+
+    const [planRefs, subRefs, oppRefs] = await this.prisma.$transaction([
+      this.prisma.planVault.count({ where: { vaultId: id } }),
+      this.prisma.subscriptionVaultAccess.count({ where: { vaultId: id } }),
+      this.prisma.opportunityVault.count({ where: { vaultId: id } }),
+    ]);
+
+    if (planRefs > 0 || subRefs > 0 || oppRefs > 0) {
+      throw new ConflictException(
+        `Cannot permanently delete this vault: it is still referenced by ${planRefs} plans, ${subRefs} subscription grants, and ${oppRefs} opportunities. Archive it instead.`,
+      );
+    }
+
+    await this.prisma.vault.delete({ where: { id } });
+
+    await this.audit.record({
+      action: 'VAULT_DELETED',
+      entityType: 'Vault',
+      entityId: id,
+      adminUserId,
+      ipAddress,
+      details: { hardDeleted: true },
+    });
+
+    return { id, deleted: true };
+  }
+
   // ---- Experience level linking -----------------------------------------
 
   async listExperienceLevels(vaultId: string) {

@@ -280,6 +280,31 @@ export class SubscriptionPlansService {
     return this.findOne(plan.id);
   }
 
+  /** Permanently delete a plan (hard delete) when no subscriptions/payments reference it. */
+  async hardDelete(id: string, adminUserId: string, ipAddress?: string) {
+    await this.findPlan(id);
+
+    const subCount = await this.prisma.subscription.count({ where: { planId: id } });
+    if (subCount > 0) {
+      throw new ConflictException(
+        `Cannot permanently delete this plan: ${subCount} subscription(s) still reference it. Archive it instead.`,
+      );
+    }
+
+    await this.prisma.subscriptionPlan.delete({ where: { id } });
+
+    await this.audit.record({
+      action: 'PLAN_DELETED',
+      entityType: 'SubscriptionPlan',
+      entityId: id,
+      adminUserId,
+      ipAddress,
+      details: { hardDeleted: true },
+    });
+
+    return { id, deleted: true };
+  }
+
   // ---- Plan-vault access linking ----
 
   async listVaults(planId: string) {

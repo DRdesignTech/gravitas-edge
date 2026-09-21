@@ -75,6 +75,13 @@ export class AdminVaultsController {
     return this.adminVaultsService.restore(id, user.id, this.clientIp(req));
   }
 
+  @Delete(':id/permanent')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Permanently delete a vault (refused while still referenced)' })
+  hardDelete(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
+    return this.adminVaultsService.hardDelete(id, user.id, this.clientIp(req));
+  }
+
   // ---- Experience level linking ----
 
   @Get(':id/experience-levels')

@@ -6,6 +6,7 @@ import {
   adminCreateVault,
   adminUpdateVault,
   adminDeleteVault,
+  adminDeleteVaultPermanent,
   adminRestoreVault,
   adminListExperienceLevels,
   adminLinkVaultExperienceLevel,
@@ -67,6 +68,8 @@ export default function VaultsPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Vault | null>(null);
+  const [permDeleting, setPermDeleting] = useState(false);
+  const [permTarget, setPermTarget] = useState<Vault | null>(null);
   const [manageTarget, setManageTarget] = useState<Vault | null>(null);
   const [linkedIds, setLinkedIds] = useState<string[]>([]);
 
@@ -165,6 +168,21 @@ export default function VaultsPage() {
     }
   };
 
+  const confirmPermanentDelete = async () => {
+    if (!permTarget) return;
+    setPermDeleting(true);
+    try {
+      await adminDeleteVaultPermanent(permTarget.id);
+      showToast('Vault deleted permanently', 'success');
+      setPermTarget(null);
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setPermDeleting(false);
+    }
+  };
+
   const openManage = async (v: Vault) => {
     setManageTarget(v);
     setLinkedIds(Array.isArray(v.experienceLevels) ? v.experienceLevels.map((el) => el.id) : []);
@@ -237,11 +255,17 @@ export default function VaultsPage() {
               <Button size="sm" variant="secondary" onClick={() => confirmRestore(v)}>
                 Restore
               </Button>
+              <Button size="sm" variant="danger" onClick={() => setPermTarget(v)}>
+                Delete
+              </Button>
             </div>
             <ActionMenu
               className="sm:hidden"
               label={`Actions for ${v.name}`}
-              items={[{ label: 'Restore', onClick: () => confirmRestore(v) }]}
+              items={[
+                { label: 'Restore', onClick: () => confirmRestore(v) },
+                { label: 'Delete', danger: true, onClick: () => setPermTarget(v) },
+              ]}
             />
           </>
         ) : (
@@ -253,8 +277,11 @@ export default function VaultsPage() {
               <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>
                 Edit
               </Button>
-              <Button size="sm" variant="danger" onClick={() => setDeleteTarget(v)}>
+              <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(v)}>
                 Archive
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => setPermTarget(v)}>
+                Delete
               </Button>
             </div>
             <ActionMenu
@@ -264,6 +291,7 @@ export default function VaultsPage() {
                 { label: 'Link levels', onClick: () => openManage(v) },
                 { label: 'Edit', onClick: () => openEdit(v) },
                 { label: 'Archive', danger: true, onClick: () => setDeleteTarget(v) },
+                { label: 'Delete permanently', danger: true, onClick: () => setPermTarget(v) },
               ]}
             />
           </>
@@ -424,6 +452,16 @@ export default function VaultsPage() {
         message={`Archive "${deleteTarget?.name}"? Existing subscription entitlements and opportunities remain intact. You can restore it later.`}
         confirmText="Archive"
         loading={deleting}
+      />
+
+      <ConfirmDialog
+        isOpen={!!permTarget}
+        onClose={() => setPermTarget(null)}
+        onConfirm={confirmPermanentDelete}
+        title="Delete permanently"
+        message={`Are you sure you want to delete "${permTarget?.name}"? This will permanently remove it and cannot be undone.`}
+        confirmText="Yes, delete"
+        loading={permDeleting}
       />
     </div>
   );

@@ -6,6 +6,7 @@ import {
   adminCreatePlan,
   adminUpdatePlan,
   adminDeletePlan,
+  adminDeletePlanPermanent,
   adminRestorePlan,
   adminListVaults,
   adminLinkPlanVault,
@@ -81,6 +82,8 @@ export default function PlansPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<SubscriptionPlan | null>(null);
+  const [permDeleting, setPermDeleting] = useState(false);
+  const [permTarget, setPermTarget] = useState<SubscriptionPlan | null>(null);
   const [manageTarget, setManageTarget] = useState<SubscriptionPlan | null>(null);
   const [linkedIds, setLinkedIds] = useState<string[]>([]);
 
@@ -233,6 +236,21 @@ export default function PlansPage() {
     }
   };
 
+  const confirmPermanentDelete = async () => {
+    if (!permTarget) return;
+    setPermDeleting(true);
+    try {
+      await adminDeletePlanPermanent(permTarget.id);
+      showToast('Plan deleted permanently', 'success');
+      setPermTarget(null);
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setPermDeleting(false);
+    }
+  };
+
   const openManage = (p: SubscriptionPlan) => {
     setManageTarget(p);
     setLinkedIds((p.vaults || []).map((v) => v.id));
@@ -338,11 +356,17 @@ export default function PlansPage() {
               <Button size="sm" variant="secondary" onClick={() => confirmRestore(p)}>
                 Restore
               </Button>
+              <Button size="sm" variant="danger" onClick={() => setPermTarget(p)}>
+                Delete
+              </Button>
             </div>
             <ActionMenu
               className="sm:hidden"
               label={`Actions for ${p.name}`}
-              items={[{ label: 'Restore', onClick: () => confirmRestore(p) }]}
+              items={[
+                { label: 'Restore', onClick: () => confirmRestore(p) },
+                { label: 'Delete', danger: true, onClick: () => setPermTarget(p) },
+              ]}
             />
           </>
         ) : (
@@ -354,8 +378,11 @@ export default function PlansPage() {
               <Button size="sm" variant="secondary" onClick={() => openEdit(p)}>
                 Edit
               </Button>
-              <Button size="sm" variant="danger" onClick={() => setDeleteTarget(p)}>
+              <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(p)}>
                 Archive
+              </Button>
+              <Button size="sm" variant="danger" onClick={() => setPermTarget(p)}>
+                Delete
               </Button>
             </div>
             <ActionMenu
@@ -365,6 +392,7 @@ export default function PlansPage() {
                 { label: 'Link vaults', onClick: () => openManage(p) },
                 { label: 'Edit', onClick: () => openEdit(p) },
                 { label: 'Archive', danger: true, onClick: () => setDeleteTarget(p) },
+                { label: 'Delete permanently', danger: true, onClick: () => setPermTarget(p) },
               ]}
             />
           </>
@@ -572,6 +600,16 @@ export default function PlansPage() {
         message={`Archive "${deleteTarget?.name}"? It will be hidden from the public catalog but existing subscriptions and entitlements remain intact. You can restore it later.`}
         confirmText="Archive"
         loading={deleting}
+      />
+
+      <ConfirmDialog
+        isOpen={!!permTarget}
+        onClose={() => setPermTarget(null)}
+        onConfirm={confirmPermanentDelete}
+        title="Delete permanently"
+        message={`Are you sure you want to delete "${permTarget?.name}"? This will permanently remove it and cannot be undone.`}
+        confirmText="Yes, delete"
+        loading={permDeleting}
       />
     </div>
   );

@@ -75,6 +75,17 @@ export class SubscriptionPlansController {
     return this.subscriptionPlansService.restore(id, user.id, this.clientIp(req));
   }
 
+  @Delete(':id/permanent')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Permanently delete a plan (refused while subscriptions reference it)' })
+  hardDelete(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
+  ) {
+    return this.subscriptionPlansService.hardDelete(id, user.id, this.clientIp(req));
+  }
+
   // ---- Plan-vault linking ----
 
   @Get(':id/vaults')

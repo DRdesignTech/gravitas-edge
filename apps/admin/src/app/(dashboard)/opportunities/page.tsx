@@ -7,6 +7,7 @@ import {
   adminUpdateOpportunity,
   adminCreateOpportunity,
   adminDeleteOpportunity,
+  adminDeleteOpportunityPermanent,
   adminListVaults,
   adminListExperienceLevels,
 } from '@/lib/services';
@@ -181,7 +182,7 @@ export default function OpportunitiesPage() {
   const [employmentType, setEmploymentType] = useState('');
   const [vaultId, setVaultId] = useState('');
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<OpportunityView>('grid');
+  const [view, setView] = useState<OpportunityView>('list');
 
   const [allVaults, setAllVaults] = useState<Vault[]>([]);
   const [allLevels, setAllLevels] = useState<ExperienceLevel[]>([]);
@@ -191,6 +192,8 @@ export default function OpportunitiesPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Opportunity | null>(null);
+  const [permDeleting, setPermDeleting] = useState(false);
+  const [permTarget, setPermTarget] = useState<Opportunity | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -316,6 +319,21 @@ export default function OpportunitiesPage() {
     }
   };
 
+  const confirmPermanentDelete = async () => {
+    if (!permTarget) return;
+    setPermDeleting(true);
+    try {
+      await adminDeleteOpportunityPermanent(permTarget.id);
+      showToast('Opportunity deleted permanently', 'success');
+      setPermTarget(null);
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setPermDeleting(false);
+    }
+  };
+
   const toggle = (field: 'vaultIds' | 'experienceLevelIds', value: string) =>
     setForm((f) => ({
       ...f,
@@ -400,8 +418,11 @@ export default function OpportunitiesPage() {
             <Button size="sm" variant="secondary" onClick={() => openEdit(o)}>
               Edit
             </Button>
-            <Button size="sm" variant="danger" onClick={() => setDeleteTarget(o)}>
+            <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(o)}>
               Archive
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => setPermTarget(o)}>
+              Delete
             </Button>
           </div>
           <ActionMenu
@@ -410,6 +431,7 @@ export default function OpportunitiesPage() {
             items={[
               { label: 'Edit', onClick: () => openEdit(o) },
               { label: 'Archive', danger: true, onClick: () => setDeleteTarget(o) },
+              { label: 'Delete permanently', danger: true, onClick: () => setPermTarget(o) },
             ]}
           />
         </>
@@ -580,8 +602,11 @@ export default function OpportunitiesPage() {
                     <Button size="sm" variant="secondary" onClick={() => openEdit(o)}>
                       Edit
                     </Button>
-                    <Button size="sm" variant="danger" onClick={() => setDeleteTarget(o)}>
+                    <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(o)}>
                       Archive
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={() => setPermTarget(o)}>
+                      Delete
                     </Button>
                   </div>
                 </article>
@@ -779,6 +804,16 @@ export default function OpportunitiesPage() {
         message={`Archive "${deleteTarget?.title}"? This cannot be undone.`}
         confirmText="Archive"
         loading={deleting}
+      />
+
+      <ConfirmDialog
+        isOpen={!!permTarget}
+        onClose={() => setPermTarget(null)}
+        onConfirm={confirmPermanentDelete}
+        title="Delete permanently"
+        message={`Are you sure you want to delete "${permTarget?.title}"? This will permanently remove it and cannot be undone.`}
+        confirmText="Yes, delete"
+        loading={permDeleting}
       />
     </div>
   );
