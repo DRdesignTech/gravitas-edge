@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { fetchOpportunities, fetchVaultById } from '@/lib/services';
 import { Opportunity, OpportunityQuery, PaginatedResult, Vault, Subscription } from '@/lib/types';
 import {
@@ -34,8 +34,31 @@ import { OPPORTUNITY_CATEGORIES, EMPLOYMENT_TYPES } from '@/lib/types';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import InfoBanner from '@/components/marketing/InfoBanner';
 import { useAuth } from '@/lib/auth';
+import { previousInternalRoute } from '@/lib/navigation';
 
 const PAGE_SIZE = 10;
+
+const LIST_STATE_KEY = 'ge-opps-list-state';
+
+interface SavedListState {
+  search?: string;
+  category?: string;
+  employmentType?: string;
+  country?: string;
+  sortBy?: string;
+  page?: number;
+  scrollY?: number;
+}
+
+function readSavedListState(): SavedListState | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(LIST_STATE_KEY);
+    return raw ? (JSON.parse(raw) as SavedListState) : null;
+  } catch {
+    return null;
+  }
+}
 
 function titleOption(v: string) {
   return v.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -72,7 +95,9 @@ function ViewToggle({
         aria-label="Grid view"
         title="Grid view"
         className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
-          view === 'grid' ? 'bg-brand-600 text-white shadow-sm' : 'text-content-muted hover:text-content'
+          view === 'grid'
+            ? 'bg-brand-600 text-white shadow-sm'
+            : 'text-content-muted hover:text-content'
         }`}
       >
         <GridIcon className="h-4 w-4" />
@@ -84,7 +109,9 @@ function ViewToggle({
         aria-label="List view"
         title="List view"
         className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
-          view === 'list' ? 'bg-brand-600 text-white shadow-sm' : 'text-content-muted hover:text-content'
+          view === 'list'
+            ? 'bg-brand-600 text-white shadow-sm'
+            : 'text-content-muted hover:text-content'
         }`}
       >
         <ListIcon className="h-4 w-4" />
@@ -117,12 +144,8 @@ function MetaChip({ icon, children }: { icon?: React.ReactNode; children: React.
 function OpportunityMeta({ o }: { o: Opportunity }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {o.location && (
-        <MetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>{o.location}</MetaChip>
-      )}
-      {o.country && (
-        <MetaChip icon={<GlobeIcon className="h-3.5 w-3.5" />}>{o.country}</MetaChip>
-      )}
+      {o.location && <MetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>{o.location}</MetaChip>}
+      {o.country && <MetaChip icon={<GlobeIcon className="h-3.5 w-3.5" />}>{o.country}</MetaChip>}
       {o.employmentType && (
         <MetaChip icon={<BriefcaseIcon className="h-3.5 w-3.5" />}>
           {titleOption(o.employmentType)}
@@ -200,6 +223,9 @@ function OpportunityPageContent() {
   const [page, setPage] = useState(1);
   const [view, setView] = useState<OpportunityView>(readInitialView);
 
+  const didRestore = useRef(false);
+  const pendingScroll = useRef(0);
+
   const handleViewChange = (v: OpportunityView) => {
     setView(v);
     try {
@@ -235,6 +261,48 @@ function OpportunityPageContent() {
   }, []);
 
   useEffect(() => {
+    if (!didRestore.current) {
+      didRestore.current = true;
+      // Restore the exact listing (filters/page/scroll) when the visitor returns
+      // from an opportunity detail page, so Browser Back lands where they were.
+      if (typeof window !== 'undefined') {
+        const prev = previousInternalRoute();
+        if (prev && /^\/opportunities\/.+/.test(prev)) {
+          const saved = readSavedListState();
+          if (saved) {
+            const next = {
+              search: saved.search || '',
+              category: saved.category || '',
+              employmentType: saved.employmentType || '',
+              country: saved.country || '',
+              sortBy: saved.sortBy || 'createdAt',
+              page: saved.page || 1,
+            };
+            const changed =
+              next.search !== search ||
+              next.category !== category ||
+              next.employmentType !== employmentType ||
+              next.country !== country ||
+              next.sortBy !== sortBy ||
+              next.page !== page;
+            if (changed) {
+              setSearch(next.search);
+              setCategory(next.category);
+              setEmploymentType(next.employmentType);
+              setCountry(next.country);
+              setSortBy(next.sortBy);
+              setPage(next.page);
+            }
+            pendingScroll.current = Number(saved.scrollY || 0);
+            if (changed) {
+              // Restored state re-renders this effect, which runs the load below.
+              return;
+            }
+            // Values already match — load directly with the restored query.
+          }
+        }
+      }
+    }
     load({
       page,
       limit: PAGE_SIZE,
@@ -248,6 +316,63 @@ function OpportunityPageContent() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, category, employmentType, country, sortBy, vaultId, load]);
+
+  // Persist the listing context so a later Back restores it exactly.
+  useEffect(() => {
+    if (!data || typeof window === 'undefined') return;
+    try {
+      window.sessionStorage.setItem(
+        LIST_STATE_KEY,
+        JSON.stringify({
+          search,
+          category,
+          employmentType,
+          country,
+          sortBy,
+          page,
+          scrollY: window.scrollY,
+        }),
+      );
+    } catch {
+      // Ignore storage failures.
+    }
+  }, [data, search, category, employmentType, country, sortBy, page]);
+
+  // Keep the recorded scroll position fresh, and capture it when leaving the
+  // page (e.g. clicking into a detail), so the restored page lands mid-list.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let timer: number | undefined;
+    const saveScroll = () => {
+      try {
+        const raw = window.sessionStorage.getItem(LIST_STATE_KEY);
+        const cur = raw ? (JSON.parse(raw) as SavedListState) : {};
+        cur.scrollY = window.scrollY;
+        window.sessionStorage.setItem(LIST_STATE_KEY, JSON.stringify(cur));
+      } catch {
+        // Ignore storage failures.
+      }
+    };
+    const onScroll = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(saveScroll, 150);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      saveScroll();
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
+  // Restore the saved scroll position after the restored listing renders.
+  useEffect(() => {
+    if (pendingScroll.current > 0) {
+      const y = pendingScroll.current;
+      pendingScroll.current = 0;
+      window.scrollTo(0, y);
+    }
+  }, [data]);
 
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();

@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { scrollToAnchor } from '@/lib/scroll';
 
 interface HomeAnchorProps {
@@ -12,31 +13,28 @@ interface HomeAnchorProps {
 
 /**
  * Section anchor for the homepage long-scroll journey.
- * On the homepage it smooth-scrolls to the matching section; from another
- * route it navigates to the homepage and lets the hash target the section.
+ * On the homepage it smooth-scrolls to the matching section and only syncs the
+ * URL hash (replaceState — no extra history entry). From another route it lets
+ * Next.js <Link> perform a single history navigation to /#section.
  */
 export default function HomeAnchor({ href, children, className = '', ariaLabel }: HomeAnchorProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const id = href.replace(/^#/, '');
   return (
-    <a
+    <Link
       href={`/${href}`}
       aria-label={ariaLabel}
       onClick={(e) => {
+        if (pathname !== '/') return;
         e.preventDefault();
-        if (pathname === '/') {
-          scrollToAnchor(id);
-          if (typeof window !== 'undefined') {
-            window.history.replaceState(null, '', href);
-          }
-        } else {
-          router.push(`/${href}`);
+        scrollToAnchor(id);
+        if (typeof window !== 'undefined') {
+          window.history.replaceState(null, '', href);
         }
       }}
       className={className}
     >
       {children}
-    </a>
+    </Link>
   );
 }

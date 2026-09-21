@@ -1,16 +1,31 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { fetchOpportunity } from '@/lib/services';
 import { Opportunity } from '@/lib/types';
 import { Badge, Button, Card, Skeleton, EmptyState, LockIcon } from '@/components/ui';
 import { PinIcon, BriefcaseIcon, LayersIcon, GlobeIcon } from '@/components/cards';
-import { formatDate, titleCase, displayExperience, hasExperience, isMeaningful } from '@/lib/format';
+import {
+  formatDate,
+  titleCase,
+  displayExperience,
+  hasExperience,
+  isMeaningful,
+} from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
+import { previousInternalRoute } from '@/lib/navigation';
 
-function DetailRow({ label, value, isEmail }: { label: string; value?: React.ReactNode; isEmail?: boolean }) {
+function DetailRow({
+  label,
+  value,
+  isEmail,
+}: {
+  label: string;
+  value?: React.ReactNode;
+  isEmail?: boolean;
+}) {
   if (value === undefined || value === null || value === '') return null;
   const stringValue = typeof value === 'string' ? value : String(value);
   // For locked preview masked values, apply email-aware formatting if needed
@@ -18,7 +33,9 @@ function DetailRow({ label, value, isEmail }: { label: string; value?: React.Rea
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
       <dt className="text-xs font-medium uppercase tracking-wider text-content-faint">{label}</dt>
-      <dd className="mt-0.5 text-sm text-content truncate max-w-full break-words overflow-hidden">{displayValue}</dd>
+      <dd className="mt-0.5 text-sm text-content truncate max-w-full break-words overflow-hidden">
+        {displayValue}
+      </dd>
     </div>
   );
 }
@@ -45,9 +62,23 @@ function CopyEmailButton({ email }: { email: string }) {
 
 export default function OpportunityPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  /**
+   * Prefer a real browser Back when the visitor reached this page from an
+   * internal route (exact previous page + scroll position preserved). Only fall
+   * back to the hardcoded route when no internal history exists (e.g. the page
+   * was opened directly).
+   */
+  const handleBack = (e: React.MouseEvent) => {
+    if (previousInternalRoute()) {
+      e.preventDefault();
+      router.back();
+    }
+  };
 
   const load = () => {
     setLoading(true);
@@ -94,7 +125,7 @@ export default function OpportunityPage() {
                     Try again
                   </Button>
                 )}
-                <Link href="/opportunities">
+                <Link href="/opportunities" onClick={handleBack}>
                   <Button variant="ghost">Back to opportunities</Button>
                 </Link>
               </>
@@ -122,6 +153,7 @@ export default function OpportunityPage() {
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
       <Link
         href={backHref}
+        onClick={handleBack}
         className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
       >
         <span aria-hidden>←</span> {backLabel}
@@ -194,7 +226,11 @@ export default function OpportunityPage() {
                 <DetailRow label="Qualification" value={o.lockedPreview.qualification} />
                 <DetailRow label="Other Details" value={o.lockedPreview.otherDetails} />
                 <DetailRow label="How to Apply" value={o.lockedPreview.howToApply} isEmail={true} />
-                <DetailRow label="Application Contact" value={o.lockedPreview.applicationContact} isEmail={true} />
+                <DetailRow
+                  label="Application Contact"
+                  value={o.lockedPreview.applicationContact}
+                  isEmail={true}
+                />
               </>
             )}
           </div>

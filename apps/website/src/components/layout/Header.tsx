@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import ThemeToggle from '@/components/theme/ThemeToggle';
 import { CloseIcon } from '@/components/ui';
@@ -46,7 +46,6 @@ function getProfileImageUrl(img: string | null | undefined) {
 export default function Header() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [hash, setHash] = useState('');
@@ -72,19 +71,19 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
-  const handleNav = (e: React.MouseEvent, href: string) => {
+  const handleSectionNav = (e: React.MouseEvent, href: string) => {
     if (!href.startsWith('#')) return;
-    e.preventDefault();
     setMobileOpen(false);
     setUserMenuOpen(false);
+    // On the homepage section links scroll in-page and only sync the URL hash
+    // (replaceState — no extra history entry). From any other route we let the
+    // Next.js <Link> perform a normal single history navigation.
+    if (pathname !== '/') return;
+    e.preventDefault();
     const id = href.replace(/^#/, '');
-    if (pathname === '/') {
-      scrollToAnchor(id);
-      window.history.replaceState(null, '', href);
-      setHash(href);
-    } else {
-      router.push(`/${href}`);
-    }
+    scrollToAnchor(id);
+    window.history.replaceState(null, '', href);
+    setHash(href);
   };
 
   const isActive = (href: string) => {
@@ -106,9 +105,9 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-2 sm:gap-6">
-          <a
-            href="#home"
-            onClick={(e) => handleNav(e, '#home')}
+          <Link
+            href="/#home"
+            onClick={(e) => handleSectionNav(e, '#home')}
             className="flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             aria-label="Gravitas Edge Consulting home"
           >
@@ -116,18 +115,18 @@ export default function Header() {
               className="h-10 w-auto sm:h-12"
               nameClassName="hidden text-base font-bold tracking-tight text-content lg:inline lg:text-lg"
             />
-          </a>
+          </Link>
           <nav className="hidden items-center gap-x-1 lg:flex" aria-label="Primary">
             {navLinks.map((link) =>
               link.href.startsWith('#') ? (
-                <a
+                <Link
                   key={link.href}
-                  href={link.href}
-                  onClick={(e) => handleNav(e, link.href)}
+                  href={`/${link.href}`}
+                  onClick={(e) => handleSectionNav(e, link.href)}
                   className={navLinkClass(link.href)}
                 >
                   {link.label}
-                </a>
+                </Link>
               ) : (
                 <Link key={link.href} href={link.href} className={navLinkClass(link.href)}>
                   {link.label}
@@ -195,13 +194,13 @@ export default function Header() {
 
         <div className="flex items-center gap-1.5 lg:hidden">
           {/* Compact mobile: Free Preview → Sign In → Menu */}
-          <a
-            href="#free-preview"
-            onClick={(e) => handleNav(e, '#free-preview')}
+          <Link
+            href="/#free-preview"
+            onClick={(e) => handleSectionNav(e, '#free-preview')}
             className="whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-medium text-brand-600 transition-colors hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950"
           >
             Free Preview
-          </a>
+          </Link>
           {user ? (
             <Link
               href="/dashboard"
@@ -248,13 +247,17 @@ export default function Header() {
 
       {mobileOpen && (
         <div className="border-t border-line bg-surface px-4 pb-6 pt-3 lg:hidden">
-          <nav className="space-y-1" aria-label="Primary mobile" style={{ overflowWrap: 'anywhere' }}>
+          <nav
+            className="space-y-1"
+            aria-label="Primary mobile"
+            style={{ overflowWrap: 'anywhere' }}
+          >
             {navLinks.map((link) =>
               link.href.startsWith('#') ? (
-                <a
+                <Link
                   key={link.href}
-                  href={link.href}
-                  onClick={(e) => handleNav(e, link.href)}
+                  href={`/${link.href}`}
+                  onClick={(e) => handleSectionNav(e, link.href)}
                   className={`block rounded-lg px-3 py-2.5 text-sm font-medium whitespace-normal break-words ${
                     isActive(link.href)
                       ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
@@ -262,7 +265,7 @@ export default function Header() {
                   }`}
                 >
                   {link.label}
-                </a>
+                </Link>
               ) : (
                 <Link
                   key={link.href}
