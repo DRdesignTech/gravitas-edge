@@ -112,7 +112,7 @@ export default function PricingSection({
                         </p>
                         <div className="mt-3 flex min-h-[3.25rem] flex-col">
                           {hasDiscount && (
-                            <span className="text-sm text-content-muted line-through decoration-content-faint/60">
+                            <span className="text-base font-bold text-slate-500 dark:text-slate-400 line-through decoration-2 decoration-slate-500/70 dark:decoration-slate-400/70">
                               {formatMoney(plan.regularPrice, plan.currency)}
                             </span>
                           )}

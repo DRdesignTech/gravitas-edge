@@ -52,15 +52,15 @@ function getVaultFit(vault: Vault): VaultFit {
 
 export function findRecommendedVaults(vaults: Vault[], options: {
   experience: ExperienceOption | null;
-  location: LocationOption | null;
+  locations: LocationOption[];
 }): Set<string> {
-  const { experience, location } = options;
-  if (!experience || !location) return new Set();
+  const { experience, locations } = options;
+  if (!experience || locations.length === 0) return new Set();
   const recommended = vaults
     .filter((vault) => {
       const fit = getVaultFit(vault);
       const experienceMatch = fit.experience === 'any' || fit.experience === experience;
-      const locationMatch = fit.locations.includes(location);
+      const locationMatch = fit.locations.some((loc) => locations.includes(loc));
       return experienceMatch && locationMatch;
     })
     .map((vault) => vault.id);
@@ -103,19 +103,23 @@ export default function VaultFinder({
   onRecommendedChange: (ids: Set<string>) => void;
 }) {
   const [experience, setExperience] = useState<ExperienceOption | null>(null);
-  const [location, setLocation] = useState<LocationOption | null>(null);
+  const [locations, setLocations] = useState<LocationOption[]>([]);
 
   useEffect(() => {
-    onRecommendedChange(findRecommendedVaults(vaults, { experience, location }));
-  }, [vaults, experience, location, onRecommendedChange]);
+    onRecommendedChange(findRecommendedVaults(vaults, { experience, locations }));
+  }, [vaults, experience, locations, onRecommendedChange]);
+
+  const toggleLocation = (loc: LocationOption) => {
+    setLocations((prev) => (prev.includes(loc) ? prev.filter((l) => l !== loc) : [...prev, loc]));
+  };
 
   const reset = () => {
     setExperience(null);
-    setLocation(null);
+    setLocations([]);
     onRecommendedChange(new Set());
   };
 
-  const hasSelection = experience !== null || location !== null;
+  const hasSelection = experience !== null || locations.length > 0;
 
   return (
     <div className="rounded-3xl border border-line bg-surface p-6 shadow-card dark:bg-surface-elevated sm:p-8">
@@ -158,21 +162,30 @@ export default function VaultFinder({
         </fieldset>
 
         <fieldset>
-          <legend className="text-sm font-semibold text-content">Preferred location?</legend>
+          <legend className="text-sm font-semibold text-content">Preferred location(s)?</legend>
+          <p className="mt-1.5 text-xs text-content-faint">Select one or more</p>
           <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {LOCATION_OPTIONS.map((option) => (
-              <OptionButton
+              <button
                 key={option.key}
-                label={option.label}
-                selected={location === option.key}
-                onSelect={() => setLocation(option.key)}
-              />
+                type="button"
+                onClick={() => toggleLocation(option.key)}
+                aria-pressed={locations.includes(option.key)}
+                className={`inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+                  locations.includes(option.key)
+                    ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950 dark:text-brand-200'
+                    : 'border-line bg-surface text-content hover:border-brand-300 hover:bg-surface-muted dark:bg-surface dark:hover:border-brand-700'
+                }`}
+              >
+                {option.label}
+                {locations.includes(option.key) && <CheckIcon className="h-4 w-4 shrink-0" />}
+              </button>
             ))}
           </div>
         </fieldset>
       </div>
 
-      {experience && location ? (
+      {experience && locations.length > 0 ? (
         <p className="mt-7 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
           {recommended.size > 0 ? (
             <>
