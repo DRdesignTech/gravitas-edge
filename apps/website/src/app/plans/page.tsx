@@ -102,25 +102,30 @@ export default function PlansPage() {
                   const done = purchased[key];
                   const busy = purchasing === key;
                   const hasDiscount = (plan.discountPercentage ?? 0) > 0;
+                  const isPopular = plan.durationDays === 90;
                   return (
                     <div
                       key={key}
                       className="group/card relative flex flex-col rounded-2xl border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-400/60 hover:shadow-card hover:shadow-brand-500/5 dark:bg-surface"
                     >
-                      {hasDiscount && (
+                      {isPopular && (
                         <Badge
-                          variant="success"
-                          className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5 text-xs font-bold shadow-sm"
+                          variant="premium"
+                          className="absolute -top-2.5 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap px-3 py-0.5 text-[11px] font-bold shadow-sm"
                         >
-                          {plan.discountPercentage}% OFF
+                          Most Popular
                         </Badge>
                       )}
 
-                      <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs font-semibold uppercase tracking-wider text-content-faint">
+                      <p
+                        className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs font-semibold uppercase tracking-wider text-content-faint ${
+                          hasDiscount ? 'justify-center' : ''
+                        }`}
+                      >
                         {plan.durationLabel}
-                        {plan.durationDays === 90 && (
-                          <span className="rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white dark:bg-brand-500">
-                            Most Popular
+                        {hasDiscount && (
+                          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                            {plan.discountPercentage}% OFF
                           </span>
                         )}
                       </p>

@@ -1,6 +1,7 @@
 import { Poppins } from 'next/font/google';
 import '../styles/globals.css';
 import Providers from '@/components/layout/Providers';
+import ChatbotWidget from '@/components/chat/ChatbotWidget';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${poppins.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
+        <ChatbotWidget />
       </body>
     </html>
   );
