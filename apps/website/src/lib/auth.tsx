@@ -36,6 +36,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /**
+   * Persist a fresh session. The login/register responses only carry basic
+   * fields (no profile), so we enrich the session with the full `/auth/me`
+   * payload so the header can show the user's name right away.
+   */
+  const persistSession = useCallback(async (accessToken: string, baseUser: User) => {
+    localStorage.setItem('token', accessToken);
+    const user = await api.get<User>('/auth/me').catch(() => baseUser);
+    localStorage.setItem('user', JSON.stringify(user));
+    setUser(user);
+    setToken(accessToken);
+  }, []);
+
   useEffect(() => {
     const stored = localStorage.getItem('token');
     if (stored) {
@@ -51,10 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
     });
     const token = res.accessToken ?? (res as any).access_token;
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(res.user));
-    setUser(res.user);
-    setToken(token);
+    await persistSession(token, res.user);
     router.push('/dashboard');
   };
 
@@ -67,10 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (referralCode) body.referralCode = referralCode;
     const res = await api.post<{ accessToken: string; user: User }>('/auth/register', body);
     const token = res.accessToken ?? (res as any).access_token;
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(res.user));
-    setUser(res.user);
-    setToken(token);
+    await persistSession(token, res.user);
     router.push('/dashboard');
   };
 

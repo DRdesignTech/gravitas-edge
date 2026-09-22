@@ -59,8 +59,8 @@ export function fetchMyActiveSubscriptions() {
   return api.get<Subscription[]>('/subscriptions/me/active');
 }
 
-export function fetchMyProfile() {
-  return api.get<UserProfile>('/users/me/profile');
+export function fetchMyProfile(): Promise<UserProfile | null> {
+  return api.get<UserProfile | null>('/users/me/profile');
 }
 
 export async function fetchMyResumes(): Promise<Resume[]> {

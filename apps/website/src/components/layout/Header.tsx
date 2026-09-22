@@ -95,7 +95,7 @@ export default function Header() {
   };
 
   const navLinkClass = (href: string) =>
-    `rounded-lg px-2 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+    `rounded-lg px-1.5 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
       isActive(href)
         ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
         : 'text-content-muted hover:bg-surface-muted hover:text-content'
@@ -104,7 +104,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-3 sm:px-6 lg:px-8">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-6">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <Link
             href="/#home"
             onClick={(e) => handleSectionNav(e, '#home')}
@@ -116,7 +116,7 @@ export default function Header() {
               nameClassName="hidden text-base font-bold tracking-tight text-content lg:inline lg:text-lg"
             />
           </Link>
-          <nav className="hidden items-center gap-x-1 lg:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-x-0.5 xl:flex" aria-label="Primary">
             {navLinks.map((link) =>
               link.href.startsWith('#') ? (
                 <Link
@@ -136,7 +136,7 @@ export default function Header() {
           </nav>
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2.5 xl:flex xl:pl-8">
           <ThemeToggle />
           {user ? (
             <div className="relative" ref={menuRef}>
@@ -144,22 +144,32 @@ export default function Header() {
                 onClick={() => setUserMenuOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={userMenuOpen}
-                className="flex items-center gap-2 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3 text-sm font-medium text-content hover:bg-surface-muted"
+                className="flex max-w-[160px] items-center gap-2 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3 text-sm font-medium text-content hover:bg-surface-muted"
               >
                 {user.profile?.profileImg ? (
                   <img
                     src={getProfileImageUrl(user.profile.profileImg) ?? undefined}
                     alt="Profile"
-                    className="h-7 w-7 rounded-full border border-brand-200 object-cover dark:border-brand-800"
+                    className="h-7 w-7 shrink-0 rounded-full border border-brand-200 object-cover dark:border-brand-800"
                   />
                 ) : (
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
                     {initials(user.profile?.fullName, user.email)}
                   </span>
                 )}
-                <span className="max-w-[140px] truncate">
-                  {user.profile?.fullName || user.email}
-                </span>
+                <span className="truncate">{user.profile?.fullName || 'Account'}</span>
+                <svg
+                  className="h-4 w-4 shrink-0 text-content-faint"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
               </button>
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-60 overflow-hidden rounded-2xl border border-line bg-surface shadow-pop dark:bg-surface-elevated">
@@ -192,7 +202,7 @@ export default function Header() {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 lg:hidden">
+        <div className="flex items-center gap-1.5 xl:hidden">
           {/* Compact mobile: Free Preview → Sign In → Menu */}
           <Link
             href="/#free-preview"
@@ -246,7 +256,7 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-line bg-surface px-4 pb-6 pt-3 lg:hidden">
+        <div className="border-t border-line bg-surface px-4 pb-6 pt-3 xl:hidden">
           <nav
             className="space-y-1"
             aria-label="Primary mobile"

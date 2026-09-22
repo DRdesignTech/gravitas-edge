@@ -8,6 +8,7 @@ import {
   uploadProfileImage,
   removeProfileImage,
 } from '@/lib/services';
+import type { UserProfile } from '@/lib/types';
 import {
   Button,
   Card,
@@ -60,16 +61,17 @@ export default function ProfilePage() {
     setLoadError('');
     fetchMyProfile()
       .then((p) => {
+        const data = p ?? ({} as UserProfile);
         setForm({
-          fullName: p.fullName || '',
-          phone: p.phone || '',
-          location: p.location || '',
-          yearsExperience: p.yearsExperience != null ? String(p.yearsExperience) : '',
-          monthsExperience: p.monthsExperience != null ? String(p.monthsExperience) : '',
-          currentJobTitle: p.currentJobTitle || '',
-          currentCompany: p.currentCompany || '',
+          fullName: data.fullName || '',
+          phone: data.phone || '',
+          location: data.location || '',
+          yearsExperience: data.yearsExperience != null ? String(data.yearsExperience) : '',
+          monthsExperience: data.monthsExperience != null ? String(data.monthsExperience) : '',
+          currentJobTitle: data.currentJobTitle || '',
+          currentCompany: data.currentCompany || '',
         });
-        setProfileImg(p.profileImg ?? null);
+        setProfileImg(data.profileImg ?? null);
       })
       .catch((e) => setLoadError(getErrorMessage(e)))
       .finally(() => setLoading(false));
