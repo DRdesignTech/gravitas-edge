@@ -234,8 +234,8 @@ export default function ChatbotWidget() {
     <>
       {open ? (
         <div
-          className="fixed bottom-4 right-4 z-[60] flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-pop dark:border-brand-800 dark:bg-surface-elevated sm:bottom-6 sm:right-6"
-          style={{ width: 'min(400px, calc(100vw - 2rem))' }}
+          className="fixed inset-x-4 bottom-4 z-[60] flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-pop dark:border-brand-800 dark:bg-surface-elevated sm:inset-auto sm:bottom-6 sm:right-6"
+          style={{ width: 'min(380px, calc(100vw - 2rem))', maxHeight: 'calc(100dvh - 2rem)' }}
           role="dialog"
           aria-label="Gravitas Edge assistant"
         >
@@ -290,7 +290,7 @@ export default function ChatbotWidget() {
           <div
             ref={scrollRef}
             aria-live="polite"
-            className="scrollbar-thin h-[min(430px,calc(100dvh-15rem))] overflow-y-auto bg-surface-muted/50 px-3 py-4 sm:px-4 dark:bg-surface"
+            className="scrollbar-thin max-h-[calc(100dvh-14rem)] flex-1 overflow-y-auto bg-surface-muted/50 px-3 py-3 sm:h-[min(420px,calc(100dvh-15rem))] sm:max-h-none sm:flex-initial sm:px-4 sm:py-4 dark:bg-surface"
           >
             <div className="space-y-4">
               {messages.map((message) =>
