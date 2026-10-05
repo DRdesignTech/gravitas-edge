@@ -101,7 +101,7 @@ export default function LiveFreePreview({
           </p>
         </div>
 
-        {!loading && !error && filteredOpportunities.length > 0 && (
+        {!loading && !error && (
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full max-w-2xl md:max-w-3xl">
               <SearchIcon
@@ -110,23 +110,23 @@ export default function LiveFreePreview({
               />
               <input
                 id="free-preview-search"
-                type="search"
+                type="text"
                 placeholder="Search by role, company, location, experience..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.stopPropagation()}
-                className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 text-base text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-10 text-base text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
                 aria-label="Search opportunities by title, company, or location"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-content-muted hover:text-content transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
                   aria-label="Clear search"
                 >
                   <svg
-                    className="h-5 w-5"
+                    className="h-4 w-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={2}
@@ -190,8 +190,21 @@ export default function LiveFreePreview({
               title={searchQuery ? 'No matching opportunities' : 'No opportunities yet'}
               description={
                 searchQuery
-                  ? 'Try adjusting your search or clear the filter.'
+                  ? 'No opportunities match your search. Clear to see the full list.'
                   : 'Check back soon — new opportunities are added regularly.'
+              }
+              action={
+                searchQuery ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-content transition-all duration-150 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 dark:bg-transparent"
+                    >
+                      Clear search
+                    </button>
+                  </div>
+                ) : null
               }
             />
           </div>
@@ -206,9 +219,10 @@ export default function LiveFreePreview({
             ) : (
               <div className="space-y-4">
                 {filteredOpportunities.slice(0, visible).map((o) => (
-                  <article
+                  <a
                     key={o.id}
-                    className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg dark:bg-surface-elevated dark:hover:border-brand-500/40 sm:p-6 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-6"
+                    href={`/opportunities/${o.id}`}
+                    className="group relative flex flex-col gap-2 overflow-hidden rounded-2xl border border-line bg-surface p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:gap-4 sm:p-5 dark:bg-surface-elevated dark:hover:border-brand-500/40 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,auto)] lg:items-center lg:gap-6"
                   >
                     <span className="absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
                     <div className="min-w-0">
@@ -239,14 +253,14 @@ export default function LiveFreePreview({
 
                       {isMeaningful(o.salary) && (
                         <p
-                          className="mt-3 truncate text-base font-bold text-brand-700 dark:text-brand-300"
+                          className="mt-2 truncate text-sm font-bold text-brand-700 dark:text-brand-300 sm:text-base"
                           title={o.salary}
                         >
                           {o.salary}
                         </p>
                       )}
 
-                      <div className="mt-3 flex flex-wrap gap-1.5">
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                         {o.location && (
                           <ListMetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>
                             {o.location}
@@ -255,11 +269,6 @@ export default function LiveFreePreview({
                         {o.country && (
                           <ListMetaChip icon={<GlobeIcon className="h-3.5 w-3.5" />}>
                             {o.country}
-                          </ListMetaChip>
-                        )}
-                        {o.industry && (
-                          <ListMetaChip icon={<LayersIcon className="h-3.5 w-3.5" />}>
-                            {o.industry}
                           </ListMetaChip>
                         )}
                         {o.employmentType && (
@@ -275,32 +284,17 @@ export default function LiveFreePreview({
                       </div>
                     </div>
 
-                    <div className="min-w-0 space-y-4 lg:border-l lg:border-line lg:pl-6">
-                      {o.isPremium && (
-                        <div className="rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/50 via-surface to-surface p-3.5 dark:border-amber-500/20 dark:from-amber-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
-                          <div className="mb-2.5 flex items-center gap-1.5">
-                            <LockIcon className="h-3.5 w-3.5 shrink-0 text-amber-600/80 dark:text-amber-400/80" />
-                            <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
-                              Unlock full details
-                            </span>
-                          </div>
-                          <ProtectedFields opportunity={o} />
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-                        <BrowseLink o={o} />
-                        <span className="flex items-center gap-2">
-                          <Badge variant="info">{titleCase(o.category)}</Badge>
-                          {o.publishedDate && (
-                            <span className="text-xs text-content-faint">
-                              {formatDate(o.publishedDate)}
-                            </span>
-                          )}
-                        </span>
-                      </div>
+                    <div className="min-w-0 lg:justify-self-end">
+                      <span className="flex flex-wrap items-center justify-end gap-2">
+                        <Badge variant="info">{titleCase(o.category)}</Badge>
+                        {o.publishedDate && (
+                          <span className="text-xs text-content-faint">
+                            {formatDate(o.publishedDate)}
+                          </span>
+                        )}
+                      </span>
                     </div>
-                  </article>
+                  </a>
                 ))}
               </div>
             )}
