@@ -63,16 +63,31 @@ export default function LiveFreePreview({
   const visible = expanded ? opportunities.length : Math.min(INITIAL_COUNT, opportunities.length);
 
   const filteredOpportunities = useMemo(() => {
-    if (!searchQuery.trim()) return opportunities;
-    const query = searchQuery.toLowerCase();
-    return opportunities.filter(
-      (o) =>
-        o.title?.toLowerCase().includes(query) ||
-        o.company?.toLowerCase().includes(query) ||
-        o.location?.toLowerCase().includes(query) ||
-        o.experienceLevels?.some((e) => e.name.toLowerCase().includes(query)) ||
-        o.source?.toLowerCase().includes(query),
-    );
+    const term = searchQuery.trim();
+    if (!term) return opportunities;
+    const queries = term.toLowerCase().split(/\s+/).filter(Boolean);
+    if (queries.length === 0) return opportunities;
+
+    return opportunities.filter((o) => {
+      const textParts = [
+        o.title,
+        o.company,
+        o.location,
+        o.country,
+        o.industry,
+        o.functionalArea,
+        o.source,
+        o.salary,
+        o.experienceText,
+        ...(o.experienceLevels?.map((e) => e.name) || []),
+        o.employmentType,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return queries.every((q) => textParts.includes(q));
+    });
   }, [opportunities, searchQuery]);
 
   const handleViewChange = (v: PreviewView) => {
