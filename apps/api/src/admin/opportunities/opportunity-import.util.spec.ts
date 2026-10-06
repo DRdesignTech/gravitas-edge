@@ -1,11 +1,14 @@
 import { join } from 'path';
 import * as XLSX from 'xlsx';
 import {
+  compareJobsForDuplicate,
+  duplicateExperienceKey,
   findHeaderRow,
   listJobSheets,
   mapHeadersToFields,
   matchSheetToVault,
   meaningfulTokens,
+  normalizeDuplicateText,
   normalizeHeaderKey,
   normalizeVaultText,
   parseDateCell,
@@ -111,6 +114,136 @@ describe('opportunity-import.util', () => {
     it('does not invent numbers from free text', () => {
       expect(parseExperience('Up to 60 LPA')).toEqual({ minExperience: null, maxExperience: null });
       expect(parseExperience(null)).toEqual({ minExperience: null, maxExperience: null });
+    });
+  });
+
+  describe('normalizeDuplicateText', () => {
+    it('trims, lower-cases and collapses whitespace and punctuation runs', () => {
+      expect(normalizeDuplicateText('  Software   Engineer ')).toBe('software engineer');
+      expect(normalizeDuplicateText('Acme  Corp.')).toBe('acme corp');
+      expect(normalizeDuplicateText('New York, NY')).toBe('new york ny');
+      expect(normalizeDuplicateText('Full-Time')).toBe('full time');
+      expect(normalizeDuplicateText('Full_Time')).toBe('full time');
+      expect(normalizeDuplicateText('R&D')).toBe('r and d');
+      expect(normalizeDuplicateText(null)).toBe('');
+      expect(normalizeDuplicateText(undefined)).toBe('');
+      expect(normalizeDuplicateText('   ')).toBe('');
+    });
+
+    it('keeps meaningful symbols so distinct values never collapse together', () => {
+      expect(normalizeDuplicateText('C++')).toBe('c++');
+      expect(normalizeDuplicateText('C#')).toBe('c#');
+      expect(normalizeDuplicateText('C')).toBe('c');
+      expect(normalizeDuplicateText('C++')).not.toBe(normalizeDuplicateText('C'));
+    });
+  });
+
+  describe('duplicateExperienceKey', () => {
+    it('treats equivalent experience formatting as equal', () => {
+      expect(duplicateExperienceKey({ experienceText: '4-6 years' })).toBe(
+        duplicateExperienceKey({ experienceText: '4 to 6 yrs' }),
+      );
+      expect(duplicateExperienceKey({ minExperience: 5, experienceText: '5+ years' })).toBe(
+        duplicateExperienceKey({ experienceText: '5 years' }),
+      );
+    });
+
+    it('falls back to normalized text and treats missing experience as empty', () => {
+      expect(duplicateExperienceKey({ experienceText: 'Fresher' })).toBe('fresher');
+      expect(duplicateExperienceKey({})).toBe('');
+      expect(duplicateExperienceKey({ experienceText: null })).toBe('');
+    });
+  });
+
+  describe('compareJobsForDuplicate', () => {
+    const fullJob = {
+      title: 'Software Engineer',
+      company: 'Acme Corp',
+      location: 'Dubai',
+      salary: 'AED 20000',
+      experienceText: '5+ years',
+      minExperience: 5,
+      maxExperience: null,
+    };
+
+    it('flags completely identical jobs as duplicates', () => {
+      const result = compareJobsForDuplicate(fullJob, { ...fullJob });
+      expect(result.duplicate).toBe(true);
+      expect(result.conflicts).toEqual([]);
+    });
+
+    it('does not flag the same title when the company differs', () => {
+      const result = compareJobsForDuplicate(fullJob, { ...fullJob, company: 'Globex' });
+      expect(result.duplicate).toBe(false);
+      expect(result.conflicts).toContain('company');
+    });
+
+    it('does not flag matching title/company when the location differs', () => {
+      const result = compareJobsForDuplicate(fullJob, { ...fullJob, location: 'Tokyo' });
+      expect(result.duplicate).toBe(false);
+      expect(result.conflicts).toContain('location');
+    });
+
+    it('does not flag when salary, experience or details differ', () => {
+      expect(compareJobsForDuplicate(fullJob, { ...fullJob, salary: 'AED 30000' }).duplicate).toBe(
+        false,
+      );
+      expect(
+        compareJobsForDuplicate(fullJob, {
+          ...fullJob,
+          minExperience: 8,
+          experienceText: '8+ years',
+        }).duplicate,
+      ).toBe(false);
+      expect(
+        compareJobsForDuplicate(
+          { ...fullJob, description: 'Build APIs' },
+          { ...fullJob, description: 'Something else' },
+        ).duplicate,
+      ).toBe(false);
+    });
+
+    it('does not flag on the title alone when the other record knows more', () => {
+      const result = compareJobsForDuplicate(fullJob, { title: 'Software Engineer' });
+      expect(result.duplicate).toBe(false);
+      expect(result.matched).toEqual(['title']);
+      expect(result.conflicts).toEqual([]);
+      expect(result.oneSided.length).toBeGreaterThan(0);
+    });
+
+    it('flags two records that only carry the same title', () => {
+      expect(
+        compareJobsForDuplicate({ title: 'Repeat Role' }, { title: 'Repeat Role' }).duplicate,
+      ).toBe(true);
+    });
+
+    it('ignores fields that are missing or empty in both records', () => {
+      const result = compareJobsForDuplicate(
+        { title: 'Dev', company: null, salary: undefined },
+        { title: 'Dev', company: undefined, salary: null },
+      );
+      expect(result.duplicate).toBe(true);
+      expect(result.matched).toEqual(['title']);
+      expect(result.conflicts).toEqual([]);
+      expect(result.oneSided).toEqual([]);
+    });
+
+    it('still flags a duplicate when corroborating fields match despite a one-sided field', () => {
+      const result = compareJobsForDuplicate(fullJob, {
+        ...fullJob,
+        country: 'UAE',
+      });
+      expect(result.duplicate).toBe(true);
+      expect(result.oneSided).toContain('country');
+    });
+
+    it('treats a differing external reference as a difference', () => {
+      const result = compareJobsForDuplicate(
+        { ...fullJob, externalRef: '101' },
+        { ...fullJob, externalRef: '999' },
+      );
+      expect(result.duplicate).toBe(false);
+      expect(result.conflicts).toContain('externalRef');
     });
   });
 

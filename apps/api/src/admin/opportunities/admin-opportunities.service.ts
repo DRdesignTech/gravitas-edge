@@ -11,10 +11,16 @@ import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { QueryOpportunitiesDto } from './dto/query-opportunities.dto';
 import {
+  addJobToTitleIndex,
+  compareJobsForDuplicate,
   describeSheetMatchFailure,
+  DuplicateComparableJob,
+  indexJobsByTitle,
   isBlankRow,
+  isBlockingDuplicateStatus,
   listJobSheets,
   matchSheetToVault,
+  normalizeDuplicateText,
   parseCsvRows,
   parseDateCell,
   parseExperience,
@@ -25,6 +31,32 @@ import {
 
 const IMPORT_LIMIT = 500;
 const BATCH_SIZE = 50;
+
+/** Job fields fetched for duplicate comparison (content fields only). */
+const DUPLICATE_FIELD_SELECT = {
+  title: true,
+  company: true,
+  location: true,
+  country: true,
+  salary: true,
+  experienceText: true,
+  minExperience: true,
+  maxExperience: true,
+  industry: true,
+  functionalArea: true,
+  employmentType: true,
+  qualification: true,
+  description: true,
+  applicationUrl: true,
+  applicationContact: true,
+  externalRef: true,
+  status: true,
+} as const satisfies Prisma.OpportunitySelect;
+
+/** Archived/expired jobs never block a genuinely new posting. */
+const NON_BLOCKING_STATUSES: OpportunityStatus[] = ['ARCHIVED', 'EXPIRED'];
+
+type DuplicateTitleIndex = Map<string, DuplicateComparableJob[]>;
 
 const STATUS_VALUES = ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'EXPIRED'] as const;
 const CATEGORY_VALUES = ['INDIA', 'GLOBAL', 'MIDDLE_EAST', 'INTERNATIONAL', 'OTHER'] as const;
@@ -576,30 +608,27 @@ export class AdminOpportunitiesService {
       );
     }
 
-    const existingByVault = new Map<string, Set<string>>();
-    const existingRefsByVault = new Map<string, Set<string>>();
+    const existingByKeyByVault = new Map<string, DuplicateTitleIndex>();
 
     const vaultIds = [
       ...new Set(sheets.map((s) => s.vault?.id).filter((id): id is string => Boolean(id))),
     ];
     for (const vaultId of vaultIds) {
       const existing = await this.prisma.opportunity.findMany({
-        where: { deletedAt: null, vaults: { some: { vaultId } } },
-        select: { title: true, externalRef: true },
+        where: {
+          deletedAt: null,
+          status: { notIn: NON_BLOCKING_STATUSES },
+          vaults: { some: { vaultId } },
+        },
+        select: DUPLICATE_FIELD_SELECT,
       });
-      existingByVault.set(vaultId, new Set(existing.map((o) => o.title.trim().toLowerCase())));
-      existingRefsByVault.set(
+      existingByKeyByVault.set(
         vaultId,
-        new Set(
-          existing
-            .map((o) => o.externalRef?.trim().toLowerCase())
-            .filter((v): v is string => Boolean(v)),
-        ),
+        indexJobsByTitle(existing.filter((job) => !isBlockingDuplicateStatus(job.status))),
       );
     }
 
-    const seenTitlesByVault = new Map<string, Set<string>>();
-    const seenRefsByVault = new Map<string, Set<string>>();
+    const seenByKeyByVault = new Map<string, DuplicateTitleIndex>();
 
     const analyzedSheets: SheetAnalysis[] = [];
     for (const sheet of sheets) {
@@ -661,17 +690,13 @@ export class AdminOpportunitiesService {
       }
 
       const vault = sheet.vault;
-      const existingTitles = existingByVault.get(vault.id) ?? new Set<string>();
-      const existingRefs = existingRefsByVault.get(vault.id) ?? new Set<string>();
-      let seenTitles = seenTitlesByVault.get(vault.id);
-      let seenRefs = seenRefsByVault.get(vault.id);
-      if (!seenTitles) {
-        seenTitles = new Set<string>();
-        seenTitlesByVault.set(vault.id, seenTitles);
-        seenRefs = new Set<string>();
-        seenRefsByVault.set(vault.id, seenRefs);
+      const existingByKey =
+        existingByKeyByVault.get(vault.id) ?? new Map<string, DuplicateComparableJob[]>();
+      let seenByKey = seenByKeyByVault.get(vault.id);
+      if (!seenByKey) {
+        seenByKey = new Map<string, DuplicateComparableJob[]>();
+        seenByKeyByVault.set(vault.id, seenByKey);
       }
-      const safeSeenRefs = seenRefs!;
 
       // Take the latest 500 rows if there are more than the limit
       // (matches UI: "Latest 500 rows are processed").
@@ -681,10 +706,8 @@ export class AdminOpportunitiesService {
         vault,
         adminUserId,
         defaultStatus,
-        seenTitles,
-        safeSeenRefs,
-        existingTitles,
-        existingRefs,
+        seenByKey,
+        existingByKey,
       );
 
       analyzedSheets.push({
@@ -706,10 +729,8 @@ export class AdminOpportunitiesService {
     vault: VaultRef,
     adminUserId: string,
     defaultStatus: OpportunityStatus,
-    seenTitles: Set<string>,
-    seenRefs: Set<string>,
-    existingTitles: Set<string>,
-    existingRefs: Set<string>,
+    seenByKey: DuplicateTitleIndex,
+    existingByKey: DuplicateTitleIndex,
   ): ImportAnalysisRow[] {
     const analyzed: ImportAnalysisRow[] = [];
 
@@ -745,14 +766,20 @@ export class AdminOpportunitiesService {
         continue;
       }
 
-      const duplicateReason = this.detectDuplicate(
-        title,
-        row.fields.externalRef,
-        seenTitles,
-        seenRefs,
-        existingTitles,
-        existingRefs,
-      );
+      // Build first so duplicate detection compares exactly the values that
+      // would be persisted (preview and import share this path).
+      const built = this.buildOpportunityFields(row, vault, adminUserId, defaultStatus);
+      if (built.error || !built.data) {
+        analyzed.push({
+          excelRow: row.excelRow,
+          classification: 'INVALID',
+          title,
+          reason: built.error ?? 'Invalid row',
+        });
+        continue;
+      }
+
+      const duplicateReason = this.detectDuplicate(built.data, seenByKey, existingByKey);
       if (duplicateReason) {
         analyzed.push({
           excelRow: row.excelRow,
@@ -763,16 +790,7 @@ export class AdminOpportunitiesService {
         continue;
       }
 
-      const built = this.buildOpportunityFields(row, vault, adminUserId, defaultStatus);
-      if (built.error) {
-        analyzed.push({
-          excelRow: row.excelRow,
-          classification: 'INVALID',
-          title,
-          reason: built.error,
-        });
-        continue;
-      }
+      addJobToTitleIndex(seenByKey, built.data);
 
       analyzed.push({
         excelRow: row.excelRow,
@@ -787,23 +805,22 @@ export class AdminOpportunitiesService {
   }
 
   private detectDuplicate(
-    title: string,
-    externalRef: string | null,
-    seenTitles: Set<string>,
-    seenRefs: Set<string>,
-    existingTitles: Set<string>,
-    existingRefs: Set<string>,
+    job: DuplicateComparableJob,
+    seenByKey: DuplicateTitleIndex,
+    existingByKey: DuplicateTitleIndex,
   ): string | null {
-    const titleKey = title.trim().toLowerCase();
-    if (seenTitles.has(titleKey)) return 'Duplicate title within file';
-    if (existingTitles.has(titleKey)) return 'Duplicate title already exists in vault';
-    if (externalRef) {
-      const refKey = externalRef.trim().toLowerCase();
-      if (seenRefs.has(refKey)) return 'Duplicate S. No. within file';
-      if (existingRefs.has(refKey)) return 'Duplicate S. No. already exists in vault';
+    const titleKey = normalizeDuplicateText(job.title);
+
+    for (const candidate of existingByKey.get(titleKey) ?? []) {
+      if (compareJobsForDuplicate(candidate, job).duplicate) {
+        return 'Duplicate job already exists in vault';
+      }
     }
-    seenTitles.add(titleKey);
-    if (externalRef) seenRefs.add(externalRef.trim().toLowerCase());
+    for (const candidate of seenByKey.get(titleKey) ?? []) {
+      if (compareJobsForDuplicate(candidate, job).duplicate) {
+        return 'Duplicate job within import file';
+      }
+    }
     return null;
   }
 
@@ -912,21 +929,29 @@ export class AdminOpportunitiesService {
     if (validRows.length === 0) return results;
 
     await this.prisma.$transaction(async (tx) => {
+      // Same duplicate logic as preview/analysis: compare all identifying
+      // fields of the row against live jobs already in this vault, so a row
+      // is only rejected when it truly duplicates an existing posting.
+      const existingRows = await tx.opportunity.findMany({
+        where: {
+          deletedAt: null,
+          status: { notIn: NON_BLOCKING_STATUSES },
+          vaults: { some: { vaultId: vault.id } },
+        },
+        select: DUPLICATE_FIELD_SELECT,
+      });
+      const committedByKey = indexJobsByTitle(
+        (existingRows ?? []).filter((job) => !isBlockingDuplicateStatus(job.status)),
+      );
+
       for (const { excelRow, data } of validRows) {
         try {
-          const titleStr = String(data.title);
-          const existing = await tx.opportunity.findFirst({
-            where: {
-              deletedAt: null,
-              title: { equals: titleStr, mode: 'insensitive' },
-              vaults: { some: { vaultId: vault.id } },
-            },
-          });
-          if (existing) {
+          const duplicateReason = this.detectDuplicate(data, committedByKey, committedByKey);
+          if (duplicateReason) {
             results.errors.push({
               row: excelRow,
-              title: titleStr,
-              error: 'Duplicate title already exists in vault',
+              title: String(data.title),
+              error: duplicateReason,
             });
             results.failed++;
             continue;
@@ -934,6 +959,8 @@ export class AdminOpportunitiesService {
 
           await tx.opportunity.create({ data });
           results.imported++;
+          // Later rows in this batch must see what was just written.
+          addJobToTitleIndex(committedByKey, data);
         } catch (err: any) {
           results.failed++;
           results.errors.push({

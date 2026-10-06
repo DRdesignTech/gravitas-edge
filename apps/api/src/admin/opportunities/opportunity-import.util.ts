@@ -425,6 +425,165 @@ export function parseExperience(raw: string | null): {
   return { minExperience: null, maxExperience: null };
 }
 
+/**
+ * The job attributes that participate in duplicate detection. Only content
+ * fields sourced from the import file / stored on the job are compared;
+ * administrative fields (status, category, dates, createdBy) are ignored so
+ * that defaulting them can never create or hide a duplicate.
+ *
+ * `status` is intentionally absent: it is only read to skip archived/expired
+ * jobs before they reach the comparison.
+ */
+export interface DuplicateComparableJob {
+  title?: string | null;
+  company?: string | null;
+  location?: string | null;
+  country?: string | null;
+  salary?: string | null;
+  experienceText?: string | null;
+  minExperience?: number | null;
+  maxExperience?: number | null;
+  industry?: string | null;
+  functionalArea?: string | null;
+  employmentType?: string | null;
+  qualification?: string | null;
+  description?: string | null;
+  applicationUrl?: string | null;
+  applicationContact?: string | null;
+  externalRef?: string | null;
+  status?: string | null;
+}
+
+const DUPLICATE_TEXT_FIELDS = [
+  'title',
+  'company',
+  'location',
+  'country',
+  'salary',
+  'industry',
+  'functionalArea',
+  'employmentType',
+  'qualification',
+  'description',
+  'applicationUrl',
+  'applicationContact',
+  'externalRef',
+] as const;
+
+/** Archived/expired postings must not block a genuinely new posting. */
+export function isBlockingDuplicateStatus(status: string | null | undefined): boolean {
+  return status === 'ARCHIVED' || status === 'EXPIRED';
+}
+
+/**
+ * Normalizes a job field for duplicate comparison: trims, lower-cases,
+ * expands "&" to "and", turns dash/slash/punctuation runs into single spaces
+ * and collapses whitespace. Meaningful symbols such as "+" and "#" are kept
+ * so that distinct values like "C++" and "C#" never collapse together.
+ */
+export function normalizeDuplicateText(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/[-_/.,;:'"!?()]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Builds the comparison key for the experience of a job using the existing
+ * parsed range logic, so equivalent formatting ("4-6 years" vs "4 to 6 yrs",
+ * "5+ years" vs "5 years") compares as equal. Falls back to the normalized
+ * text when no range can be parsed from either side.
+ */
+export function duplicateExperienceKey(job: DuplicateComparableJob): string {
+  let min = job.minExperience ?? null;
+  let max = job.maxExperience ?? null;
+  if (job.experienceText) {
+    const parsed = parseExperience(job.experienceText);
+    min = min ?? parsed.minExperience;
+    max = max ?? parsed.maxExperience;
+  }
+  if (min === null && max === null) return normalizeDuplicateText(job.experienceText);
+  return `${min ?? ''}:${max ?? ''}`;
+}
+
+export interface JobDuplicateComparison {
+  duplicate: boolean;
+  /** Fields present in both records with equal normalized values. */
+  matched: string[];
+  /** Fields present in both records with different values (always a blocker). */
+  conflicts: string[];
+  /** Fields present in only one of the two records. */
+  oneSided: string[];
+}
+
+/**
+ * Two jobs are duplicates only when every field both records can speak to
+ * agrees, and they share more than the title alone:
+ *
+ * - any field present in both with different values => not a duplicate;
+ * - otherwise duplicates when at least two fields match (title plus another
+ *   identifying detail), or when the two records are identical in presence
+ *   (only title on both sides and nothing one-sided to distinguish them).
+ *
+ * Fields missing in both records are neutral and never count towards a match.
+ */
+export function compareJobsForDuplicate(
+  a: DuplicateComparableJob,
+  b: DuplicateComparableJob,
+): JobDuplicateComparison {
+  const matched: string[] = [];
+  const conflicts: string[] = [];
+  const oneSided: string[] = [];
+
+  for (const field of DUPLICATE_TEXT_FIELDS) {
+    const av = normalizeDuplicateText(a[field]);
+    const bv = normalizeDuplicateText(b[field]);
+    if (!av && !bv) continue;
+    if (!av || !bv) {
+      oneSided.push(field);
+      continue;
+    }
+    if (av === bv) matched.push(field);
+    else conflicts.push(field);
+  }
+
+  const aExperience = duplicateExperienceKey(a);
+  const bExperience = duplicateExperienceKey(b);
+  if (aExperience && bExperience) {
+    if (aExperience === bExperience) matched.push('experience');
+    else conflicts.push('experience');
+  } else if (aExperience || bExperience) {
+    oneSided.push('experience');
+  }
+
+  const duplicate = conflicts.length === 0 && (matched.length >= 2 || oneSided.length === 0);
+  return { duplicate, matched, conflicts, oneSided };
+}
+
+/** Indexes jobs by their normalized title so only same-title candidates are compared. */
+export function indexJobsByTitle(
+  jobs: DuplicateComparableJob[],
+): Map<string, DuplicateComparableJob[]> {
+  const index = new Map<string, DuplicateComparableJob[]>();
+  for (const job of jobs) addJobToTitleIndex(index, job);
+  return index;
+}
+
+export function addJobToTitleIndex(
+  index: Map<string, DuplicateComparableJob[]>,
+  job: DuplicateComparableJob,
+): void {
+  const key = normalizeDuplicateText(job.title);
+  const bucket = index.get(key);
+  if (bucket) bucket.push(job);
+  else index.set(key, [job]);
+}
+
 export function isEmptyRow(row: ParsedRow): boolean {
   return Object.values(row.fields).every(
     (v) => v === null || v === undefined || String(v).trim() === '',

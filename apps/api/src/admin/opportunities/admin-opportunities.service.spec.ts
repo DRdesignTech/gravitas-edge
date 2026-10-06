@@ -10,7 +10,7 @@ import { AuditService } from '../../audit/audit.service';
 function mockPrismaService(): any {
   return {
     opportunity: {
-      findMany: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
       count: jest.fn(),
       create: jest.fn(),
@@ -451,7 +451,7 @@ describe('AdminOpportunitiesService', () => {
 
       const dup = result.sheets[0].rows.find((r) => r.title === 'Duplicate Dev');
       expect(dup?.classification).toBe('DUPLICATE');
-      expect(dup?.reason).toBe('Duplicate title already exists in vault');
+      expect(dup?.reason).toBe('Duplicate job already exists in vault');
       expect(result.sheets[0].summary.duplicate).toBe(1);
     });
 
@@ -462,7 +462,156 @@ describe('AdminOpportunitiesService', () => {
       const matches = result.sheets[0].rows.filter((r) => r.title === 'Repeat Role');
       expect(matches[0].classification).toBe('VALID');
       expect(matches[1].classification).toBe('DUPLICATE');
-      expect(matches[1].reason).toBe('Duplicate title within file');
+      expect(matches[1].reason).toBe('Duplicate job within import file');
+    });
+
+    const engineerExistingJob = {
+      title: 'Software Engineer',
+      company: 'Acme Corp',
+      location: 'Dubai',
+      country: 'UAE',
+      salary: 'AED 20000 monthly',
+      experienceText: '5+ years',
+      minExperience: 5,
+      maxExperience: null,
+      industry: 'IT',
+      functionalArea: 'Engineering',
+      employmentType: 'FULL_TIME',
+      qualification: 'B.Tech',
+      description: 'Build and maintain APIs',
+      applicationUrl: 'https://acme.test/apply',
+      applicationContact: 'hr@acme.test',
+      externalRef: '101',
+      status: 'PUBLISHED',
+    };
+
+    const engineerCsvHeader =
+      'Title,Company,Location,Country,Salary,Experience,Industry,Functional Area,Employment Type,Qualification,Other Details,How to Apply,How to Apply Email,S. No.';
+
+    it('marks a completely identical job as DUPLICATE even with formatting differences', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob }]);
+      const file = csvFile(
+        engineerCsvHeader +
+          '\nsoftware   ENGINEER,Acme  Corp.,dubai,UAE,AED 20000 monthly,5 years,it,engineering,Full Time,b.tech,BUILD AND MAINTAIN APIs,https://acme.test/apply,hr@acme.test,101',
+      );
+
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      const row = result.sheets[0].rows[0];
+      expect(row.classification).toBe('DUPLICATE');
+      expect(row.reason).toBe('Duplicate job already exists in vault');
+      expect(result.sheets[0].summary.duplicate).toBe(1);
+      expect(result.sheets[0].summary.valid).toBe(0);
+    });
+
+    it('does not mark a job duplicate when only the title matches but the company differs', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob }]);
+      const file = csvFile('Title,Company,Location\nSoftware Engineer,Globex,Dubai');
+
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      expect(result.sheets[0].rows[0].classification).toBe('VALID');
+      expect(result.sheets[0].summary.duplicate).toBe(0);
+      expect(result.sheets[0].summary.valid).toBe(1);
+    });
+
+    it('does not mark a job duplicate when title and company match but the location differs', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob }]);
+      const file = csvFile('Title,Company,Location\nSoftware Engineer,Acme Corp,Tokyo');
+
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      expect(result.sheets[0].rows[0].classification).toBe('VALID');
+      expect(result.sheets[0].summary.duplicate).toBe(0);
+    });
+
+    it('does not mark a job duplicate when salary, experience or other details differ', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob }]);
+      const file = csvFile(
+        'Title,Company,Location,Salary,Experience,Other Details\n' +
+          'Software Engineer,Acme Corp,Dubai,AED 30000 monthly,5+ years,Build and maintain APIs\n' +
+          'Software Engineer,Acme Corp,Dubai,AED 20000 monthly,8+ years,Build and maintain APIs\n' +
+          'Software Engineer,Acme Corp,Dubai,AED 20000 monthly,5+ years,Operate the data platform\n',
+      );
+
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      expect(result.sheets[0].summary.valid).toBe(3);
+      expect(result.sheets[0].summary.duplicate).toBe(0);
+      for (const row of result.sheets[0].rows) {
+        expect(row.classification).toBe('VALID');
+      }
+    });
+
+    it('does not mark different jobs with similar titles as duplicates', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob }]);
+      const file = csvFile('Title,Company,Location\nSenior Software Engineer,Acme Corp,Dubai');
+
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      expect(result.sheets[0].rows[0].classification).toBe('VALID');
+      expect(result.sheets[0].summary.duplicate).toBe(0);
+    });
+
+    it('marks the exact same job imported twice within the file as DUPLICATE', async () => {
+      const row =
+        'Software Engineer,Acme Corp,Dubai,AED 20000 monthly,5+ years,Build and maintain APIs,101';
+      const file = csvFile(
+        'Title,Company,Location,Salary,Experience,Other Details,S. No.\n' + row + '\n' + row,
+      );
+
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      expect(result.sheets[0].rows[0].classification).toBe('VALID');
+      expect(result.sheets[0].rows[1].classification).toBe('DUPLICATE');
+      expect(result.sheets[0].rows[1].reason).toBe('Duplicate job within import file');
+      expect(result.sheets[0].summary.duplicate).toBe(1);
+      expect(result.sheets[0].summary.valid).toBe(1);
+    });
+
+    it('applies the same duplicate logic during import: only the matching row fails', async () => {
+      // Route writes through this same mock so create() calls are observable.
+      prisma.$transaction = jest.fn(async (cbOrFns: any) =>
+        typeof cbOrFns === 'function' ? cbOrFns(prisma as any) : [],
+      );
+      prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob }]);
+      prisma.opportunity.create.mockResolvedValue({ id: 'opp-new', title: 'Data Scientist' });
+      const file = csvFile(
+        'Title,Company,Location,Salary,Experience,Other Details,S. No.\n' +
+          'Software Engineer,Acme Corp,Dubai,AED 20000 monthly,5+ years,Build and maintain APIs,101\n' +
+          'Data Scientist,Globex,Remote,AED 25000 monthly,3+ years,Build ML pipelines,102',
+      );
+
+      const result = await service.import(file, 'vault-uae', 'admin-1');
+
+      expect(result.imported).toBe(1);
+      expect(result.failed).toBe(1);
+      expect(result.errors).toEqual([
+        expect.objectContaining({
+          row: 2,
+          title: 'Software Engineer',
+          error: 'Duplicate job already exists in vault',
+        }),
+      ]);
+      expect(prisma.opportunity.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not let archived or expired jobs block a genuinely new posting', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([
+        { title: 'Software Engineer', status: 'ARCHIVED' },
+        { title: 'Data Analyst', status: 'EXPIRED' },
+      ]);
+      const file = csvFile('Title,Location\nSoftware Engineer,Dubai\nData Analyst,Dubai');
+
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      expect(result.sheets[0].summary.valid).toBe(2);
+      expect(result.sheets[0].summary.duplicate).toBe(0);
+      expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: { notIn: ['ARCHIVED', 'EXPIRED'] } }),
+        }),
+      );
     });
 
     it('marks rows missing a title as INVALID and ignores empty rows', async () => {
@@ -574,10 +723,10 @@ describe('AdminOpportunitiesService', () => {
       expect(bySheet['Management']?.vault?.id).toBe('management');
       expect(bySheet['Early Career']?.vault?.id).toBe('early');
 
-      expect(bySheet['Remote Access']?.summary.valid).toBe(61);
-      expect(bySheet['Executive']?.summary.valid).toBe(109);
-      expect(bySheet['Management']?.summary.valid).toBe(183);
-      expect(bySheet['UAE & Global']?.summary.valid).toBe(137);
+      expect(bySheet['Remote Access']?.summary.valid).toBe(74);
+      expect(bySheet['Executive']?.summary.valid).toBe(143);
+      expect(bySheet['Management']?.summary.valid).toBe(228);
+      expect(bySheet['UAE & Global']?.summary.valid).toBe(179);
     });
 
     it('skips a job sheet with no matching vault and keeps processing the rest', async () => {
