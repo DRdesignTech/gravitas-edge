@@ -39,7 +39,7 @@ import {
   Textarea,
   useToast,
 } from '@/components/ui';
-import { formatDate, titleCase, experienceLabel } from '@/lib/format';
+import { formatDate, formatDateTime, titleCase, experienceLabel } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 
 type OpportunityView = 'grid' | 'list';
@@ -121,6 +121,15 @@ function ViewToggle({
   );
 }
 
+function DetailItem({ label, value }: { label: string; value?: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase tracking-wide text-content-muted">{label}</dt>
+      <dd className="mt-0.5 text-content">{value ?? '—'}</dd>
+    </div>
+  );
+}
+
 interface FormState {
   title: string;
   description: string;
@@ -194,6 +203,9 @@ export default function OpportunitiesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Opportunity | null>(null);
   const [permDeleting, setPermDeleting] = useState(false);
   const [permTarget, setPermTarget] = useState<Opportunity | null>(null);
+  const [viewTarget, setViewTarget] = useState<Opportunity | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishTarget, setPublishTarget] = useState<Opportunity | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -334,6 +346,24 @@ export default function OpportunitiesPage() {
     }
   };
 
+  // Publish reuses the existing update endpoint: it changes DRAFT -> PUBLISHED
+  // in place (no duplicate), preserves all data, and the API backfills
+  // publishedDate so the row follows the normal public/Vault visibility rules.
+  const confirmPublish = async () => {
+    if (!publishTarget) return;
+    setPublishing(true);
+    try {
+      await adminUpdateOpportunity(publishTarget.id, { status: 'PUBLISHED' });
+      showToast(`"${publishTarget.title}" published`, 'success');
+      setPublishTarget(null);
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const toggle = (field: 'vaultIds' | 'experienceLevelIds', value: string) =>
     setForm((f) => ({
       ...f,
@@ -405,6 +435,16 @@ export default function OpportunitiesPage() {
       render: (o) => <Badge variant={oppStatusVariant(o.status)}>{o.status}</Badge>,
     },
     {
+      key: 'createdAt',
+      label: 'Created',
+      render: (o) => <span className="text-content-muted">{formatDateTime(o.createdAt)}</span>,
+    },
+    {
+      key: 'updatedAt',
+      label: 'Updated',
+      render: (o) => <span className="text-content-muted">{formatDateTime(o.updatedAt)}</span>,
+    },
+    {
       key: 'published',
       label: 'Published',
       render: (o) => <span className="text-content-muted">{formatDate(o.publishedDate)}</span>,
@@ -415,6 +455,14 @@ export default function OpportunitiesPage() {
       render: (o) => (
         <>
           <div className="hidden items-center gap-2 sm:flex">
+            <Button size="sm" variant="secondary" onClick={() => setViewTarget(o)}>
+              View
+            </Button>
+            {o.status === 'DRAFT' && (
+              <Button size="sm" onClick={() => setPublishTarget(o)}>
+                Publish
+              </Button>
+            )}
             <Button size="sm" variant="secondary" onClick={() => openEdit(o)}>
               Edit
             </Button>
@@ -429,6 +477,10 @@ export default function OpportunitiesPage() {
             className="sm:hidden"
             label={`Actions for ${o.title}`}
             items={[
+              { label: 'View', onClick: () => setViewTarget(o) },
+              ...(o.status === 'DRAFT'
+                ? [{ label: 'Publish', onClick: () => setPublishTarget(o) }]
+                : []),
               { label: 'Edit', onClick: () => openEdit(o) },
               { label: 'Archive', danger: true, onClick: () => setDeleteTarget(o) },
               { label: 'Delete permanently', danger: true, onClick: () => setPermTarget(o) },
@@ -597,8 +649,28 @@ export default function OpportunitiesPage() {
                         {formatDate(o.publishedDate)}
                       </dd>
                     </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt>Created</dt>
+                      <dd className="whitespace-nowrap text-content">
+                        {formatDateTime(o.createdAt)}
+                      </dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt>Updated</dt>
+                      <dd className="whitespace-nowrap text-content">
+                        {formatDateTime(o.updatedAt)}
+                      </dd>
+                    </div>
                   </dl>
                   <div className="mt-auto flex items-center justify-end gap-2 border-t border-line pt-4">
+                    <Button size="sm" variant="secondary" onClick={() => setViewTarget(o)}>
+                      View
+                    </Button>
+                    {o.status === 'DRAFT' && (
+                      <Button size="sm" onClick={() => setPublishTarget(o)}>
+                        Publish
+                      </Button>
+                    )}
                     <Button size="sm" variant="secondary" onClick={() => openEdit(o)}>
                       Edit
                     </Button>
@@ -807,6 +879,16 @@ export default function OpportunitiesPage() {
       />
 
       <ConfirmDialog
+        isOpen={!!publishTarget}
+        onClose={() => setPublishTarget(null)}
+        onConfirm={confirmPublish}
+        title="Publish opportunity"
+        message={`Publish "${publishTarget?.title}"? It will become publicly visible (and follow existing Vault access rules) immediately. No data is changed other than the status.`}
+        confirmText="Publish"
+        loading={publishing}
+      />
+
+      <ConfirmDialog
         isOpen={!!permTarget}
         onClose={() => setPermTarget(null)}
         onConfirm={confirmPermanentDelete}
@@ -815,6 +897,125 @@ export default function OpportunitiesPage() {
         confirmText="Yes, delete"
         loading={permDeleting}
       />
+
+      <Modal
+        isOpen={!!viewTarget}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.title || 'Opportunity'}
+        size="lg"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setViewTarget(null)}>
+              Close
+            </Button>
+            {viewTarget?.status === 'DRAFT' && (
+              <Button
+                onClick={() => {
+                  const o = viewTarget;
+                  setViewTarget(null);
+                  setPublishTarget(o);
+                }}
+              >
+                Publish
+              </Button>
+            )}
+          </div>
+        }
+      >
+        {viewTarget && (
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={oppStatusVariant(viewTarget.status)}>{viewTarget.status}</Badge>
+              <Badge variant="info">{titleCase(viewTarget.category)}</Badge>
+              {viewTarget.externalRef && (
+                <span className="text-xs text-content-faint">S. No. {viewTarget.externalRef}</span>
+              )}
+            </div>
+
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-3">
+              <DetailItem label="Company" value={viewTarget.company || undefined} />
+              <DetailItem label="Location" value={viewTarget.location || undefined} />
+              <DetailItem label="Country" value={viewTarget.country || undefined} />
+              <DetailItem label="Industry" value={viewTarget.industry || undefined} />
+              <DetailItem label="Functional area" value={viewTarget.functionalArea || undefined} />
+              <DetailItem
+                label="Employment type"
+                value={viewTarget.employmentType ? titleCase(viewTarget.employmentType) : undefined}
+              />
+              <DetailItem
+                label="Experience"
+                value={experienceLabel(viewTarget.minExperience, viewTarget.maxExperience)}
+              />
+              <DetailItem label="Salary" value={viewTarget.salary || undefined} />
+              <DetailItem label="Qualification" value={viewTarget.qualification || undefined} />
+              <DetailItem label="Source" value={viewTarget.source || undefined} />
+              <DetailItem
+                label="Application URL"
+                value={
+                  viewTarget.applicationUrl ? (
+                    <a
+                      href={viewTarget.applicationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="break-all text-brand-600 hover:underline dark:text-brand-400"
+                    >
+                      {viewTarget.applicationUrl}
+                    </a>
+                  ) : undefined
+                }
+              />
+              <DetailItem
+                label="Application contact"
+                value={viewTarget.applicationContact || undefined}
+              />
+            </dl>
+
+            {viewTarget.experienceText && (
+              <div className="rounded-xl border border-line bg-surface-muted p-3 text-sm text-content">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-content-muted">
+                  Experience (free text)
+                </span>
+                {viewTarget.experienceText}
+              </div>
+            )}
+            {viewTarget.description && (
+              <div className="rounded-xl border border-line bg-surface-muted p-3 text-sm text-content">
+                <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-content-muted">
+                  Description
+                </span>
+                {viewTarget.description}
+              </div>
+            )}
+
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-line pt-4 text-sm md:grid-cols-3">
+              <DetailItem
+                label="Vaults"
+                value={
+                  viewTarget.vaults && viewTarget.vaults.length
+                    ? viewTarget.vaults.map((v) => v.name).join(', ')
+                    : undefined
+                }
+              />
+              <DetailItem
+                label="Experience levels"
+                value={
+                  viewTarget.experienceLevels && viewTarget.experienceLevels.length
+                    ? viewTarget.experienceLevels.map((el) => el.name).join(', ')
+                    : undefined
+                }
+              />
+              <DetailItem
+                label="Created by"
+                value={viewTarget.creator ? viewTarget.creator.email : undefined}
+              />
+              <DetailItem label="Created" value={formatDateTime(viewTarget.createdAt)} />
+              <DetailItem label="Last updated" value={formatDateTime(viewTarget.updatedAt)} />
+              <DetailItem label="Published" value={formatDateTime(viewTarget.publishedDate)} />
+              <DetailItem label="Expiry" value={formatDate(viewTarget.expiryDate)} />
+            </dl>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

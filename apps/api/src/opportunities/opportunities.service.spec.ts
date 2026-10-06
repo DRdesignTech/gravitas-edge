@@ -144,6 +144,30 @@ describe('OpportunitiesService', () => {
       expect(whereArgs.vaults).toBeUndefined();
     });
 
+    it('never returns draft (or archived/expired) opportunities to any user', async () => {
+      // Draft management correctness depends on the public list filtering by
+      // exactly PUBLISHED + not-deleted, so a saved Draft can never leak out.
+      access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
+      prisma.opportunity.findMany.mockResolvedValue([]);
+      prisma.opportunity.count.mockResolvedValue(0);
+
+      await service.listForUser('user-1', { page: 1, limit: 20 });
+
+      expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+            status: 'PUBLISHED',
+          }),
+        }),
+      );
+      // The count used for pagination must apply the exact same filter so a
+      // draft cannot affect page totals.
+      expect(prisma.opportunity.count).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { deletedAt: null, status: 'PUBLISHED' } }),
+      );
+    });
+
     it('searches by title/description/company and sector+location', async () => {
       access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
       prisma.opportunity.findMany.mockResolvedValue([]);
@@ -342,6 +366,21 @@ describe('OpportunitiesService', () => {
     it('throws NotFoundException for a nonexistent opportunity', async () => {
       prisma.opportunity.findFirst.mockResolvedValue(null);
       await expect(service.findOneForUser('bad-id', 'user-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('never returns a draft opportunity by id (404 for drafts)', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue(null);
+
+      await expect(service.findOneForUser('opp-draft', 'user-1')).rejects.toThrow(
+        NotFoundException,
+      );
+
+      // The detail query must filter on PUBLISHED + not-deleted, not merely on id.
+      expect(prisma.opportunity.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'opp-draft', deletedAt: null, status: 'PUBLISHED' },
+        }),
+      );
     });
   });
 

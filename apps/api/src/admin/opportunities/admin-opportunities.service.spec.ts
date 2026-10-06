@@ -301,6 +301,39 @@ describe('AdminOpportunitiesService', () => {
       await service.update('opp-1', { status: 'PUBLISHED' }, 'admin-1');
     });
 
+    it('publishes a draft in place: status only, no duplicate, data preserved', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue({
+        id: 'opp-draft',
+        title: 'Draft Role',
+        description: 'not yet public',
+        company: 'Acme',
+        status: 'DRAFT',
+        publishedDate: null,
+        category: 'INDIA',
+      });
+      prisma.opportunity.update.mockImplementation(async (args: any) => {
+        // Publishing must only flip the status (+ backfill publishedDate); it
+        // must not touch or wipe any existing field.
+        expect(args.data).toEqual(
+          expect.objectContaining({ status: 'PUBLISHED', publishedDate: expect.any(Date) }),
+        );
+        return { id: 'opp-draft', ...args.data, vaults: [], experienceLevels: [] };
+      });
+
+      await service.update('opp-draft', { status: 'PUBLISHED' }, 'admin-1');
+
+      // Publish goes through update - never creates a new row (no duplicate).
+      expect(prisma.opportunity.create).not.toHaveBeenCalled();
+      // The title/company on the row are untouched.
+      const updateArgs = prisma.opportunity.update.mock.calls[0][0];
+      expect(updateArgs).toEqual(expect.objectContaining({ where: { id: 'opp-draft' } }));
+      expect(updateArgs.data.title).toBeUndefined();
+      expect(updateArgs.data.description).toBeUndefined();
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'OPPORTUNITY_UPDATED', entityId: 'opp-draft' }),
+      );
+    });
+
     it('throws for nonexistent opportunity', async () => {
       prisma.opportunity.findFirst.mockResolvedValue(null);
       await expect(service.update('bad-id', { title: 'X' }, 'admin-1')).rejects.toThrow(
@@ -453,6 +486,33 @@ describe('AdminOpportunitiesService', () => {
       expect(audit.record).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'OPPORTUNITY_IMPORT', entityType: 'Opportunity' }),
       );
+    });
+
+    it('saves imported rows as DRAFT when defaultStatus is DRAFT', async () => {
+      // Route the import transaction through this same mock so the writes are
+      // observable (the default mock hands transactions a throwaway client).
+      prisma.$transaction = jest.fn(async (cbOrFns: any) =>
+        typeof cbOrFns === 'function' ? cbOrFns(prisma as any) : [],
+      );
+      const created: any[] = [];
+      prisma.opportunity.create.mockImplementation(async (args: any) => {
+        created.push(args.data);
+        return { id: 'opp-imported', ...args.data };
+      });
+
+      const file = csvFile(
+        'Title,Salary,Location\nImported Draft,1000,Dubai\nSecond Draft,2000,Remote',
+      );
+      const result = await service.import(file, 'remote', 'admin-1', undefined, 'DRAFT');
+
+      expect(result.imported).toBe(2);
+      expect(created).toHaveLength(2);
+      for (const data of created) {
+        expect(data.status).toBe('DRAFT');
+        // A draft is not yet public: it must not carry a publishedDate so the
+        // normal PUBLISHED filter keeps it off the public site until published.
+        expect(data.publishedDate).toBeNull();
+      }
     });
 
     it('truncates to latest 500 rows when file exceeds import limit', async () => {
