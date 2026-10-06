@@ -153,7 +153,7 @@ export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
 const fieldLabel = 'mb-1.5 block text-sm font-medium text-content';
 const fieldError = 'mt-1.5 text-xs text-red-600 dark:text-red-400';
 const fieldInput =
-  'w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-content shadow-sm placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-line dark:bg-surface-elevated dark:focus:border-brand-400';
+  'w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-content shadow-sm placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-60 readOnly:cursor-default readOnly:bg-surface-muted readOnly:text-content-muted dark:border-line dark:bg-surface-elevated dark:readOnly:bg-surface-muted dark:focus:border-brand-400';
 
 /* ---------- Input ---------- */
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {

@@ -41,7 +41,9 @@ export class CreatePlanDto {
 
   @ApiPropertyOptional({
     example: 25,
-    description: 'Displayed discount percentage (integer 0..100). Stored, never recomputed.',
+    description:
+      'Discount percentage. Accepted for backwards compatibility only - it is always recomputed ' +
+      'from regularPrice and price, and the submitted value is ignored.',
   })
   @IsOptional()
   @IsInt()

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { calculateDiscountPercentage } from '@job-portal/shared';
 import {
   adminListPlans,
   adminCreatePlan,
@@ -47,7 +48,6 @@ interface FormState {
   description: string;
   price: string;
   regularPrice: string;
-  discountPercentage: string;
   currency: string;
   durationDays: string;
   isActive: boolean;
@@ -59,7 +59,6 @@ const emptyForm: FormState = {
   description: '',
   price: '',
   regularPrice: '',
-  discountPercentage: '',
   currency: 'INR',
   durationDays: '30',
   isActive: true,
@@ -132,7 +131,6 @@ export default function PlansPage() {
       description: p.description ?? '',
       price: String(p.price),
       regularPrice: String(p.regularPrice ?? p.price),
-      discountPercentage: String(p.discountPercentage ?? 0),
       currency: p.currency,
       durationDays: String(p.durationDays),
       isActive: p.isActive,
@@ -141,10 +139,27 @@ export default function PlansPage() {
     setFormOpen(true);
   };
 
+  // Discount is derived from the two prices on every keystroke - the admin never
+  // types it. Uses the same helper as the API so the badge shown here matches
+  // the "% OFF" badge shown on the website.
+  const discountPercentage = useMemo(
+    () => calculateDiscountPercentage(form.regularPrice, form.price),
+    [form.regularPrice, form.price],
+  );
+
+  const currentPriceNum = Number(form.price);
+  const regularPriceNum = Number(form.regularPrice);
+  const pricesInvalid =
+    form.price.trim() !== '' &&
+    form.regularPrice.trim() !== '' &&
+    Number.isFinite(currentPriceNum) &&
+    Number.isFinite(regularPriceNum) &&
+    currentPriceNum > regularPriceNum;
+  const savings = Math.max(0, (regularPriceNum || 0) - (currentPriceNum || 0));
+
   const save = async () => {
     const price = Number(form.price);
     const regularPrice = Number(form.regularPrice);
-    const discountPercentage = Number(form.discountPercentage);
     const durationDays = Number(form.durationDays);
 
     if (!form.name.trim()) {
@@ -163,10 +178,6 @@ export default function PlansPage() {
       showToast('Current price cannot exceed regular price', 'error');
       return;
     }
-    if (!Number.isInteger(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
-      showToast('Discount percentage must be a whole number between 0 and 100', 'error');
-      return;
-    }
     if (![30, 90, 180].includes(durationDays)) {
       showToast('Please choose a valid duration', 'error');
       return;
@@ -183,7 +194,6 @@ export default function PlansPage() {
         description: form.description || undefined,
         price,
         regularPrice,
-        discountPercentage,
         currency: form.currency,
         durationDays,
         isActive: form.isActive,
@@ -512,14 +522,28 @@ export default function PlansPage() {
             />
             <Input
               label="Discount %"
-              type="number"
-              min={0}
-              max={100}
-              step={1}
-              required
-              value={form.discountPercentage}
-              onChange={(e) => setForm((f) => ({ ...f, discountPercentage: e.target.value }))}
+              readOnly
+              tabIndex={-1}
+              title="Calculated automatically from regular and current price"
+              value={`${discountPercentage}%`}
             />
+          </div>
+          <div className="flex min-h-6 items-center gap-2 text-xs text-content-muted">
+            {pricesInvalid ? (
+              <span className="text-red-600 dark:text-red-400">
+                Current price cannot exceed regular price
+              </span>
+            ) : discountPercentage > 0 ? (
+              <>
+                <Badge variant="success">{discountPercentage}% OFF</Badge>
+                <span>Customers save {formatMoney(savings, form.currency)} on this plan</span>
+              </>
+            ) : (
+              <span>
+                No discount yet — set a current price below the regular price to calculate one
+                automatically.
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Select

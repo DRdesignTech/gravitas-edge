@@ -235,7 +235,7 @@ describe('SubscriptionPlansService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('stores regularPrice and discountPercentage', async () => {
+    it('derives and stores discountPercentage from the two prices', async () => {
       prisma.subscriptionPlan.findUnique.mockResolvedValue(null);
       prisma.subscriptionPlan.create.mockImplementation(async (args: any) => {
         expect(args.data.regularPrice).toBe(1999);
@@ -254,7 +254,6 @@ describe('SubscriptionPlansService', () => {
           name: 'Remote · Monthly',
           price: 1499,
           regularPrice: 1999,
-          discountPercentage: 25,
           currency: 'INR',
           durationDays: 30,
         },
@@ -262,6 +261,47 @@ describe('SubscriptionPlansService', () => {
       );
       expect(result.regularPrice).toBe(1999);
       expect(result.discountPercentage).toBe(25);
+    });
+
+    it('ignores a client-supplied discountPercentage and derives it instead', async () => {
+      prisma.subscriptionPlan.findUnique.mockResolvedValue(null);
+      prisma.subscriptionPlan.create.mockImplementation(async (args: any) => {
+        // 2999 -> 2499 is 16.67%, which rounds to 17. A hand-typed 40 must not win.
+        expect(args.data.discountPercentage).toBe(17);
+        return { id: 'p-1', ...args.data };
+      });
+      prisma.subscriptionPlan.findFirst.mockResolvedValue({
+        id: 'p-1',
+        discountPercentage: 17,
+        vaults: [],
+      });
+
+      const result = await service.create(
+        {
+          name: 'Inconsistent',
+          price: 2499,
+          regularPrice: 2999,
+          discountPercentage: 40,
+          currency: 'INR',
+          durationDays: 30,
+        },
+        'admin-1',
+      );
+      expect(result.discountPercentage).toBe(17);
+    });
+
+    it('stores 0% when current price equals regular price', async () => {
+      prisma.subscriptionPlan.findUnique.mockResolvedValue(null);
+      prisma.subscriptionPlan.create.mockImplementation(async (args: any) => {
+        expect(args.data.discountPercentage).toBe(0);
+        return { id: 'p-1', ...args.data };
+      });
+      prisma.subscriptionPlan.findFirst.mockResolvedValue({ id: 'p-1', vaults: [] });
+
+      await service.create(
+        { name: 'No Discount', price: 999, regularPrice: 999, currency: 'INR', durationDays: 30 },
+        'admin-1',
+      );
     });
 
     it('rejects discounted price that exceeds regular price', async () => {
@@ -330,8 +370,8 @@ describe('SubscriptionPlansService', () => {
       );
     });
 
-    it('updates pricing fields and keeps discounted <= regular', async () => {
-      prisma.subscriptionPlan.findFirst.mockResolvedValue({
+    it('updates pricing fields and derives the new discount', async () => {
+      prisma.subscriptionPlan.findFirst.mockResolvedValueOnce({
         id: 'p-1',
         name: 'Remote · Monthly',
         price: 1499,
@@ -343,6 +383,7 @@ describe('SubscriptionPlansService', () => {
       prisma.subscriptionPlan.update.mockImplementation(async (args: any) => {
         expect(args.data.regularPrice).toBe(2099);
         expect(args.data.price).toBe(1599);
+        // (2099 - 1599) / 2099 = 23.8% -> 24
         expect(args.data.discountPercentage).toBe(24);
         return { id: 'p-1', ...args.data };
       });
@@ -353,12 +394,52 @@ describe('SubscriptionPlansService', () => {
         vaults: [],
       });
 
-      const result = await service.update(
-        'p-1',
-        { price: 1599, regularPrice: 2099, discountPercentage: 24 },
-        'admin-1',
-      );
+      const result = await service.update('p-1', { price: 1599, regularPrice: 2099 }, 'admin-1');
       expect(result.regularPrice).toBe(2099);
+    });
+
+    it('recomputes the stored discount when only the current price changes', async () => {
+      // Once: the pre-update fetch. The bare mockResolvedValue below only
+      // applies to the post-update read in findOne.
+      prisma.subscriptionPlan.findFirst.mockResolvedValueOnce({
+        id: 'p-1',
+        name: 'Remote · Monthly',
+        price: 1499,
+        regularPrice: 1999,
+        discountPercentage: 25,
+        vaults: [],
+      });
+      prisma.subscriptionPlan.update.mockImplementation(async (args: any) => {
+        // (1999 - 999) / 1999 = 50.02% -> 50
+        expect(args.data.discountPercentage).toBe(50);
+        expect(args.data.regularPrice).toBeUndefined();
+        return { id: 'p-1', ...args.data };
+      });
+      prisma.subscriptionPlan.findFirst.mockResolvedValue({
+        id: 'p-1',
+        discountPercentage: 50,
+        vaults: [],
+      });
+
+      await service.update('p-1', { price: 999 }, 'admin-1');
+    });
+
+    it('leaves the stored discount untouched when no pricing field changes', async () => {
+      prisma.subscriptionPlan.findFirst.mockResolvedValue({
+        id: 'p-1',
+        name: 'Old',
+        price: 1499,
+        regularPrice: 1999,
+        discountPercentage: 25,
+        vaults: [],
+      });
+      prisma.subscriptionPlan.update.mockImplementation(async (args: any) => {
+        expect(args.data.discountPercentage).toBeUndefined();
+        return { id: 'p-1', name: 'New' };
+      });
+      prisma.subscriptionPlan.findFirst.mockResolvedValue({ id: 'p-1', name: 'New', vaults: [] });
+
+      await service.update('p-1', { name: 'New' }, 'admin-1');
     });
 
     it('rejects discounted price that exceeds current regular price on partial update', async () => {

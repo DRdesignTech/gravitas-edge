@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { calculateDiscountPercentage } from '@job-portal/shared';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import {
@@ -34,17 +35,22 @@ export class SubscriptionPlansService {
   // ---------------------------------------------------------------------------
   // Pricing validation. `price` is the ACTUAL amount charged; `regularPrice` is
   // the list price used only for display.
+  //
+  // The discount percentage is ALWAYS derived from the two prices rather than
+  // trusted from the request, so the "% OFF" badge rendered on the website is
+  // always consistent with the prices next to it. A client-supplied
+  // `discountPercentage` is still accepted (and validated) for backwards
+  // compatibility, but it is never stored.
   // ---------------------------------------------------------------------------
 
   private resolvePricing(
     price?: number,
     regularPrice?: number,
     discountPercentage?: number,
-    current?: { price: number; regularPrice: number; discountPercentage: number },
+    current?: { price: number; regularPrice: number },
   ) {
     const discounted = price ?? current?.price ?? 0;
     const regular = regularPrice ?? current?.regularPrice ?? discounted;
-    const discount = discountPercentage ?? current?.discountPercentage ?? 0;
 
     if (discounted < 0) {
       throw new BadRequestException('Price cannot be negative');
@@ -55,10 +61,22 @@ export class SubscriptionPlansService {
     if (discounted > regular) {
       throw new BadRequestException('Discounted price cannot exceed regular price');
     }
-    if (!Number.isInteger(discount) || discount < 0 || discount > 100) {
-      throw new BadRequestException('Discount percentage must be an integer between 0 and 100');
+    // Backwards compatibility: a bad discount still 400s exactly as before, it
+    // just never reaches the database. Clients that no longer send it are fine.
+    if (discountPercentage !== undefined) {
+      if (
+        !Number.isInteger(discountPercentage) ||
+        discountPercentage < 0 ||
+        discountPercentage > 100
+      ) {
+        throw new BadRequestException('Discount percentage must be an integer between 0 and 100');
+      }
     }
-    return { price: discounted, regularPrice: regular, discountPercentage: discount };
+    return {
+      price: discounted,
+      regularPrice: regular,
+      discountPercentage: calculateDiscountPercentage(regular, discounted),
+    };
   }
 
   async list(query: QueryPlansDto): Promise<PaginatedResult<any>> {
@@ -190,8 +208,11 @@ export class SubscriptionPlansService {
     const pricing = this.resolvePricing(dto.price, dto.regularPrice, dto.discountPercentage, {
       price: Number(current.price),
       regularPrice: Number(current.regularPrice),
-      discountPercentage: current.discountPercentage,
     });
+
+    // The stored discount is derived, so it has to be rewritten whenever either
+    // price changes - not only when the client happens to send the percentage.
+    const pricingChanged = dto.price !== undefined || dto.regularPrice !== undefined;
 
     const plan = await this.prisma.subscriptionPlan.update({
       where: { id },
@@ -201,7 +222,9 @@ export class SubscriptionPlansService {
         price: dto.price !== undefined ? pricing.price : undefined,
         regularPrice: dto.regularPrice !== undefined ? pricing.regularPrice : undefined,
         discountPercentage:
-          dto.discountPercentage !== undefined ? pricing.discountPercentage : undefined,
+          pricingChanged || dto.discountPercentage !== undefined
+            ? pricing.discountPercentage
+            : undefined,
         currency: dto.currency ? dto.currency.toUpperCase() : undefined,
         durationDays: dto.durationDays,
         isActive: dto.isActive,

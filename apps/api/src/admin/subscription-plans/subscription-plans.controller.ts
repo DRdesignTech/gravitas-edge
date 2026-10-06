@@ -78,11 +78,7 @@ export class SubscriptionPlansController {
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Permanently delete a plan (refused while subscriptions reference it)' })
-  hardDelete(
-    @Param('id') id: string,
-    @CurrentUser() user: AuthenticatedUser,
-    @Req() req: Request,
-  ) {
+  hardDelete(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
     return this.subscriptionPlansService.hardDelete(id, user.id, this.clientIp(req));
   }
 
