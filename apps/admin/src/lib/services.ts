@@ -1,6 +1,8 @@
 import { api, uploadFile } from './api';
 import {
   AdminSubscription,
+  Coupon,
+  CouponUsageRow,
   ImportPreviewResponse,
   Opportunity,
   PaginatedResult,
@@ -53,6 +55,13 @@ export interface SubscriptionQuery {
   page?: number;
   limit?: number;
   userId?: string;
+  status?: string;
+}
+
+export interface CouponQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
   status?: string;
 }
 
@@ -199,6 +208,38 @@ export function adminUnlinkPlanVault(planId: string, vaultId: string) {
 
 export function adminListSubscriptions(query: SubscriptionQuery = {}) {
   return api.get<PaginatedResult<AdminSubscription>>(`/admin/subscriptions${qs(query)}`);
+}
+
+export function adminListCoupons(query: CouponQuery = {}) {
+  return api.get<PaginatedResult<Coupon>>(`/admin/coupons${qs(query)}`);
+}
+
+export function adminGetCoupon(id: string) {
+  return api.get<Coupon>(`/admin/coupons/${id}`);
+}
+
+export function adminCreateCoupon(body: Record<string, unknown>) {
+  return api.post<Coupon>('/admin/coupons', body);
+}
+
+export function adminUpdateCoupon(id: string, body: Record<string, unknown>) {
+  return api.patch<Coupon>(`/admin/coupons/${id}`, body);
+}
+
+export function adminDeleteCoupon(id: string) {
+  return api.del(`/admin/coupons/${id}`);
+}
+
+export function adminDeleteCouponPermanent(id: string) {
+  return api.del(`/admin/coupons/${id}/permanent`);
+}
+
+export function adminRestoreCoupon(id: string) {
+  return api.post<Coupon>(`/admin/coupons/${id}/restore`);
+}
+
+export function adminListCouponUsages(id: string, query: { page?: number; limit?: number } = {}) {
+  return api.get<PaginatedResult<CouponUsageRow>>(`/admin/coupons/${id}/usages${qs(query)}`);
 }
 
 export function adminGetSubscription(id: string) {

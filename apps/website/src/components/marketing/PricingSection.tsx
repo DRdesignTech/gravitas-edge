@@ -2,14 +2,13 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { confirmPurchase, purchasePlan } from '@/lib/services';
 import { PricingGroup } from '@/lib/types';
 import { Button, Skeleton, ErrorState, useToast } from '@/components/ui';
 import { VaultIcon } from '@/components/cards';
 import { formatMoney } from '@/lib/format';
-import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import Eyebrow from '@/components/marketing/Eyebrow';
+import PlanCheckoutModal from '@/components/checkout/PlanCheckoutModal';
 
 export default function PricingSection({
   groups,
@@ -24,27 +23,22 @@ export default function PricingSection({
 }) {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [checkout, setCheckout] = useState<(PricingGroup & { planId: string }) | null>(null);
 
-  const handleChoose = async (group: PricingGroup, plan: PricingGroup['plans'][number]) => {
+  const handleChoose = (group: PricingGroup, plan: PricingGroup['plans'][number]) => {
     if (!user) {
       window.location.href = '/register';
       return;
     }
-    const key = plan.id;
-    if (purchasing) return;
-    setPurchasing(key);
-    try {
-      const started = await purchasePlan(plan.id, group.vault.id);
-      const result = await confirmPurchase(started.paymentId);
-      const vaultName = result.subscription.vaultAccess?.[0]?.vaultName ?? group.vault.name;
-      showToast(`${vaultName} unlocked — ${plan.durationLabel} plan active`, 'success');
-    } catch (err) {
-      showToast(getErrorMessage(err), 'error');
-    } finally {
-      setPurchasing(null);
-    }
+    setCheckout({ ...group, planId: plan.id });
   };
+
+  const handlePurchased = (vaultName: string, durationLabel: string, subscriptionId: string) => {
+    showToast(`${vaultName} unlocked — ${durationLabel} plan active`, 'success');
+  };
+
+  const activeGroup = checkout ? groups.find((g) => g.vault.id === checkout.vault.id) : null;
+  const activePlan = activeGroup?.plans.find((p) => p.id === checkout?.planId);
 
   return (
     <section id="plans" className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50">
@@ -90,7 +84,6 @@ export default function PricingSection({
                 <div className="mt-7 grid gap-4 sm:grid-cols-3">
                   {group.plans.map((plan) => {
                     const key = plan.id;
-                    const busy = purchasing === key;
                     const hasDiscount = (plan.discountPercentage ?? 0) > 0;
                     const isPopular = plan.durationDays === 90;
                     return (
@@ -133,7 +126,6 @@ export default function PricingSection({
                           <Button
                             className="w-full"
                             variant={hasDiscount ? 'primary' : 'outline'}
-                            loading={busy}
                             onClick={() => handleChoose(group, plan)}
                           >
                             {user ? 'Choose Plan' : 'Get Started'}
@@ -158,6 +150,19 @@ export default function PricingSection({
           </Link>
         </p>
       </div>
+
+      {activeGroup && activePlan && (
+        <PlanCheckoutModal
+          plan={activePlan}
+          vaultName={activeGroup.vault.name}
+          vaultId={activeGroup.vault.id}
+          open={!!checkout}
+          onClose={() => setCheckout(null)}
+          onSuccess={(subscriptionId) =>
+            handlePurchased(activeGroup.vault.name, activePlan.durationLabel, subscriptionId)
+          }
+        />
+      )}
     </section>
   );
 }

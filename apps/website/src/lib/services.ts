@@ -3,6 +3,8 @@ import {
   CommissionItem,
   CommissionQuery,
   CommissionStatistics,
+  ConfirmPurchaseResult,
+  CouponValidationResult,
   ExperienceLevel,
   GuestResumeInfo,
   Opportunity,
@@ -10,7 +12,6 @@ import {
   PaginatedResult,
   PricingGroup,
   PurchaseResult,
-  ConfirmPurchaseResult,
   ReferralCode,
   ReferralItem,
   ReferralQuery,
@@ -139,8 +140,16 @@ export function fetchPublicPricing() {
   return api.get<PricingGroup[]>('/subscriptions/pricing');
 }
 
-export function purchasePlan(planId: string, vaultId?: string) {
-  return api.post<PurchaseResult>('/subscriptions/purchase', { planId, ...(vaultId ? { vaultId } : {}) });
+export function purchasePlan(planId: string, vaultId?: string, couponCode?: string) {
+  return api.post<PurchaseResult>('/subscriptions/purchase', {
+    planId,
+    ...(vaultId ? { vaultId } : {}),
+    ...(couponCode ? { couponCode } : {}),
+  });
+}
+
+export function validateCoupon(couponCode: string, planId: string) {
+  return api.post<CouponValidationResult>('/coupons/validate', { couponCode, planId });
 }
 
 export function confirmPurchase(paymentId: string) {

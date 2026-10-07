@@ -109,6 +109,14 @@ export interface PricingGroup {
   plans: PricingPlan[];
 }
 
+export interface PurchaseCouponInfo {
+  id: string;
+  code: string;
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+}
+
 export interface PurchaseResult {
   paymentId: string;
   orderId: string;
@@ -120,6 +128,31 @@ export interface PurchaseResult {
   vaultName: string;
   durationDays: number;
   status: string;
+  coupon?: PurchaseCouponInfo;
+}
+
+export interface CouponSummary {
+  id: string;
+  code: string;
+  description: string | null;
+  discountType: 'PERCENTAGE' | 'FIXED';
+  discountValue: number;
+  validFrom: string;
+  validUntil: string;
+  usageLimit: number | null;
+  perUserUsageLimit: number;
+  appliesToAllUsers: boolean;
+  isActive: boolean;
+}
+
+export interface CouponValidationResult {
+  coupon: CouponSummary;
+  planId: string;
+  planName: string;
+  currency: string;
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
 }
 
 export interface ConfirmPurchaseResult {

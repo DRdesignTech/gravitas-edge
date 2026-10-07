@@ -7,6 +7,8 @@ import {
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
+import { CouponsService } from '../coupons/coupons.service';
+import { couponError, normalizeCouponCode, serializeCouponSummary } from '../coupons/coupon.util';
 import { BUSINESS_VAULT_NAMES, durationLabel } from './pricing-catalog';
 import { PurchasePlanDto } from './dto/purchase-plan.dto';
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto';
@@ -15,9 +17,10 @@ import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto';
  * Server-side pricing, purchase and (interim, gateway-agnostic) payment flow.
  *
  * The price shown to a client is ALWAYS the server-controlled plan price from
- * the database - the client can only send a planId (+ optional vaultId). Never
- * trusts client-supplied prices. A payment session (status CREATED) must be
- * confirmed through /purchase/confirm before any subscription is activated, so
+ * the database - the client can only send a planId (+ optional vaultId, + an
+ * optional coupon code whose discount is recomputed server-side). Never trusts
+ * client-supplied prices. A payment session (status CREATED) must be confirmed
+ * through /purchase/confirm before any subscription is activated, so
  * activation is a deliberate, server-side step (the Razorpay webhook can later
  * replace the confirm call without changing the data model).
  */
@@ -26,6 +29,7 @@ export class PricingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: SubscriptionAccessService,
+    private readonly coupons: CouponsService,
   ) {}
 
   /**
@@ -109,6 +113,11 @@ export class PricingService {
       );
     }
 
+    // An empty/whitespace-only coupon code simply means "no coupon".
+    if (dto.couponCode !== undefined && normalizeCouponCode(dto.couponCode) !== '') {
+      return this.purchaseWithCoupon(userId, dto.couponCode, plan, target);
+    }
+
     const orderId = `order_${randomUUID().replace(/-/g, '')}`;
     const payment = await this.prisma.payment.create({
       data: {
@@ -139,6 +148,93 @@ export class PricingService {
       durationDays: plan.durationDays,
       status: payment.status,
     };
+  }
+
+  /**
+   * Coupon purchase path: eligibility, limits and discount math all re-checked
+   * inside one transaction, with the coupon row locked so concurrent
+   * redemptions serialize on the usage limit instead of double-spending it.
+   * The payable amount is derived from the plan price in the database; the
+   * full breakdown is stored on the payment metadata and the CouponUsage row.
+   */
+  private async purchaseWithCoupon(
+    userId: string,
+    rawCode: string,
+    plan: { id: string; name: string; price: unknown; currency: string; durationDays: number },
+    target: { id: string; name: string },
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const found = await this.coupons.resolve(tx, rawCode);
+      await this.coupons.lock(tx, found.id);
+
+      // Re-read under the lock: the coupon may have been edited/archived
+      // between the lookup and lock acquisition.
+      const coupon = await this.coupons.reload(tx, found.id);
+      if (!coupon) {
+        throw couponError('COUPON_NOT_FOUND');
+      }
+      this.coupons.assertEligible(coupon, userId, plan.id, new Date());
+      await this.coupons.assertLimits(tx, coupon, userId);
+
+      const { originalAmount, discountAmount, finalAmount } = this.coupons.computeAmounts(
+        coupon,
+        Number(plan.price),
+      );
+
+      const orderId = `order_${randomUUID().replace(/-/g, '')}`;
+      const payment = await tx.payment.create({
+        data: {
+          userId,
+          amount: finalAmount,
+          currency: plan.currency,
+          status: 'CREATED',
+          razorpayOrderId: orderId,
+          metadata: {
+            planId: plan.id,
+            planName: plan.name,
+            vaultId: target.id,
+            vaultName: target.name,
+            durationDays: plan.durationDays,
+            couponId: coupon.id,
+            couponCode: coupon.code,
+            originalAmount,
+            discountAmount,
+          },
+        },
+      });
+
+      // Reserves one redemption. paymentId is unique, so a payment session can
+      // never reserve twice; failed/cancelled/refunded payments release their
+      // slot when counting (see COUNTED_PAYMENT_STATUSES).
+      await tx.couponUsage.create({
+        data: {
+          couponId: coupon.id,
+          userId,
+          planId: plan.id,
+          paymentId: payment.id,
+          originalAmount,
+          discountAmount,
+          finalAmount,
+          currency: plan.currency,
+        },
+      });
+
+      return {
+        paymentId: payment.id,
+        orderId: payment.razorpayOrderId,
+        amount: Number(payment.amount),
+        originalAmount,
+        discountAmount,
+        coupon: serializeCouponSummary(coupon),
+        currency: payment.currency,
+        planId: plan.id,
+        planName: plan.name,
+        vaultId: target.id,
+        vaultName: target.name,
+        durationDays: plan.durationDays,
+        status: payment.status,
+      };
+    });
   }
 
   /**
@@ -177,6 +273,10 @@ export class PricingService {
       planId?: string;
       vaultId?: string;
       planName?: string;
+      couponId?: string;
+      couponCode?: string;
+      originalAmount?: number;
+      discountAmount?: number;
     };
     if (!meta.planId || !meta.vaultId) {
       throw new BadRequestException('Purchase session is missing required metadata');
@@ -203,6 +303,13 @@ export class PricingService {
         razorpayPaymentId: `pay_${randomUUID().replace(/-/g, '')}`,
         webhookEvent: 'payment.confirmed',
       },
+    });
+
+    // Link the reserved redemption to the activated subscription (no-op for
+    // purchases without a coupon).
+    await this.prisma.couponUsage.updateMany({
+      where: { paymentId: payment.id },
+      data: { subscriptionId: subscription.id },
     });
 
     return {
@@ -236,6 +343,17 @@ export class PricingService {
         amount: Number(payment.amount),
         currency: payment.currency,
       },
+      ...(meta.couponId
+        ? {
+            coupon: {
+              id: meta.couponId,
+              code: meta.couponCode ?? null,
+              originalAmount: Number(meta.originalAmount ?? 0),
+              discountAmount: Number(meta.discountAmount ?? 0),
+              finalAmount: Number(payment.amount),
+            },
+          }
+        : {}),
     };
   }
 }

@@ -7,6 +7,8 @@
  * underlying error is unknown.
  */
 
+import { ApiError } from './api';
+
 export type ApiErrorKind =
   | 'auth'
   | 'session'
@@ -161,4 +163,34 @@ export function isSessionError(error: unknown): boolean {
 /** Convenience: just get a friendly message string. */
 export function getErrorMessage(error: unknown, status?: number): string {
   return parseApiError(error, status).message;
+}
+
+/** Backend coupon validation codes mapped to friendly checkout copy. */
+const COUPON_CODE_MESSAGES: Record<string, string> = {
+  COUPON_NOT_FOUND: 'Invalid coupon code.',
+  COUPON_DISABLED: 'This coupon is no longer available.',
+  COUPON_NOT_STARTED: 'This coupon is not active yet.',
+  COUPON_EXPIRED: 'This coupon has expired.',
+  COUPON_NOT_ELIGIBLE: 'This coupon is not available for your account.',
+  COUPON_WRONG_PLAN: 'This coupon cannot be used for this plan.',
+  COUPON_LIMIT_REACHED: 'This coupon has reached its usage limit.',
+  COUPON_USER_LIMIT_REACHED: 'You have already used this coupon.',
+};
+const COUPON_NETWORK_MESSAGE =
+  "We couldn't check the coupon right now. Please try again in a moment.";
+
+/** Friendly inline message for coupon validation errors in checkout. */
+export function getCouponErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === 'string' && COUPON_CODE_MESSAGES[code]) {
+      return COUPON_CODE_MESSAGES[code];
+    }
+  }
+  if (error instanceof ApiError && error.code && COUPON_CODE_MESSAGES[error.code]) {
+    return COUPON_CODE_MESSAGES[error.code];
+  }
+  const parsed = parseApiError(error);
+  if (parsed.kind === 'network') return COUPON_NETWORK_MESSAGE;
+  return parsed.message;
 }

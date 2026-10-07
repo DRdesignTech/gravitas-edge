@@ -84,6 +84,60 @@ export interface AdminSubscription {
   vaultAccessCount?: number;
 }
 
+export type CouponStatus =
+  | 'ACTIVE'
+  | 'SCHEDULED'
+  | 'EXPIRED'
+  | 'DISABLED'
+  | 'USAGE_LIMIT_REACHED'
+  | 'ARCHIVED';
+
+export const COUPON_STATUSES: CouponStatus[] = [
+  'ACTIVE',
+  'SCHEDULED',
+  'EXPIRED',
+  'DISABLED',
+  'USAGE_LIMIT_REACHED',
+  'ARCHIVED',
+];
+
+export const COUPON_DISCOUNT_TYPES = ['PERCENTAGE', 'FIXED'] as const;
+
+export interface Coupon {
+  id: string;
+  code: string;
+  description?: string | null;
+  discountType: (typeof COUPON_DISCOUNT_TYPES)[number];
+  discountValue: number;
+  validFrom: string;
+  validUntil: string;
+  usageLimit?: number | null;
+  perUserUsageLimit: number;
+  appliesToAllUsers: boolean;
+  isActive: boolean;
+  status?: CouponStatus;
+  usageCount?: number;
+  remainingUsage?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+  plans?: { id: string; name: string }[];
+  users?: { id: string; email: string; name?: string | null }[];
+}
+
+export interface CouponUsageRow {
+  id: string;
+  usedAt: string;
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+  currency: string;
+  user: { id: string; email: string; name: string | null };
+  plan: { id: string; name: string };
+  payment: { id: string; status: string };
+  subscription: { id: string; status: string } | null;
+}
+
 export interface Opportunity {
   id: string;
   title: string;

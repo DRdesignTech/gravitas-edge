@@ -118,6 +118,11 @@ enum ProfileConfirmationStatus {
   CONFIRMED
 }
 
+enum CouponDiscountType {
+  PERCENTAGE
+  FIXED
+}
+
 enum SourceType {
   EXTRACTED
   USER_CONFIRMED
@@ -151,6 +156,8 @@ model User {
   guestResumes       GuestResume[]
   candidateProfiles  CandidateProfile[]
   payments           Payment[]
+  couponAccess       CouponUser[]
+  couponUsages       CouponUsage[]
   adminAuditLogs     AuditLog[]         @relation("AuditAdminUser")
   actionAuditLogs    AuditLog[]         @relation("AuditActorUser")
 
@@ -268,7 +275,7 @@ model SubscriptionPlan {
   name         String    @unique
   description  String?
   price        Decimal   @db.Decimal(10, 2)
-  regularPrice Decimal   @db.Decimal(10, 2)
+  regularPrice Decimal   @default(0) @db.Decimal(10, 2)
   discountPercentage Int  @default(0)
   currency     String    @default("INR")
   durationDays Int
@@ -279,6 +286,8 @@ model SubscriptionPlan {
 
   vaults        PlanVault[]
   subscriptions Subscription[]
+  couponPlans   CouponPlan[]
+  couponUsages  CouponUsage[]
 
   @@index([isActive])
   @@index([deletedAt])
@@ -319,6 +328,7 @@ model Subscription {
   vaultAccess SubscriptionVaultAccess[]
   payments    Payment[]
   commissions ReferralCommission[]
+  couponUsages CouponUsage[]
 
   @@unique([userId, planId, startDate])
   @@index([userId])
@@ -339,6 +349,101 @@ model SubscriptionVaultAccess {
 
   @@unique([subscriptionId, vaultId])
   @@index([vaultId])
+}
+
+// ==========================================================================
+// COUPONS
+// ==========================================================================
+//
+// A coupon is either available to ALL users or to an explicit allow-list of
+// specific users (there is no separate "one user" type - a single-entry
+// allow-list is just the specific-users case with one user).
+//
+// `CouponUsage` is written inside the same transaction that creates the
+// payment session, so usage limits are enforced atomically against
+// simultaneous requests (the coupon row is locked with SELECT ... FOR UPDATE
+// first). A usage only keeps counting towards the limits while its payment is
+// still viable (CREATED/PENDING/SUCCESS); refunded/failed/cancelled payments
+// release the slot.
+
+model Coupon {
+  id                String              @id @default(uuid())
+  code              String              @unique // stored trimmed + upper-cased; lookups are case-insensitive
+  description       String?
+  discountType      CouponDiscountType
+  discountValue     Decimal             @db.Decimal(10, 2)
+  validFrom         DateTime
+  validUntil        DateTime
+  usageLimit        Int? // null = unlimited redemptions
+  perUserUsageLimit Int                 @default(1)
+  appliesToAllUsers Boolean             @default(true)
+  isActive          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+
+  plans  CouponPlan[]
+  users  CouponUser[]
+  usages CouponUsage[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+  @@index([validUntil])
+}
+
+// Applicable plans. An empty set means the coupon applies to every plan.
+model CouponPlan {
+  id       String @id @default(uuid())
+  couponId String
+  planId   String
+
+  coupon Coupon           @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, planId])
+  @@index([planId])
+}
+
+// Allow-list of users for `appliesToAllUsers = false` coupons.
+model CouponUser {
+  id       String @id @default(uuid())
+  couponId String
+  userId   String
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, userId])
+  @@index([userId])
+}
+
+// One row per redemption. Captures the full server-calculated price
+// breakdown plus the purchase/subscription references for auditing.
+model CouponUsage {
+  id             String   @id @default(uuid())
+  couponId       String
+  userId         String
+  planId         String
+  paymentId      String   @unique // one usage per payment session (double-spend guard)
+  subscriptionId String?
+  originalAmount Decimal  @db.Decimal(12, 2)
+  discountAmount Decimal  @db.Decimal(12, 2)
+  finalAmount    Decimal  @db.Decimal(12, 2)
+  currency       String   @default("INR")
+  usedAt         DateTime @default(now())
+
+  coupon       Coupon           @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payment      Payment          @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  subscription Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([couponId])
+  @@index([userId])
+  @@index([couponId, userId])
+  @@index([planId])
+  @@index([subscriptionId])
+  @@index([usedAt])
 }
 
 // ==========================================================================
@@ -700,6 +805,7 @@ model Payment {
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  couponUsages CouponUsage[]
 
   @@unique([razorpayOrderId, razorpayPaymentId])
   @@index([userId])

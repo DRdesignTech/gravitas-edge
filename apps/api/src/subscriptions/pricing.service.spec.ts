@@ -3,6 +3,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { PricingService } from './pricing.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
+import { CouponsService } from '../coupons/coupons.service';
 
 function mockPrismaService() {
   return {
@@ -10,6 +11,7 @@ function mockPrismaService() {
     subscriptionPlan: { findFirst: jest.fn() },
     payment: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
     subscription: { findUnique: jest.fn() },
+    couponUsage: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
   } as any;
 }
 
@@ -39,6 +41,7 @@ describe('PricingService', () => {
         PricingService,
         { provide: PrismaService, useValue: prisma },
         { provide: SubscriptionAccessService, useValue: access },
+        { provide: CouponsService, useValue: {} },
       ],
     }).compile();
     service = moduleRef.get(PricingService);

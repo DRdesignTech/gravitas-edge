@@ -17,6 +17,8 @@ import {
   AdminReferralSlabsController,
 } from './referrals/admin-referrals.controller';
 import { AdminReferralsService } from './referrals/admin-referrals.service';
+import { AdminCouponsController } from './coupons/admin-coupons.controller';
+import { AdminCouponsService } from './coupons/admin-coupons.service';
 import { AuditModule } from '../audit/audit.module';
 import { AccessModule } from '../access/access.module';
 import { AnalyticsModule } from './analytics/analytics.module';
@@ -34,6 +36,7 @@ import { ReferralsModule } from '../referrals/referrals.module';
     AdminReferralsController,
     AdminCommissionsController,
     AdminReferralSlabsController,
+    AdminCouponsController,
   ],
   providers: [
     AdminUsersService,
@@ -43,6 +46,7 @@ import { ReferralsModule } from '../referrals/referrals.module';
     AdminSubscriptionsService,
     AdminOpportunitiesService,
     AdminReferralsService,
+    AdminCouponsService,
   ],
 })
 export class AdminModule {}
