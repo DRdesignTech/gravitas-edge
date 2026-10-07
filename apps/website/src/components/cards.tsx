@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Opportunity, Vault } from '@/lib/types';
-import { Badge, AccessBadge, LockIcon } from '@/components/ui';
+import { Badge, AccessBadge, LockIcon, UnlockIcon } from '@/components/ui';
 import { titleCase, formatDate, displayExperience, hasExperience, isMeaningful } from '@/lib/format';
 
 export interface ProtectedField {
@@ -168,17 +168,28 @@ export function OpportunityCard({
           )}
         </div>
 
-        {o.isPremium && (
-          <div className="mt-4 rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/50 via-surface to-surface p-3.5 dark:border-amber-500/20 dark:from-amber-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
-            <div className="mb-2.5 flex items-center gap-1.5">
-              <LockIcon className="h-3.5 w-3.5 shrink-0 text-amber-600/80 dark:text-amber-400/80" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
-                Unlock full details
-              </span>
+        {o.isPremium &&
+          (o.isFullAccess ? (
+            <div className="mt-4 rounded-xl border border-brand-200/70 bg-gradient-to-br from-brand-50/40 via-surface to-surface p-3.5 dark:border-brand-500/20 dark:from-brand-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
+              <div className="mb-2.5 flex items-center gap-1.5">
+                <UnlockIcon className="h-3.5 w-3.5 shrink-0 text-brand-600/80 dark:text-brand-400/80" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
+                  Full access details
+                </span>
+              </div>
+              <ProtectedFields opportunity={o} showLock={false} />
             </div>
-            <ProtectedFields opportunity={o} />
-          </div>
-        )}
+          ) : (
+            <div className="mt-4 rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/50 via-surface to-surface p-3.5 dark:border-amber-500/20 dark:from-amber-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
+              <div className="mb-2.5 flex items-center gap-1.5">
+                <LockIcon className="h-3.5 w-3.5 shrink-0 text-amber-600/80 dark:text-amber-400/80" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
+                  Unlock full details
+                </span>
+              </div>
+              <ProtectedFields opportunity={o} />
+            </div>
+          ))}
 
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
           <Badge variant="info">{titleCase(o.category)}</Badge>

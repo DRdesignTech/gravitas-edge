@@ -7,6 +7,7 @@ function mockPrismaService() {
   return {
     vault: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
     },
   } as any;
 }
@@ -102,6 +103,52 @@ describe('VaultsService', () => {
 
       const result = await service.listForUser('user-1');
       expect(result.every((v: any) => v.locked === false)).toBe(true);
+    });
+  });
+
+  describe('findOneForUser', () => {
+    it('returns an unlocked vault with experience levels for an authorized user', async () => {
+      prisma.vault.findFirst.mockResolvedValue(baseVaults[0]);
+      access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
+
+      const result = await service.findOneForUser('v-1', 'user-1');
+      expect(result).toEqual({
+        id: 'v-1',
+        name: 'India',
+        description: 'India vault',
+        type: 'INDIA',
+        locked: false,
+        experienceLevels: [{ id: 'el-1', name: 'Junior', minYears: 0, maxYears: 2 }],
+      });
+    });
+
+    it('returns safe metadata (no experience levels) for an unauthorized user', async () => {
+      prisma.vault.findFirst.mockResolvedValue(baseVaults[0]);
+      access.getAccessibleVaultIds.mockResolvedValue([]);
+
+      const result = await service.findOneForUser('v-1', 'user-1');
+      expect(result).toEqual({
+        id: 'v-1',
+        name: 'India',
+        description: 'India vault',
+        type: 'INDIA',
+        locked: true,
+        experienceLevels: [],
+      });
+    });
+
+    it('returns locked metadata for unauthenticated users', async () => {
+      prisma.vault.findFirst.mockResolvedValue(baseVaults[1]);
+
+      const result = await service.findOneForUser('v-2');
+      expect(result.locked).toBe(true);
+      expect(result.experienceLevels).toEqual([]);
+    });
+
+    it('throws NotFoundException when the vault does not exist', async () => {
+      prisma.vault.findFirst.mockResolvedValue(null);
+
+      await expect(service.findOneForUser('missing')).rejects.toThrow('Vault not found');
     });
   });
 });

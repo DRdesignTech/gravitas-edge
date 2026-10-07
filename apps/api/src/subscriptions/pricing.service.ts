@@ -238,6 +238,76 @@ export class PricingService {
   }
 
   /**
+   * Fetch an owned payment session for checkout rendering. The frozen
+   * plan/vault/coupon breakdown is read from the payment metadata so the
+   * checkout screen always renders the exact server-side amount and can never
+   * be tricked into displaying a client-supplied price.
+   */
+  async getPaymentSession(userId: string, paymentId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment || payment.userId !== userId) {
+      throw new NotFoundException('Payment not found');
+    }
+
+    const meta = (payment.metadata ?? {}) as {
+      planId?: string;
+      planName?: string;
+      vaultId?: string;
+      vaultName?: string;
+      durationDays?: number;
+      couponCode?: string;
+      originalAmount?: number;
+      discountAmount?: number;
+    };
+
+    return {
+      paymentId: payment.id,
+      orderId: payment.razorpayOrderId,
+      status: payment.status,
+      amount: Number(payment.amount),
+      currency: payment.currency,
+      planId: meta.planId ?? null,
+      planName: meta.planName ?? null,
+      vaultId: meta.vaultId ?? null,
+      vaultName: meta.vaultName ?? null,
+      durationDays: meta.durationDays ?? null,
+      couponCode: meta.couponCode ?? null,
+      originalAmount: Number(meta.originalAmount ?? payment.amount),
+      discountAmount: Number(meta.discountAmount ?? 0),
+      finalAmount: Number(payment.amount),
+    };
+  }
+
+  /**
+   * Mark an owned CREATED payment session as FAILED. This is what a real
+   * gateway would report back to the server on a declined payment (and what
+   * the test gateway calls for its failure path); a later Razorpay webhook can
+   * re-use it unchanged. Failed payments are excluded from coupon usage
+   * counting, so this releases any redemption slot the session reserved.
+   */
+  async failPayment(userId: string, paymentId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment || payment.userId !== userId) {
+      throw new NotFoundException('Payment not found');
+    }
+    if (payment.status === 'FAILED') {
+      return { paymentId: payment.id, status: 'FAILED' };
+    }
+    if (payment.status !== 'CREATED') {
+      throw new BadRequestException('Payment cannot be failed in its current state');
+    }
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: 'FAILED', webhookEvent: 'payment.failed' },
+    });
+    return { paymentId: payment.id, status: 'FAILED' };
+  }
+
+  /**
    * Confirm a purchase: marks the owned CREATED payment as SUCCESS and only then
    * activates the subscription (with vault snapshot) for the user. Idempotent:
    * an already-confirmed payment returns its subscription instead of

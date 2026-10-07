@@ -344,4 +344,104 @@ describe('PricingService', () => {
       );
     });
   });
+
+  describe('getPaymentSession', () => {
+    const payment = {
+      id: 'pay-1',
+      userId: 'user-1',
+      status: 'CREATED',
+      amount: 1199,
+      currency: 'INR',
+      razorpayOrderId: 'order_abc',
+      metadata: {
+        planId: 'plan-1',
+        planName: 'Remote Access Vault · Monthly',
+        vaultId: 'v1',
+        vaultName: 'Remote Access Vault',
+        durationDays: 30,
+        couponCode: 'SAVE10',
+        originalAmount: 1499,
+        discountAmount: 300,
+      },
+    };
+
+    it('returns the server-side breakdown from the frozen payment metadata', async () => {
+      prisma.payment.findUnique.mockResolvedValue(payment);
+      const result = await service.getPaymentSession('user-1', 'pay-1');
+      expect(result).toEqual({
+        paymentId: 'pay-1',
+        orderId: 'order_abc',
+        status: 'CREATED',
+        amount: 1199,
+        currency: 'INR',
+        planId: 'plan-1',
+        planName: 'Remote Access Vault · Monthly',
+        vaultId: 'v1',
+        vaultName: 'Remote Access Vault',
+        durationDays: 30,
+        couponCode: 'SAVE10',
+        originalAmount: 1499,
+        discountAmount: 300,
+        finalAmount: 1199,
+      });
+    });
+
+    it('derives zero discount when the session has no coupon', async () => {
+      prisma.payment.findUnique.mockResolvedValue({ ...payment, metadata: { planId: 'plan-1' } });
+      const result = await service.getPaymentSession('user-1', 'pay-1');
+      expect(result.originalAmount).toBe(1199);
+      expect(result.discountAmount).toBe(0);
+      expect(result.finalAmount).toBe(1199);
+    });
+
+    it('throws NotFound when the payment belongs to another user', async () => {
+      prisma.payment.findUnique.mockResolvedValue(payment);
+      await expect(service.getPaymentSession('user-2', 'pay-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFound for a missing payment', async () => {
+      prisma.payment.findUnique.mockResolvedValue(null);
+      await expect(service.getPaymentSession('user-1', 'pay-x')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('failPayment', () => {
+    const payment = {
+      id: 'pay-1',
+      userId: 'user-1',
+      status: 'CREATED',
+      amount: 1499,
+      currency: 'INR',
+      razorpayOrderId: 'order_abc',
+      metadata: {},
+    };
+
+    it('marks an owned CREATED payment as FAILED', async () => {
+      prisma.payment.findUnique.mockResolvedValue(payment);
+      const result = await service.failPayment('user-1', 'pay-1');
+      expect(prisma.payment.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'FAILED', webhookEvent: 'payment.failed' }),
+        }),
+      );
+      expect(result).toEqual({ paymentId: 'pay-1', status: 'FAILED' });
+    });
+
+    it('is idempotent for an already-failed payment and does not re-write', async () => {
+      prisma.payment.findUnique.mockResolvedValue({ ...payment, status: 'FAILED' });
+      const result = await service.failPayment('user-1', 'pay-1');
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+      expect(result.status).toBe('FAILED');
+    });
+
+    it('throws NotFound when the payment belongs to another user', async () => {
+      prisma.payment.findUnique.mockResolvedValue(payment);
+      await expect(service.failPayment('user-2', 'pay-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('rejects failing a payment that has already succeeded', async () => {
+      prisma.payment.findUnique.mockResolvedValue({ ...payment, status: 'SUCCESS' });
+      await expect(service.failPayment('user-1', 'pay-1')).rejects.toThrow(BadRequestException);
+    });
+  });
 });

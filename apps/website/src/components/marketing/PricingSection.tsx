@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { PricingGroup } from '@/lib/types';
-import { Button, Skeleton, ErrorState, useToast } from '@/components/ui';
+import { Button, Skeleton, ErrorState } from '@/components/ui';
 import { VaultIcon } from '@/components/cards';
 import { formatMoney } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
@@ -22,7 +22,6 @@ export default function PricingSection({
   onRetry: () => void;
 }) {
   const { user } = useAuth();
-  const { showToast } = useToast();
   const [checkout, setCheckout] = useState<(PricingGroup & { planId: string }) | null>(null);
 
   const handleChoose = (group: PricingGroup, plan: PricingGroup['plans'][number]) => {
@@ -31,10 +30,6 @@ export default function PricingSection({
       return;
     }
     setCheckout({ ...group, planId: plan.id });
-  };
-
-  const handlePurchased = (vaultName: string, durationLabel: string, subscriptionId: string) => {
-    showToast(`${vaultName} unlocked — ${durationLabel} plan active`, 'success');
   };
 
   const activeGroup = checkout ? groups.find((g) => g.vault.id === checkout.vault.id) : null;
@@ -158,9 +153,6 @@ export default function PricingSection({
           vaultId={activeGroup.vault.id}
           open={!!checkout}
           onClose={() => setCheckout(null)}
-          onSuccess={(subscriptionId) =>
-            handlePurchased(activeGroup.vault.name, activePlan.durationLabel, subscriptionId)
-          }
         />
       )}
     </section>

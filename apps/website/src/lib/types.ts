@@ -117,6 +117,24 @@ export interface PurchaseCouponInfo {
   finalAmount: number;
 }
 
+/** Server-frozen payment session, fetched by /subscriptions/payments/:id. */
+export interface PaymentSession {
+  paymentId: string;
+  orderId: string | null;
+  status: string;
+  amount: number;
+  currency: string;
+  planId: string | null;
+  planName: string | null;
+  vaultId: string | null;
+  vaultName: string | null;
+  durationDays: number | null;
+  couponCode: string | null;
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+}
+
 export interface PurchaseResult {
   paymentId: string;
   orderId: string;

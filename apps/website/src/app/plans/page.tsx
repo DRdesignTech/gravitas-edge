@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { fetchPublicPricing } from '@/lib/services';
 import { PricingGroup } from '@/lib/types';
-import { Button, Badge, Skeleton, ErrorState, useToast } from '@/components/ui';
+import { Button, Badge, Skeleton, ErrorState } from '@/components/ui';
 import { VaultIcon } from '@/components/cards';
 import { formatMoney } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
@@ -13,11 +13,9 @@ import PlanCheckoutModal from '@/components/checkout/PlanCheckoutModal';
 
 export default function PlansPage() {
   const { user } = useAuth();
-  const { showToast } = useToast();
   const [groups, setGroups] = useState<PricingGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [purchased, setPurchased] = useState<Record<string, string>>({});
   const [checkout, setCheckout] = useState<(PricingGroup & { planId: string }) | null>(null);
 
   const load = () => {
@@ -40,11 +38,6 @@ export default function PlansPage() {
       return;
     }
     setCheckout({ ...group, planId: plan.id });
-  };
-
-  const handlePurchased = (planId: string, vaultName: string, durationLabel: string, subscriptionId: string) => {
-    setPurchased((prev) => ({ ...prev, [planId]: subscriptionId }));
-    showToast(`${vaultName} unlocked — ${durationLabel} plan active`, 'success');
   };
 
   const activeGroup = checkout ? groups.find((g) => g.vault.id === checkout.vault.id) : null;
@@ -94,13 +87,11 @@ export default function PlansPage() {
 
               <div className="mt-7 grid gap-4 sm:grid-cols-3">
                 {group.plans.map((plan) => {
-                  const key = plan.id;
-                  const done = purchased[key];
                   const hasDiscount = (plan.discountPercentage ?? 0) > 0;
                   const isPopular = plan.durationDays === 90;
                   return (
                     <div
-                      key={key}
+                      key={plan.id}
                       className="group/card relative flex flex-col rounded-2xl border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-400/60 hover:shadow-card hover:shadow-brand-500/5 dark:bg-surface"
                     >
                       {isPopular && (
@@ -142,35 +133,18 @@ export default function PlansPage() {
                       </p>
 
                       <div className="mt-auto pt-5">
-                        {done ? (
-                          <Link href="/dashboard/subscriptions" className="w-full">
-                            <Button className="w-full" variant="primary">
-                              Active
-                            </Button>
-                          </Link>
-                        ) : (
-                          <Button
-                            className="w-full"
-                            variant={hasDiscount ? 'primary' : 'outline'}
-                            onClick={() => handleChoose(group, plan)}
-                          >
-                            {user ? 'Choose Plan' : 'Get Started'}
-                          </Button>
-                        )}
+                        <Button
+                          className="w-full"
+                          variant={hasDiscount ? 'primary' : 'outline'}
+                          onClick={() => handleChoose(group, plan)}
+                        >
+                          {user ? 'Choose Plan' : 'Get Started'}
+                        </Button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-
-              {group.plans.every((p) => purchased[p.id]) && (
-                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center text-sm font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  All durations unlocked —{' '}
-                  <Link href="/dashboard/subscriptions" className="underline">
-                    view your subscriptions
-                  </Link>
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -193,14 +167,6 @@ export default function PlansPage() {
           vaultId={activeGroup.vault.id}
           open={!!checkout}
           onClose={() => setCheckout(null)}
-          onSuccess={(subscriptionId) =>
-            handlePurchased(
-              activePlan.id,
-              activeGroup.vault.name,
-              activePlan.durationLabel,
-              subscriptionId,
-            )
-          }
         />
       )}
     </div>

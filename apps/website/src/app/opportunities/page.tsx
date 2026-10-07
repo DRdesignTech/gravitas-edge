@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { fetchOpportunities, fetchVaultById } from '@/lib/services';
 import { Opportunity, OpportunityQuery, PaginatedResult, Vault, Subscription } from '@/lib/types';
@@ -27,7 +27,7 @@ import {
   GlobeIcon,
   ProtectedFields,
 } from '@/components/cards';
-import { Badge, LockIcon } from '@/components/ui';
+import { Badge, LockIcon, UnlockIcon } from '@/components/ui';
 import { displayExperience, formatDate, hasExperience, isMeaningful } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import { OPPORTUNITY_CATEGORIES, EMPLOYMENT_TYPES } from '@/lib/types';
@@ -164,6 +164,20 @@ function OpportunityMeta({ o }: { o: Opportunity }) {
 }
 
 function PremiumLockedBox({ o }: { o: Opportunity }) {
+  const locked = !o.isFullAccess;
+  if (!locked) {
+    return (
+      <div className="rounded-xl border border-brand-200/70 bg-gradient-to-br from-brand-50/40 via-surface to-surface p-3.5 dark:border-brand-500/20 dark:from-brand-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
+        <div className="mb-2.5 flex items-center gap-1.5">
+          <UnlockIcon className="h-3.5 w-3.5 shrink-0 text-brand-600/80 dark:text-brand-400/80" />
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
+            Full access details
+          </span>
+        </div>
+        <ProtectedFields opportunity={o} showLock={false} />
+      </div>
+    );
+  }
   return (
     <div className="rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/50 via-surface to-surface p-3.5 dark:border-amber-500/20 dark:from-amber-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
       <div className="mb-2.5 flex items-center gap-1.5">
@@ -184,6 +198,7 @@ function OpportunityAction({ o }: { o: Opportunity }) {
         href={o.applicationUrl}
         target="_blank"
         rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
         className="inline-flex shrink-0 items-center gap-1 truncate rounded-full bg-brand-50 px-3.5 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
       >
         Apply <span aria-hidden="true">→</span>
@@ -197,6 +212,7 @@ function OpportunityAction({ o }: { o: Opportunity }) {
   return (
     <Link
       href="/plans"
+      onClick={(e) => e.stopPropagation()}
       className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-sm font-semibold text-amber-700 transition-colors hover:border-amber-300 hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300"
     >
       <LockIcon className="h-3.5 w-3.5" />
@@ -206,9 +222,17 @@ function OpportunityAction({ o }: { o: Opportunity }) {
 }
 
 function OpportunityPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const vaultId = searchParams.get('vaultId') || '';
   const { user, loading: authLoading } = useAuth();
+
+  const openOpportunity = useCallback(
+    (id: string) => {
+      router.push(`/opportunities/${id}`);
+    },
+    [router],
+  );
 
   const [data, setData] = useState<PaginatedResult<Opportunity> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -242,7 +266,9 @@ function OpportunityPageContent() {
 
   useEffect(() => {
     if (vaultId) {
-      fetchVaultById(vaultId).then(setVault);
+      fetchVaultById(vaultId)
+        .then(setVault)
+        .catch(() => setVault(null));
     } else {
       setVault(null);
     }
@@ -599,7 +625,16 @@ function OpportunityPageContent() {
                   {data.items.map((o) => (
                     <article
                       key={o.id}
-                      className="group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50"
+                      onClick={() => openOpportunity(o.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          openOpportunity(o.id);
+                        }
+                      }}
+                      role="link"
+                      tabIndex={0}
+                      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:bg-surface-elevated dark:hover:border-brand-500/50"
                     >
                       <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
                       <div className="flex flex-1 flex-col p-5">
@@ -659,7 +694,16 @@ function OpportunityPageContent() {
                   {data.items.map((o) => (
                     <article
                       key={o.id}
-                      className="group relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50 sm:p-6 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-6"
+                      onClick={() => openOpportunity(o.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          openOpportunity(o.id);
+                        }
+                      }}
+                      role="link"
+                      tabIndex={0}
+                      className="group relative flex cursor-pointer flex-col gap-4 overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:bg-surface-elevated dark:hover:border-brand-500/50 sm:p-6 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-6"
                     >
                       <span className="absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
                       <div className="min-w-0">

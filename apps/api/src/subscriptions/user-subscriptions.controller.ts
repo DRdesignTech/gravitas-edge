@@ -46,6 +46,20 @@ export class UserSubscriptionsController {
     return this.pricingService.confirmPurchase(user.id, dto);
   }
 
+  @Post('purchase/fail')
+  @ApiOperation({
+    summary: 'Mark an owned CREATED payment session as FAILED (test gateway / abandoned checkout)',
+  })
+  failPurchase(@CurrentUser() user: AuthenticatedUser, @Body() dto: ConfirmPurchaseDto) {
+    return this.pricingService.failPayment(user.id, dto.paymentId);
+  }
+
+  @Get('payments/:id')
+  @ApiOperation({ summary: 'Fetch an owned payment session for checkout rendering' })
+  paymentSession(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.pricingService.getPaymentSession(user.id, id);
+  }
+
   @Get('me')
   @ApiOperation({ summary: "List the authenticated user's own subscriptions" })
   listMine(@CurrentUser() user: AuthenticatedUser) {

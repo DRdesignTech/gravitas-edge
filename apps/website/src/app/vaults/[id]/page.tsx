@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import InfoBanner from '@/components/marketing/InfoBanner';
 import ResumeUploadCard from '@/components/marketing/ResumeUploadCard';
+import PlanCheckoutModal from '@/components/checkout/PlanCheckoutModal';
 
 function typeLabel(type: string): string {
   const map: Record<string, string> = {
@@ -68,6 +69,7 @@ export default function VaultDetailPage() {
   const [error, setError] = useState('');
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [checkoutConsent, setCheckoutConsent] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   const [checkingAccess, setCheckingAccess] = useState(true);
 
@@ -119,6 +121,14 @@ export default function VaultDetailPage() {
 
   const selectedPlan = vaultPlans.find((p) => p.id === selectedPlanId) || null;
 
+  const handleCheckout = () => {
+    if (!user) {
+      window.location.href = '/register';
+      return;
+    }
+    setCheckoutOpen(true);
+  };
+
   if (loading || checkingAccess) {
     return (
       <div className="overflow-hidden">
@@ -153,8 +163,6 @@ export default function VaultDetailPage() {
       </div>
     );
   }
-
-  const checkoutHref = user ? '/dashboard/subscriptions' : '/register';
 
   return (
     <div className="overflow-hidden">
@@ -398,15 +406,14 @@ export default function VaultDetailPage() {
                 </div>
 
                 <div className="mt-6">
-                  <Link href={checkoutHref}>
-                    <Button
-                      className="w-full"
-                      size="lg"
-                      disabled={!selectedPlan || !checkoutConsent}
-                    >
-                      Continue to Subscription
-                    </Button>
-                  </Link>
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    disabled={!selectedPlan || !checkoutConsent}
+                    onClick={handleCheckout}
+                  >
+                    Continue to Payment
+                  </Button>
                   {selectedPlan && !checkoutConsent && (
                     <p className="mt-2 text-center text-xs text-content-faint">
                       Please accept the Terms & Conditions and Refund & Cancellation Policy to
@@ -444,6 +451,17 @@ export default function VaultDetailPage() {
           </div>
         </div>
       </section>
+
+      {selectedPlan && (
+        <PlanCheckoutModal
+          plan={selectedPlan}
+          vaultName={vault.name}
+          vaultId={vault.id}
+          open={checkoutOpen}
+          onClose={() => setCheckoutOpen(false)}
+          returnTo={`/opportunities?vaultId=${encodeURIComponent(vault.id)}`}
+        />
+      )}
     </div>
   );
 }

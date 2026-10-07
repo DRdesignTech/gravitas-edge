@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { confirmPurchase, purchasePlan, validateCoupon } from '@/lib/services';
+import { useRouter } from 'next/navigation';
+import { purchasePlan, validateCoupon } from '@/lib/services';
 import { CouponValidationResult, PricingPlan } from '@/lib/types';
 import { Badge, Button, Input, Modal, Spinner, useToast } from '@/components/ui';
 import { formatMoney } from '@/lib/format';
@@ -23,16 +24,18 @@ export default function PlanCheckoutModal({
   vaultId,
   open,
   onClose,
-  onSuccess,
+  returnTo,
 }: {
   plan: PricingPlan;
   vaultName: string;
   vaultId: string;
   open: boolean;
   onClose: () => void;
-  onSuccess: (subscriptionId: string) => void;
+  /** Where the user should land after completing (or aborting) payment. */
+  returnTo?: string;
 }) {
   const { showToast } = useToast();
+  const router = useRouter();
   const [code, setCode] = useState('');
   const [coupon, setCoupon] = useState<CouponValidationResult | null>(null);
   const [status, setStatus] = useState<'idle' | 'applying' | 'applied' | 'error'>('idle');
@@ -98,10 +101,13 @@ export default function PlanCheckoutModal({
     setPurchasing(true);
     try {
       const started = await purchasePlan(plan.id, vaultId, coupon?.coupon.code);
-      const result = await confirmPurchase(started.paymentId);
       removeCoupon();
-      onSuccess(result.subscription.id);
       onClose();
+      router.push(
+        `/checkout/test-payment/${started.paymentId}${
+          returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''
+        }`,
+      );
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
     } finally {
@@ -128,8 +134,12 @@ export default function PlanCheckoutModal({
             <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button loading={purchasing} disabled={status === 'applying'} onClick={confirm}>
-              Confirm & Pay
+            <Button
+              loading={purchasing}
+              disabled={status === 'applying'}
+              onClick={confirm}
+            >
+              Continue to Payment
             </Button>
           </div>
         </div>

@@ -10,6 +10,7 @@ import {
   Opportunity,
   OpportunityQuery,
   PaginatedResult,
+  PaymentSession,
   PricingGroup,
   PurchaseResult,
   ReferralCode,
@@ -48,8 +49,11 @@ export function fetchExperienceLevels() {
 }
 
 export async function fetchVaultById(id: string): Promise<Vault | null> {
-  const vaults = await fetchVaults();
-  return vaults.find((v) => v.id === id) ?? null;
+  try {
+    return await api.get<Vault>(`/vaults/${id}`);
+  } catch {
+    return null;
+  }
 }
 
 export function fetchMySubscriptions() {
@@ -154,6 +158,16 @@ export function validateCoupon(couponCode: string, planId: string) {
 
 export function confirmPurchase(paymentId: string) {
   return api.post<ConfirmPurchaseResult>('/subscriptions/purchase/confirm', { paymentId });
+}
+
+export function failPayment(paymentId: string) {
+  return api.post<{ paymentId: string; status: string }>('/subscriptions/purchase/fail', {
+    paymentId,
+  });
+}
+
+export function fetchPaymentSession(paymentId: string) {
+  return api.get<PaymentSession>(`/subscriptions/payments/${paymentId}`);
 }
 
 // ── Referral services ──────────────────────────────────────────────

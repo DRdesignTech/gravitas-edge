@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { VaultsService } from './vaults.service';
 import { Public } from '../common/decorators/public.decorator';
@@ -21,5 +21,19 @@ export class VaultsController {
   })
   list(@CurrentUser() user?: { id: string }) {
     return this.vaultsService.listForUser(user?.id);
+  }
+
+  /**
+   * Public + authenticated single-vault lookup. Returns the same safe metadata
+   * shape as the listing (locked access-aware) or 404 when the vault does not
+   * exist / has been deleted.
+   */
+  @Public()
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get a single vault with access-aware metadata for the current user',
+  })
+  findOne(@Param('id') id: string, @CurrentUser() user?: { id: string }) {
+    return this.vaultsService.findOneForUser(id, user?.id);
   }
 }

@@ -55,8 +55,30 @@ function CopyEmailButton({ email }: { email: string }) {
 
   return (
     <Button type="button" variant="outline" onClick={copy}>
-      {copied ? 'Copied ✓' : 'Copy email'}
+      {copied ? 'Copied!' : 'Copy email'}
     </Button>
+  );
+}
+
+function ContactRow({ email }: { email: string }) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm text-content-muted">
+        Reach the hiring team directly at{' '}
+        <a
+          href={`mailto:${email}`}
+          className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+        >
+          {email}
+        </a>
+      </p>
+      <div className="flex items-center gap-2">
+        <CopyEmailButton email={email} />
+        <a href={`mailto:${email}`}>
+          <Button variant="ghost">Open mail app</Button>
+        </a>
+      </div>
+    </div>
   );
 }
 
@@ -215,7 +237,10 @@ export default function OpportunityPage() {
                 revealed.
               </p>
             </div>
-            <Link href="/plans" className="shrink-0 sm:ml-auto">
+            <Link
+              href={singleVault ? `/vaults/${singleVault.id}` : '/plans'}
+              className="shrink-0 sm:ml-auto"
+            >
               <Button>Unlock Full Access</Button>
             </Link>
           </div>
@@ -258,32 +283,19 @@ export default function OpportunityPage() {
             }
           >
             {o.applicationUrl ? (
-              <a
-                href={o.applicationUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block"
-              >
-                <Button>Apply now</Button>
-              </a>
-            ) : o.applicationContact ? (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-content-muted">
-                  Reach the hiring team directly at{' '}
-                  <a
-                    href={`mailto:${o.applicationContact}`}
-                    className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                  >
-                    {o.applicationContact}
-                  </a>
-                </p>
-                <div className="flex items-center gap-2">
-                  <CopyEmailButton email={o.applicationContact} />
-                  <a href={`mailto:${o.applicationContact}`}>
-                    <Button variant="ghost">Open mail app</Button>
-                  </a>
-                </div>
+              <div className="space-y-4">
+                <a
+                  href={o.applicationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
+                >
+                  <Button>Apply now</Button>
+                </a>
+                {o.applicationContact && <ContactRow email={o.applicationContact} />}
               </div>
+            ) : o.applicationContact ? (
+              <ContactRow email={o.applicationContact} />
             ) : (
               <p className="text-sm text-content-muted">
                 Contact details for this role are shared with subscribing members.

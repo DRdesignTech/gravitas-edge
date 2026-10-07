@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
 
@@ -56,5 +56,45 @@ export class VaultsService {
         experienceLevels: v.experienceLevels.map((el) => el.experienceLevel),
       };
     });
+  }
+
+  /**
+   * Returns a single vault for a user, applying the same access-aware
+   * serialization as `listForUser`. Intended for `GET /vaults/:id`.
+   */
+  async findOneForUser(id: string, userId?: string) {
+    const accessibleIds = userId ? await this.access.getAccessibleVaultIds(userId) : [];
+    const accessibleSet = new Set(accessibleIds);
+
+    const vault = await this.prisma.vault.findFirst({
+      where: { id, deletedAt: null },
+      include: {
+        experienceLevels: {
+          select: {
+            experienceLevel: { select: { id: true, name: true, minYears: true, maxYears: true } },
+          },
+        },
+      },
+    });
+
+    if (!vault) {
+      throw new NotFoundException('Vault not found');
+    }
+
+    const locked = !accessibleSet.has(vault.id);
+    const base: PublicVaultDto = {
+      id: vault.id,
+      name: vault.name,
+      description: vault.description,
+      type: vault.type,
+      locked,
+    };
+    if (locked) {
+      return { ...base, experienceLevels: [] };
+    }
+    return {
+      ...base,
+      experienceLevels: vault.experienceLevels.map((el) => el.experienceLevel),
+    };
   }
 }
