@@ -149,7 +149,7 @@ export default function Home() {
             </p>
           </div>
         </div>
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-40 lg:pb-64">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 py-[85px] sm:px-6 lg:px-8 lg:py-32 lg:pb-[230px]">
           <div className="max-w-3xl">
             <Eyebrow invert className="hero-reveal hero-reveal-1">
               CURATED OPPORTUNITY INTELLIGENCE
