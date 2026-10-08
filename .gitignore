@@ -45,3 +45,6 @@ yarn-error.log*
 # Temporary files
 .tmp/
 temp/
+
+# User-uploaded files (resumes, guest resumes)
+apps/api/storage/
