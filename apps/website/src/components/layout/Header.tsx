@@ -49,6 +49,10 @@ export default function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   const menuRef = useRef<HTMLDivElement>(null);
+  const spyLocked = useRef(false);
+  const lockedTarget = useRef<string | null>(null);
+  const spyUnlockTimer = useRef<number | null>(null);
+  const navScrollTimer = useRef<number | null>(null);
 
   useEffect(() => setMobileOpen(false), [pathname]);
   useEffect(() => setUserMenuOpen(false), [pathname]);
@@ -60,6 +64,17 @@ export default function Header() {
     const ids = navLinks.filter((l) => l.href.startsWith('#')).map((l) => l.href.slice(1));
 
     const update = () => {
+      // While a nav tap is programmatically scrolling, keep the tapped link
+      // highlighted and ignore scroll updates until the target is reached.
+      if (spyLocked.current) {
+        const target = lockedTarget.current ? document.getElementById(lockedTarget.current) : null;
+        const top = target ? target.getBoundingClientRect().top : NaN;
+        if (!target || (top > 24 && top < 104)) {
+          spyLocked.current = false;
+        } else {
+          return;
+        }
+      }
       const offset = 88;
       // Resolve elements on every run — sections can be replaced after data loads.
       const entries = ids
@@ -92,14 +107,29 @@ export default function Header() {
       setActiveSection(current);
     };
 
+    const release = () => {
+      spyLocked.current = false;
+    };
     update();
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
+    window.addEventListener('wheel', release, { passive: true });
+    window.addEventListener('touchstart', release, { passive: true });
     return () => {
       window.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
+      window.removeEventListener('wheel', release);
+      window.removeEventListener('touchstart', release);
     };
   }, [pathname]);
+
+  useEffect(
+    () => () => {
+      if (spyUnlockTimer.current) window.clearTimeout(spyUnlockTimer.current);
+      if (navScrollTimer.current) window.clearTimeout(navScrollTimer.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -121,9 +151,21 @@ export default function Header() {
     if (pathname !== '/') return;
     e.preventDefault();
     const id = href.replace(/^#/, '');
-    scrollToAnchor(id);
-    window.history.replaceState(null, '', href);
+    // Keep the tapped link highlighted while the programmatic scroll runs.
+    spyLocked.current = true;
+    lockedTarget.current = id;
     setActiveSection(id);
+    if (spyUnlockTimer.current) window.clearTimeout(spyUnlockTimer.current);
+    spyUnlockTimer.current = window.setTimeout(() => {
+      spyLocked.current = false;
+    }, 1200);
+    // Collapsing the mobile menu changes the header height and shifts the page,
+    // so wait a tick for layout to settle before measuring the scroll target.
+    if (navScrollTimer.current) window.clearTimeout(navScrollTimer.current);
+    navScrollTimer.current = window.setTimeout(() => {
+      scrollToAnchor(id);
+      window.history.replaceState(null, '', href);
+    }, 0);
   };
 
   const isActive = (href: string) => {
