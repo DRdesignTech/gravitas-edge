@@ -278,7 +278,7 @@ export default function Home() {
         {/* Content — anchored to the upper portion on mobile, immediately below
             the header, so the skyline, stairs and walking person stay visible
             below the copy. Centred composition is restored on larger screens. */}
-        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-start px-5 pb-8 pt-10 sm:justify-center sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-start px-5 pb-8 pt-16 sm:justify-center sm:px-6 sm:py-12 lg:px-8 lg:py-16">
           <div className="w-full max-w-2xl text-left">
             <h1
               className="hero-text-animate font-serif-heading text-[1.9rem] font-extrabold leading-[1.15] text-[#061B36] sm:text-4xl sm:font-bold sm:leading-[1.12] md:text-5xl lg:text-6xl xl:text-7xl"
