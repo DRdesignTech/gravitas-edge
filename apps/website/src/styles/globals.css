@@ -21,9 +21,9 @@
     --color-surface-elevated: 255 255 255;
     --color-surface-inverse: 6 27 54; /* navy */
 
-    --color-content: 38 52 74; /* #26344A */
-    --color-content-muted: 104 117 138; /* #68758A */
-    --color-content-faint: 148 163 184;
+    --color-content: 4 43 110; /* #042B6E */
+    --color-content-muted: 58 87 145; /* #3A5791 */
+    --color-content-faint: 118 140 182; /* #768CB6 */
     --color-content-inverse: 255 254 250;
 
     --color-line: 233 231 223; /* #E9E7DF */

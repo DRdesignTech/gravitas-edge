@@ -281,7 +281,7 @@ export default function Home() {
         <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-start px-5 pb-8 pt-16 sm:justify-center sm:px-6 sm:py-12 lg:px-8 lg:py-16">
           <div className="w-full max-w-2xl text-left">
             <h1
-              className="hero-text-animate font-serif-heading text-[1.9rem] font-extrabold leading-[1.15] text-[#061B36] sm:text-4xl sm:font-bold sm:leading-[1.12] md:text-5xl lg:text-6xl xl:text-7xl"
+              className="hero-text-animate font-serif-heading text-[1.9rem] font-extrabold leading-[1.15] text-content sm:text-4xl sm:font-bold sm:leading-[1.12] md:text-5xl lg:text-6xl xl:text-7xl"
               style={{ animationDelay: '0s' }}
             >
               Not every <span className="block sm:inline">opportunity</span>{' '}
@@ -289,7 +289,7 @@ export default function Home() {
               <span className="block text-[#C8943E]">job portals.</span>
             </h1>
             <p
-              className="hero-text-animate mt-3 max-w-xl text-[15px] leading-relaxed text-[#26344A] sm:mt-5 sm:text-lg lg:mt-6 lg:text-xl"
+              className="hero-text-animate mt-3 max-w-xl text-[15px] leading-relaxed text-content sm:mt-5 sm:text-lg lg:mt-6 lg:text-xl"
               style={{ animationDelay: '0.12s' }}
             >
               Get direct access to real opportunities with the people actively looking to hire.
@@ -399,7 +399,7 @@ export default function Home() {
       </section>
 
       <section id="what-we-do" className="scroll-mt-20 bg-surface">
-        <div className="mx-auto max-w-7xl px-4 pt-16 pb-12 sm:px-6 lg:px-8 lg:pt-24 lg:pb-16">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-10 lg:grid-cols-[1fr_minmax(0,1.1fr)] lg:items-start">
             <div className="max-w-xl">
               <Eyebrow>WHAT GRAVITAS EDGE DOES</Eyebrow>
@@ -449,7 +449,7 @@ export default function Home() {
           id="free-preview"
           className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
         >
-          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-48" />
@@ -462,7 +462,7 @@ export default function Home() {
           id="free-preview"
           className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
         >
-          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <ErrorState message={error} onRetry={load} />
           </div>
         </section>
@@ -474,7 +474,7 @@ export default function Home() {
       {/* 6. WHATSAPP FREE CONNECTION #1 — #whatsapp-free                */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <section id="whatsapp-free" className="scroll-mt-20 border-t border-line bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <WhatsAppChannel
             note={
               <HomeAnchor
@@ -559,7 +559,7 @@ export default function Home() {
       {/* 9. WHATSAPP FREE CONNECTION #2 — #whatsapp-free-2              */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <section id="whatsapp-free-2" className="scroll-mt-20 border-t border-line bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <WhatsAppChannel
             title="Stay Connected to New Opportunities"
             description="Get regular updates on new opportunities, key markets and career insights."

@@ -89,8 +89,8 @@ export default function HowItWorks() {
                   className="absolute left-[23px] top-[54px] bottom-[-2rem] w-[2px] rounded-full bg-[#C8943E]/40 sm:left-[27px] sm:top-[62px] sm:bottom-[-2.5rem]"
                 />
               )}
-              <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[3px] border-[#C8943E] bg-[#061B36] font-serif-heading text-lg font-bold text-white shadow sm:h-14 sm:w-14 sm:text-xl">
-                {i + 1}
+              <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[3px] border-[#C8943E] bg-[#061B36] font-serif-heading text-lg font-bold leading-none text-white lining-nums tabular-nums shadow sm:h-14 sm:w-14 sm:text-xl">
+                <span className="block translate-y-[0.075em] leading-none">{i + 1}</span>
               </span>
               <div className="flex min-w-0 items-start gap-2.5 pt-1.5 sm:gap-3 sm:pt-2">
                 <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-[#C8943E] sm:h-10 sm:w-10">

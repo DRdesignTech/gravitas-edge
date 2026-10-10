@@ -234,7 +234,7 @@ export default function VaultsPage() {
 
       {/* SECTIONS 4 & 5 — RESUME + REFERRAL */}
       <section className="border-t border-line bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-6 md:grid-cols-2">
             <ResumeUploadCard />
             <div className="rounded-2xl border border-line bg-surface p-6 dark:bg-surface-elevated">

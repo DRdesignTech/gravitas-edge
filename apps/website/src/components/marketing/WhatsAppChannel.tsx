@@ -218,7 +218,7 @@ export default function WhatsAppChannel({
 
         {/* Content */}
         <div className="order-2 flex flex-col items-center text-center">
-          <h2 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-[#061B36] sm:text-4xl dark:text-white">
+          <h2 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-content sm:text-4xl dark:text-white">
             {title}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base dark:text-slate-300">
@@ -236,7 +236,7 @@ export default function WhatsAppChannel({
                   <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
                     <Icon className="h-5 w-5" />
                   </span>
-                  <span className="text-sm font-semibold leading-tight text-[#061B36] dark:text-slate-100">
+                  <span className="text-sm font-semibold leading-tight text-content dark:text-slate-100">
                     {benefit.label}
                   </span>
                 </div>
