@@ -201,7 +201,7 @@ export function OpportunityCard({
     </>
   );
 
-  const wrapper = `group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-300 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50`;
+  const wrapper = `group relative flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-lg hover:border-[#C8943E] hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-[#C8943E]/60`;
 
   if (isStatic) {
     return <div className={wrapper}>{inner}</div>;
@@ -218,7 +218,7 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
   return (
     <Link
       href={`/opportunities/${o.id}`}
-      className="group flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 shadow-card transition-all duration-200 hover:border-brand-300 hover:shadow-card-hover sm:flex-row sm:items-center sm:justify-between dark:bg-surface-elevated dark:hover:border-brand-500/50"
+      className="group flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 shadow-card transition-all duration-200 hover:border-[#C8943E] hover:shadow-card-hover sm:flex-row sm:items-center sm:justify-between dark:bg-surface-elevated dark:hover:border-[#C8943E]/60"
     >
       <div className="flex min-w-0 items-start gap-4">
         <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-base font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
@@ -323,7 +323,7 @@ export function VaultCard({
   return (
     <Link
       href={unlocked ? `/opportunities?vaultId=${encodeURIComponent(v.id)}` : `/vaults/${v.id}`}
-      className={`group relative flex h-full flex-col rounded-2xl border bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-brand-500/50 ${
+      className={`group relative flex h-full flex-col rounded-2xl border bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C8943E] hover:shadow-card-hover dark:bg-surface-elevated dark:hover:border-[#C8943E]/60 ${
         recommended
           ? 'border-brand-400 ring-2 ring-brand-500/25 dark:border-brand-500/70 dark:ring-brand-400/20'
           : v.locked

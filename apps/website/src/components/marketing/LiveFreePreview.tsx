@@ -100,19 +100,17 @@ export default function LiveFreePreview({
   };
 
   return (
-    <section
-      id="free-preview"
-      className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
-    >
+    <section id="free-preview" className="scroll-mt-20 border-t border-line bg-surface-muted">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mb-8 max-w-2xl">
-          <Eyebrow>LIVE FREE PREVIEW</Eyebrow>
+          <Eyebrow>FREE PREVIEW</Eyebrow>
           <h2 className="mt-3 text-2xl font-bold tracking-tight text-content sm:text-3xl">
-            See what is available before you subscribe.
+            Free Preview
           </h2>
           <p className="mt-2 text-sm text-content-muted sm:text-base">
-            Browse the jobs below — the same ones being added to the Gravitas Edge Opportunity
-            Vaults — before you decide whether paid access is right for your search.
+            Explore a selection of available opportunities before choosing a plan. — the same ones
+            being added to the Gravitas Edge Opportunity Vaults — before you decide whether paid
+            access is right for your search.
           </p>
         </div>
 
@@ -167,7 +165,7 @@ export default function LiveFreePreview({
                 className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
                   view === 'grid'
                     ? 'bg-brand-600 text-white shadow-sm'
-                    : 'text-content-muted hover:text-content'
+                    : 'text-content-muted hover:text-content hover:bg-surface-muted transition-all duration-150'
                 }`}
               >
                 <GridIcon className="h-4 w-4" />
@@ -181,7 +179,7 @@ export default function LiveFreePreview({
                 className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
                   view === 'list'
                     ? 'bg-brand-600 text-white shadow-sm'
-                    : 'text-content-muted hover:text-content'
+                    : 'text-content-muted hover:text-content hover:bg-surface-muted transition-all duration-150'
                 }`}
               >
                 <ListIcon className="h-4 w-4" />

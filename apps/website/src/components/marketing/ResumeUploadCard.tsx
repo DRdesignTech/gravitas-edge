@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useGuestResume } from '@/lib/guest-resume';
@@ -11,6 +11,12 @@ import { Alert, Button, Input, useToast } from '@/components/ui';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx'];
+
+const ACCEPTED_LABEL = `${ALLOWED_EXTENSIONS.map((ext) => ext.replace('.', '').toUpperCase()).join(
+  ', ',
+)} · up to ${MAX_FILE_SIZE / (1024 * 1024)} MB`;
+
+const BENEFITS = ['Better Relevance', 'Upcoming Opportunities', 'Always Optional'];
 
 function isValidFile(file: File) {
   const name = file.name.toLowerCase();
@@ -51,6 +57,27 @@ function UploadIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
+function DocumentIcon({ className = 'h-6 w-6' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.6}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14.25 3.75H6.75A1.5 1.5 0 005.25 5.25v13.5a1.5 1.5 0 001.5 1.5h10.5a1.5 1.5 0 001.5-1.5V7.5l-3.75-3.75z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 3.75V7.5h3.75" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 12.75h7.5M8.25 16.5h4.5" />
+    </svg>
+  );
+}
+
 function CheckBadge() {
   return (
     <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
@@ -68,6 +95,23 @@ function CheckBadge() {
   );
 }
 
+function BenefitCheck() {
+  return (
+    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[#8a6524] dark:bg-brand-950 dark:text-brand-300">
+      <svg
+        className="h-3.5 w-3.5"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={2.4}
+        stroke="currentColor"
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+      </svg>
+    </span>
+  );
+}
+
 interface ResumeUploadCardProps {
   heading?: string;
   description?: string;
@@ -75,13 +119,14 @@ interface ResumeUploadCardProps {
 }
 
 export default function ResumeUploadCard({
-  heading = 'Upload Your Resume',
-  description = 'Upload your resume so it is ready whenever a relevant Gravitas Edge opportunity comes up.',
-  compact = false,
+  heading = 'Upload Resume',
+  description = 'Make your profile ready for the right opportunities.',
 }: ResumeUploadCardProps) {
   const { user } = useAuth();
   const { guestToken, guestResume, setGuestResume, hydrated } = useGuestResume();
   const { showToast } = useToast();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [fullName, setFullName] = useState('');
@@ -98,6 +143,7 @@ export default function ResumeUploadCard({
     setError('');
     setSuccessMessage('');
     setReplacing(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -204,23 +250,15 @@ export default function ResumeUploadCard({
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-6 dark:bg-surface-elevated">
-      <h3 className="text-base font-bold text-content">{heading}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-content-muted">{description}</p>
-      <p className="mt-2 text-xs text-content-faint">
-        {user
-          ? 'This upload is optional — uploads are saved to your account.'
-          : 'No account needed. Your upload is optional — you may continue browsing without one.'}
-      </p>
-
       {!hydrated && (
-        <div className="mt-5 space-y-3">
-          <div className="h-10 w-full rounded-lg bg-surface-muted" />
+        <div className="space-y-3">
+          <div className="h-40 w-full rounded-2xl bg-surface-muted" />
           <div className="h-9 w-full rounded-lg bg-surface-muted" />
         </div>
       )}
 
       {hydrated && successMessage && (
-        <div className="mt-5 space-y-4">
+        <div className="space-y-4">
           <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/30 dark:bg-emerald-500/10">
             <CheckBadge />
             <div>
@@ -244,7 +282,7 @@ export default function ResumeUploadCard({
       )}
 
       {hydrated && !successMessage && canUseExisting && !replacing && (
-        <div className="mt-5 space-y-4">
+        <div className="space-y-4">
           <Alert variant="success" title={user ? '' : 'Resume uploaded ✓'}>
             {!user && guestResume && (
               <div className="mt-1 space-y-1">
@@ -285,21 +323,42 @@ export default function ResumeUploadCard({
       )}
 
       {hydrated && !successMessage && (!canUseExisting || replacing) && (
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            onChange={handleFileChange}
-            disabled={submitting}
-            className="w-full cursor-pointer text-sm text-content-muted file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-600 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white file:transition-colors hover:file:bg-brand-700 disabled:opacity-60"
-            aria-label="Choose resume file (PDF, DOC, DOCX, max 5MB)"
-          />
-          <p className="text-xs text-content-faint">PDF, DOC or DOCX · up to 5 MB</p>
-          {file && (
-            <p className="text-sm font-medium text-content">
-              {file.name} · {formatFileSize(file.size)}
-            </p>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Clean bordered upload panel */}
+          <div className="rounded-2xl border border-dashed border-line bg-surface-muted/60 p-6 text-center dark:bg-surface">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-surface text-[#061B36] shadow-sm dark:bg-brand-950 dark:text-brand-300">
+              <DocumentIcon className="h-7 w-7" />
+            </span>
+            <p className="mt-4 text-base font-bold text-content">{heading}</p>
+            <p className="mt-1 text-sm leading-relaxed text-content-muted">{description}</p>
+            <p className="mt-2 text-xs text-content-faint">{ACCEPTED_LABEL}</p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={handleFileChange}
+              disabled={submitting}
+              className="sr-only"
+              aria-label="Choose resume file (PDF, DOC, DOCX, max 5MB)"
+            />
+            <Button
+              type="button"
+              variant="primary"
+              className="mt-4"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={submitting}
+            >
+              <UploadIcon className="h-4 w-4" />
+              Choose File
+            </Button>
+
+            {file && (
+              <p className="mt-3 text-sm font-medium text-content">
+                {file.name} · {formatFileSize(file.size)}
+              </p>
+            )}
+          </div>
 
           {error && (
             <Alert variant="error" title="Upload unsuccessful">
@@ -365,7 +424,7 @@ export default function ResumeUploadCard({
             </span>
           </label>
 
-          <Button type="submit" size="sm" loading={submitting} className="w-full sm:w-auto">
+          <Button type="submit" loading={submitting} className="w-full sm:w-auto">
             <UploadIcon className="h-4 w-4" />
             {submitting ? 'Uploading…' : replacing ? 'Replace Resume' : 'Upload Resume'}
           </Button>
@@ -384,6 +443,25 @@ export default function ResumeUploadCard({
           )}
         </form>
       )}
+
+      {/* Benefit items */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        {BENEFITS.map((benefit) => (
+          <div
+            key={benefit}
+            className="flex items-center gap-2.5 rounded-xl border border-line bg-surface-muted/50 px-3 py-2.5 dark:bg-surface"
+          >
+            <BenefitCheck />
+            <span className="text-sm font-semibold leading-tight text-content">{benefit}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Supporting text */}
+      <p className="mt-4 text-xs leading-relaxed text-content-faint">
+        Your resume is used only for future opportunity matching and is never shared without your
+        consent.
+      </p>
     </div>
   );
 }

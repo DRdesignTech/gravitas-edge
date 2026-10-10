@@ -10,7 +10,7 @@ export default function UploadResumePage() {
 
   return (
     <div className="overflow-hidden">
-      <section className="bg-[#0A1730]">
+      <section className="bg-[#061B36]">
         <div className="mx-auto max-w-4xl px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-24">
           <Eyebrow invert>RESUMES</Eyebrow>
           <h1 className="mt-5 text-4xl font-extrabold leading-[1.15] tracking-tight text-white sm:text-5xl">
@@ -41,10 +41,7 @@ export default function UploadResumePage() {
             )}
           </div>
 
-          <ResumeUploadCard
-            heading="Upload Your Resume"
-            description="Upload your resume so it is ready whenever a relevant Gravitas Edge opportunity comes up."
-          />
+          <ResumeUploadCard />
         </div>
       </section>
     </div>

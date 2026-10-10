@@ -443,7 +443,7 @@ function OpportunityPageContent() {
   if (authLoading) {
     return (
       <div className="overflow-hidden">
-        <section className="bg-[#0A1730]">
+        <section className="bg-[#061B36]">
           <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-24">
             <div className="h-4 w-40 bg-slate-700" />
             <div className="mt-5 h-10 w-full max-w-2xl bg-slate-700" />
@@ -465,12 +465,12 @@ function OpportunityPageContent() {
   return (
     <div className="overflow-hidden">
       {/* SECTION 1 — NAVY HERO */}
-      <section className="bg-[#0A1730]">
+      <section className="bg-[#061B36]">
         <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-24">
           {vaultId && (
             <Link
               href="/vaults"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-300 hover:text-white"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#C8943E] hover:text-white"
             >
               <span aria-hidden>←</span> All vaults
             </Link>
@@ -829,7 +829,7 @@ export default function FreePreviewPage() {
     <Suspense
       fallback={
         <div className="overflow-hidden">
-          <section className="bg-[#0A1730]">
+          <section className="bg-[#061B36]">
             <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-24">
               <div className="h-4 w-40 bg-slate-700" />
               <div className="mt-5 h-10 w-full max-w-2xl bg-slate-700" />

@@ -15,13 +15,13 @@ export default function BrandLogo({
 }: BrandLogoProps) {
   return (
     <span className="inline-flex items-center gap-2.5">
-      <span className="flex shrink-0 items-center justify-center rounded-full bg-white p-2 shadow-sm">
+      <span className="flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-2 shadow-sm">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={BRAND_LOGO_SRC}
           alt="Gravitas Edge Consulting logo"
-          width={1254}
-          height={1254}
+          width={2172}
+          height={724}
           className={className}
           style={{ objectFit: 'contain' }}
         />

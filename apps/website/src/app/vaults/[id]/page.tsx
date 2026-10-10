@@ -132,7 +132,7 @@ export default function VaultDetailPage() {
   if (loading || checkingAccess) {
     return (
       <div className="overflow-hidden">
-        <section className="bg-[#0A1730]">
+        <section className="bg-[#061B36]">
           <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-24">
             <Skeleton className="h-5 w-32" />
             <Skeleton className="mt-5 h-12 w-96" />
@@ -146,7 +146,7 @@ export default function VaultDetailPage() {
   if (error || !vault) {
     return (
       <div className="overflow-hidden">
-        <section className="bg-[#0A1730]">
+        <section className="bg-[#061B36]">
           <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-24">
             <Eyebrow invert>VAULT DETAIL</Eyebrow>
           </div>
@@ -167,15 +167,15 @@ export default function VaultDetailPage() {
   return (
     <div className="overflow-hidden">
       {/* SECTION 1 — NAVY HERO */}
-      <section className="bg-[#0A1730]">
+      <section className="bg-[#061B36]">
         <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-24">
           <Link
             href="/vaults"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-300 hover:text-white"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#C8943E] hover:text-white"
           >
             <span aria-hidden>←</span> All vaults
           </Link>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-sky-300">
+          <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-[#C8943E]">
             {typeLabel(vault.type)}
           </p>
           <h1 className="mt-3 max-w-3xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl">
@@ -428,7 +428,7 @@ export default function VaultDetailPage() {
                 <strong>Still deciding?</strong> Open the{' '}
                 <Link
                   href="/opportunities"
-                  className="font-semibold underline underline-offset-2 hover:text-sky-900 dark:hover:text-sky-100"
+                  className="font-semibold underline underline-offset-2 hover:text-[#8a6524] dark:hover:text-[#E3B968]"
                 >
                   Free Preview
                 </Link>{' '}

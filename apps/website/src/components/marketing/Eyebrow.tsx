@@ -8,7 +8,7 @@ export default function Eyebrow({ children, invert = false, className = '' }: Ey
   return (
     <span
       className={`text-xs font-semibold uppercase tracking-[0.22em] ${
-        invert ? 'text-sky-300' : 'text-brand-600 dark:text-brand-300'
+        invert ? 'text-[#E3B968]' : 'text-[#C8943E]'
       } ${className}`}
     >
       {children}

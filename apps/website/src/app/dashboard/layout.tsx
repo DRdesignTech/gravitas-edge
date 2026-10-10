@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   href={item.href}
                   className={`whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
                     active
-                      ? 'bg-brand-600 text-white shadow-sm'
+                      ? 'bg-brand-600 text-white shadow-sm dark:bg-brand-400 dark:text-[#061B36]'
                       : 'text-content-muted hover:bg-surface-muted hover:text-content'
                   }`}
                 >

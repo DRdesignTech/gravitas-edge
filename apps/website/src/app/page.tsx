@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
 import { fetchOpportunities, fetchPublicPricing, fetchVaults } from '@/lib/services';
 import { Opportunity, PaginatedResult, PricingGroup, Vault } from '@/lib/types';
 import { Skeleton, ErrorState, EmptyState } from '@/components/ui';
@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import InfoCard from '@/components/marketing/InfoCard';
 import HowItWorks from '@/components/marketing/HowItWorks';
+import Testimonials from '@/components/marketing/Testimonials';
 import LiveFreePreview from '@/components/marketing/LiveFreePreview';
 import PricingSection from '@/components/marketing/PricingSection';
 import WhatsAppChannel from '@/components/marketing/WhatsAppChannel';
@@ -19,7 +20,6 @@ import FaqSection from '@/components/marketing/FaqSection';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
 import { scrollToHash } from '@/lib/scroll';
 
-const NAVY = 'bg-[#0A1730]';
 const FREE_PREVIEW_LIMIT = 24;
 
 function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
@@ -63,6 +63,143 @@ const whatWeDoPoints = [
   'Jobs by Location and Experience',
   'How to Apply',
   'Save Time',
+];
+
+/* ─────────────────────────────────────────────────────────────────────
+   HOW WE ARE DIFFERENT — content + icons
+   ──────────────────────────────────────────────────────────────────── */
+
+function StepIcon({
+  children,
+  className = 'h-5 w-5 sm:h-6 sm:w-6',
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+const diffSteps = [
+  {
+    title: 'Relevant Opportunity',
+    description: 'Carefully curated roles.',
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="8.25" />
+        <circle cx="12" cy="12" r="3.5" />
+        <path strokeLinecap="round" d="M12 19.75v1.75M12 2.5v1.75M19.75 12h1.75M2.5 12h1.75" />
+      </>
+    ),
+  },
+  {
+    title: 'Hiring Contact',
+    description: 'Get direct contact details.',
+    icon: (
+      <>
+        <path d="M12 12.75a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+        <path d="M4.5 20.25c1.4-2.9 4.2-4.5 7.5-4.5s6.1 1.6 7.5 4.5" />
+      </>
+    ),
+  },
+  {
+    title: 'Your Application',
+    description: 'Share your resume directly.',
+    icon: (
+      <>
+        <path d="M22 2 11 13" />
+        <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+      </>
+    ),
+  },
+];
+
+const diffArrow = (
+  <svg
+    className="h-3.5 w-3.5 text-[#C8943E] sm:h-5 sm:w-5 md:h-6 md:w-6"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={2}
+    stroke="currentColor"
+    aria-hidden="true"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
+  </svg>
+);
+
+const diffBenefits: { label: string; icon: ReactNode }[] = [
+  {
+    label: 'Quality Opportunities',
+    icon: (
+      <>
+        <path d="M12 3.5l2.3 4.9 5.2.8-3.8 3.7.9 5.3-4.6-2.4-4.6 2.4.9-5.3-3.8-3.7 5.2-.8L12 3.5Z" />
+      </>
+    ),
+  },
+  {
+    label: 'Direct Contacts',
+    icon: (
+      <>
+        <circle cx="12" cy="8.5" r="3.5" />
+        <path d="M4.5 20c1.4-2.9 4.2-4.5 7.5-4.5s6.1 1.6 7.5 4.5" />
+      </>
+    ),
+  },
+  {
+    label: 'Across Global Markets',
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="8.25" />
+        <path d="M3.75 12h16.5M12 3.75c2.4 2.3 3.6 5 3.6 8.25s-1.2 5.95-3.6 8.25c-2.4-2.3-3.6-5-3.6-8.25s1.2-5.95 3.6-8.25Z" />
+      </>
+    ),
+  },
+  {
+    label: 'Regularly Updated',
+    icon: (
+      <>
+        <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+        <path d="M20 4v4h-4" />
+      </>
+    ),
+  },
+];
+
+const heroFeatures: { label: string; icon: ReactNode }[] = [
+  {
+    label: 'Curated Opportunities',
+    icon: (
+      <path d="M12 3.5l2.3 4.9 5.2.8-3.8 3.7.9 5.3-4.6-2.4-4.6 2.4.9-5.3-3.8-3.7 5.2-.8L12 3.5Z" />
+    ),
+  },
+  {
+    label: 'Direct Hiring Contacts',
+    icon: (
+      <>
+        <circle cx="12" cy="8.5" r="3.5" />
+        <path d="M4.5 20c1.4-2.9 4.2-4.5 7.5-4.5s6.1 1.6 7.5 4.5" />
+      </>
+    ),
+  },
+  {
+    label: 'Global Markets',
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="8.25" />
+        <path d="M3.75 12h16.5M12 3.75c2.4 2.3 3.6 5 3.6 8.25s-1.2 5.95-3.6 8.25c-2.4-2.3-3.6-5-3.6-8.25s1.2-5.95 3.6-8.25Z" />
+      </>
+    ),
+  },
 ];
 
 export default function Home() {
@@ -123,131 +260,145 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 1. HERO — #home                                                */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="home" className={`${NAVY} relative scroll-mt-20 overflow-hidden`}>
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-cover bg-[position:center] lg:bg-[position:center_35%]"
-          style={{
-            backgroundImage: "url('/images/hero.png')",
-            backgroundSize: 'cover',
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-r from-[#0A1730]/55 via-[#0A1730]/20 to-transparent"
-        />
-        {/* Image overlay text on lower portion */}
-        <div
-          aria-hidden="true"
-          className="absolute bottom-8 left-0 right-0 px-4 lg:px-8 lg:bottom-12"
-          style={{ background: 'linear-gradient(to top, #0A1730 0%, transparent 60%)' }}
-        >
-          <div className="mx-auto max-w-7xl">
-            <p className="max-w-3xl pl-4 sm:pl-8 text-lg font-semibold leading-snug text-white sm:text-xl">
-              More opportunities.
-              <br />A wider perspective.
-            </p>
-          </div>
-        </div>
-        <div className="relative z-10 mx-auto max-w-7xl px-4 py-[85px] sm:px-6 lg:px-8 lg:py-32 lg:pb-[230px]">
-          <div className="max-w-3xl">
-            <Eyebrow invert className="hero-reveal hero-reveal-1">
-              CURATED OPPORTUNITY INTELLIGENCE
-            </Eyebrow>
-            <h1 className="mt-5 max-w-2xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl hero-reveal hero-reveal-2">
-              A clearer view of opportunities beyond the usual job search.
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg hero-reveal hero-reveal-3">
-              Not every opportunity reaches the usual job portals. Many roles circulate directly
-              through hiring managers, recruiters, consultants, company channels and professional
-              networks, making them easy to miss when your search is limited to conventional job
-              sites. Gravitas Edge focuses on finding and curating these opportunities, bringing
-              relevant roles and available application routes together in one structured place.
-            </p>
-
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 hero-reveal hero-reveal-4">
-              <button
-                type="button"
-                onClick={() => scrollTo('free-preview')}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-400 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1730] sm:w-auto"
-              >
-                Explore Free Opportunities
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollTo('how-it-works')}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/5 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1730] sm:w-auto"
-              >
-                See How It Works <span aria-hidden="true">↓</span>
-              </button>
-            </div>
-
-            <p className="mt-8 max-w-xl text-sm leading-relaxed text-slate-300 hero-reveal hero-reveal-5">
-              See what is available first. Decide for yourself whether Gravitas Edge adds value to
-              your search.
-            </p>
-          </div>
-          <style jsx>{`
-            .hero-reveal {
-              opacity: 0;
-              transform: translateY(20px);
-              animation: heroReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            }
-            .hero-reveal-1 {
-              animation-delay: 0ms;
-            }
-            .hero-reveal-2 {
-              animation-delay: 100ms;
-            }
-            .hero-reveal-3 {
-              animation-delay: 200ms;
-            }
-            .hero-reveal-4 {
-              animation-delay: 300ms;
-            }
-            .hero-reveal-5 {
-              animation-delay: 400ms;
-            }
-            @keyframes heroReveal {
-              to {
-                opacity: 1;
-                transform: translateY(0);
-              }
-            }
-            @media (prefers-reduced-motion: reduce) {
-              .hero-reveal {
-                opacity: 1;
-                transform: none;
-                animation: none;
-              }
-            }
-          `}</style>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 2. WHY GRAVITAS EDGE — #why-gravitas-edge                       */}
-      {/* ══════════════════════════════════════════════════════════════ */}
       <section
-        id="why-gravitas-edge"
-        className="scroll-mt-20 border-t border-line bg-surface-muted"
+        id="home"
+        className="relative flex min-h-[calc(100svh-4rem)] scroll-mt-16 flex-col overflow-hidden bg-[#061B36]"
       >
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
-          <div className="mx-auto max-w-3xl text-center">
-            <Eyebrow>WHY GRAVITAS EDGE</Eyebrow>
-            <p className="mt-6 text-lg leading-relaxed text-content-muted sm:text-xl">
-              Many job posts do not show how to apply — no email, no contact, just a request to
-              reach out. Gravitas Edge fills that gap by giving you the recruiter or hiring
-              manager&apos;s contact details directly.
+        {/* Background image layer. The artwork is 16:9 and wider than the
+            portrait hero, so object-cover crops horizontally — object-position
+            pans the frame to keep the skyline, stairs and walking businessman
+            in view (subject sits toward the lower-right of the source). */}
+        <img
+          src="/images/hero_bg.png"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[74%_center] sm:object-center"
+        />
+
+        {/* Content — anchored to the upper portion on mobile, immediately below
+            the header, so the skyline, stairs and walking person stay visible
+            below the copy. Centred composition is restored on larger screens. */}
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-start px-5 pb-8 pt-10 sm:justify-center sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+          <div className="w-full max-w-2xl text-left">
+            <h1
+              className="hero-text-animate font-serif-heading text-[1.9rem] font-extrabold leading-[1.15] text-[#061B36] sm:text-4xl sm:font-bold sm:leading-[1.12] md:text-5xl lg:text-6xl xl:text-7xl"
+              style={{ animationDelay: '0s' }}
+            >
+              Not every <span className="block sm:inline">opportunity</span>{' '}
+              <span className="block sm:inline">reaches the usual</span>{' '}
+              <span className="block text-[#C8943E]">job portals.</span>
+            </h1>
+            <p
+              className="hero-text-animate mt-3 max-w-xl text-[15px] leading-relaxed text-[#26344A] sm:mt-5 sm:text-lg lg:mt-6 lg:text-xl"
+              style={{ animationDelay: '0.12s' }}
+            >
+              Get direct access to real opportunities with the people actively looking to hire.
             </p>
+            <div
+              className="hero-text-animate mt-6 sm:mt-8 lg:mt-10"
+              style={{ animationDelay: '0.24s' }}
+            >
+              <Link
+                href="#free-preview"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollTo('free-preview');
+                  window.history.replaceState(null, '', '#free-preview');
+                }}
+                className="relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-lg bg-[#C8943E] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#B8832F] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#061B36] focus-visible:ring-offset-2 sm:rounded-xl sm:px-6 sm:py-3.5 sm:text-base"
+              >
+                Explore Free Preview <span aria-hidden="true">→</span>
+                <span
+                  aria-hidden="true"
+                  className="btn-shine absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/50 to-transparent"
+                />
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom feature strip — navy three-column bar with gold outline icons */}
+        <div className="relative z-10 border-t border-[#C8943E]/20 bg-[#061B36]">
+          <div className="mx-auto grid w-full max-w-7xl grid-cols-3 divide-x divide-white/10 px-2 py-3 sm:px-6 sm:py-5 lg:px-8">
+            {heroFeatures.map((feature) => (
+              <div
+                key={feature.label}
+                className="flex flex-col items-center gap-1.5 px-1.5 text-center sm:gap-2"
+              >
+                <StepIcon className="h-6 w-6 text-[#C8943E]">{feature.icon}</StepIcon>
+                <span className="text-[11px] font-medium leading-tight text-white/90 sm:text-sm">
+                  {feature.label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 3. WHAT GRAVITAS EDGE DOES — #what-we-do                       */}
+      {/* 2. HOW WE ARE DIFFERENT — #why-gravitas-edge                    */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="what-we-do" className="scroll-mt-20 bg-white dark:bg-surface-muted">
+      <section id="why-gravitas-edge" className="scroll-mt-20 bg-surface-muted">
+        <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
+          <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">
+              How We Are Different
+            </p>
+            <h2 className="mt-4 font-serif-heading text-3xl font-bold leading-tight text-content sm:text-4xl lg:text-5xl">
+              Go beyond Apply. <span className="text-[#C8943E]">Reach the right person.</span>
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-content-muted sm:text-lg">
+              We connect you directly with the recruiter, hiring manager, or consultant handling the
+              opportunity.
+            </p>
+          </div>
+
+          {/* Three steps with icons and arrows */}
+          <div className="mx-auto grid max-w-4xl grid-cols-[1fr_auto_1fr_auto_1fr] items-stretch gap-2 sm:gap-4">
+            {diffSteps.map((step, i) => (
+              <Fragment key={step.title}>
+                <div className="flex flex-col items-center rounded-2xl border border-line bg-surface px-1.5 py-3 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#C8943E]/60 hover:shadow-lg sm:px-5 sm:py-5 lg:px-6 lg:py-7">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-[#C8943E] sm:h-14 sm:w-14">
+                    <StepIcon>{step.icon}</StepIcon>
+                  </span>
+                  <h3 className="mt-2.5 font-serif-heading text-xs font-bold leading-tight text-content [overflow-wrap:anywhere] sm:mt-4 sm:text-xl">
+                    {step.title}
+                  </h3>
+                  <p className="mt-1 text-[10px] leading-relaxed text-content-muted [overflow-wrap:anywhere] sm:mt-2 sm:text-sm">
+                    {step.description}
+                  </p>
+                </div>
+                {i < diffSteps.length - 1 && (
+                  <span aria-hidden="true" className="flex items-center self-center">
+                    {diffArrow}
+                  </span>
+                )}
+              </Fragment>
+            ))}
+          </div>
+        </div>
+
+        {/* Navy benefits panel */}
+        <div className="border-t border-[#C8943E]/20 bg-[#061B36]">
+          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-8 px-4 py-8 sm:px-6 md:grid-cols-4 lg:px-8 lg:py-10">
+            {diffBenefits.map((benefit) => (
+              <div
+                key={benefit.label}
+                className="flex flex-col items-center gap-2.5 text-center sm:flex-row sm:justify-center sm:gap-3 sm:text-left"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#C8943E]/15 text-[#C8943E]">
+                  <StepIcon className="h-5 w-5">{benefit.icon}</StepIcon>
+                </span>
+                <span className="text-sm font-semibold leading-tight text-white sm:text-base">
+                  {benefit.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="what-we-do" className="scroll-mt-20 bg-surface">
         <div className="mx-auto max-w-7xl px-4 pt-16 pb-12 sm:px-6 lg:px-8 lg:pt-24 lg:pb-16">
           <div className="grid gap-10 lg:grid-cols-[1fr_minmax(0,1.1fr)] lg:items-start">
             <div className="max-w-xl">
@@ -298,7 +449,7 @@ export default function Home() {
           id="free-preview"
           className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
         >
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-48" />
@@ -311,7 +462,7 @@ export default function Home() {
           id="free-preview"
           className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
         >
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
             <ErrorState message={error} onRetry={load} />
           </div>
         </section>
@@ -323,12 +474,12 @@ export default function Home() {
       {/* 6. WHATSAPP FREE CONNECTION #1 — #whatsapp-free                */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <section id="whatsapp-free" className="scroll-mt-20 border-t border-line bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <WhatsAppChannel
             note={
               <HomeAnchor
                 href="#vaults"
-                className="font-medium underline underline-offset-2 hover:text-emerald-900 dark:hover:text-emerald-100"
+                className="font-medium underline underline-offset-2 hover:text-[#8a6524] dark:hover:text-[#E3B968]"
               >
                 Explore Opportunity Vaults below →
               </HomeAnchor>
@@ -349,7 +500,7 @@ export default function Home() {
             <div className="max-w-2xl">
               <Eyebrow>OPPORTUNITY VAULTS</Eyebrow>
               <h2 className="mt-3 text-2xl font-bold tracking-tight text-content sm:text-3xl">
-                Found something relevant? Choose access that matches your search.
+                Opportunity Vaults
               </h2>
               <p className="mt-2 text-sm text-content-muted sm:text-base">
                 Pick the Vault that matches your location and experience to get full job details and
@@ -408,11 +559,11 @@ export default function Home() {
       {/* 9. WHATSAPP FREE CONNECTION #2 — #whatsapp-free-2              */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <section id="whatsapp-free-2" className="scroll-mt-20 border-t border-line bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <WhatsAppChannel
-            title="Want to follow the opportunities without subscribing yet?"
-            description="Follow the free Gravitas Edge WhatsApp Channel to see selected opportunity updates and what is being added to the Vaults. The free channel does not share full job details or recruiter, hiring manager, consultant or application contact details. Those stay within the relevant Opportunity Vault access."
-            actionLabel="Continue with Free WhatsApp Updates"
+            title="Stay Connected to New Opportunities"
+            description="Get regular updates on new opportunities, key markets and career insights."
+            actionLabel="Join WhatsApp Channel"
           />
         </div>
       </section>
@@ -420,52 +571,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 10. TESTIMONIALS — #testimonials                                 */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="testimonials" className="scroll-mt-20 bg-[#0A1730]">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <Eyebrow invert>WHAT OUR SUBSCRIBERS SAY</Eyebrow>
-          <h2 className="mt-4 max-w-2xl text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            Real results from professionals who took action early.
-          </h2>
-
-          <div className="mt-12 grid gap-6 sm:grid-cols-2">
-            {/* Testimonial 1 */}
-            <div className="flex flex-col rounded-2xl border border-white/10 bg-white/5 p-7 sm:p-8">
-              <span className="mb-5 inline-flex w-fit items-center rounded-full bg-emerald-500/15 px-3.5 py-1 text-xs font-semibold tracking-wide text-emerald-300">
-                45% Pay Jump
-              </span>
-              <blockquote className="flex-1 text-base leading-relaxed text-slate-200 sm:text-lg">
-                &ldquo;I found a Lead PM role 3 weeks before it was posted publicly on LinkedIn.
-                Applied directly to the VP via the email provided in the Gravitas Vault, and was
-                offered India-competitive premium equity + a 45% pay bump.&rdquo;
-              </blockquote>
-              <div className="mt-6 border-t border-white/10 pt-5">
-                <p className="text-sm font-bold text-white">Simran Khurana</p>
-                <p className="mt-0.5 text-sm text-slate-400">
-                  Lead Product Manager @ FinTech Growth Scale-Up
-                </p>
-              </div>
-            </div>
-
-            {/* Testimonial 2 */}
-            <div className="flex flex-col rounded-2xl border border-white/10 bg-white/5 p-7 sm:p-8">
-              <span className="mb-5 inline-flex w-fit items-center rounded-full bg-sky-500/15 px-3.5 py-1 text-xs font-semibold tracking-wide text-sky-300">
-                Tax-Free UAE Relocation
-              </span>
-              <blockquote className="flex-1 text-base leading-relaxed text-slate-200 sm:text-lg">
-                &ldquo;Moving to Dubai was my goal. The Middle East Vault gave me the direct
-                headhunter list and active pre-market roles. I contacted the talent partner directly
-                and landed a key tax-free package without applying blindly on portals.&rdquo;
-              </blockquote>
-              <div className="mt-6 border-t border-white/10 pt-5">
-                <p className="text-sm font-bold text-white">Adil Mahmood</p>
-                <p className="mt-0.5 text-sm text-slate-400">
-                  Director of Infrastructure @ Enterprise SaaS (Dubai)
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Testimonials />
 
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 11. FAQ — #faq                                                  */}

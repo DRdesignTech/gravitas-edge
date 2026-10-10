@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import InfoBanner from './InfoBanner';
 
 const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbCb0FrAe5VxQRICTf2K';
 
@@ -6,24 +7,6 @@ function WhatsAppIcon({ className = 'h-5 w-5' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.87 9.87 0 004.74 1.21c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.83 9.83 0 0012.04 2zm0 18.15a8.2 8.2 0 01-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.21 8.21 0 01-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 012.41 5.83c0 4.54-3.69 8.23-8.23 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.23-.16-.48-.29z" />
-    </svg>
-  );
-}
-
-function ClockIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
     </svg>
   );
 }
@@ -110,11 +93,13 @@ function MicIcon({ className = 'h-4 w-4' }: { className?: string }) {
 }
 
 const benefits = [
-  { label: 'Timely Updates', icon: BoltIcon },
-  { label: 'Selected Opportunities', icon: CheckCircleIcon },
-  { label: 'Vault Activity', icon: LayersIcon },
-  { label: 'Stay Informed', icon: BellIcon },
+  { label: 'New Opportunities', icon: CheckCircleIcon },
+  { label: 'Market Updates', icon: BoltIcon },
+  { label: 'Career Insights', icon: LayersIcon },
 ];
+
+const CHANNEL_NOTE =
+  'This is an update channel only. Full opportunity details and direct hiring contacts are available through the Opportunity Vaults.';
 
 const floatingBadges = [
   { label: 'Real-time Updates', icon: BoltIcon, position: '-left-[20px] -top-[5px]' },
@@ -131,13 +116,13 @@ interface WhatsAppChannelProps {
 }
 
 export default function WhatsAppChannel({
-  title = 'Not ready to subscribe? Stay connected for free.',
-  description = 'Join the free Gravitas Edge WhatsApp Channel to follow selected opportunity updates and see what is being added to the Opportunity Vaults. The channel keeps you updated on opportunities and Vault activity. Full job details and recruiter, hiring manager, consultant or application contact details are available through the relevant Opportunity Vault.',
-  actionLabel = 'Join Free WhatsApp Channel',
+  title = 'Stay Connected to New Opportunities',
+  description = 'Get regular updates on new opportunities, key markets and career insights.',
+  actionLabel = 'Join WhatsApp Channel',
   note,
 }: WhatsAppChannelProps) {
   return (
-    <div className="relative overflow-hidden lg:overflow-visible rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/80 to-emerald-50/40 p-7 shadow-[0_28px_90px_-40px_rgba(16,185,129,0.55)] sm:p-10 lg:rounded-[2.5rem] lg:p-14 dark:border-emerald-500/25 dark:from-[#0B1A14] dark:via-emerald-950/40 dark:to-[#0B1A14] dark:shadow-[0_28px_90px_-40px_rgba(0,0,0,0.7)]">
+    <div className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/70 to-emerald-100/40 p-6 shadow-[0_28px_90px_-40px_rgba(16,185,129,0.55)] sm:p-10 lg:rounded-[2.5rem] lg:p-12 dark:border-emerald-500/25 dark:from-[#0B1A14] dark:via-emerald-950/40 dark:to-[#0B1A14] dark:shadow-[0_28px_90px_-40px_rgba(0,0,0,0.7)]">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-emerald-100/80 blur-3xl dark:bg-emerald-700/15"
@@ -150,54 +135,11 @@ export default function WhatsAppChannel({
         aria-hidden="true"
         className="pointer-events-none absolute right-1/3 top-1/2 h-44 w-44 rounded-full bg-emerald-300/25 blur-2xl dark:bg-emerald-500/10"
       />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-10 top-8 h-1.5 w-1.5 rounded-full bg-emerald-400/70 dark:bg-emerald-400/40"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-12 right-16 h-2 w-2 rounded-full bg-emerald-400/50 dark:bg-emerald-400/30"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-14 h-1 w-1 rounded-full bg-emerald-500/50 dark:bg-emerald-500/30"
-      />
 
-      <div className="relative grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-600 dark:text-emerald-400">
-            Stay Ahead
-          </span>
-          <h2 className="mt-4 max-w-xl text-3xl font-extrabold leading-[1.15] tracking-tight text-[#0A1730] sm:text-4xl dark:text-white">
-            Not ready to subscribe?{' '}
-            <span className="text-emerald-600 dark:text-emerald-400">Stay connected for free.</span>
-          </h2>
-          <p className="mt-5 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base dark:text-slate-300">
-            {description}
-          </p>
-
-          <ul className="mt-8 grid grid-cols-2 gap-3">
-            {benefits.map((benefit) => {
-              const Icon = benefit.icon;
-              return (
-                <li
-                  key={benefit.label}
-                  className="flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-white/80 px-3 py-2.5 shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/[0.07]"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <span className="text-xs font-semibold leading-tight text-[#0A1730] sm:text-sm dark:text-slate-100">
-                    {benefit.label}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-
-        <div className="relative">
-          <div className="relative mx-auto w-full max-w-[250px] lg:max-w-[265px]">
+      <div className="relative grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
+        {/* Phone image on a soft, professional background */}
+        <div className="order-1 relative mx-auto flex w-full max-w-md items-center justify-center rounded-[2rem] bg-gradient-to-br from-emerald-50 to-emerald-100/70 p-6 sm:p-10 dark:from-emerald-950/40 dark:to-emerald-900/20">
+          <div className="relative w-full max-w-[240px] lg:max-w-[262px]">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 z-10 hidden lg:block"
@@ -207,7 +149,7 @@ export default function WhatsAppChannel({
                 return (
                   <span
                     key={badge.label}
-                    className={`absolute z-10 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-100 bg-white/95 px-2.5 py-1.5 text-[10px] font-semibold text-[#0A1730] shadow-lg dark:border-emerald-500/25 dark:bg-[#0C2118] dark:text-emerald-100 ${badge.position}`}
+                    className={`absolute z-10 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-100 bg-white/95 px-2.5 py-1.5 text-[10px] font-semibold text-[#061B36] shadow-lg dark:border-emerald-500/25 dark:bg-[#0C2118] dark:text-emerald-100 ${badge.position}`}
                   >
                     <Icon className="h-3 w-3 text-[#25D366]" />
                     {badge.label}
@@ -216,7 +158,7 @@ export default function WhatsAppChannel({
               })}
             </div>
 
-            <div className="relative w-full rounded-[2.4rem] border-[6px] border-[#0B2A20] bg-white shadow-2xl dark:shadow-black/60 overflow-hidden">
+            <div className="relative w-full overflow-hidden rounded-[2.4rem] border-[6px] border-[#0B2A20] bg-white shadow-2xl dark:shadow-black/60">
               <div className="flex items-center justify-between gap-2 rounded-t-[1.95rem] bg-[#075E54] px-3 py-2.5">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#128C7E]">
@@ -272,8 +214,41 @@ export default function WhatsAppChannel({
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="mt-8 flex flex-col items-center gap-3 lg:mt-10">
+        {/* Content */}
+        <div className="order-2 flex flex-col items-center text-center">
+          <h2 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-[#061B36] sm:text-4xl dark:text-white">
+            {title}
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base dark:text-slate-300">
+            {description}
+          </p>
+
+          <div className="mt-8 grid w-full gap-4 sm:grid-cols-3">
+            {benefits.map((benefit) => {
+              const Icon = benefit.icon;
+              return (
+                <div
+                  key={benefit.label}
+                  className="flex h-full flex-col items-center justify-center gap-3 rounded-2xl border border-emerald-100 bg-white/80 p-5 text-center shadow-sm dark:border-emerald-500/20 dark:bg-emerald-500/[0.07]"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="text-sm font-semibold leading-tight text-[#061B36] dark:text-slate-100">
+                    {benefit.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <InfoBanner align="center" className="mt-6 w-full">
+            {CHANNEL_NOTE}
+          </InfoBanner>
+
+          <div className="mt-6 flex w-full flex-col items-center gap-3">
             <a
               href={WHATSAPP_CHANNEL_URL}
               target="_blank"
@@ -289,18 +264,14 @@ export default function WhatsAppChannel({
                 →
               </span>
             </a>
-            <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Free to join · No spam · Unsubscribe anytime
             </p>
           </div>
+
+          {note && <p className="mt-4 text-sm font-medium text-content-muted">{note}</p>}
         </div>
       </div>
-
-      {note && (
-        <div className="relative mt-9 flex flex-col items-center gap-2 border-t border-emerald-200/60 pt-5 lg:mt-12 dark:border-emerald-500/20">
-          {note}
-        </div>
-      )}
     </div>
   );
 }

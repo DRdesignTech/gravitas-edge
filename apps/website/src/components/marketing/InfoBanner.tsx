@@ -1,6 +1,8 @@
 interface InfoBannerProps {
   children: React.ReactNode;
   className?: string;
+  /** `center` centers the icon and text; defaults to left-aligned. */
+  align?: 'left' | 'center';
 }
 
 function InfoIcon({ className = 'h-5 w-5' }: { className?: string }) {
@@ -22,14 +24,19 @@ function InfoIcon({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
-export default function InfoBanner({ children, className = '' }: InfoBannerProps) {
+export default function InfoBanner({ children, className = '', align = 'left' }: InfoBannerProps) {
+  const centered = align === 'center';
   return (
     <div
       role="status"
-      className={`flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50/80 px-5 py-4 text-sm leading-relaxed text-sky-800 dark:border-sky-500/20 dark:bg-sky-500/5 dark:text-sky-200 ${className}`}
+      className={`rounded-2xl border border-[#C8943E]/30 bg-[#FFF3D9] px-5 py-4 text-sm leading-relaxed text-[#7A5A1E] dark:border-[#C8943E]/30 dark:bg-brand-950 dark:text-brand-200 ${
+        centered
+          ? 'flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:justify-center sm:gap-3'
+          : 'flex items-start gap-3'
+      } ${className}`}
     >
-      <InfoIcon className="mt-0.5 h-5 w-5 shrink-0 text-sky-500 dark:text-sky-400" />
-      <div className="min-w-0">{children}</div>
+      <InfoIcon className={`h-5 w-5 shrink-0 text-[#C8943E] ${centered ? '' : 'mt-0.5'}`} />
+      <div className={centered ? 'min-w-0 sm:text-left' : 'min-w-0'}>{children}</div>
     </div>
   );
 }

@@ -11,11 +11,10 @@ import { scrollToAnchor } from '@/lib/scroll';
 
 const navLinks = [
   { href: '#home', label: 'Home' },
-  { href: '#how-it-works', label: 'How It Works' },
   { href: '#free-preview', label: 'Free Preview' },
   { href: '#vaults', label: 'Opportunity Vaults' },
+  { href: '#how-it-works', label: 'How It Works' },
   { href: '#plans', label: 'Plans' },
-  { href: '/upload-resume', label: 'Resume' },
   { href: '#faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact Us' },
 ];
@@ -95,10 +94,10 @@ export default function Header() {
   };
 
   const navLinkClass = (href: string) =>
-    `rounded-lg px-1.5 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+    `rounded-lg px-1.5 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
       isActive(href)
-        ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
-        : 'text-content-muted hover:bg-surface-muted hover:text-content'
+        ? 'bg-[#FFF3D9] text-[#061B36] border border-[#C8943E] dark:bg-brand-950 dark:text-brand-200 dark:border-brand-500/60'
+        : 'text-content-muted hover:bg-surface-muted hover:text-content hover:border hover:border-[#C8943E]/40 border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2'
     }`;
 
   return (
@@ -177,7 +176,7 @@ export default function Header() {
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="block px-4 py-2.5 text-sm text-content-muted transition-colors hover:bg-surface-muted hover:text-content"
+                      className="block px-4 py-2.5 text-sm text-content-muted transition-all duration-150 hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:bg-surface-muted focus-visible:text-content"
                     >
                       {link.label}
                     </Link>
@@ -195,7 +194,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              className="rounded-xl bg-[#061B36] px-5 py-2.5 text-sm font-semibold text-[#FFFEFA] shadow-sm transition-colors hover:bg-[#071A35] dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
               Sign In
             </Link>
@@ -207,7 +206,7 @@ export default function Header() {
           <Link
             href="/#free-preview"
             onClick={(e) => handleSectionNav(e, '#free-preview')}
-            className="whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-medium text-brand-600 transition-colors hover:bg-brand-50 dark:text-brand-400 dark:hover:bg-brand-950"
+            className="relative whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-semibold text-[#061B36] transition-all border border-transparent hover:border-[#C8943E] hover:bg-[#FFF3D9] dark:text-brand-200 dark:hover:border-brand-500/60 dark:hover:bg-brand-950 animate-pulse-gold"
           >
             Free Preview
           </Link>
@@ -222,7 +221,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="whitespace-nowrap rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
+              className="whitespace-nowrap rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 dark:bg-brand-400 dark:text-[#061B36]"
             >
               Sign In
             </Link>
@@ -268,10 +267,10 @@ export default function Header() {
                   key={link.href}
                   href={`/${link.href}`}
                   onClick={(e) => handleSectionNav(e, link.href)}
-                  className={`block rounded-lg px-3 py-2.5 text-sm font-medium whitespace-normal break-words ${
+                  className={`block rounded-lg px-3 py-2.5 text-sm font-medium whitespace-normal break-words transition-all duration-200 ${
                     isActive(link.href)
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
-                      : 'text-content-muted hover:bg-surface-muted hover:text-content'
+                      ? 'bg-[#FFF3D9] text-[#061B36] border border-[#C8943E] dark:bg-brand-950 dark:text-brand-200 dark:border-brand-500/60'
+                      : 'text-content-muted hover:bg-surface-muted hover:text-content hover:border hover:border-[#C8943E]/40 border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E]'
                   }`}
                 >
                   {link.label}
@@ -313,7 +312,7 @@ export default function Header() {
             <div className="flex gap-3 pt-2">
               <Link
                 href="/login"
-                className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+                className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-brand-700 dark:bg-brand-400 dark:text-[#061B36]"
               >
                 Sign In
               </Link>

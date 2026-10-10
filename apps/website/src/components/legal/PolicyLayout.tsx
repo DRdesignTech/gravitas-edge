@@ -18,7 +18,7 @@ export default function PolicyLayout({
 }: PolicyLayoutProps) {
   return (
     <div className="overflow-hidden">
-      <section className="bg-[#0A1730]">
+      <section className="bg-[#061B36]">
         <div className="mx-auto w-full max-w-6xl px-4 pb-12 pt-16 sm:px-6 lg:px-10 lg:pt-24">
           <Eyebrow invert>{eyebrow}</Eyebrow>
           <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl">

@@ -35,7 +35,7 @@ export default function FloatingResumeButton() {
     <Link
       href="/upload-resume"
       aria-label="Upload your resume"
-      className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-brand-400 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 transition-colors hover:bg-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:bottom-6 sm:right-6 sm:px-6 sm:py-3.5"
+      className="fixed bottom-[5.5rem] right-4 z-40 inline-flex items-center gap-2 rounded-full bg-brand-400 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-500/30 transition-colors hover:bg-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:bottom-6 sm:right-6 sm:px-6 sm:py-3.5"
     >
       <UploadIcon />
       <span>Upload Resume</span>

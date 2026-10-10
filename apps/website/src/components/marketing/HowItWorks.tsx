@@ -1,63 +1,113 @@
-import Eyebrow from '@/components/marketing/Eyebrow';
-import InfoCard from '@/components/marketing/InfoCard';
-import HomeAnchor from '@/components/marketing/HomeAnchor';
+import type { ReactNode } from 'react';
 
-const steps = [
+function StepIcon({
+  children,
+  className = 'h-4 w-4 sm:h-5 sm:w-5',
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+const steps: { title: string; description: string; icon: ReactNode }[] = [
   {
-    index: '01',
-    title: 'Explore Free Opportunities',
-    description: 'Browse current opportunities without subscribing. No account or payment needed.',
+    title: 'Explore Free Preview',
+    description: 'Check the latest available opportunities.',
+    icon: (
+      <>
+        <path d="M2.5 12S6 5.75 12 5.75 21.5 12 21.5 12 18 18.25 12 18.25 2.5 12 2.5 12Z" />
+        <circle cx="12" cy="12" r="2.75" />
+      </>
+    ),
   },
   {
-    index: '02',
-    title: 'Find Relevant Roles',
-    description:
-      'See whether the opportunities match your experience, location and career interests before you decide anything.',
+    title: 'Find Relevant Opportunities',
+    description: 'Choose opportunities that match your experience and goals.',
+    icon: (
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path strokeLinecap="round" d="m20 20-3.4-3.4" />
+      </>
+    ),
   },
   {
-    index: '03',
-    title: 'Choose Your Access',
-    description:
-      'If you find relevant opportunities, choose the Opportunity Vault that matches your search.',
+    title: 'Choose Access',
+    description: 'Pick the right Opportunity Vault for full details.',
+    icon: (
+      <>
+        <rect x="4.5" y="10" width="15" height="10.5" rx="2.5" />
+        <path d="M8.5 10V7.75a3.5 3.5 0 0 1 7 0V10" />
+      </>
+    ),
   },
   {
-    index: '04',
-    title: 'Open & Apply',
-    description:
-      'Subscribe to see the full job details and the application or contact details, then go after the roles you like.',
+    title: 'Reach Out Directly',
+    description: 'Use the available contact details and apply directly.',
+    icon: (
+      <>
+        <path d="M22 2 11 13" />
+        <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+      </>
+    ),
   },
 ];
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="scroll-mt-20 bg-white dark:bg-surface-muted">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+    <section id="how-it-works" className="scroll-mt-20 bg-surface">
+      <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
         <div className="max-w-2xl">
-          <Eyebrow>HOW IT WORKS</Eyebrow>
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
-            How Gravitas Edge works.
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">
+            How It Works
+          </p>
+          <h2 className="mt-4 font-serif-heading text-3xl font-bold text-content sm:text-4xl lg:text-5xl">
+            How It Works
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-content-muted">
-            A simple four-step journey — from browsing real opportunities on this page to unlocking
-            the access that fits your search.
+          <p className="mt-4 text-base leading-relaxed text-content-muted sm:text-lg">
+            From discovery to application in a few simple steps.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((step) => (
-            <InfoCard key={step.index} {...step} />
+        <ol className="mx-auto mt-12 max-w-3xl space-y-8 sm:mt-16 sm:space-y-10">
+          {steps.map((step, i) => (
+            <li key={step.title} className="relative flex items-start gap-3 sm:gap-6">
+              {i < steps.length - 1 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-[23px] top-[54px] bottom-[-2rem] w-[2px] rounded-full bg-[#C8943E]/40 sm:left-[27px] sm:top-[62px] sm:bottom-[-2.5rem]"
+                />
+              )}
+              <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[3px] border-[#C8943E] bg-[#061B36] font-serif-heading text-lg font-bold text-white shadow sm:h-14 sm:w-14 sm:text-xl">
+                {i + 1}
+              </span>
+              <div className="flex min-w-0 items-start gap-2.5 pt-1.5 sm:gap-3 sm:pt-2">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-[#C8943E] sm:h-10 sm:w-10">
+                  <StepIcon>{step.icon}</StepIcon>
+                </span>
+                <div className="min-w-0">
+                  <h3 className="font-serif-heading text-xl font-bold leading-snug text-content sm:text-2xl">
+                    {step.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-content-muted sm:text-base">
+                    {step.description}
+                  </p>
+                </div>
+              </div>
+            </li>
           ))}
-        </div>
-
-        <div className="mt-10">
-          <HomeAnchor
-            href="#free-preview"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-400 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 sm:text-base"
-          >
-            Explore the Free Preview
-            <span aria-hidden="true">↓</span>
-          </HomeAnchor>
-        </div>
+        </ol>
       </div>
     </section>
   );

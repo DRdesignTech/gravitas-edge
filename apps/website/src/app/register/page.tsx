@@ -114,7 +114,7 @@ function RegisterForm() {
           )}
 
           {guestResume && (
-            <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200">
+            <div className="mb-4 rounded-xl border border-[#C8943E]/30 bg-[#FFF3D9] px-4 py-3 text-sm text-[#7A5A1E] dark:border-[#C8943E]/30 dark:bg-brand-950 dark:text-brand-200">
               You uploaded {guestResume.originalName} as a guest — it will be linked to your new
               account, so you won&apos;t need to upload it again.
             </div>

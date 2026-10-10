@@ -16,19 +16,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const baseButton =
-  'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-500 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]';
+  'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#C8943E] disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-brand-600 text-white shadow-sm hover:bg-brand-700 focus-visible:ring-brand-600 focus-visible:ring-offset-surface',
+    'bg-[#061B36] text-[#FFFEFA] shadow-sm hover:bg-[#071A35] dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm transition-all duration-200',
   secondary:
-    'bg-brand-50 text-brand-700 hover:bg-brand-100 focus-visible:ring-brand-500 focus-visible:ring-offset-surface dark:bg-brand-950 dark:text-brand-200 dark:hover:bg-brand-900',
+    'bg-[#FFF3D9] text-[#061B36] hover:bg-[#FFEFCB] dark:bg-brand-950 dark:text-brand-200 dark:hover:bg-brand-900 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm transition-all duration-200',
   outline:
-    'border border-line bg-surface text-content hover:bg-surface-muted focus-visible:ring-brand-500 dark:bg-transparent',
+    'border border-line bg-surface text-content hover:border-[#C8943E] hover:bg-surface-muted hover:-translate-y-0.5 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 active:translate-y-0 transition-all duration-200',
   danger:
     'bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-500 focus-visible:ring-offset-surface',
   ghost:
-    'bg-transparent text-content-muted hover:bg-surface-muted hover:text-content focus-visible:ring-brand-500 dark:hover:bg-surface-muted',
+    'bg-transparent text-content-muted hover:bg-surface-muted hover:text-content focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 transition-all duration-200',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -112,20 +112,26 @@ function FieldError({ error }: { error?: string }) {
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  trailing?: React.ReactNode;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, required, className = '', ...props }, ref) => {
+  ({ label, error, required, className = '', trailing, ...props }, ref) => {
     return (
       <div className="w-full">
         <FieldLabel label={label} required={required} />
-        <input
-          ref={ref}
-          required={required}
-          aria-invalid={!!error}
-          className={`${fieldBase} ${fieldError(error)} ${className}`}
-          {...props}
-        />
+        <div className="relative">
+          <input
+            ref={ref}
+            required={required}
+            aria-invalid={!!error}
+            className={`${fieldBase} ${fieldError(error)} ${trailing ? 'pr-11' : ''} ${className}`}
+            {...props}
+          />
+          {trailing && (
+            <div className="absolute inset-y-0 right-0 flex items-center pr-1.5">{trailing}</div>
+          )}
+        </div>
         <FieldError error={error} />
       </div>
     );

@@ -64,15 +64,15 @@ export default function FaqSection() {
   const featured = faqData.filter((item) => FEATURED_FAQ_IDS.includes(item.id));
 
   return (
-    <section id="faq" className="scroll-mt-20 border-t border-line bg-white dark:bg-surface-muted">
+    <section id="faq" className="scroll-mt-20 border-t border-line bg-surface-muted">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="max-w-2xl">
           <Eyebrow>FAQ</Eyebrow>
           <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
-            Frequently asked questions.
+            Frequently Asked Questions
           </h2>
           <p className="mt-4 text-base leading-relaxed text-content-muted">
-            The quick answers most people look for before exploring the Vaults and subscribing.
+            Quick answers to common questions.
           </p>
         </div>
 

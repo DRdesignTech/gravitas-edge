@@ -4,54 +4,54 @@
 
 @layer base {
   :root {
-    --color-brand-50: 240 247 255;
-    --color-brand-100: 222 236 255;
-    --color-brand-200: 198 225 252;
-    --color-brand-300: 148 190 245;
-    --color-brand-400: 0 143 239;
-    --color-brand-500: 11 45 120;
-    --color-brand-600: 6 27 79;
-    --color-brand-700: 5 21 62;
-    --color-brand-800: 4 15 46;
-    --color-brand-900: 3 10 31;
-    --color-brand-950: 2 6 20;
+    --color-brand-50: 255 243 217; /* #FFF3D9 */
+    --color-brand-100: 255 238 193;
+    --color-brand-200: 255 228 159;
+    --color-brand-300: 246 210 127;
+    --color-brand-400: 200 148 62; /* #C8943E */
+    --color-brand-500: 167 121 49;
+    --color-brand-600: 6 27 54; /* primary navy */
+    --color-brand-700: 7 26 53; /* #071A35 */
+    --color-brand-800: 6 27 54;
+    --color-brand-900: 6 27 54;
+    --color-brand-950: 6 27 54;
 
-    --color-surface: 255 255 255;
-    --color-surface-muted: 245 248 252;
+    --color-surface: 255 254 250; /* #FFFEFA */
+    --color-surface-muted: 248 247 243; /* #F8F7F3 */
     --color-surface-elevated: 255 255 255;
-    --color-surface-inverse: 6 27 79;
+    --color-surface-inverse: 6 27 54; /* navy */
 
-    --color-content: 23 32 51;
-    --color-content-muted: 100 116 139;
+    --color-content: 38 52 74; /* #26344A */
+    --color-content-muted: 104 117 138; /* #68758A */
     --color-content-faint: 148 163 184;
-    --color-content-inverse: 255 255 255;
+    --color-content-inverse: 255 254 250;
 
-    --color-line: 217 226 240;
-    --color-line-strong: 190 203 226;
+    --color-line: 233 231 223; /* #E9E7DF */
+    --color-line-strong: 214 210 198;
   }
 
   .dark {
-    --color-brand-50: 238 246 255;
-    --color-brand-100: 216 234 254;
-    --color-brand-200: 186 218 254;
-    --color-brand-300: 128 186 249;
-    --color-brand-400: 0 143 239;
-    --color-brand-500: 14 52 150;
-    --color-brand-600: 10 42 124;
-    --color-brand-700: 12 40 120;
-    --color-brand-800: 10 34 100;
-    --color-brand-900: 7 24 74;
-    --color-brand-950: 5 16 48;
+    --color-brand-50: 43 34 18; /* dark gold tint */
+    --color-brand-100: 62 49 25;
+    --color-brand-200: 226 195 130;
+    --color-brand-300: 236 205 138; /* light gold text */
+    --color-brand-400: 200 148 62; /* #C8943E gold */
+    --color-brand-500: 214 162 74;
+    --color-brand-600: 200 148 62; /* gold accents/buttons */
+    --color-brand-700: 220 176 96;
+    --color-brand-800: 110 84 40;
+    --color-brand-900: 70 53 25;
+    --color-brand-950: 26 22 13;
 
-    --color-surface: 7 11 29;
-    --color-surface-muted: 11 17 40;
-    --color-surface-elevated: 16 27 60;
-    --color-surface-inverse: 255 255 255;
+    --color-surface: 8 13 28;
+    --color-surface-muted: 12 18 38;
+    --color-surface-elevated: 17 26 51;
+    --color-surface-inverse: 255 254 250;
 
-    --color-content: 240 245 253;
-    --color-content-muted: 148 163 184;
-    --color-content-faint: 96 116 148;
-    --color-content-inverse: 15 23 42;
+    --color-content: 240 243 248;
+    --color-content-muted: 154 168 189;
+    --color-content-faint: 104 120 145;
+    --color-content-inverse: 8 13 28;
 
     --color-line: 30 43 78;
     --color-line-strong: 45 62 102;
@@ -97,5 +97,70 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     border-radius: 9999px;
     background-color: rgb(var(--color-line-strong));
+  }
+}
+@layer utilities {
+  .font-serif-heading {
+    font-family: var(--font-display), Georgia, serif;
+  }
+  .text-gold {
+    color: #c8943e;
+  }
+  .bg-navy {
+    background-color: #061b36;
+  }
+  .border-gold {
+    border-color: #c8943e;
+  }
+}
+
+@keyframes pulse-gold {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(200, 148, 62, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(200, 148, 62, 0.2);
+  }
+}
+.animate-pulse-gold {
+  animation: pulse-gold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Hero entrance — text slides in from above and fades */
+@keyframes hero-fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hero-text-animate {
+  animation: hero-fade-down 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+
+/* Gold CTA shine sweep */
+@keyframes btn-shine {
+  0%,
+  55% {
+    transform: translateX(-160%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(320%) skewX(-18deg);
+  }
+}
+.btn-shine {
+  animation: btn-shine 2.6s ease-in-out 0.7s infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-text-animate,
+  .btn-shine {
+    animation: none;
   }
 }

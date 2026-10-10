@@ -48,7 +48,7 @@ export default function VaultsPage() {
   return (
     <div className="overflow-hidden">
       {/* SECTION 1 — NAVY HERO */}
-      <section className="bg-[#0A1730]">
+      <section className="bg-[#061B36]">
         <div className="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-24">
           <Eyebrow invert>OPPORTUNITY VAULTS</Eyebrow>
           <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl">
@@ -74,7 +74,7 @@ export default function VaultsPage() {
               Not yet reviewed the live database?{' '}
               <Link
                 href="/opportunities"
-                className="font-semibold underline underline-offset-2 hover:text-sky-900 dark:hover:text-sky-100"
+                className="font-semibold underline underline-offset-2 hover:text-[#8a6524] dark:hover:text-[#E3B968]"
               >
                 Open the Free Preview
               </Link>{' '}

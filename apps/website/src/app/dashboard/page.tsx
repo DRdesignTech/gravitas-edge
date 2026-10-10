@@ -22,7 +22,14 @@ import {
 } from '@/lib/types';
 import { Badge, Button, EmptyState, ErrorState, Skeleton, StatusBadge } from '@/components/ui';
 import { BriefcaseIcon, LayersIcon, VaultIcon } from '@/components/cards';
-import { formatDate, formatMoney, titleCase, displayExperience, hasExperience, isMeaningful } from '@/lib/format';
+import {
+  formatDate,
+  formatMoney,
+  titleCase,
+  displayExperience,
+  hasExperience,
+  isMeaningful,
+} from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 
 const RECENT_LIMIT = 5;
@@ -571,7 +578,7 @@ function Stat({
   const tones: Record<string, string> = {
     brand: 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300',
     emerald: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400',
-    blue: 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400',
+    blue: 'bg-[#FFF3D9] text-[#8a6524] dark:bg-brand-950 dark:text-brand-200',
     amber: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
   };
   return (

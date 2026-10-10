@@ -36,12 +36,12 @@ export default function PricingSection({
   const activePlan = activeGroup?.plans.find((p) => p.id === checkout?.planId);
 
   return (
-    <section id="plans" className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50">
+    <section id="plans" className="scroll-mt-20 border-t border-line bg-surface">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="max-w-2xl">
           <Eyebrow>PLANS / PRICING</Eyebrow>
           <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
-            Choose how long you need access.
+            Plans
           </h2>
           <p className="mt-4 text-base leading-relaxed text-content-muted">
             Select the Opportunity Vault relevant to your search and choose your preferred access

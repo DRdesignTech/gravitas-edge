@@ -50,7 +50,7 @@ export default function HowItWorksPage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* SECTION 1 — DARK NAVY INTRO                                    */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="bg-[#0A1730]">
+      <section className="bg-[#061B36]">
         <div className="mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8 lg:py-24">
           <Eyebrow invert>HOW GRAVITAS EDGE WORKS</Eyebrow>
           <h1 className="mt-5 text-4xl font-extrabold leading-[1.15] tracking-tight text-white sm:text-5xl">
@@ -82,7 +82,7 @@ export default function HowItWorksPage() {
       <section className="border-t border-line bg-white dark:bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-6 lg:grid-cols-2">
-            <div className="flex flex-col rounded-2xl bg-[#0A1730] p-7 sm:p-9">
+            <div className="flex flex-col rounded-2xl bg-[#061B36] p-7 sm:p-9">
               <Eyebrow invert>WHY THE PREVIEW MATTERS</Eyebrow>
               <h2 className="mt-4 max-w-md text-2xl font-bold leading-snug tracking-tight text-white sm:text-3xl">
                 We want you to decide after seeing the opportunities, not on guesswork.
@@ -95,7 +95,7 @@ export default function HowItWorksPage() {
               <div className="mt-8">
                 <Link
                   href="/opportunities"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-400 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A1730] sm:text-base"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-400 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#061B36] sm:text-base"
                 >
                   Open the Live Free Preview
                   <span aria-hidden="true">→</span>
