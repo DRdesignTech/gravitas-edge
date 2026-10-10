@@ -47,18 +47,59 @@ export default function Header() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [hash, setHash] = useState('');
+  const [activeSection, setActiveSection] = useState('home');
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMobileOpen(false), [pathname]);
   useEffect(() => setUserMenuOpen(false), [pathname]);
 
+  // Scroll spy — tracks the section currently in view so the active highlight
+  // follows scrolling (e.g. it returns to Home when scrolled back to the top).
   useEffect(() => {
-    setHash(window.location.hash);
-    const onHashChange = () => setHash(window.location.hash);
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []);
+    if (pathname !== '/') return;
+    const ids = navLinks.filter((l) => l.href.startsWith('#')).map((l) => l.href.slice(1));
+
+    const update = () => {
+      const offset = 88;
+      // Resolve elements on every run — sections can be replaced after data loads.
+      const entries = ids
+        .map((id) => {
+          const el = document.getElementById(id);
+          return el ? { id, top: el.getBoundingClientRect().top } : null;
+        })
+        .filter((e): e is { id: string; top: number } => e !== null);
+      if (!entries.length) return;
+
+      let current = entries[0].id;
+      let closest = -Infinity;
+      let lowest = entries[0].id;
+      let lowestTop = -Infinity;
+      for (const { id, top } of entries) {
+        if (top > lowestTop) {
+          lowestTop = top;
+          lowest = id;
+        }
+        if (top <= offset && top > closest) {
+          closest = top;
+          current = id;
+        }
+      }
+      // When the page is scrolled to the very bottom the last section may not
+      // reach the offset — highlight it regardless.
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+        current = lowest;
+      }
+      setActiveSection(current);
+    };
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -82,13 +123,13 @@ export default function Header() {
     const id = href.replace(/^#/, '');
     scrollToAnchor(id);
     window.history.replaceState(null, '', href);
-    setHash(href);
+    setActiveSection(id);
   };
 
   const isActive = (href: string) => {
     if (href.startsWith('#')) {
       if (pathname !== '/') return false;
-      return href === '#home' ? !hash || hash === href : hash === href;
+      return activeSection === href.slice(1);
     }
     return href === '/' ? pathname === '/' : pathname.startsWith(href);
   };
