@@ -81,9 +81,6 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-surface-muted dark:bg-surface" style={{ fontFamily: 'var(--font-poppins)' }}>
       <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-[#061B36] p-10 lg:flex">
-        <div className="pointer-events-none absolute -top-40 -right-32 h-96 w-96 rounded-full bg-brand-400/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-48 -left-24 h-[28rem] w-[28rem] rounded-full bg-brand-300/10 blur-3xl" />
-
         <div className="relative flex flex-1 flex-col justify-center">
           <h2 className="max-w-md text-3xl font-bold leading-tight text-white">
             Run your consulting marketplace with confidence.
