@@ -81,14 +81,14 @@ function OptionButton({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+      className={`inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
         selected
-          ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950 dark:text-brand-200'
-          : 'border-line bg-surface text-content hover:border-brand-300 hover:bg-surface-muted dark:bg-surface dark:hover:border-brand-700'
+          ? 'border-brand-400 bg-gradient-to-br from-[#0d325c] to-[#061B36] text-white shadow-[0_12px_26px_-16px_rgba(6,27,54,0.9)]'
+          : 'border-line bg-surface text-content hover:border-brand-400/60 hover:bg-surface-muted dark:bg-surface-elevated dark:hover:bg-surface'
       }`}
     >
       {label}
-      {selected && <CheckIcon className="h-4 w-4 shrink-0" />}
+      {selected && <CheckIcon className="h-4 w-4 shrink-0 text-[#E3B968]" />}
     </button>
   );
 }
@@ -120,89 +120,130 @@ export default function VaultFinder({
   };
 
   const hasSelection = experience !== null || locations.length > 0;
+  const answered = experience !== null && locations.length > 0;
 
   return (
-    <div className="rounded-3xl border border-line bg-surface p-6 card-static dark:bg-surface-elevated sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="max-w-2xl">
-          <Eyebrow>VAULT FINDER</Eyebrow>
-          <h3 className="mt-3 text-xl font-bold tracking-tight text-content sm:text-2xl">
-            Find the right Opportunity Vault
-          </h3>
-          <p className="mt-2 text-sm text-content-muted sm:text-base">
-            Answer two quick questions and we&apos;ll highlight the vaults most relevant to your
-            experience level and preferred location. All vaults remain visible below.
-          </p>
+    <div className="relative overflow-hidden rounded-3xl border border-line bg-gradient-to-b from-surface to-surface-muted p-6 shadow-card dark:from-surface-elevated dark:to-surface sm:p-8">
+      {/* Decorative background — CSS only */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full"
+        style={{ background: 'radial-gradient(circle, rgba(200,148,62,0.14), transparent 68%)' }}
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full border border-brand-400/20"
+      />
+
+      <div className="relative">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#0d325c] to-brand-600 text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.09)] ring-1 ring-inset ring-brand-400/35">
+                <CompassIcon className="h-5 w-5" />
+              </span>
+              <Eyebrow>VAULT FINDER</Eyebrow>
+            </span>
+            <h3 className="mt-3 text-xl font-bold tracking-tight text-content sm:text-2xl">
+              Find the right Opportunity Vault
+            </h3>
+            <p className="mt-2 text-sm text-content-muted sm:text-base">
+              Answer two quick questions and we&apos;ll highlight the vaults most relevant to your
+              experience level and preferred location. All vaults remain visible below.
+            </p>
+          </div>
+          {hasSelection && (
+            <button
+              type="button"
+              onClick={reset}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-content-muted transition-colors hover:border-brand-400/60 hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:bg-surface-elevated"
+            >
+              <CloseIcon className="h-4 w-4" />
+              Clear
+            </button>
+          )}
         </div>
-        {hasSelection && (
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-medium text-content-muted transition-colors hover:border-brand-300 hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+
+        <div className="mt-7 grid gap-7 lg:grid-cols-2">
+          <div role="group" aria-labelledby="vf-experience-label">
+            <p id="vf-experience-label" className="text-sm font-semibold text-content">
+              Your experience level?
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {EXPERIENCE_OPTIONS.map((option) => (
+                <OptionButton
+                  key={option.key}
+                  label={option.label}
+                  selected={experience === option.key}
+                  onSelect={() => setExperience(option.key)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div role="group" aria-labelledby="vf-location-label">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <p id="vf-location-label" className="text-sm font-semibold text-content">
+                Preferred location(s)?
+              </p>
+              <span className="text-xs font-medium text-content-faint">Select one or more</span>
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {LOCATION_OPTIONS.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => toggleLocation(option.key)}
+                  aria-pressed={locations.includes(option.key)}
+                  className={`inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
+                    locations.includes(option.key)
+                      ? 'border-brand-400 bg-gradient-to-br from-[#0d325c] to-[#061B36] text-white shadow-[0_12px_26px_-16px_rgba(6,27,54,0.9)]'
+                      : 'border-line bg-surface text-content hover:border-brand-400/60 hover:bg-surface-muted dark:bg-surface-elevated dark:hover:bg-surface'
+                  }`}
+                >
+                  {option.label}
+                  {locations.includes(option.key) && (
+                    <CheckIcon className="h-4 w-4 shrink-0 text-[#E3B968]" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {answered ? (
+          <p
+            className={`mt-7 flex items-start gap-2.5 rounded-2xl border px-4 py-3 text-sm ${
+              recommended.size > 0
+                ? 'border-brand-400/35 bg-gradient-to-br from-brand-50/70 to-surface text-content dark:border-brand-400/25 dark:from-brand-950/40 dark:to-surface'
+                : 'border-line bg-surface-muted text-content-muted dark:bg-surface'
+            }`}
           >
-            <CloseIcon className="h-4 w-4" />
-            Clear
-          </button>
+            {recommended.size > 0 ? (
+              <>
+                <SparkleIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                <span>
+                  Based on your answers, the vault
+                  {recommended.size > 1 ? 's marked' : ' marked'}{' '}
+                  <strong className="font-semibold text-content">&ldquo;Recommended for you&rdquo;</strong>{' '}
+                  below {recommended.size > 1 ? 'are' : 'is'} the best match
+                  {recommended.size > 1 ? 'es' : ''} for your search.
+                </span>
+              </>
+            ) : (
+              <>
+                <InfoIcon className="mt-0.5 h-4 w-4 shrink-0 text-content-faint" />
+                <span>We couldn&apos;t find a vault matching your answers. All vaults are shown below.</span>
+              </>
+            )}
+          </p>
+        ) : (
+          <p className="mt-7 flex items-center gap-2 text-sm text-content-faint">
+            <InfoIcon className="h-4 w-4 shrink-0" />
+            Select an option for both questions to see your recommended vaults.
+          </p>
         )}
       </div>
-
-      <div className="mt-7 grid gap-7 lg:grid-cols-2">
-        <fieldset>
-          <legend className="text-sm font-semibold text-content">Your experience level?</legend>
-          <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {EXPERIENCE_OPTIONS.map((option) => (
-              <OptionButton
-                key={option.key}
-                label={option.label}
-                selected={experience === option.key}
-                onSelect={() => setExperience(option.key)}
-              />
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend className="text-sm font-semibold text-content">Preferred location(s)?</legend>
-          <p className="mt-1.5 text-xs text-content-faint">Select one or more</p>
-          <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-            {LOCATION_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => toggleLocation(option.key)}
-                aria-pressed={locations.includes(option.key)}
-                className={`inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
-                  locations.includes(option.key)
-                    ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-400 dark:bg-brand-950 dark:text-brand-200'
-                    : 'border-line bg-surface text-content hover:border-brand-300 hover:bg-surface-muted dark:bg-surface dark:hover:border-brand-700'
-                }`}
-              >
-                {option.label}
-                {locations.includes(option.key) && <CheckIcon className="h-4 w-4 shrink-0" />}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      </div>
-
-      {experience && locations.length > 0 ? (
-        <p className="mt-7 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">
-          {recommended.size > 0 ? (
-            <>
-              Based on your answers, the vault
-              {recommended.size > 1 ? 's marked' : ' marked'} <strong>&ldquo;Recommended for
-              you&rdquo;</strong> below {recommended.size > 1 ? 'are' : 'is'} the best match
-              {recommended.size > 1 ? 'es' : ''} for your search.
-            </>
-          ) : (
-            <>We couldn&apos;t find a vault matching your answers. All vaults are shown below.</>
-          )}
-        </p>
-      ) : (
-        <p className="mt-7 text-sm text-content-faint">
-          Select an option for both questions to see your recommended vaults.
-        </p>
-      )}
     </div>
   );
 }
@@ -233,6 +274,50 @@ function CloseIcon({ className = 'h-4 w-4' }: { className?: string }) {
       aria-hidden="true"
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function CompassIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <polygon
+        points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SparkleIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 2l1.1 5.5L18 9l-4.9 1.5L12 16l-1.1-5.5L6 9l4.9-1.5L12 2zm6.5 10l.6 2.9L22 15l-2.9.9L18.5 19l-.6-3.1L15 15l2.9-.9L18.5 12zM5.5 12l.6 2.9L9 15l-2.9.9L5.5 19l-.6-3.1L2 15l2.9-.9L5.5 12z" />
+    </svg>
+  );
+}
+
+function InfoIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10.5v5.25M12 7.75h.008v.008H12V7.75z" />
     </svg>
   );
 }

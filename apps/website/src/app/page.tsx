@@ -526,7 +526,7 @@ export default function Home() {
           )}
 
           {loading ? (
-            <div className="grid gap-5 md:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-36" />
               ))}
@@ -541,7 +541,7 @@ export default function Home() {
               />
             </div>
           ) : (
-            <div className="mt-10 grid gap-5 md:grid-cols-3">
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {visibleVaults.map((v) => (
                 <VaultCard key={v.id} vault={v} recommended={recommendedVaultIds.has(v.id)} />
               ))}

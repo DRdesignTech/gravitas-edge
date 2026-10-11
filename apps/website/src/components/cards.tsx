@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Opportunity, Vault } from '@/lib/types';
-import { Badge, AccessBadge, LockIcon, UnlockIcon } from '@/components/ui';
+import { Badge, LockIcon, UnlockIcon } from '@/components/ui';
 import { titleCase, formatDate, displayExperience, hasExperience, isMeaningful } from '@/lib/format';
 
 export interface ProtectedField {
@@ -312,6 +312,101 @@ function ArrowRightIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
+/* Vault-specific glyphs. Inline Lucide-style SVGs — CSS/inline only, no image
+   assets and no new dependencies. Falls back to the generic VaultIcon. */
+function VaultGlyph({ name }: { name: string }) {
+  const n = name.toLowerCase();
+  const base: React.SVGProps<SVGSVGElement> = {
+    className: 'h-7 w-7',
+    fill: 'none',
+    viewBox: '0 0 24 24',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    'aria-hidden': true,
+  };
+
+  if (n.includes('remote')) {
+    return (
+      <svg {...base}>
+        <path d="M21.54 15H17a2 2 0 0 0-2 2v4.54" />
+        <path d="M7 3.34V5a3 3 0 0 0 3 3 2 2 0 0 1 2 2c0 1.1.9 2 2 2a2 2 0 0 0 2-2c0-1.1.9-2 2-2h3.17" />
+        <path d="M11 21.95V18a2 2 0 0 0-2-2 2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05" />
+        <circle cx="12" cy="12" r="10" />
+      </svg>
+    );
+  }
+  if (n.includes('uae') || n.includes('global')) {
+    return (
+      <svg {...base}>
+        <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+        <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+        <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+        <path d="M10 6h4M10 10h4M10 14h4M10 18h4" />
+      </svg>
+    );
+  }
+  if (n.includes('executive')) {
+    return (
+      <svg {...base}>
+        <path d="M12 12h.01" />
+        <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+        <path d="M22 13a18.15 18.15 0 0 1-20 0" />
+        <rect width="20" height="14" x="2" y="6" rx="2" />
+      </svg>
+    );
+  }
+  if (n.includes('leadership')) {
+    return (
+      <svg {...base}>
+        <path d="M18 21a8 8 0 0 0-16 0" />
+        <circle cx="10" cy="8" r="5" />
+        <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3" />
+      </svg>
+    );
+  }
+  if (n.includes('management')) {
+    return (
+      <svg {...base}>
+        <path d="M12 16v5" />
+        <path d="M16 14v7" />
+        <path d="M20 10v11" />
+        <path d="m22 3-8.646 8.646a.5.5 0 0 1-.708 0L9.354 8.354a.5.5 0 0 0-.707 0L2 15" />
+        <path d="M4 18v3" />
+        <path d="M8 14v7" />
+      </svg>
+    );
+  }
+  if (n.includes('early') || n.includes('career')) {
+    return (
+      <svg {...base}>
+        <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z" />
+        <path d="M22 10v6" />
+        <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
+      </svg>
+    );
+  }
+  return <VaultIcon className="h-7 w-7" />;
+}
+
+function AccessPill({ locked }: { locked: boolean }) {
+  if (locked) {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/30">
+        <LockIcon className="h-3 w-3" />
+        Locked
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/30">
+      <UnlockIcon className="h-3 w-3" />
+      Unlocked
+    </span>
+  );
+}
+
 export function VaultCard({
   vault: v,
   recommended = false,
@@ -320,54 +415,72 @@ export function VaultCard({
   recommended?: boolean;
 }) {
   const unlocked = !v.locked;
+  const href = unlocked
+    ? `/opportunities?vaultId=${encodeURIComponent(v.id)}`
+    : `/vaults/${v.id}`;
+  const actionText = v.locked
+    ? 'Browse jobs free · Full details via subscription'
+    : 'Open the jobs included with your access';
+
   return (
     <Link
-      href={unlocked ? `/opportunities?vaultId=${encodeURIComponent(v.id)}` : `/vaults/${v.id}`}
-      className={`group card-premium relative flex h-full flex-col rounded-2xl p-5 ${
+      href={href}
+      className={`group relative flex h-full flex-col rounded-2xl border bg-gradient-to-b from-surface to-surface-muted p-5 transition-all duration-200 ease-premium hover:-translate-y-1 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:p-6 dark:from-surface-elevated dark:to-surface ${
         recommended
-          ? 'border-brand-400 ring-2 ring-brand-500/25 dark:border-brand-500/70 dark:ring-brand-400/20'
-          : v.locked
-            ? ''
-            : 'border-brand-200 dark:border-brand-500/40'
+          ? 'border-brand-400/70 shadow-[0_18px_44px_-26px_rgba(200,148,62,0.55)] hover:border-brand-400'
+          : 'border-line hover:border-brand-400/55'
       }`}
     >
+      {/* Decorative background — CSS only, sits behind content */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
+      >
+        <span
+          className="absolute -right-14 -top-14 h-44 w-44 rounded-full opacity-90 transition-opacity duration-300 group-hover:opacity-100"
+          style={{ background: 'radial-gradient(circle, rgba(200,148,62,0.18), transparent 68%)' }}
+        />
+        <span className="absolute -right-7 -top-7 h-28 w-28 rounded-full border border-brand-400/20" />
+        <span className="absolute -right-1 -top-1 h-16 w-16 rounded-full border border-brand-400/15" />
+      </span>
+
       {recommended && (
-        <span className="absolute -top-2.5 right-4 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-400/30">
+        <span className="absolute left-5 top-0 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded-full bg-gradient-to-r from-brand-300 to-brand-400 px-2.5 py-0.5 text-[11px] font-semibold text-[#061B36] shadow-sm ring-1 ring-inset ring-white/50">
           <SparkleIcon className="h-3 w-3" />
           Recommended for you
         </span>
       )}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-              v.locked
-                ? 'bg-surface-muted text-content-faint'
-                : 'bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300'
-            }`}
-          >
-            {v.locked ? <LockIcon className="h-5 w-5" /> : <VaultIcon className="h-5 w-5" />}
-          </span>
-          <h3 className="font-semibold text-content">{v.name}</h3>
+
+      {/* Header: gold glyph in navy tile, bold title, access badge */}
+      <div className="relative flex items-start gap-3.5">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0d325c] to-brand-600 text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_12px_22px_-14px_rgba(6,27,54,0.85)] ring-1 ring-inset ring-brand-400/35 transition-all duration-200 group-hover:text-[#F1CE82] group-hover:ring-brand-400/70">
+          <VaultGlyph name={v.name} />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-3 gap-y-2">
+          <h3 className="min-w-0 text-[1.0625rem] font-bold leading-snug text-content sm:text-lg">
+            {v.name}
+          </h3>
+          <AccessPill locked={!!v.locked} />
         </div>
-        <AccessBadge locked={v.locked ?? false} />
       </div>
 
-      {v.description && <p className="mt-3 text-sm text-content-muted">{v.description}</p>}
+      {v.description && (
+        <p className="relative mt-4 flex-1 text-sm leading-relaxed text-content-muted">
+          {v.description}
+        </p>
+      )}
 
-      <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-        <span
-          className={`text-xs font-medium ${
-            v.locked
-              ? 'text-content-faint group-hover:text-brand-600 dark:group-hover:text-brand-300'
-              : 'text-emerald-600 dark:text-emerald-400'
-          }`}
-        >
-          {v.locked
-            ? 'Browse jobs free · Full details via subscription'
-            : 'Open the jobs included with your access'}
+      {/* Action area: existing action text + gold circular arrow */}
+      <div className="relative mt-auto flex items-end justify-between gap-4 border-t border-line pt-4">
+        <span className="text-xs font-medium leading-relaxed text-content-muted sm:text-[13px]">
+          {actionText}
         </span>
-        <ArrowRightIcon className="h-4 w-4 shrink-0 text-brand-500/70 transition-transform duration-200 group-hover:translate-x-0.5" />
+        <span
+          aria-hidden="true"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E3B968] to-brand-400 text-white shadow-[0_10px_20px_-10px_rgba(200,148,62,0.9)] ring-1 ring-inset ring-white/30 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:scale-[1.05]"
+        >
+          <ArrowRightIcon className="h-4 w-4" />
+        </span>
       </div>
     </Link>
   );
