@@ -103,7 +103,7 @@ export default function HowItWorksPage() {
               </div>
             </div>
 
-            <div className="flex flex-col rounded-2xl border border-line bg-white p-7 shadow-card dark:bg-surface-elevated sm:p-9">
+            <div className="flex flex-col rounded-2xl border border-line bg-white p-7 card-static dark:bg-surface-elevated sm:p-9">
               <h2 className="text-2xl font-bold tracking-tight text-content sm:text-3xl">
                 What happens after the preview?
               </h2>

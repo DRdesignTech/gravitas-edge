@@ -73,7 +73,7 @@ export default function PlansPage() {
           {groups.map((group) => (
             <div
               key={group.vault.id}
-              className="flex flex-col rounded-3xl border border-line bg-surface p-7 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-300/60 hover:shadow-card-hover dark:bg-surface-elevated"
+              className="card-static flex flex-col rounded-3xl p-7"
             >
               <div className="flex items-start gap-3">
                 <VaultIcon className="mt-0.5 h-6 w-6 shrink-0 text-brand-600 dark:text-brand-400" />

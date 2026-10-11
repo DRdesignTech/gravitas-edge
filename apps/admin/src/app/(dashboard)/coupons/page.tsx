@@ -445,7 +445,7 @@ export default function CouponsPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (c) => <StatusBadge value={c.status ? STATUS_LABELS[c.status] : c.status} />,
+      render: (c) => <StatusBadge status={c.status ? STATUS_LABELS[c.status] : c.status} />,
     },
     {
       key: 'actions',
@@ -454,10 +454,10 @@ export default function CouponsPage() {
         c.status === 'ARCHIVED' ? (
           <>
             <div className="hidden items-center gap-2 sm:flex">
-              <Button size="sm" variant="secondary" onClick={() => confirmRestore(c)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => confirmRestore(c)}>
                 Restore
               </Button>
-              <Button size="sm" variant="danger" onClick={() => setPermTarget(c)}>
+              <Button maxWidth="max-w-md" variant="danger" onClick={() => setPermTarget(c)}>
                 Delete
               </Button>
             </div>
@@ -473,14 +473,14 @@ export default function CouponsPage() {
         ) : (
           <>
             <div className="hidden items-center gap-2 sm:flex">
-              <Button size="sm" variant="secondary" onClick={() => openUsages(c)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => openUsages(c)}>
                 Usages
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => openEdit(c)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => openEdit(c)}>
                 Edit
               </Button>
               <Button
-                size="sm"
+                maxWidth="max-w-md"
                 variant={c.isActive ? 'danger' : 'secondary'}
                 loading={togglePending === c.id}
                 onClick={() => toggleActive(c)}
@@ -488,7 +488,7 @@ export default function CouponsPage() {
               >
                 {c.isActive ? 'Disable' : 'Enable'}
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => setArchiveTarget(c)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => setArchiveTarget(c)}>
                 Archive
               </Button>
             </div>
@@ -569,7 +569,7 @@ export default function CouponsPage() {
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
         title={editing ? `Edit coupon — ${editing.code}` : 'New coupon'}
-        size="lg"
+        maxWidth="max-w-4xl"
         footer={
           <>
             <Button variant="secondary" onClick={() => setFormOpen(false)}>
@@ -731,7 +731,7 @@ export default function CouponsPage() {
         isOpen={usagesOpen}
         onClose={() => setUsagesOpen(false)}
         title={usagesTarget ? `Usages — ${usagesTarget.code}` : 'Redemptions'}
-        size="lg"
+        maxWidth="max-w-4xl"
         footer={
           usages && usages.meta.totalPages > 1 ? (
             <div className="flex w-full justify-end">

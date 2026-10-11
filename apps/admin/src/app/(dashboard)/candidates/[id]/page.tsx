@@ -107,7 +107,7 @@ export default function CandidateProfilePage() {
           </div>
           <div className="text-right">
             <Button
-              size="sm"
+              maxWidth="max-w-md"
               variant="secondary"
               onClick={() => router.push(`/admin/candidates/${id}/resumes`)}
             >
@@ -156,7 +156,7 @@ export default function CandidateProfilePage() {
                       <span className="text-xs text-content-muted">{formatDate(r.uploadedAt)}</span>
                     </td>
                     <td className="py-4">
-                      <StatusBadge value={r.uploadStatus} />
+                      <StatusBadge status={r.uploadStatus} />
                     </td>
                     <td className="py-4 flex gap-2">
                       <a
@@ -171,7 +171,7 @@ export default function CandidateProfilePage() {
                         Download
                       </a>
                       <Button
-                        size="sm"
+                        maxWidth="max-w-md"
                         variant="danger"
                         onClick={() =>
                           window.confirm('Are you sure you want to delete this resume?')

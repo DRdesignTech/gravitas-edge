@@ -166,10 +166,10 @@ export default function ExperienceLevelsPage() {
       render: (el) => (
         <>
           <div className="hidden items-center gap-2 sm:flex">
-            <Button size="sm" variant="secondary" onClick={() => openEdit(el)}>
+            <Button maxWidth="max-w-md" variant="secondary" onClick={() => openEdit(el)}>
               Edit
             </Button>
-            <Button size="sm" variant="danger" onClick={() => setDeleteTarget(el)}>
+            <Button maxWidth="max-w-md" variant="danger" onClick={() => setDeleteTarget(el)}>
               Delete
             </Button>
           </div>
@@ -219,7 +219,7 @@ export default function ExperienceLevelsPage() {
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
         title={editing ? 'Edit experience level' : 'New experience level'}
-        size="sm"
+        maxWidth="max-w-md"
         footer={
           <>
             <Button variant="secondary" onClick={() => setFormOpen(false)}>

@@ -161,11 +161,11 @@ export default function ReferralSlabsPage() {
       label: 'Actions',
       render: (s) => (
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary" onClick={() => openEdit(s)}>
+          <Button maxWidth="max-w-md" variant="secondary" onClick={() => openEdit(s)}>
             Edit
           </Button>
           <Button
-            size="sm"
+            maxWidth="max-w-md"
             variant={s.isActive ? 'danger' : 'outline'}
             onClick={() => toggleActive(s, !s.isActive)}
           >

@@ -455,21 +455,21 @@ export default function OpportunitiesPage() {
       render: (o) => (
         <>
           <div className="hidden items-center gap-2 sm:flex">
-            <Button size="sm" variant="secondary" onClick={() => setViewTarget(o)}>
+            <Button maxWidth="max-w-md" variant="secondary" onClick={() => setViewTarget(o)}>
               View
             </Button>
             {o.status === 'DRAFT' && (
-              <Button size="sm" onClick={() => setPublishTarget(o)}>
+              <Button maxWidth="max-w-md" onClick={() => setPublishTarget(o)}>
                 Publish
               </Button>
             )}
-            <Button size="sm" variant="secondary" onClick={() => openEdit(o)}>
+            <Button maxWidth="max-w-md" variant="secondary" onClick={() => openEdit(o)}>
               Edit
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(o)}>
+            <Button maxWidth="max-w-md" variant="secondary" onClick={() => setDeleteTarget(o)}>
               Archive
             </Button>
-            <Button size="sm" variant="danger" onClick={() => setPermTarget(o)}>
+            <Button maxWidth="max-w-md" variant="danger" onClick={() => setPermTarget(o)}>
               Delete
             </Button>
           </div>
@@ -663,21 +663,21 @@ export default function OpportunitiesPage() {
                     </div>
                   </dl>
                   <div className="mt-auto flex items-center justify-end gap-2 border-t border-line pt-4">
-                    <Button size="sm" variant="secondary" onClick={() => setViewTarget(o)}>
+                    <Button maxWidth="max-w-md" variant="secondary" onClick={() => setViewTarget(o)}>
                       View
                     </Button>
                     {o.status === 'DRAFT' && (
-                      <Button size="sm" onClick={() => setPublishTarget(o)}>
+                      <Button maxWidth="max-w-md" onClick={() => setPublishTarget(o)}>
                         Publish
                       </Button>
                     )}
-                    <Button size="sm" variant="secondary" onClick={() => openEdit(o)}>
+                    <Button maxWidth="max-w-md" variant="secondary" onClick={() => openEdit(o)}>
                       Edit
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(o)}>
+                    <Button maxWidth="max-w-md" variant="secondary" onClick={() => setDeleteTarget(o)}>
                       Archive
                     </Button>
-                    <Button size="sm" variant="danger" onClick={() => setPermTarget(o)}>
+                    <Button maxWidth="max-w-md" variant="danger" onClick={() => setPermTarget(o)}>
                       Delete
                     </Button>
                   </div>
@@ -706,7 +706,7 @@ export default function OpportunitiesPage() {
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
         title={editing ? 'Edit opportunity' : 'New opportunity'}
-        size="lg"
+        maxWidth="max-w-4xl"
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setFormOpen(false)}>
@@ -902,7 +902,7 @@ export default function OpportunitiesPage() {
         isOpen={!!viewTarget}
         onClose={() => setViewTarget(null)}
         title={viewTarget?.title || 'Opportunity'}
-        size="lg"
+        maxWidth="max-w-4xl"
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setViewTarget(null)}>

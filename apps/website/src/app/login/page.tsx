@@ -90,7 +90,7 @@ export default function LoginPage() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8">
       <SessionExpiredNotifier />
       <div className="w-full max-w-[26rem]">
-        <div className="rounded-3xl border border-line bg-surface p-6 shadow-card sm:p-7 dark:bg-surface-elevated">
+        <div className="rounded-3xl border border-line bg-surface p-6 card-static sm:p-7 dark:bg-surface-elevated">
           <div className="text-center">
             <BrandLogo className="mx-auto h-14 w-auto" showName={false} />
             <h1 className="mt-4 text-2xl font-bold tracking-tight text-[#061B36] dark:text-content">

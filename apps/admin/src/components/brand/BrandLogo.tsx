@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import { BRAND_LOGO_SRC } from '@/lib/brand';
 
 export const BRAND_NAME = 'Gravitas Edge Consulting';
 
@@ -9,21 +9,23 @@ interface BrandLogoProps {
 }
 
 export default function BrandLogo({
-  className = 'h-9 w-auto',
+  className = 'h-10 w-auto',
   showName = true,
-  nameClassName = 'text-sm font-bold tracking-tight text-content',
+  nameClassName = 'text-lg font-bold tracking-tight text-content',
 }: BrandLogoProps) {
   return (
     <span className="inline-flex items-center gap-2.5">
-      <Image
-        src="/brand/logo.png"
-        alt="Gravitas Edge Consulting logo"
-        width={1254}
-        height={1254}
-        priority
-        className={className}
-        style={{ objectFit: 'contain' }}
-      />
+      <span className="flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-2 shadow-sm">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={BRAND_LOGO_SRC}
+          alt="Gravitas Edge Consulting logo"
+          width={2172}
+          height={724}
+          className={className}
+          style={{ objectFit: 'contain' }}
+        />
+      </span>
       {showName && <span className={nameClassName}>{BRAND_NAME}</span>}
     </span>
   );

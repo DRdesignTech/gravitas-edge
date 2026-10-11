@@ -155,7 +155,7 @@ export default function UsersPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (u) => <StatusBadge value={u.status} />,
+      render: (u) => <StatusBadge status={u.status} />,
     },
     {
       key: 'joined',
@@ -167,10 +167,10 @@ export default function UsersPage() {
       label: '',
       render: (u) => (
         <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => openEdit(u)}>
+          <Button maxWidth="max-w-md" variant="secondary" onClick={() => openEdit(u)}>
             Edit
           </Button>
-          <Button size="sm" variant="danger" onClick={() => setDeleteTarget(u)}>
+          <Button maxWidth="max-w-md" variant="danger" onClick={() => setDeleteTarget(u)}>
             Delete
           </Button>
         </div>
@@ -310,7 +310,7 @@ export default function UsersPage() {
         isOpen={!!editing}
         onClose={() => setEditing(null)}
         title="Edit user"
-        size="sm"
+        maxWidth="max-w-md"
         footer={
           <>
             <Button variant="secondary" onClick={() => setEditing(null)}>
@@ -366,7 +366,7 @@ export default function UsersPage() {
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         title="Delete user"
-        size="sm"
+        maxWidth="max-w-md"
         footer={
           <>
             <Button variant="secondary" onClick={() => setDeleteTarget(null)}>

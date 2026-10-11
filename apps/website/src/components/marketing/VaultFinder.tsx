@@ -122,7 +122,7 @@ export default function VaultFinder({
   const hasSelection = experience !== null || locations.length > 0;
 
   return (
-    <div className="rounded-3xl border border-line bg-surface p-6 shadow-card dark:bg-surface-elevated sm:p-8">
+    <div className="rounded-3xl border border-line bg-surface p-6 card-static dark:bg-surface-elevated sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <Eyebrow>VAULT FINDER</Eyebrow>

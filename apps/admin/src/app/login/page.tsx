@@ -79,8 +79,8 @@ export default function LoginPage() {
     setFieldErrors((f) => (f[field] ? { ...f, [field]: undefined } : f));
 
   return (
-    <div className="flex min-h-screen bg-surface-muted dark:bg-surface">
-      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-brand-800 p-10 lg:flex dark:bg-brand-900">
+    <div className="flex min-h-screen bg-surface-muted dark:bg-surface" style={{ fontFamily: 'var(--font-poppins)' }}>
+      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-[#061B36] p-10 lg:flex">
         <div className="pointer-events-none absolute -top-40 -right-32 h-96 w-96 rounded-full bg-brand-400/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-48 -left-24 h-[28rem] w-[28rem] rounded-full bg-brand-300/10 blur-3xl" />
 
@@ -112,7 +112,7 @@ export default function LoginPage() {
         </div>
 
         <p className="relative text-xs text-brand-200/60">
-          © {new Date().getFullYear()} Designed, Developed &amp; Marketed by PR Digital Marketing
+          © {new Date().getFullYear()} Designed, Developed & Marketed by PR Digital Marketing
           Gwalior
         </p>
       </div>
@@ -124,8 +124,8 @@ export default function LoginPage() {
 
         <div className="w-full max-w-sm">
           <div className="mb-8 text-center">
-            <BrandLogo className="mx-auto h-28 w-auto" showName={false} />
-            <p className="mt-3 text-lg font-bold tracking-tight text-content">{BRAND_NAME}</p>
+            <BrandLogo className="mx-auto h-24 w-auto" showName={false} />
+            <p className="mt-3 text-xl font-bold tracking-tight text-content">{BRAND_NAME}</p>
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-content">Welcome back</h1>
@@ -133,7 +133,7 @@ export default function LoginPage() {
             Sign in to the {BRAND_NAME} administration console.
           </p>
 
-          <div className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-card dark:bg-surface-elevated">
+          <div className="mt-6 rounded-2xl border border-line bg-surface p-6 card-static dark:bg-surface-elevated">
             {error && (
               <Alert variant="error" className="mb-5">
                 {error}
@@ -170,18 +170,18 @@ export default function LoginPage() {
                       setPassword(e.target.value);
                       clearFieldError('password');
                     }}
-                    className={`w-full rounded-lg border border-line-strong bg-surface px-3 py-2 pr-11 text-sm text-content shadow-sm placeholder:text-content-faint focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none ${
+                    className={`w-full rounded-xl border bg-surface px-3.5 py-2.5 pr-11 text-sm text-content shadow-sm transition placeholder:text-content-faint focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 ${
                       fieldErrors.password
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                        : ''
-                    } dark:border-line dark:bg-surface-elevated dark:focus:border-brand-400`}
+                        ? 'border-red-500 focus:ring-red-500/50 focus:border-red-500'
+                        : 'border-line focus:border-brand-500'
+                    } dark:bg-surface-elevated dark:border-line dark:focus:border-brand-400`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     title={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-content-muted transition hover:bg-surface-muted hover:text-content"
+                    className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-content-muted transition hover:bg-surface-muted hover:text-content"
                   >
                     {showPassword ? (
                       <svg

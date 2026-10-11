@@ -91,7 +91,7 @@ export default function CandidatesPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (u) => <StatusBadge value={u.status} />,
+      render: (u) => <StatusBadge status={u.status} />,
     },
     {
       key: 'experience',
@@ -110,7 +110,7 @@ export default function CandidatesPage() {
       render: (u) => (
         <div className="flex gap-2">
           <Button
-            size="sm"
+            maxWidth="max-w-md"
             variant="secondary"
             onClick={() => (window.location.href = `/admin/candidates/${u.id}`)}
           >

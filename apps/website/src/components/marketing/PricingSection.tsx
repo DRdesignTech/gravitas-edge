@@ -36,7 +36,7 @@ export default function PricingSection({
   const activePlan = activeGroup?.plans.find((p) => p.id === checkout?.planId);
 
   return (
-    <section id="plans" className="scroll-mt-20 border-t border-line bg-surface">
+    <section id="plans" className="section-glow-navy relative scroll-mt-20 border-t border-line bg-surface">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="max-w-2xl">
           <Eyebrow>PLANS / PRICING</Eyebrow>
@@ -64,7 +64,7 @@ export default function PricingSection({
             {groups.map((group) => (
               <div
                 key={group.vault.id}
-                className="flex flex-col rounded-3xl border border-line bg-surface p-7 shadow-card transition-all duration-200 hover:-translate-y-1 hover:border-brand-300/60 hover:shadow-card-hover dark:bg-surface-elevated"
+                className="card-static flex flex-col rounded-3xl p-7"
               >
                 <div className="flex items-start gap-3">
                   <VaultIcon className="mt-0.5 h-6 w-6 shrink-0 text-brand-600 dark:text-brand-400" />

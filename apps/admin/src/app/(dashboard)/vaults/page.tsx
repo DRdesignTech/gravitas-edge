@@ -243,7 +243,7 @@ export default function VaultsPage() {
     {
       key: 'status',
       label: 'Status',
-      render: (v) => <StatusBadge value={v.status} />,
+      render: (v) => <StatusBadge status={v.status} />,
     },
     {
       key: 'actions',
@@ -252,10 +252,10 @@ export default function VaultsPage() {
         v.status === 'ARCHIVED' ? (
           <>
             <div className="hidden items-center gap-2 sm:flex">
-              <Button size="sm" variant="secondary" onClick={() => confirmRestore(v)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => confirmRestore(v)}>
                 Restore
               </Button>
-              <Button size="sm" variant="danger" onClick={() => setPermTarget(v)}>
+              <Button maxWidth="max-w-md" variant="danger" onClick={() => setPermTarget(v)}>
                 Delete
               </Button>
             </div>
@@ -271,16 +271,16 @@ export default function VaultsPage() {
         ) : (
           <>
             <div className="hidden items-center gap-2 sm:flex">
-              <Button size="sm" variant="secondary" onClick={() => openManage(v)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => openManage(v)}>
                 Link levels
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => openEdit(v)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => openEdit(v)}>
                 Edit
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(v)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => setDeleteTarget(v)}>
                 Archive
               </Button>
-              <Button size="sm" variant="danger" onClick={() => setPermTarget(v)}>
+              <Button maxWidth="max-w-md" variant="danger" onClick={() => setPermTarget(v)}>
                 Delete
               </Button>
             </div>
@@ -364,7 +364,7 @@ export default function VaultsPage() {
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
         title={editing ? 'Edit vault' : 'New vault'}
-        size="sm"
+        maxWidth="max-w-md"
         footer={
           <>
             <Button variant="secondary" onClick={() => setFormOpen(false)}>
@@ -432,7 +432,7 @@ export default function VaultsPage() {
                   </p>
                 </div>
                 <Button
-                  size="sm"
+                  maxWidth="max-w-md"
                   variant={linked ? 'secondary' : 'primary'}
                   onClick={() => toggleLink(el)}
                 >

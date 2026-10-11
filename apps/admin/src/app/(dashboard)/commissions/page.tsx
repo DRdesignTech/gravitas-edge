@@ -262,7 +262,7 @@ export default function CommissionsPage() {
         return (
           <>
             <div className="hidden items-center gap-2 sm:flex">
-              <Button size="sm" variant="secondary" onClick={() => openDetail(c.id)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => openDetail(c.id)}>
                 View
               </Button>
               {items
@@ -271,7 +271,7 @@ export default function CommissionsPage() {
                 .map((i) => (
                   <Button
                     key={i.label}
-                    size="sm"
+                    maxWidth="max-w-md"
                     variant={i.danger ? 'danger' : 'secondary'}
                     onClick={i.onClick}
                   >
@@ -360,7 +360,7 @@ export default function CommissionsPage() {
         isOpen={!!detail || detailLoading}
         onClose={() => setDetail(null)}
         title="Commission Details"
-        size="lg"
+        maxWidth="max-w-4xl"
       >
         {detailLoading ? (
           <div className="grid gap-4 py-4 sm:grid-cols-2">
@@ -478,7 +478,7 @@ export default function CommissionsPage() {
         isOpen={!!action && !!cfg}
         onClose={() => setAction(null)}
         title={cfg?.title ?? ''}
-        size="sm"
+        maxWidth="max-w-md"
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="secondary" onClick={() => setAction(null)} disabled={acting}>

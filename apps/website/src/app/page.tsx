@@ -305,7 +305,7 @@ export default function Home() {
                   scrollTo('free-preview');
                   window.history.replaceState(null, '', '#free-preview');
                 }}
-                className="relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-lg bg-[#C8943E] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#B8832F] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#061B36] focus-visible:ring-offset-2 sm:rounded-xl sm:px-6 sm:py-3.5 sm:text-base"
+                className="relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-lg bg-gradient-to-b from-[#D3A24C] to-[#B8832F] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_-12px_rgba(200,148,62,0.75)] ring-1 ring-inset ring-white/15 transition-all duration-300 hover:-translate-y-0.5 hover:from-[#DBAA55] hover:to-[#C08A32] hover:shadow-[0_18px_40px_-14px_rgba(200,148,62,0.85)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#061B36] focus-visible:ring-offset-2 sm:rounded-xl sm:px-6 sm:py-3.5 sm:text-base"
               >
                 Explore Free Preview <span aria-hidden="true">→</span>
                 <span
@@ -338,7 +338,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 2. HOW WE ARE DIFFERENT — #why-gravitas-edge                    */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="why-gravitas-edge" className="scroll-mt-20 bg-surface-muted">
+      <section id="why-gravitas-edge" className="section-glow relative scroll-mt-20 bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
           <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">
@@ -357,8 +357,8 @@ export default function Home() {
           <div className="mx-auto grid max-w-4xl grid-cols-[1fr_auto_1fr_auto_1fr] items-stretch gap-2 sm:gap-4">
             {diffSteps.map((step, i) => (
               <Fragment key={step.title}>
-                <div className="flex flex-col items-center rounded-2xl border border-line bg-surface px-1.5 py-3 text-center shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#C8943E]/60 hover:shadow-lg sm:px-5 sm:py-5 lg:px-6 lg:py-7">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-50 text-[#C8943E] sm:h-14 sm:w-14">
+                <div className="card-static flex flex-col items-center rounded-2xl px-1.5 py-3 text-center sm:px-5 sm:py-5 lg:px-6 lg:py-7">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-[#C8943E] ring-1 ring-inset ring-[#C8943E]/20 sm:h-14 sm:w-14">
                     <StepIcon>{step.icon}</StepIcon>
                   </span>
                   <h3 className="mt-2.5 font-serif-heading text-xs font-bold leading-tight text-content [overflow-wrap:anywhere] sm:mt-4 sm:text-xl">
@@ -398,7 +398,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="what-we-do" className="scroll-mt-20 bg-surface">
+      <section id="what-we-do" className="section-glow-navy relative scroll-mt-20 bg-surface">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-10 lg:grid-cols-[1fr_minmax(0,1.1fr)] lg:items-start">
             <div className="max-w-xl">
@@ -473,7 +473,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 6. WHATSAPP FREE CONNECTION #1 — #whatsapp-free                */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="whatsapp-free" className="scroll-mt-20 border-t border-line bg-surface-muted">
+      <section id="whatsapp-free" className="section-glow relative scroll-mt-20 border-t border-line bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <WhatsAppChannel
             note={
@@ -493,7 +493,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="vaults"
-        className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
+        className="section-glow-navy relative scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
       >
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -558,7 +558,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 9. WHATSAPP FREE CONNECTION #2 — #whatsapp-free-2              */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="whatsapp-free-2" className="scroll-mt-20 border-t border-line bg-surface-muted">
+      <section id="whatsapp-free-2" className="section-glow relative scroll-mt-20 border-t border-line bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <WhatsAppChannel
             title="Stay Connected to New Opportunities"

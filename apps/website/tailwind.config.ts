@@ -54,13 +54,27 @@ const config: Config = {
         display: ['var(--font-display)', 'Georgia', 'serif'],
       },
       boxShadow: {
-        card: '0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.06)',
-        'card-hover': '0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06)',
-        pop: '0 12px 32px -8px rgb(0 0 0 / 0.18), 0 4px 12px -4px rgb(0 0 0 / 0.08)',
+        card: '0 1px 2px 0 rgb(6 27 54 / 0.05), 0 12px 30px -18px rgb(6 27 54 / 0.28)',
+        'card-hover':
+          '0 2px 6px -1px rgb(6 27 54 / 0.08), 0 30px 55px -26px rgb(6 27 54 / 0.4)',
+        pop: '0 20px 50px -16px rgb(6 27 54 / 0.32), 0 8px 20px -10px rgb(6 27 54 / 0.18)',
+        premium:
+          '0 1px 2px 0 rgb(6 27 54 / 0.05), 0 18px 48px -24px rgb(6 27 54 / 0.4), 0 0 0 1px rgb(200 148 62 / 0.08)',
+        gold: '0 22px 55px -25px rgb(200 148 62 / 0.65)',
+        sheen: 'inset 0 1px 0 0 rgb(255 255 255 / 0.7)',
+        'sheen-dark': 'inset 0 1px 0 0 rgb(255 255 255 / 0.06)',
       },
       borderRadius: {
         '2xl': '1rem',
         '3xl': '1.5rem',
+        '4xl': '2rem',
+      },
+      transitionTimingFunction: {
+        premium: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      },
+      backgroundImage: {
+        'gold-sheen':
+          'linear-gradient(135deg, #E3B968 0%, #C8943E 45%, #A77931 100%)',
       },
     },
   },

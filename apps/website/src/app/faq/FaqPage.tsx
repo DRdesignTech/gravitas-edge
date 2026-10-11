@@ -282,7 +282,7 @@ export default function FaqPage() {
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-content-faint sm:text-base">
                 {query.trim() ? highlightMatch(category.label, query) : category.label}
               </h2>
-              <div className="rounded-2xl border border-line bg-surface px-5 py-1 shadow-card dark:bg-surface-elevated sm:px-6">
+              <div className="rounded-2xl border border-line bg-surface px-5 py-1 card-static dark:bg-surface-elevated sm:px-6">
                 {items.map((item) => (
                   <FaqAccordionItem
                     key={item.id}
@@ -300,7 +300,7 @@ export default function FaqPage() {
       </div>
 
       {/* Bottom CTA */}
-      <div className="mt-10 rounded-2xl border border-line bg-surface px-6 py-8 text-center shadow-card dark:bg-surface-elevated">
+      <div className="mt-10 rounded-2xl border border-line bg-surface px-6 py-8 text-center card-static dark:bg-surface-elevated">
         <h3 className="text-base font-semibold text-content sm:text-lg">Still have questions?</h3>
         <p className="mt-2 text-sm text-content-muted">
           Contact the Gravitas Edge team and we will be happy to help.

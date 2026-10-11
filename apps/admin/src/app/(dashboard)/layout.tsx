@@ -7,6 +7,14 @@ import { useAuth } from '@/lib/auth';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Spinner } from '@/components/ui';
 import BrandLogo, { BRAND_NAME } from '@/components/brand/BrandLogo';
+import { Poppins } from 'next/font/google';
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-poppins',
+});
 
 type NavItem = {
   href: string;
@@ -95,12 +103,12 @@ function SidebarLink({
       href={item.href}
       onClick={onClick}
       title={collapsed ? item.label : undefined}
-      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
         collapsed ? 'justify-center' : ''
       } ${
         active
-          ? 'bg-brand-600 text-white shadow-sm dark:bg-brand-500'
-          : 'text-content-muted hover:bg-surface-muted hover:text-content dark:hover:bg-line/50'
+          ? 'bg-gradient-to-r from-brand-400 to-brand-500 text-[#061B36] shadow-sm dark:from-brand-500 dark:to-brand-400 font-bold'
+          : 'text-content-muted hover:bg-surface-muted hover:text-content hover:bg-gradient-to-r hover:from-brand-50/10 hover:to-brand-100/10 dark:hover:bg-line/50 font-medium'
       }`}
     >
       <NavIcon name={item.icon} />
@@ -131,7 +139,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading || !user || !admin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface text-brand-600 dark:text-brand-400">
+      <div className="flex min-h-screen items-center justify-center bg-surface text-brand-600 dark:text-brand-400" style={{ fontFamily: 'var(--font-poppins)' }}>
         <Spinner className="h-9 w-9" />
       </div>
     );
@@ -148,10 +156,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {collapsed ? (
           <BrandLogo className="h-10 w-auto" showName={false} />
         ) : (
-          <>
+<>
             <BrandLogo className="h-10 w-auto shrink-0" showName={false} />
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-content">{BRAND_NAME}</p>
+              <p className="truncate text-sm font-extrabold text-brand-400">{BRAND_NAME}</p>
               <p className="truncate text-[11px] text-content-muted">Admin Console</p>
             </div>
           </>
@@ -184,14 +192,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {initials}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-content">{displayName}</p>
+              <p className="truncate text-sm font-semibold text-content">{displayName}</p>
               <p className="truncate text-xs text-content-faint">{user.email}</p>
             </div>
           </div>
         )}
         <button
           onClick={logout}
-          className={`mt-3 w-full rounded-lg border border-line-strong px-4 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 dark:border-line dark:hover:bg-red-500/10 ${
+          className={`mt-3 w-full rounded-lg border border-brand-200 px-4 py-2 text-left text-sm font-medium text-brand-600 transition hover:bg-brand-50 hover:border-brand-400 dark:border-brand-800 dark:hover:bg-brand-950/30 ${
             collapsed ? 'flex justify-center px-0' : ''
           }`}
           title="Logout"
@@ -219,7 +227,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="min-h-screen bg-surface-muted dark:bg-surface">
+    <div className="min-h-screen bg-surface-muted dark:bg-surface" style={{ fontFamily: 'var(--font-poppins)' }}>
       {/* Desktop sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 hidden border-r border-line bg-surface transition-[width] duration-200 dark:bg-surface-elevated lg:block ${
@@ -245,7 +253,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div
         className={`transition-[padding] duration-200 ${collapsed ? 'lg:pl-[76px]' : 'lg:pl-64'}`}
       >
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-surface/80 px-4 backdrop-blur dark:bg-surface/80 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-brand-200/40 bg-surface/80 px-4 backdrop-blur dark:border-brand-800/40 dark:bg-surface/80 lg:px-8">
           <button
             onClick={() => setMobileOpen(true)}
             className="rounded-lg p-2 text-content-muted hover:bg-surface-muted hover:text-content lg:hidden"

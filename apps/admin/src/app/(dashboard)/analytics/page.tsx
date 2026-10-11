@@ -308,7 +308,7 @@ export default function AnalyticsPage() {
 
             <Button
               variant="secondary"
-              size="sm"
+              maxWidth="max-w-md"
               loading={refreshing}
               onClick={() => load(filter, true)}
             >
@@ -334,7 +334,7 @@ export default function AnalyticsPage() {
             onChange={(e) => setFilter((p) => ({ ...p, endDate: e.target.value }))}
             className="w-44"
           />
-          <Button size="sm" onClick={applyCustom}>
+          <Button maxWidth="max-w-md" onClick={applyCustom}>
             Apply
           </Button>
         </div>
@@ -805,7 +805,7 @@ export default function AnalyticsPage() {
                     <p className="truncate text-sm font-medium text-content">
                       {s.userName || s.userEmail}
                     </p>
-                    <StatusBadge value={s.status} />
+                    <StatusBadge status={s.status} />
                   </div>
                   <p className="mt-0.5 text-xs text-content-muted">{s.planName}</p>
                   <p className="mt-0.5 text-xs text-content-faint">{formatDate(s.startDate)}</p>
@@ -829,7 +829,7 @@ export default function AnalyticsPage() {
                     <p className="truncate text-sm font-medium text-content">
                       {ref.referrerName || ref.referrerEmail}
                     </p>
-                    <StatusBadge value={ref.status} />
+                    <StatusBadge status={ref.status} />
                   </div>
                   <p className="mt-0.5 text-xs text-content-muted">
                     → {ref.referredName || ref.referredEmail}
@@ -908,7 +908,7 @@ export default function AnalyticsPage() {
                       <td className="px-4 py-3 text-sm font-medium text-content">{s.user}</td>
                       <td className="px-4 py-3 text-sm text-content">{s.plan}</td>
                       <td className="px-4 py-3 text-sm text-content">
-                        <StatusBadge value={s.status} />
+                        <StatusBadge status={s.status} />
                       </td>
                       <td className="px-4 py-3 text-sm text-content">{formatDate(s.start)}</td>
                     </tr>
@@ -947,7 +947,7 @@ export default function AnalyticsPage() {
                       <td className="px-4 py-3 text-sm text-content">{r.referrer}</td>
                       <td className="px-4 py-3 text-sm text-content">{r.referred}</td>
                       <td className="px-4 py-3 text-sm text-content">
-                        <StatusBadge value={r.status} />
+                        <StatusBadge status={r.status} />
                       </td>
                       <td className="px-4 py-3 text-sm text-content">{formatDate(r.date)}</td>
                     </tr>
@@ -971,7 +971,7 @@ export default function AnalyticsPage() {
               <li key={o.id} className="py-3">
                 <div className="flex items-center justify-between">
                   <p className="truncate text-sm font-medium text-content">{o.title}</p>
-                  <StatusBadge value={o.status} />
+                  <StatusBadge status={o.status} />
                 </div>
                 <p className="mt-0.5 text-xs text-content-muted">
                   {o.company || '—'} {o.location ? `· ${o.location}` : ''}

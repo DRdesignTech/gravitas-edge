@@ -151,11 +151,11 @@ export default function ReferralsPage() {
       render: (r) => (
         <>
           <div className="hidden items-center gap-2 sm:flex">
-            <Button size="sm" variant="secondary" onClick={() => openDetail(r.id)}>
+            <Button maxWidth="max-w-md" variant="secondary" onClick={() => openDetail(r.id)}>
               View
             </Button>
             {r.status !== 'SUCCESSFUL' && (
-              <Button size="sm" variant="danger" onClick={() => openSuspend(r)}>
+              <Button maxWidth="max-w-md" variant="danger" onClick={() => openSuspend(r)}>
                 Suspend
               </Button>
             )}
@@ -252,7 +252,7 @@ export default function ReferralsPage() {
         isOpen={!!detail || detailLoading}
         onClose={() => setDetail(null)}
         title="Referral Details"
-        size="lg"
+        maxWidth="max-w-4xl"
       >
         {detailLoading ? (
           <div className="grid gap-4 py-4 sm:grid-cols-2">
@@ -362,7 +362,7 @@ export default function ReferralsPage() {
         isOpen={!!suspendTarget}
         onClose={() => setSuspendTarget(null)}
         title="Suspend referral"
-        size="sm"
+        maxWidth="max-w-md"
         footer={
           <div className="flex justify-end gap-3">
             <Button

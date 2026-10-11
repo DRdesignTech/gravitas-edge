@@ -119,7 +119,7 @@ export default function VaultsPage() {
                 return (
                   <div
                     key={v.id}
-                    className="group/vault relative flex flex-col overflow-hidden rounded-3xl border border-line bg-surface shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-300/70 hover:shadow-card-hover dark:bg-surface-elevated"
+                    className="relative flex flex-col overflow-hidden rounded-3xl border border-line bg-surface card-static dark:bg-surface-elevated"
                   >
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-500 via-brand-400 to-brand-600 opacity-0 transition-opacity duration-300 group-hover/vault:opacity-100" />
                     <div className="flex flex-1 flex-col p-6">

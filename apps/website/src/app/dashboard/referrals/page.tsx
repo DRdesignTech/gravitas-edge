@@ -201,7 +201,7 @@ export default function ReferralsPage() {
       />
 
       {/* Tab navigation */}
-      <div className="mt-6 flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1 shadow-card dark:bg-surface-elevated">
+      <div className="mt-6 flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1 card-static dark:bg-surface-elevated">
         {(
           [
             ['overview', 'Overview'],
@@ -466,7 +466,7 @@ function StatBlock({
     info: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
   };
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5 shadow-card dark:bg-surface-elevated">
+    <div className="rounded-2xl border border-line bg-surface p-5 card-static dark:bg-surface-elevated">
       <span
         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${accents[accent]}`}
       >

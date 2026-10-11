@@ -227,7 +227,7 @@ export default function VaultDetailPage() {
             {/* RIGHT COLUMN */}
             <div className="space-y-6">
               {/* SECTION 4 — PLAN SELECTOR */}
-              <div className="rounded-2xl border border-line bg-surface p-6 shadow-card dark:bg-surface-elevated">
+              <div className="rounded-2xl border border-line bg-surface p-6 card-static dark:bg-surface-elevated">
                 <h2 className="text-lg font-bold text-content">Select your access period</h2>
 
                 {vaultPlans.length > 0 ? (

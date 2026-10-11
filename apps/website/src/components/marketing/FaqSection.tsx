@@ -64,7 +64,7 @@ export default function FaqSection() {
   const featured = faqData.filter((item) => FEATURED_FAQ_IDS.includes(item.id));
 
   return (
-    <section id="faq" className="scroll-mt-20 border-t border-line bg-surface-muted">
+    <section id="faq" className="section-glow-navy relative scroll-mt-20 border-t border-line bg-surface-muted">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="max-w-2xl">
           <Eyebrow>FAQ</Eyebrow>
@@ -76,7 +76,7 @@ export default function FaqSection() {
           </p>
         </div>
 
-        <div className="mt-8 rounded-2xl border border-line bg-surface px-5 py-1 shadow-card dark:bg-surface-elevated sm:px-7">
+        <div className="mt-8 rounded-2xl border border-line bg-surface px-5 py-1 card-static dark:bg-surface-elevated sm:px-7">
           {featured.map((item) => (
             <FaqItem key={item.id} question={item.question} answer={item.answer} />
           ))}

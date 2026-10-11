@@ -70,7 +70,7 @@ export default function SubscriptionsPage() {
             return (
               <div
                 key={s.id}
-                className="rounded-2xl border border-line bg-surface p-5 shadow-card dark:bg-surface-elevated"
+                className="rounded-2xl border border-line bg-surface p-5 card-static dark:bg-surface-elevated"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>

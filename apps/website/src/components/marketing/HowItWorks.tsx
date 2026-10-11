@@ -66,7 +66,7 @@ const steps: { title: string; description: string; icon: ReactNode }[] = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="scroll-mt-20 bg-surface">
+    <section id="how-it-works" className="section-glow-navy relative scroll-mt-20 bg-surface">
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">
@@ -89,11 +89,11 @@ export default function HowItWorks() {
                   className="absolute left-[23px] top-[54px] bottom-[-2rem] w-[2px] rounded-full bg-[#C8943E]/40 sm:left-[27px] sm:top-[62px] sm:bottom-[-2.5rem]"
                 />
               )}
-              <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[3px] border-[#C8943E] bg-[#061B36] font-serif-heading text-lg font-bold leading-none text-white lining-nums tabular-nums shadow sm:h-14 sm:w-14 sm:text-xl">
+              <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[3px] border-[#C8943E] bg-[#061B36] font-serif-heading text-lg font-bold leading-none text-white lining-nums tabular-nums shadow-[0_12px_28px_-12px_rgba(6,27,54,0.65)] sm:h-14 sm:w-14 sm:text-xl">
                 <span className="block translate-y-[0.075em] leading-none">{i + 1}</span>
               </span>
               <div className="flex min-w-0 items-start gap-2.5 pt-1.5 sm:gap-3 sm:pt-2">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-[#C8943E] sm:h-10 sm:w-10">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-50 to-brand-100 text-[#C8943E] ring-1 ring-inset ring-[#C8943E]/15 sm:h-10 sm:w-10">
                   <StepIcon>{step.icon}</StepIcon>
                 </span>
                 <div className="min-w-0">

@@ -33,7 +33,7 @@ export default function PolicyLayout({
       <section className="bg-surface-muted">
         <div className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 lg:px-10 lg:py-16">
           {intro && (
-            <div className="rounded-2xl border border-line bg-surface p-6 shadow-card dark:bg-surface-elevated sm:p-7">
+            <div className="rounded-2xl border border-line bg-surface p-6 card-static dark:bg-surface-elevated sm:p-7">
               {intro}
             </div>
           )}

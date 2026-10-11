@@ -48,12 +48,12 @@ function Chevron({ direction }: { direction: 'left' | 'right' }) {
 
 function TestimonialCard({ item }: { item: (typeof testimonials)[number] }) {
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-line bg-surface p-6 shadow-sm sm:p-8">
+    <div className="card-static flex h-full flex-col rounded-2xl p-6 sm:p-8">
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <span
             aria-hidden="true"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#061B36] font-serif-heading text-sm font-bold text-[#C8943E]"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#061B36] font-serif-heading text-sm font-bold leading-none text-[#C8943E] ring-1 ring-inset ring-[#C8943E]/30"
           >
             {item.initials}
           </span>
@@ -143,7 +143,7 @@ export default function Testimonials() {
   const count = testimonials.length;
 
   return (
-    <section id="testimonials" className="scroll-mt-20 bg-surface-muted">
+    <section id="testimonials" className="section-glow relative scroll-mt-20 bg-surface-muted">
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">

@@ -162,7 +162,7 @@ export default function Dashboard() {
   return (
     <div>
       {/* ── Welcome banner ─────────────────────────────────────────── */}
-      <div className="flex flex-col gap-5 rounded-2xl border border-line bg-surface p-6 shadow-card dark:bg-surface-elevated sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-5 rounded-2xl border border-line bg-surface p-6 card-static dark:bg-surface-elevated sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           {profileImg ? (
             <img
@@ -549,7 +549,7 @@ function SectionCard({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-line bg-surface shadow-card dark:bg-surface-elevated ${className}`}
+      className={`rounded-2xl border border-line bg-surface card-static dark:bg-surface-elevated ${className}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-4">
         <h3 className="text-base font-semibold text-content">{title}</h3>
@@ -582,7 +582,7 @@ function Stat({
     amber: 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400',
   };
   return (
-    <div className="rounded-2xl border border-line bg-surface p-5 shadow-card dark:bg-surface-elevated">
+    <div className="rounded-2xl border border-line bg-surface p-5 card-static dark:bg-surface-elevated">
       <div className="flex items-center gap-3">
         <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${tones[tone]}`}>
           {icon}

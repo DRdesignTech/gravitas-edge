@@ -349,7 +349,7 @@ export default function PlansPage() {
       label: 'Status',
       render: (p) =>
         p.status ? (
-          <StatusBadge value={p.status} />
+          <StatusBadge status={p.status} />
         ) : (
           <Badge variant={p.isActive ? 'success' : 'danger'}>
             {p.isActive ? 'Active' : 'Inactive'}
@@ -363,10 +363,10 @@ export default function PlansPage() {
         p.status === 'ARCHIVED' ? (
           <>
             <div className="hidden items-center gap-2 sm:flex">
-              <Button size="sm" variant="secondary" onClick={() => confirmRestore(p)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => confirmRestore(p)}>
                 Restore
               </Button>
-              <Button size="sm" variant="danger" onClick={() => setPermTarget(p)}>
+              <Button maxWidth="max-w-md" variant="danger" onClick={() => setPermTarget(p)}>
                 Delete
               </Button>
             </div>
@@ -382,16 +382,16 @@ export default function PlansPage() {
         ) : (
           <>
             <div className="hidden items-center gap-2 sm:flex">
-              <Button size="sm" variant="secondary" onClick={() => openManage(p)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => openManage(p)}>
                 Link vaults
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => openEdit(p)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => openEdit(p)}>
                 Edit
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => setDeleteTarget(p)}>
+              <Button maxWidth="max-w-md" variant="secondary" onClick={() => setDeleteTarget(p)}>
                 Archive
               </Button>
-              <Button size="sm" variant="danger" onClick={() => setPermTarget(p)}>
+              <Button maxWidth="max-w-md" variant="danger" onClick={() => setPermTarget(p)}>
                 Delete
               </Button>
             </div>
@@ -479,7 +479,7 @@ export default function PlansPage() {
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
         title={editing ? 'Edit plan' : 'New plan'}
-        size="sm"
+        maxWidth="max-w-md"
         footer={
           <>
             <Button variant="secondary" onClick={() => setFormOpen(false)}>
@@ -604,7 +604,7 @@ export default function PlansPage() {
                   <p className="text-xs text-content-muted">{v.status}</p>
                 </div>
                 <Button
-                  size="sm"
+                  maxWidth="max-w-md"
                   variant={linked ? 'secondary' : 'primary'}
                   onClick={() => toggleVault(v)}
                 >

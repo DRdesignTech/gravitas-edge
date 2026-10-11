@@ -1,1 +1,1 @@
-export const BRAND_LOGO_SRC = '/brand/logo.png?v=5';
+export const BRAND_LOGO_SRC = '/brand/logo.png?v=6';
