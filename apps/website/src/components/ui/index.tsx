@@ -244,8 +244,7 @@ const badgeClasses: Record<BadgeVariant, string> = {
   danger: 'bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400',
   info: 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400',
   neutral: 'bg-slate-50 text-slate-700 ring-slate-600/20 dark:bg-slate-500/10 dark:text-slate-300',
-  premium:
-    'bg-gradient-to-r from-brand-600 to-brand-400 text-white ring-brand-500/30 dark:from-brand-500 dark:to-brand-300',
+  premium: 'bg-[#A77931] text-white ring-[#A77931]/40',
 };
 
 export function Badge({ variant = 'neutral', className = '', children }: BadgeProps) {

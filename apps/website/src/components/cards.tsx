@@ -105,6 +105,101 @@ export function ProtectedFields({
   );
 }
 
+/**
+ * Premium locked-access panel shown on premium opportunities the viewer cannot
+ * open. The entire panel is a single, keyboard-accessible link to the relevant
+ * Opportunity Vault (or the access-plans flow) and contains no nested
+ * interactive elements. It never renders protected field values — only a
+ * benefit summary.
+ */
+export function PremiumAccessPanel({
+  vaultId,
+  className = '',
+}: {
+  vaultId?: string | null;
+  className?: string;
+}) {
+  const href = vaultId ? `/vaults/${vaultId}` : '/plans';
+  return (
+    <Link
+      href={href}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+      }}
+      aria-label="Unlock full opportunity details with Opportunity Vault access"
+      className={`group/access relative block overflow-hidden rounded-2xl border border-brand-400/40 bg-gradient-to-br from-brand-50/80 via-surface to-surface p-4 shadow-[0_16px_40px_-28px_rgba(200,148,62,0.6)] transition-all duration-200 ease-premium hover:-translate-y-0.5 hover:border-brand-400/70 hover:shadow-[0_22px_48px_-26px_rgba(200,148,62,0.7)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:translate-y-0 dark:border-brand-400/25 dark:from-brand-950/40 dark:via-surface-elevated dark:to-surface-elevated ${className}`}
+    >
+      {/* Soft gold glow + refined decorative curves (CSS only) */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-12 -top-14 h-36 w-36 rounded-full"
+        style={{ background: 'radial-gradient(circle, rgba(200,148,62,0.16), transparent 70%)' }}
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full border border-brand-400/20"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-1 -top-3 h-14 w-14 rounded-full border border-brand-400/15"
+      />
+
+      <div className="relative flex items-start gap-3.5">
+        {/* Circular layered lock icon */}
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0d325c] to-[#061B36] text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-inset ring-brand-400/40">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-1 rounded-full border border-brand-400/30"
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-2.5 rounded-full border border-brand-400/15"
+          />
+          <LockIcon className="h-5 w-5" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500 dark:text-brand-300">
+            Premium Access
+          </p>
+          <h4 className="mt-1 text-[15px] font-bold leading-snug text-content">
+            Unlock Full Opportunity Details
+          </h4>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-content-muted">
+            View qualification, other details, how to apply and direct contact information.
+          </p>
+        </div>
+
+        {/* Gold arrow — decorative; the whole panel is the single link */}
+        <span
+          aria-hidden="true"
+          className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-300 to-brand-400 text-white shadow-[0_8px_18px_-10px_rgba(200,148,62,0.95)] transition-transform duration-200 group-hover/access:translate-x-0.5"
+        >
+          <ArrowRightIcon className="h-4 w-4" />
+        </span>
+      </div>
+
+      <div className="relative mt-3.5 flex flex-wrap gap-1.5 border-t border-brand-400/20 pt-3">
+        <BenefitChip icon={<ShieldCheckIcon className="h-3.5 w-3.5" />}>
+          Full Qualification
+        </BenefitChip>
+        <BenefitChip icon={<StepsIcon className="h-3.5 w-3.5" />}>Application Steps</BenefitChip>
+        <BenefitChip icon={<ContactIcon className="h-3.5 w-3.5" />}>Direct Contact</BenefitChip>
+      </div>
+    </Link>
+  );
+}
+
+function BenefitChip({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-400/25 bg-surface/70 px-2.5 py-1 text-[11px] font-semibold text-content-muted dark:bg-surface/50">
+      <span className="shrink-0 text-brand-500 dark:text-brand-300">{icon}</span>
+      {children}
+    </span>
+  );
+}
+
 export function OpportunityCard({
   opportunity: o,
   static: isStatic = false,
@@ -118,7 +213,7 @@ export function OpportunityCard({
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-400 text-base font-bold text-white shadow-sm dark:from-brand-400 dark:to-brand-300">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
               {(o.company || o.title || '?')[0]?.toUpperCase()}
             </span>
             <div className="min-w-0">
@@ -180,15 +275,7 @@ export function OpportunityCard({
               <ProtectedFields opportunity={o} showLock={false} />
             </div>
           ) : (
-            <div className="mt-4 rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/50 via-surface to-surface p-3.5 dark:border-amber-500/20 dark:from-amber-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
-              <div className="mb-2.5 flex items-center gap-1.5">
-                <LockIcon className="h-3.5 w-3.5 shrink-0 text-amber-600/80 dark:text-amber-400/80" />
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
-                  Unlock full details
-                </span>
-              </div>
-              <ProtectedFields opportunity={o} />
-            </div>
+            <PremiumAccessPanel vaultId={o.vaults?.[0]?.id} className="mt-4" />
           ))}
 
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
@@ -201,9 +288,12 @@ export function OpportunityCard({
     </>
   );
 
-  const wrapper = `group card-premium relative flex h-full flex-col overflow-hidden rounded-2xl`;
+  // Locked premium cards are not a link themselves — the premium access panel
+  // inside them is the single clickable target (avoids nested links).
+  const lockedPremium = !!o.isPremium && !o.isFullAccess;
+  const wrapper = 'group card-premium relative flex h-full flex-col overflow-hidden rounded-2xl';
 
-  if (isStatic) {
+  if (isStatic || lockedPremium) {
     return <div className={wrapper}>{inner}</div>;
   }
 
@@ -619,6 +709,59 @@ export function SparkleIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 2l1.1 5.5L18 9l-4.9 1.5L12 16l-1.1-5.5L6 9l4.9-1.5L12 2zm6.5 10l.6 2.9L22 15l-2.9.9L18.5 19l-.6-3.1L15 15l2.9-.9L18.5 12zM5.5 12l.6 2.9L9 15l-2.9.9L5.5 19l-.6-3.1L2 15l2.9-.9L5.5 12z" />
+    </svg>
+  );
+}
+
+export function ShieldCheckIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
+
+export function StepsIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="m3 17 2 2 4-4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m3 7 2 2 4-4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 6h8M13 12h8M13 18h8" />
+    </svg>
+  );
+}
+
+export function ContactIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <rect width="20" height="16" x="2" y="4" rx="2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
     </svg>
   );
 }

@@ -26,6 +26,7 @@ import {
   BarsIcon,
   GlobeIcon,
   ProtectedFields,
+  PremiumAccessPanel,
 } from '@/components/cards';
 import { Badge, LockIcon, UnlockIcon } from '@/components/ui';
 import { displayExperience, formatDate, hasExperience, isMeaningful } from '@/lib/format';
@@ -179,15 +180,10 @@ function PremiumLockedBox({ o }: { o: Opportunity }) {
     );
   }
   return (
-    <div className="rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/50 via-surface to-surface p-3.5 dark:border-amber-500/20 dark:from-amber-500/[0.06] dark:via-surface-elevated dark:to-surface-elevated">
-      <div className="mb-2.5 flex items-center gap-1.5">
-        <LockIcon className="h-3.5 w-3.5 shrink-0 text-amber-600/80 dark:text-amber-400/80" />
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
-          Unlock full details
-        </span>
-      </div>
-      <ProtectedFields opportunity={o} />
-    </div>
+    <PremiumAccessPanel
+      vaultId={o.vaults?.[0]?.id}
+      onClick={(e) => e.stopPropagation()}
+    />
   );
 }
 
@@ -640,7 +636,7 @@ function OpportunityPageContent() {
                       <div className="flex flex-1 flex-col p-5">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-400 text-base font-bold text-white shadow-sm dark:from-brand-400 dark:to-brand-300">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
                               {(o.company || o.title || '?')[0]?.toUpperCase()}
                             </span>
                             <div className="min-w-0">
@@ -709,7 +705,7 @@ function OpportunityPageContent() {
                       <div className="min-w-0">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-400 text-base font-bold text-white shadow-sm dark:from-brand-400 dark:to-brand-300">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
                               {(o.company || o.title || '?')[0]?.toUpperCase()}
                             </span>
                             <div className="min-w-0">

@@ -241,7 +241,7 @@ export default function LiveFreePreview({
                     <div className="min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-400 text-base font-bold text-white shadow-sm dark:from-brand-400 dark:to-brand-300">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
                             {(o.company || o.title || '?')[0]?.toUpperCase()}
                           </span>
                           <div className="min-w-0">
