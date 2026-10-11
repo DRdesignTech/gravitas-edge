@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 const testimonials = [
   {
     name: 'Simran Khurana',
@@ -19,29 +17,52 @@ const testimonials = [
     quote:
       'Moving to Dubai was my goal. The Middle East Vault gave me the direct headhunter list and active pre-market roles. I contacted the talent partner directly and landed a key tax-free package without applying blindly on portals.',
   },
+  {
+    name: 'Neha Bansal',
+    initials: 'NB',
+    badge: 'Hired in 12 Days',
+    role: 'Senior Data Engineer @ Global Analytics Firm (Hybrid)',
+    quote:
+      'The India Vault surfaced a Senior Data Engineer role that was only being shared through internal referrals. I reached the hiring manager directly and had an offer in under two weeks — no portal queue, no blind applications.',
+  },
+  {
+    name: 'Rohan Mehta',
+    initials: 'RM',
+    badge: 'Pre-Market Access',
+    role: 'Growth Marketing Lead @ D2C Brand (Bengaluru)',
+    quote:
+      'I connected with the founder before the role was even advertised. The direct contact in the Vault made the difference — the whole process felt personal and fast instead of automated.',
+  },
+  {
+    name: 'Aisha Rahman',
+    initials: 'AR',
+    badge: 'Back After a Break',
+    role: 'Finance Controller @ Manufacturing Group (Pune)',
+    quote:
+      'After a two-year career break I was nervous about portals. Gravitas Edge let me speak to the consultant actually hiring for the role, which rebuilt my confidence and led to a strong offer.',
+  },
+  {
+    name: 'Vikram Nair',
+    initials: 'VN',
+    badge: '35% Pay Uplift',
+    role: 'VP Engineering @ HealthTech Platform',
+    quote:
+      'The senior leadership opportunities were genuinely above my current band. Direct access to the decision-maker helped me negotiate a 35% pay uplift and a clear path into a CTO track.',
+  },
+  {
+    name: 'Priya Sethi',
+    initials: 'PS',
+    badge: 'Global Relocation',
+    role: 'Regional Sales Director @ Logistics MNC (Singapore)',
+    quote:
+      'The International Vault gave me recruiter contacts across Singapore and the Gulf. I interviewed directly with the regional head and relocated with full visa support.',
+  },
 ] as const;
 
 function StarIcon() {
   return (
     <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 2l2.9 6.26 6.9.6-5.2 4.55 1.55 6.74L12 16.9l-6.15 3.25 1.55-6.74L2.2 8.86l6.9-.6L12 2z" />
-    </svg>
-  );
-}
-
-function Chevron({ direction }: { direction: 'left' | 'right' }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className="h-4 w-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {direction === 'right' ? <path d="m9 5 7 7-7 7" /> : <path d="m15 5-7 7 7 7" />}
     </svg>
   );
 }
@@ -84,64 +105,7 @@ function TestimonialCard({ item }: { item: (typeof testimonials)[number] }) {
   );
 }
 
-function Controls({
-  index,
-  count,
-  onPrev,
-  onNext,
-  onSelect,
-}: {
-  index: number;
-  count: number;
-  onPrev: () => void;
-  onNext: () => void;
-  onSelect: (i: number) => void;
-}) {
-  return (
-    <div className="mt-8 flex items-center justify-center gap-4 md:hidden">
-      <button
-        type="button"
-        onClick={onPrev}
-        disabled={index === 0}
-        aria-label="Previous testimonial"
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-[#C8943E]/40 bg-surface text-[#C8943E] transition-colors hover:bg-[#C8943E] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
-      >
-        <Chevron direction="left" />
-      </button>
-      <div className="flex items-center gap-2" role="tablist" aria-label="Testimonial slides">
-        {Array.from({ length: count }).map((_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => onSelect(i)}
-            aria-label={`Go to testimonial ${i + 1}`}
-            className={`h-2.5 w-2.5 rounded-full transition-colors ${
-              i === index ? 'bg-[#C8943E]' : 'bg-[#C8943E]/30'
-            }`}
-          >
-            <span className="sr-only">
-              Slide {i + 1} of {count}
-            </span>
-          </button>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={index === count - 1}
-        aria-label="Next testimonial"
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-[#C8943E]/40 bg-surface text-[#C8943E] transition-colors hover:bg-[#C8943E] hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
-      >
-        <Chevron direction="right" />
-      </button>
-    </div>
-  );
-}
-
 export default function Testimonials() {
-  const [index, setIndex] = useState(0);
-  const count = testimonials.length;
-
   return (
     <section id="testimonials" className="section-glow relative scroll-mt-20 bg-surface-muted">
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
@@ -157,43 +121,27 @@ export default function Testimonials() {
           </p>
         </div>
 
-        {/* Mobile carousel */}
+        {/* Auto-scrolling marquee (duplicated list for a seamless loop) */}
         <div
-          className="mt-12 overflow-hidden md:hidden"
+          className="mt-12 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"
           role="region"
-          aria-roledescription="carousel"
           aria-label="Subscriber testimonials"
         >
-          <div
-            className="flex transition-transform duration-500 ease-out"
-            style={{ transform: `translateX(-${index * 100}%)` }}
-          >
-            {testimonials.map((item) => (
+          <div className="flex w-max animate-marquee">
+            {[0, 1].map((copy) => (
               <div
-                key={item.name}
-                className="w-full shrink-0 px-1"
-                role="group"
-                aria-roledescription="slide"
-                aria-label={item.name}
+                key={copy}
+                aria-hidden={copy === 1}
+                className="flex shrink-0 gap-6 pr-6"
               >
-                <TestimonialCard item={item} />
+                {testimonials.map((item) => (
+                  <div key={item.name} className="w-[85vw] max-w-sm shrink-0 sm:w-[360px]">
+                    <TestimonialCard item={item} />
+                  </div>
+                ))}
               </div>
             ))}
           </div>
-        </div>
-        <Controls
-          index={index}
-          count={count}
-          onPrev={() => setIndex((i) => Math.max(0, i - 1))}
-          onNext={() => setIndex((i) => Math.min(count - 1, i + 1))}
-          onSelect={(i) => setIndex(i)}
-        />
-
-        {/* Desktop grid */}
-        <div className="mt-12 hidden gap-6 md:grid md:grid-cols-2">
-          {testimonials.map((item) => (
-            <TestimonialCard key={item.name} item={item} />
-          ))}
         </div>
       </div>
     </section>

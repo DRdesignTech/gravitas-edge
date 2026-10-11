@@ -37,7 +37,7 @@ export const chatbotFallbackReply =
 
 /** Contact details used by the "Contact Support" paths. */
 export const chatbotContact = {
-  email: 'support@gravitasedgeconsulting.com',
+  email: 'enquiry@gravitasedgeconsulting.com',
   whatsappUrl: 'https://wa.me/message/5JALY3QF6BTKC1',
   pageUrl: '/contact',
 };

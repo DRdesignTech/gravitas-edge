@@ -10,6 +10,7 @@ import {
   ListIcon,
   LockIcon,
   Badge,
+  Select,
 } from '@/components/ui';
 import {
   OpportunityCard,
@@ -35,6 +36,76 @@ const INITIAL_COUNT = 6;
 const VIEW_KEY = 'free-preview-view';
 type PreviewView = 'grid' | 'list';
 
+const EXPERIENCE_BUCKETS = ['0–5 years', '5–10 years', '10–15 years', '15+ years', 'Senior / Leadership', 'Other'];
+const SALARY_BUCKETS = [
+  'Under ₹40 LPA',
+  '₹40–₹60 LPA',
+  '₹60 LPA and above',
+  'Competitive / Market',
+  'Not specified',
+];
+
+function uniqueOptions(values: (string | null | undefined)[]): { value: string; label: string }[] {
+  const seen = new Set<string>();
+  const out: { value: string; label: string }[] = [];
+  for (const raw of values) {
+    const value = raw?.trim();
+    if (!value || !isMeaningful(value) || seen.has(value)) continue;
+    seen.add(value);
+    out.push({ value, label: value });
+  }
+  return out.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/** Primary city from a raw location like "Bangalore / Chennai" or "Mumbai, Maharashtra". */
+function primaryLocation(value: string): string {
+  return value.split(/[/,]/)[0].trim();
+}
+
+/** Primary sector from a raw industry like "Banking / Financial Services / HR". */
+function primaryIndustry(value: string): string {
+  return value.split('/')[0].trim();
+}
+
+/** Bucket a free-text experience value (e.g. "15+ Years") into a coarse range. */
+function experienceBucket(value: string): string {
+  const text = value.trim();
+  if (!text) return '';
+  const match = text.match(/\d+/);
+  if (match) {
+    const years = Number(match[0]);
+    if (years < 5) return '0–5 years';
+    if (years < 10) return '5–10 years';
+    if (years < 15) return '10–15 years';
+    return '15+ years';
+  }
+  const lower = text.toLowerCase();
+  if (['leadership', 'senior', 'executive', 'c-suite', 'cxo'].some((w) => lower.includes(w))) {
+    return 'Senior / Leadership';
+  }
+  return 'Other';
+}
+
+/** Bucket a free-text salary value into a coarse range. */
+function salaryBucket(value: string): string {
+  const text = value.trim();
+  if (!text) return '';
+  const lower = text.toLowerCase();
+  if (/not mention|not specif|n\/a/.test(lower)) return 'Not specified';
+  if (/competitive|industry standard|attractive|negotiable/.test(lower)) {
+    return 'Competitive / Market';
+  }
+  const numbers = (text.match(/\d+(?:\.\d+)?/g) ?? []).map((n) => Number(n.replace(/,/g, '')));
+  const max = numbers.length ? Math.max(...numbers) : 0;
+  if (lower.includes('cr')) return '₹60 LPA and above';
+  if (/lpa|lac|lakh/.test(lower)) {
+    if (max >= 60) return '₹60 LPA and above';
+    if (max >= 40) return '₹40–₹60 LPA';
+    return 'Under ₹40 LPA';
+  }
+  return 'Competitive / Market';
+}
+
 function readInitialView(): PreviewView {
   if (typeof window === 'undefined') return 'grid';
   try {
@@ -58,17 +129,60 @@ export default function LiveFreePreview({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [location, setLocation] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [experience, setExperience] = useState('');
+  const [salary, setSalary] = useState('');
   const [view, setView] = useState<PreviewView>(readInitialView);
   const canCollapse = opportunities.length > INITIAL_COUNT;
   const visible = expanded ? opportunities.length : Math.min(INITIAL_COUNT, opportunities.length);
 
+  const locationOptions = useMemo(
+    () => uniqueOptions(opportunities.map((o) => (o.location ? primaryLocation(o.location) : ''))),
+    [opportunities],
+  );
+  const industryOptions = useMemo(
+    () => uniqueOptions(opportunities.map((o) => (o.industry ? primaryIndustry(o.industry) : ''))),
+    [opportunities],
+  );
+  const experienceOptions = useMemo(() => {
+    const present = new Set(
+      opportunities.map((o) => (o.experienceText ? experienceBucket(o.experienceText) : '')),
+    );
+    return EXPERIENCE_BUCKETS.filter((bucket) => present.has(bucket)).map((bucket) => ({
+      value: bucket,
+      label: bucket,
+    }));
+  }, [opportunities]);
+  const salaryOptions = useMemo(() => {
+    const present = new Set(opportunities.map((o) => (o.salary ? salaryBucket(o.salary) : '')));
+    return SALARY_BUCKETS.filter((bucket) => present.has(bucket)).map((bucket) => ({
+      value: bucket,
+      label: bucket,
+    }));
+  }, [opportunities]);
+
+  const hasFilters = Boolean(searchQuery || location || industry || experience || salary);
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setLocation('');
+    setIndustry('');
+    setExperience('');
+    setSalary('');
+  };
+
   const filteredOpportunities = useMemo(() => {
     const term = searchQuery.trim();
-    if (!term) return opportunities;
-    const queries = term.toLowerCase().split(/\s+/).filter(Boolean);
-    if (queries.length === 0) return opportunities;
+    const queries = term ? term.toLowerCase().split(/\s+/).filter(Boolean) : [];
 
     return opportunities.filter((o) => {
+      if (location && primaryLocation(o.location || '') !== location) return false;
+      if (industry && primaryIndustry(o.industry || '') !== industry) return false;
+      if (experience && experienceBucket(o.experienceText || '') !== experience) return false;
+      if (salary && salaryBucket(o.salary || '') !== salary) return false;
+      if (queries.length === 0) return true;
+
       const textParts = [
         o.title,
         o.company,
@@ -88,7 +202,7 @@ export default function LiveFreePreview({
 
       return queries.every((q) => textParts.includes(q));
     });
-  }, [opportunities, searchQuery]);
+  }, [opportunities, searchQuery, location, industry, experience, salary]);
 
   const handleViewChange = (v: PreviewView) => {
     setView(v);
@@ -105,17 +219,20 @@ export default function LiveFreePreview({
         <div className="mb-8 max-w-2xl">
           <Eyebrow>FREE PREVIEW</Eyebrow>
           <h2 className="mt-3 text-2xl font-bold tracking-tight text-content sm:text-3xl">
-            Free Preview
+            Explore before you decide
           </h2>
           <p className="mt-2 text-sm text-content-muted sm:text-base">
-            Explore a selection of available opportunities before choosing a plan. — the same ones
-            being added to the Gravitas Edge Opportunity Vaults — before you decide whether paid
-            access is right for your search.
+            See what opportunities are currently available and discover what is relevant for you to
+            your experience, function &amp; preferred market.
+          </p>
+          <p className="mt-2 text-sm font-medium text-content sm:text-base">
+            Explore First. Decide if it&apos;s right for you. Then choose access.
           </p>
         </div>
 
         {!loading && !error && (
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full max-w-2xl md:max-w-3xl">
               <SearchIcon
                 className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50"
@@ -185,6 +302,58 @@ export default function LiveFreePreview({
                 <ListIcon className="h-4 w-4" />
               </button>
             </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {locationOptions.length > 0 && (
+                <Select
+                  label="Location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  aria-label="Filter by location"
+                  options={[{ value: '', label: 'All locations' }, ...locationOptions]}
+                />
+              )}
+              {industryOptions.length > 0 && (
+                <Select
+                  label="Industry"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  aria-label="Filter by industry"
+                  options={[{ value: '', label: 'All industries' }, ...industryOptions]}
+                />
+              )}
+              {experienceOptions.length > 0 && (
+                <Select
+                  label="Experience"
+                  value={experience}
+                  onChange={(e) => setExperience(e.target.value)}
+                  aria-label="Filter by experience"
+                  options={[{ value: '', label: 'All experience levels' }, ...experienceOptions]}
+                />
+              )}
+              {salaryOptions.length > 0 && (
+                <Select
+                  label="Salary"
+                  value={salary}
+                  onChange={(e) => setSalary(e.target.value)}
+                  aria-label="Filter by salary"
+                  options={[{ value: '', label: 'All salary ranges' }, ...salaryOptions]}
+                />
+              )}
+            </div>
+
+            {hasFilters && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -200,21 +369,21 @@ export default function LiveFreePreview({
           <div className="rounded-2xl border border-line bg-surface dark:bg-surface-elevated">
             <EmptyState
               icon={<SearchIcon className="h-6 w-6" />}
-              title={searchQuery ? 'No matching opportunities' : 'No opportunities yet'}
+              title={hasFilters ? 'No matching opportunities' : 'No opportunities yet'}
               description={
-                searchQuery
-                  ? 'No opportunities match your search. Clear to see the full list.'
+                hasFilters
+                  ? 'No opportunities match your search and filters. Clear them to see the full list.'
                   : 'Check back soon — new opportunities are added regularly.'
               }
               action={
-                searchQuery ? (
+                hasFilters ? (
                   <div className="flex flex-wrap items-center justify-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setSearchQuery('')}
+                      onClick={resetFilters}
                       className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-content transition-all duration-150 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 dark:bg-transparent"
                     >
-                      Clear search
+                      Clear all filters
                     </button>
                   </div>
                 ) : null

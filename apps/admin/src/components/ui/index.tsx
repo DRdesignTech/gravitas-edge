@@ -13,6 +13,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  /** Optional Tailwind max-width utility (e.g. "max-w-md") applied to the button. */
+  maxWidth?: string;
 }
 
 const baseButton =
@@ -43,13 +45,14 @@ export function Button({
   loading = false,
   disabled,
   className = '',
+  maxWidth = '',
   children,
   ...props
 }: ButtonProps) {
   return (
     <button
       disabled={disabled || loading}
-      className={`${baseButton} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`${baseButton} ${variantClasses[variant]} ${sizeClasses[size]} ${maxWidth} ${className}`}
       {...props}
     >
       {loading && <Spinner className="h-4 w-4" />}
@@ -571,7 +574,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-2.5 sm:right-6">
+      <div
+        className="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-2.5 sm:right-6"
+        style={{ fontFamily: 'var(--font-poppins)' }}
+      >
         {toasts.map((toast) => (
           <div
             key={toast.id}

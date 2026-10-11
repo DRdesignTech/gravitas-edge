@@ -16,7 +16,7 @@ const ACCEPTED_LABEL = `${ALLOWED_EXTENSIONS.map((ext) => ext.replace('.', '').t
   ', ',
 )} · up to ${MAX_FILE_SIZE / (1024 * 1024)} MB`;
 
-const BENEFITS = ['Better Relevance', 'Upcoming Opportunities', 'Always Optional'];
+const BENEFITS = ['Better Relevance', 'Upcoming Opportunities', 'For recruiter', 'Always Optional'];
 
 function isValidFile(file: File) {
   const name = file.name.toLowerCase();
@@ -445,7 +445,7 @@ export default function ResumeUploadCard({
       )}
 
       {/* Benefit items */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {BENEFITS.map((benefit) => (
           <div
             key={benefit}

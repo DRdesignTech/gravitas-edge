@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 const WHATSAPP_URL = 'https://wa.me/message/5JALY3QF6BTKC1';
-const CONTACT = 'support@gravitasedgeconsulting.com';
+const CONTACT = 'enquiry@gravitasedgeconsulting.com';
 
 export default function ContactPage() {
   return (

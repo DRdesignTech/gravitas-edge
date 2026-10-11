@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { useGuestResume } from '@/lib/guest-resume';
 import { linkGuestResume } from '@/lib/services';
-import { Button, Card, Input, Alert, useToast } from '@/components/ui';
+import { Button, Input, Alert, useToast } from '@/components/ui';
 import BrandLogo, { BRAND_NAME } from '@/components/brand/BrandLogo';
 import { getErrorMessage } from '@/lib/errors';
 import { getPasswordError } from '@/lib/password';
@@ -86,12 +86,23 @@ function RegisterForm() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-4 sm:py-6">
-      <div className="w-full max-w-[30rem]">
-        <Card className="p-2">
+    <div className="relative flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden px-4 py-4 sm:py-6">
+      {/* Soft brand glow behind the card */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+        <div className="absolute -left-24 top-[-12%] h-80 w-80 rounded-full bg-[#C8943E]/10 blur-3xl" />
+        <div className="absolute bottom-[-16%] right-[-12%] h-96 w-96 rounded-full bg-[#061B36]/10 blur-3xl dark:bg-[#C8943E]/10" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-[30rem]">
+        <div className="relative overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-premium sm:p-7 dark:bg-surface-elevated">
+          {/* Gold hairline accent */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-[#C8943E] to-transparent"
+          />
           <div className="mb-2 text-center">
-            <BrandLogo className="mx-auto h-16 w-auto" showName={false} />{' '}
-            <h1 className="mt-2 text-xl font-bold tracking-tight text-content sm:text-2xl">
+            <BrandLogo className="mx-auto h-16 w-auto" showName={false} />
+            <h1 className="mt-2 font-serif-heading text-xl font-bold tracking-tight text-content sm:text-2xl">
               Create your account
             </h1>
             <p className="mt-1 text-sm text-content-muted">
@@ -246,7 +257,7 @@ function RegisterForm() {
               Sign in
             </Link>
           </p>
-        </Card>
+        </div>
       </div>
     </div>
   );

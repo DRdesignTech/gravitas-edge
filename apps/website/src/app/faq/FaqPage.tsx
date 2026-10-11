@@ -306,7 +306,7 @@ export default function FaqPage() {
           Contact the Gravitas Edge team and we will be happy to help.
         </p>
         <a
-          href="mailto:support@gravitasedgeconsulting.com"
+          href="mailto:enquiry@gravitasedgeconsulting.com"
           className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
         >
           Contact support

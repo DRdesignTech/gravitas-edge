@@ -262,7 +262,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="home"
-        className="relative flex min-h-[calc(100svh-4rem)] scroll-mt-16 flex-col overflow-hidden bg-[#061B36]"
+        className="relative flex min-h-[calc(100svh-4rem)] scroll-mt-16 flex-col overflow-hidden bg-[#03070C]"
       >
         {/* Background image layer. The artwork is 16:9 and wider than the
             portrait hero, so object-cover crops horizontally — object-position
@@ -287,7 +287,7 @@ export default function Home() {
           className="pointer-events-none absolute inset-0 z-0 sm:hidden"
           style={{
             backgroundImage:
-              'linear-gradient(180deg, rgba(7,27,54,0.78) 0%, rgba(7,27,54,0.55) 28%, rgba(7,27,54,0.2) 52%, rgba(7,27,54,0) 72%)',
+              'linear-gradient(180deg, rgba(3,7,12,0.85) 0%, rgba(3,7,12,0.6) 30%, rgba(3,7,12,0.22) 54%, rgba(3,7,12,0) 74%)',
           }}
         />
         <div
@@ -295,7 +295,16 @@ export default function Home() {
           className="pointer-events-none absolute inset-0 z-0 hidden sm:block"
           style={{
             backgroundImage:
-              'linear-gradient(90deg, rgba(7,27,54,0.72) 0%, rgba(7,27,54,0.58) 22%, rgba(7,27,54,0.35) 40%, rgba(7,27,54,0.12) 58%, rgba(7,27,54,0) 75%), linear-gradient(0deg, rgba(7,27,54,0.25) 0%, rgba(7,27,54,0) 35%)',
+              'linear-gradient(90deg, rgba(3,7,12,0.86) 0%, rgba(3,7,12,0.68) 22%, rgba(3,7,12,0.4) 42%, rgba(3,7,12,0.12) 60%, rgba(3,7,12,0) 78%), linear-gradient(0deg, rgba(3,7,12,0.4) 0%, rgba(3,7,12,0) 40%)',
+          }}
+        />
+        {/* Premium vignette — deepens the top-left where the copy sits */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0 hidden sm:block"
+          style={{
+            backgroundImage:
+              'radial-gradient(120% 90% at 0% 30%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 60%)',
           }}
         />
 
@@ -366,14 +375,14 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
           <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">
-              How We Are Different
+              How It&apos;s Different
             </p>
             <h2 className="mt-4 font-serif-heading text-3xl font-bold leading-tight text-content sm:text-4xl lg:text-5xl">
-              Go beyond Apply. <span className="text-[#C8943E]">Reach the right person.</span>
+              Skip the portals. <span className="text-[#C8943E]">Connect Directly.</span>
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-content-muted sm:text-lg">
-              We connect you directly with the recruiter, hiring manager, or consultant handling the
-              opportunity.
+              No &lsquo;Apply Now&rsquo;. Connect Directly with the recruiter, hiring manager or
+              consultant hiring for the role.
             </p>
           </div>
 
@@ -524,11 +533,11 @@ export default function Home() {
             <div className="max-w-2xl">
               <Eyebrow>OPPORTUNITY VAULTS</Eyebrow>
               <h2 className="mt-3 text-2xl font-bold tracking-tight text-content sm:text-3xl">
-                Opportunity Vaults
+                Find where you fit.
               </h2>
               <p className="mt-2 text-sm text-content-muted sm:text-base">
-                Pick the Vault that matches your location and experience to get full job details and
-                the application or contact details.
+                Opportunities organised by experience level and location, so you know exactly where
+                to look.
               </p>
             </div>
             {user && (

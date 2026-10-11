@@ -145,11 +145,10 @@ export default function VaultFinder({
               <Eyebrow>VAULT FINDER</Eyebrow>
             </span>
             <h3 className="mt-3 text-xl font-bold tracking-tight text-content sm:text-2xl">
-              Find the right Opportunity Vault
+              Build around where you are. And where you want to go.
             </h3>
             <p className="mt-2 text-sm text-content-muted sm:text-base">
-              Answer two quick questions and we&apos;ll highlight the vaults most relevant to your
-              experience level and preferred location. All vaults remain visible below.
+              Opportunity curated by experience level &amp; market location.
             </p>
           </div>
           {hasSelection && (

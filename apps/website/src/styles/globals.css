@@ -268,9 +268,27 @@
   will-change: transform;
 }
 
+/* Testimonials — slow horizontal marquee (seamless loop) */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee-scroll 75s linear infinite;
+  will-change: transform;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-text-animate,
-  .btn-shine {
+  .btn-shine,
+  .animate-marquee {
     animation: none;
   }
 }

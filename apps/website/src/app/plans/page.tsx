@@ -153,10 +153,10 @@ export default function PlansPage() {
       <p className="mt-10 text-center text-sm text-content-faint">
         Have questions? Contact us at{' '}
         <Link
-          href="mailto:support@gravitasedgeconsulting.com"
+          href="mailto:enquiry@gravitasedgeconsulting.com"
           className="font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
         >
-          support@gravitasedgeconsulting.com
+          enquiry@gravitasedgeconsulting.com
         </Link>
       </p>
 

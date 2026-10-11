@@ -80,7 +80,7 @@ export default function HowItWorks() {
           </p>
         </div>
 
-        <ol className="mx-auto mt-12 max-w-3xl space-y-8 sm:mt-16 sm:space-y-10">
+        <ol className="mt-12 max-w-3xl space-y-8 sm:mt-16 sm:space-y-10">
           {steps.map((step, i) => (
             <li key={step.title} className="relative flex items-start gap-3 sm:gap-6">
               {i < steps.length - 1 && (

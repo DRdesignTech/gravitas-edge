@@ -127,7 +127,7 @@ export default function DashboardHomePage() {
         title="Dashboard"
         subtitle="Overview of Gravitas Edge Consulting's health and performance."
         actions={
-          <Button variant="secondary" maxWidth="max-w-md" onClick={load} disabled={loading}>
+          <Button variant="secondary" onClick={load} disabled={loading}>
             <RefreshIcon className="h-4 w-4" />
             Refresh
           </Button>
