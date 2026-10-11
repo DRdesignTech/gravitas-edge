@@ -275,13 +275,37 @@ export default function Home() {
           className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[74%_center] sm:object-center"
         />
 
+        {/* Navy scrim over the photo.
+            Desktop: strongest behind the left-aligned copy, fading to fully
+            transparent before the right-side skyline, sunlight and person so
+            the original warm orange, gold and blue tones stay intact.
+            Mobile: the copy is anchored to the top, so the scrim runs
+            top-down — keeping text readable while leaving the lower artwork
+            visible. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0 sm:hidden"
+          style={{
+            backgroundImage:
+              'linear-gradient(180deg, rgba(7,27,54,0.78) 0%, rgba(7,27,54,0.55) 28%, rgba(7,27,54,0.2) 52%, rgba(7,27,54,0) 72%)',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0 hidden sm:block"
+          style={{
+            backgroundImage:
+              'linear-gradient(90deg, rgba(7,27,54,0.72) 0%, rgba(7,27,54,0.58) 22%, rgba(7,27,54,0.35) 40%, rgba(7,27,54,0.12) 58%, rgba(7,27,54,0) 75%), linear-gradient(0deg, rgba(7,27,54,0.25) 0%, rgba(7,27,54,0) 35%)',
+          }}
+        />
+
         {/* Content — anchored to the upper portion on mobile, immediately below
             the header, so the skyline, stairs and walking person stay visible
             below the copy. Centred composition is restored on larger screens. */}
         <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-start px-5 pb-8 pt-16 sm:justify-center sm:px-6 sm:py-12 lg:px-8 lg:py-16">
           <div className="w-full max-w-2xl text-left">
             <h1
-              className="hero-text-animate font-serif-heading text-[1.9rem] font-extrabold leading-[1.15] text-content sm:text-4xl sm:font-bold sm:leading-[1.12] md:text-5xl lg:text-6xl xl:text-7xl"
+              className="hero-text-animate font-serif-heading text-[1.9rem] font-extrabold leading-[1.15] text-white sm:text-4xl sm:font-bold sm:leading-[1.12] md:text-5xl lg:text-6xl xl:text-7xl"
               style={{ animationDelay: '0s' }}
             >
               Not every <span className="block sm:inline">opportunity</span>{' '}
@@ -289,7 +313,7 @@ export default function Home() {
               <span className="block text-[#C8943E]">job portals.</span>
             </h1>
             <p
-              className="hero-text-animate mt-3 max-w-xl text-[15px] leading-relaxed text-content sm:mt-5 sm:text-lg lg:mt-6 lg:text-xl"
+              className="hero-text-animate mt-3 max-w-xl text-[15px] leading-relaxed text-white/90 sm:mt-5 sm:text-lg lg:mt-6 lg:text-xl"
               style={{ animationDelay: '0.12s' }}
             >
               Get direct access to real opportunities with the people actively looking to hire.
