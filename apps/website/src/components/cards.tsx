@@ -115,15 +115,20 @@ export function ProtectedFields({
 export function PremiumAccessPanel({
   vaultId,
   className = '',
+  onClick,
 }: {
   vaultId?: string | null;
   className?: string;
+  onClick?: React.MouseEventHandler<HTMLElement>;
 }) {
   const href = vaultId ? `/vaults/${vaultId}` : '/plans';
   return (
     <Link
       href={href}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(e);
+      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
       }}

@@ -182,7 +182,7 @@ function PremiumLockedBox({ o }: { o: Opportunity }) {
   return (
     <PremiumAccessPanel
       vaultId={o.vaults?.[0]?.id}
-      onClick={(e) => e.stopPropagation()}
+      onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
     />
   );
 }
