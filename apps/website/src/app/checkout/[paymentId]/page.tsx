@@ -3,40 +3,21 @@
 import Link from 'next/link';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { confirmPurchase, failPayment, fetchPaymentSession, purchasePlan } from '@/lib/services';
+import { fetchPaymentSession, purchasePlan, verifyPayment } from '@/lib/services';
 import { PaymentSession } from '@/lib/types';
 import { Badge, Button, Card, ErrorState, Skeleton, Spinner } from '@/components/ui';
 import { formatMoney } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
+import { useAuth } from '@/lib/auth';
 
 /**
- * MOCK / TEST payment gateway for development only.
- *
- * This screen deliberately looks like a real checkout so the full purchase
- * flow (plan -> coupon -> gateway -> success/failure -> activation) can be
- * exercised end-to-end. NO real money is charged and no real gateway is
- * involved. To go live, replace this page with the official Razorpay (or
- * equivalent) checkout: keep calling purchasePlan() to create the session,
- * then handle the gateway callback and confirmPurchase()/failPayment() exactly
- * as this page does.
+ * Razorpay checkout. The payment order is created server-side by
+ * POST /subscriptions/purchase (never trusts client prices); the Razorpay
+ * popup is opened with the returned order_id/key_id, and the payment is only
+ * activated after the server verifies the Razorpay signature.
  */
 
-type MethodId = 'upi' | 'card' | 'netbanking' | 'wallet';
 type Phase = 'form' | 'processing' | 'success' | 'failure';
-
-interface PaymentMethod {
-  id: MethodId;
-  label: string;
-  hint: string;
-  monogram: string;
-}
-
-const PAYMENT_METHODS: PaymentMethod[] = [
-  { id: 'upi', label: 'UPI', hint: 'Google Pay · PhonePe · Paytm', monogram: 'UP' },
-  { id: 'card', label: 'Credit / Debit Card', hint: 'Visa · Mastercard · RuPay', monogram: 'CC' },
-  { id: 'netbanking', label: 'Net Banking', hint: 'All major Indian banks', monogram: 'NB' },
-  { id: 'wallet', label: 'Wallets', hint: 'Amazon Pay · Paytm Money', monogram: 'WL' },
-];
 
 function durationLabel(days: number | null): string {
   if (days === 30) return 'Monthly';
@@ -62,10 +43,11 @@ function CrossIcon({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
-export default function TestPaymentPage() {
+export default function CheckoutPage() {
   const params = useParams<{ paymentId: string }>();
   const searchParams = useSearchParams();
   const paymentId = params?.paymentId;
+
   return (
     <GatewaySession
       key={String(paymentId)}
@@ -77,11 +59,10 @@ export default function TestPaymentPage() {
 
 function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: string }) {
   const router = useRouter();
+  const { refreshAccess } = useAuth();
   const [session, setSession] = useState<PaymentSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [method, setMethod] = useState<MethodId>('upi');
-  const [simulateFailure, setSimulateFailure] = useState(false);
   const [phase, setPhase] = useState<Phase>('form');
   const [phaseError, setPhaseError] = useState('');
   const [retrying, setRetrying] = useState(false);
@@ -105,38 +86,66 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentId]);
 
+  const loadRazorpayScript = () =>
+    new Promise<void>((resolve, reject) => {
+      if (typeof window !== 'undefined' && (window as any).Razorpay) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Razorpay checkout'));
+      document.body.appendChild(script);
+    });
+
   const pay = async () => {
     if (!session || phase === 'processing') return;
     setPhase('processing');
     setPhaseError('');
-    // Simulate the gateway round-trip so the state transition is visible.
-    await new Promise((r) => setTimeout(r, 1600));
+
     try {
-      if (simulateFailure) {
-        await failPayment(session.paymentId);
-        setPhase('failure');
-      } else {
-        const result = await confirmPurchase(session.paymentId);
-        // Fresh idempotent read so the success screen shows live data.
-        setSession({
-          paymentId: result.payment.id,
-          orderId: result.payment.orderId,
-          status: 'SUCCESS',
-          amount: result.payment.amount,
-          currency: result.payment.currency,
-          planId: session.planId,
-          planName: session.planName,
-          vaultId: session.vaultId,
-          vaultName: session.vaultName,
-          durationDays: session.durationDays,
-          couponCode: session.couponCode,
-          originalAmount: session.originalAmount,
-          discountAmount: session.discountAmount,
-          finalAmount: session.finalAmount,
-        });
-        setPhase('success');
+      await loadRazorpayScript();
+
+      if (!(window as any).Razorpay || !session.orderId) {
+        throw new Error('Failed to load Razorpay checkout');
       }
-    } catch (err) {
+
+      const rzp = new (window as any).Razorpay({
+        key: session.keyId,
+        amount: Math.round(session.finalAmount * 100),
+        currency: session.currency,
+        name: 'Gravitas Edge',
+        description: `${session.planName ?? 'Plan'} - ${session.vaultName ?? ''}`,
+        order_id: session.orderId,
+        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+          try {
+            await verifyPayment({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              paymentId: session.paymentId,
+            });
+            await refreshAccess();
+            setPhase('success');
+            loadSession();
+          } catch (err: any) {
+            setPhase('failure');
+            setPhaseError(getErrorMessage(err));
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setPhase('form');
+          },
+        },
+        theme: { color: '#5F43F2' },
+        retry: { enabled: true },
+      });
+
+      rzp.open();
+    } catch (err: any) {
       setPhase('form');
       setPhaseError(getErrorMessage(err));
     }
@@ -153,7 +162,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
         session.couponCode ?? undefined,
       );
       router.replace(
-        `/checkout/test-payment/${next.paymentId}${
+        `/checkout/${next.paymentId}${
           returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''
         }`,
       );
@@ -198,8 +207,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
             Payment successful
           </h1>
           <p className="mt-2 text-sm text-content-muted">
-            This was a <Badge variant="success">test payment</Badge> — no real money was charged.
-            Your subscription is now active.
+            Your payment was confirmed and your subscription is now active.
           </p>
           <div className="mt-6 rounded-2xl border border-line bg-surface-muted p-4 text-sm">
             <p className="font-semibold text-content">{session.planName ?? 'Plan'}</p>
@@ -214,10 +222,8 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
             </p>
           </div>
           <div className="mt-6 flex justify-center gap-3">
-            <Button
-              onClick={() => router.push(returnTo || '/dashboard/subscriptions')}
-            >
-              {returnTo ? 'Go to your unlocked Vault' : 'Go to my plan'}
+            <Button onClick={() => router.push(returnTo || '/dashboard')}>
+              {returnTo ? 'Go to your unlocked Vault' : 'Go to my dashboard'}
             </Button>
             <Button variant="outline" onClick={() => router.push('/plans')}>
               Back to plans
@@ -239,8 +245,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
             Payment failed
           </h1>
           <p className="mt-2 text-sm text-content-muted">
-            No money was charged and your subscription was not activated. This was a simulated
-            failure for testing the gateway flow.
+            The payment was not completed and your subscription was not activated.
           </p>
           <div className="mt-6 rounded-2xl border border-line bg-surface-muted p-4 text-sm">
             <p className="font-semibold text-content">{session.planName ?? 'Plan'}</p>
@@ -251,10 +256,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
             <Button onClick={startOver} loading={retrying}>
               Try again
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => router.push(returnTo || '/plans')}
-            >
+            <Button variant="outline" onClick={() => router.push(returnTo || '/plans')}>
               {returnTo ? 'Back to your Vault' : 'Back to plans'}
             </Button>
           </div>
@@ -331,96 +333,36 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
 
         <Card className="md:col-span-3">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-content-faint">
-            Choose a test payment method
+            Secure checkout
           </h2>
           <p className="mt-1 text-xs text-content-faint">
-            Every method here is simulated — no real money and no real gateway.
+            Pay securely via Razorpay. You can use UPI, cards, net banking or wallets.
           </p>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {PAYMENT_METHODS.map((m) => {
-              const selected = method === m.id;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setMethod(m.id)}
-                  aria-pressed={selected}
-                  className={`flex items-center gap-3 rounded-2xl border p-3.5 text-left transition ${
-                    selected
-                      ? 'border-brand-500 bg-brand-50 ring-1 ring-brand-500 dark:border-brand-500 dark:bg-brand-950'
-                      : 'border-line bg-surface hover:border-brand-300'
-                  }`}
-                >
-                  <span
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${
-                      selected
-                        ? 'bg-brand-600 text-white'
-                        : 'bg-surface-muted text-content-muted'
-                    }`}
-                  >
-                    {m.monogram}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-content">{m.label}</span>
-                    <span className="block truncate text-xs text-content-muted">{m.hint}</span>
-                  </span>
-                  <span
-                    className={`ml-auto h-4 w-4 shrink-0 rounded-full border-2 ${
-                      selected ? 'border-brand-600 bg-brand-600' : 'border-line-strong'
-                    }`}
-                  />
-                </button>
-              );
-            })}
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Button
+              className="flex-1 !py-3.5 text-base"
+              onClick={pay}
+              loading={phase === 'processing'}
+              disabled={phase === 'processing'}
+            >
+              {phase === 'processing'
+                ? 'Opening Razorpay…'
+                : `Pay ${formatMoney(session.finalAmount, currency)}`}
+            </Button>
+            <Button variant="outline" onClick={() => router.push(returnTo || '/plans')}>
+              Cancel
+            </Button>
           </div>
-
-          <label className="mt-4 flex cursor-pointer items-center gap-2.5 rounded-xl border border-dashed border-amber-400 bg-amber-50 px-3.5 py-2.5 dark:bg-amber-500/10">
-            <input
-              type="checkbox"
-              checked={simulateFailure}
-              onChange={(e) => setSimulateFailure(e.target.checked)}
-              className="h-4 w-4 rounded border-amber-500 text-amber-600 focus:ring-amber-500"
-            />
-            <span className="text-sm font-medium text-amber-800 dark:text-amber-300">
-              Simulate payment failure (dev test)
-            </span>
-          </label>
 
           {phaseError && (
             <p className="mt-3 text-sm text-red-600 dark:text-red-400">{phaseError}</p>
           )}
 
-          {phase === 'processing' ? (
-            <div className="mt-5 flex flex-col items-center gap-3 rounded-2xl border border-line bg-surface-muted py-8">
-              <Spinner className="h-7 w-7 text-brand-600" />
-              <p className="text-sm font-medium text-content">Processing test payment…</p>
-              <p className="text-xs text-content-faint">
-                Simulating {simulateFailure ? 'a declined' : 'a successful'} gateway response
-              </p>
-            </div>
-          ) : (
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <Button
-                className="flex-1"
-                variant={simulateFailure ? 'danger' : 'primary'}
-                onClick={pay}
-              >
-                {simulateFailure
-                  ? `Decline ${formatMoney(session.finalAmount, currency)} (test)`
-                  : `Pay ${formatMoney(session.finalAmount, currency)}`}
-              </Button>
-              <Button variant="outline" onClick={() => router.push(returnTo || '/plans')}>
-                Cancel
-              </Button>
-            </div>
-          )}
-
           <p className="mt-4 rounded-xl border border-line bg-surface-muted px-3.5 py-3 text-xs leading-relaxed text-content-muted">
-            <span className="font-semibold text-content">TEST PAYMENT GATEWAY.</span> No real payment
-            is processed and no bank account, card or UPI details are requested or stored. When the
-            production gateway is connected, this screen is replaced by the official checkout and
-            your payment details go directly to the gateway — never to our servers.
+            Your card/UPI details go directly to Razorpay's secure checkout — never to our servers.
+            Payments are verified by our server after completion before your subscription is
+            activated.
           </p>
         </Card>
       </div>
@@ -440,14 +382,11 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         <div className="mb-6 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-content">
-              Test Payment Gateway
-            </h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-content">Checkout</h1>
             <p className="mt-1 text-sm text-content-muted">
-              Development checkout — no real money is charged.
+              Complete your payment through Razorpay.
             </p>
           </div>
-          <Badge variant="warning">TEST ONLY</Badge>
         </div>
         {children}
       </div>

@@ -7,6 +7,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { AuthenticatedUser } from '../common/types/auth.types';
 import { PurchasePlanDto } from './dto/purchase-plan.dto';
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto';
+import { VerifyPaymentDto } from './dto/verify-payment.dto';
 
 @ApiTags('subscriptions')
 @ApiBearerAuth()
@@ -38,6 +39,12 @@ export class UserSubscriptionsController {
   })
   purchase(@CurrentUser() user: AuthenticatedUser, @Body() dto: PurchasePlanDto) {
     return this.pricingService.purchase(user.id, dto);
+  }
+
+  @Post('purchase/verify')
+  @ApiOperation({ summary: 'Verify Razorpay payment and activate subscription' })
+  verifyPayment(@CurrentUser() user: AuthenticatedUser, @Body() dto: VerifyPaymentDto) {
+    return this.pricingService.verifyPayment(user.id, dto);
   }
 
   @Post('purchase/confirm')

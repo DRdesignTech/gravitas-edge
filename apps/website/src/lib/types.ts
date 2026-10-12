@@ -133,6 +133,7 @@ export interface PaymentSession {
   originalAmount: number;
   discountAmount: number;
   finalAmount: number;
+  keyId?: string;
 }
 
 export interface PurchaseResult {
@@ -147,6 +148,7 @@ export interface PurchaseResult {
   durationDays: number;
   status: string;
   coupon?: PurchaseCouponInfo;
+  keyId?: string;
 }
 
 export interface CouponSummary {
@@ -171,6 +173,13 @@ export interface CouponValidationResult {
   originalAmount: number;
   discountAmount: number;
   finalAmount: number;
+}
+
+export interface VerifyPaymentPayload {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+  paymentId: string;
 }
 
 export interface ConfirmPurchaseResult {

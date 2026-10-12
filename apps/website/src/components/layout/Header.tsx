@@ -289,7 +289,7 @@ export default function Header() {
           <Link
             href="/#free-preview"
             onClick={(e) => handleSectionNav(e, '#free-preview')}
-            className="relative whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-semibold text-[#061B36] transition-all border border-transparent hover:border-[#C8943E] hover:bg-[#FFF3D9] dark:text-brand-200 dark:hover:border-brand-500/60 dark:hover:bg-brand-950"
+            className="free-preview-border whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-semibold text-[#061B36] transition-colors hover:bg-[#FFF3D9] dark:text-brand-200 dark:hover:bg-brand-950"
           >
             Free Preview
           </Link>

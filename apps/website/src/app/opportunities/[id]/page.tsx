@@ -82,6 +82,23 @@ function ContactRow({ email }: { email: string }) {
   );
 }
 
+/** Builds a mailto: link so "Apply now" opens the user's mail app pre-addressed to the company. */
+function buildApplyMailto({
+  email,
+  title,
+  company,
+}: {
+  email: string;
+  title: string;
+  company?: string | null;
+}): string {
+  const subject = `Application for ${title}${company ? ` at ${company}` : ''}`;
+  const body = `Dear Hiring Team,\n\nI would like to apply for the ${title} role${
+    company ? ` at ${company}` : ''
+  }.\n\nPlease find my details below:\n\n\n\nBest regards,\n`;
+  return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
 export default function OpportunityPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -272,7 +289,7 @@ export default function OpportunityPage() {
           )}
 
           <Card
-            title={o.applicationUrl ? 'Apply' : 'Direct contact'}
+            title={o.applicationContact || o.applicationUrl ? 'Apply' : 'Direct contact'}
             className="mt-6"
             action={
               source && (
@@ -282,7 +299,21 @@ export default function OpportunityPage() {
               )
             }
           >
-            {o.applicationUrl ? (
+            {o.applicationContact ? (
+              <div className="space-y-4">
+                <a
+                  href={buildApplyMailto({
+                    email: o.applicationContact,
+                    title: o.title,
+                    company: o.company,
+                  })}
+                  className="inline-block"
+                >
+                  <Button>Apply now</Button>
+                </a>
+                <ContactRow email={o.applicationContact} />
+              </div>
+            ) : o.applicationUrl ? (
               <div className="space-y-4">
                 <a
                   href={o.applicationUrl}
@@ -292,10 +323,7 @@ export default function OpportunityPage() {
                 >
                   <Button>Apply now</Button>
                 </a>
-                {o.applicationContact && <ContactRow email={o.applicationContact} />}
               </div>
-            ) : o.applicationContact ? (
-              <ContactRow email={o.applicationContact} />
             ) : (
               <p className="text-sm text-content-muted">
                 Contact details for this role are shared with subscribing members.

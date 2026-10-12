@@ -156,6 +156,15 @@ export function validateCoupon(couponCode: string, planId: string) {
   return api.post<CouponValidationResult>('/coupons/validate', { couponCode, planId });
 }
 
+export function verifyPayment(payload: {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+  paymentId: string;
+}) {
+  return api.post<ConfirmPurchaseResult>('/subscriptions/purchase/verify', payload);
+}
+
 export function confirmPurchase(paymentId: string) {
   return api.post<ConfirmPurchaseResult>('/subscriptions/purchase/confirm', { paymentId });
 }

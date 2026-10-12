@@ -12,7 +12,7 @@ import { useAuth } from '@/lib/auth';
 import PlanCheckoutModal from '@/components/checkout/PlanCheckoutModal';
 
 export default function PlansPage() {
-  const { user } = useAuth();
+  const { user, hasVaultAccess } = useAuth();
   const [groups, setGroups] = useState<PricingGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -57,6 +57,13 @@ export default function PlansPage() {
           period.
         </p>
       </div>
+
+      {user && hasVaultAccess === false && (
+        <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-[#C8943E]/30 bg-[#FFF3D9] px-4 py-3 text-center text-sm leading-relaxed text-[#7A5A1E] dark:border-[#C8943E]/30 dark:bg-brand-950 dark:text-brand-200">
+          You don&apos;t have Vault access yet. Purchase any Vault plan below to unlock your
+          dashboard and start accessing full opportunity details.
+        </div>
+      )}
 
       {loading ? (
         <div className="mt-12 grid gap-6 lg:grid-cols-2">

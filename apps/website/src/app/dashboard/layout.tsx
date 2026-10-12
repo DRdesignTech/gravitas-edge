@@ -16,7 +16,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
 
   return (
-    <AuthGuard>
+    <AuthGuard requireAccess>
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:flex-row lg:gap-10 lg:px-8">
         <aside className="lg:w-60 lg:shrink-0">
           <nav className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin lg:sticky lg:top-24 lg:flex-col lg:gap-1 lg:overflow-visible lg:pb-0">

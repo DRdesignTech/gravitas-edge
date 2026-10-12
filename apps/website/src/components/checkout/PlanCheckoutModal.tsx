@@ -104,7 +104,7 @@ export default function PlanCheckoutModal({
       removeCoupon();
       onClose();
       router.push(
-        `/checkout/test-payment/${started.paymentId}${
+        `/checkout/${started.paymentId}${
           returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''
         }`,
       );

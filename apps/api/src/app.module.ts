@@ -18,6 +18,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ResumesModule } from './resumes/resumes.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ResumesModule } from './resumes/resumes.module';
     OpportunitiesModule,
     ReferralsModule,
     ResumesModule,
+    PaymentsModule,
   ],
   controllers: [HealthController, PublicExperienceLevelsController],
   providers: [
