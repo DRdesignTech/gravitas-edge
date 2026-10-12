@@ -211,7 +211,7 @@
 }
 @layer utilities {
   .font-serif-heading {
-    font-family: var(--font-display), Georgia, serif;
+    font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
   }
   .text-gold {
     color: #c8943e;

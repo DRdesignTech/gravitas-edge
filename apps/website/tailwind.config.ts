@@ -39,7 +39,6 @@ const config: Config = {
       fontFamily: {
         sans: [
           'var(--font-poppins)',
-          'var(--font-serif)',
           'ui-sans-serif',
           'system-ui',
           '-apple-system',
@@ -48,10 +47,7 @@ const config: Config = {
           'Helvetica Neue',
           'Arial',
           'sans-serif',
-          'var(--font-display)',
         ],
-        serif: ['var(--font-serif)', 'Georgia', 'serif'],
-        display: ['var(--font-display)', 'Georgia', 'serif'],
       },
       boxShadow: {
         card: '0 1px 2px 0 rgb(6 27 54 / 0.05), 0 12px 30px -18px rgb(6 27 54 / 0.28)',

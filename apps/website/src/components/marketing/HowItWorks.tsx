@@ -89,7 +89,7 @@ export default function HowItWorks() {
                   className="absolute left-[23px] top-[54px] bottom-[-2rem] w-[2px] rounded-full bg-[#C8943E]/40 sm:left-[27px] sm:top-[62px] sm:bottom-[-2.5rem]"
                 />
               )}
-              <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[3px] border-[#C8943E] bg-[#061B36] font-serif-heading text-lg font-bold leading-none text-white lining-nums tabular-nums shadow-[0_12px_28px_-12px_rgba(6,27,54,0.65)] sm:h-14 sm:w-14 sm:text-xl">
+              <span className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[3px] border-[#C8943E] bg-brand-600 font-serif-heading text-lg font-bold leading-none text-white lining-nums tabular-nums shadow-[0_12px_28px_-12px_rgba(6,27,54,0.65)] sm:h-14 sm:w-14 sm:text-xl">
                 <span className="block translate-y-[0.075em] leading-none">{i + 1}</span>
               </span>
               <div className="flex min-w-0 items-start gap-2.5 pt-1.5 sm:gap-3 sm:pt-2">

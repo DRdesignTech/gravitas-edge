@@ -74,7 +74,7 @@ function TestimonialCard({ item }: { item: (typeof testimonials)[number] }) {
         <div className="flex flex-wrap items-center gap-3">
           <span
             aria-hidden="true"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#061B36] font-serif-heading text-sm font-bold leading-none text-[#C8943E] ring-1 ring-inset ring-[#C8943E]/30"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-600 font-serif-heading text-sm font-bold leading-none text-[#C8943E] ring-1 ring-inset ring-[#C8943E]/30"
           >
             {item.initials}
           </span>
@@ -88,7 +88,7 @@ function TestimonialCard({ item }: { item: (typeof testimonials)[number] }) {
             ))}
           </span>
         </div>
-        <span className="whitespace-nowrap rounded-full border border-[#C8943E]/30 bg-[#061B36] px-3 py-1 text-[10px] font-semibold tracking-wide text-[#C8943E] sm:text-xs">
+        <span className="whitespace-nowrap rounded-full border border-[#C8943E]/30 bg-brand-600 px-3 py-1 text-[10px] font-semibold tracking-wide text-[#C8943E] sm:text-xs">
           {item.badge}
         </span>
       </div>
