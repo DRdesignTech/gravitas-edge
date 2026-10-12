@@ -195,12 +195,16 @@ export default function LiveFreePreview({
   const filteredOpportunities = useMemo(() => {
     const term = searchQuery.trim();
     const queries = term ? term.toLowerCase().split(/\s+/).filter(Boolean) : [];
+    const locationFilter = location.toLowerCase().trim();
+    const industryFilter = industry.toLowerCase().trim();
+    const experienceFilter = experience.toLowerCase().trim();
+    const salaryFilter = salary.toLowerCase().trim();
 
     return opportunities.filter((o) => {
-      if (location && primaryLocation(o.location || '') !== location) return false;
-      if (industry && primaryIndustry(o.industry || '') !== industry) return false;
-      if (experience && experienceBucket(o.experienceText || '') !== experience) return false;
-      if (salary && salaryBucket(o.salary || '') !== salary) return false;
+      if (locationFilter && !(o.location || '').toLowerCase().includes(locationFilter)) return false;
+      if (industryFilter && !(o.industry || '').toLowerCase().includes(industryFilter)) return false;
+      if (experienceFilter && !(o.experienceText || '').toLowerCase().includes(experienceFilter)) return false;
+      if (salaryFilter && !(o.salary || '').toLowerCase().includes(salaryFilter)) return false;
       if (queries.length === 0) return true;
 
       const textParts = [
@@ -325,42 +329,65 @@ export default function LiveFreePreview({
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {locationOptions.length > 0 && (
-                <Select
-                  label="Location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  aria-label="Filter by location"
-                  options={[{ value: '', label: 'All locations' }, ...locationOptions]}
-                />
-              )}
-              {industryOptions.length > 0 && (
-                <Select
-                  label="Industry"
-                  value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
-                  aria-label="Filter by industry"
-                  options={[{ value: '', label: 'All industries' }, ...industryOptions]}
-                />
-              )}
-              {experienceOptions.length > 0 && (
-                <Select
-                  label="Experience"
+              <div className="relative">
+                <label htmlFor="filter-experience" className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated">
+                  Experience
+                </label>
+                <input
+                  id="filter-experience"
+                  type="text"
+                  placeholder="e.g. 5 years, Senior"
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
                   aria-label="Filter by experience"
-                  options={[{ value: '', label: 'All experience levels' }, ...experienceOptions]}
                 />
-              )}
-              {salaryOptions.length > 0 && (
-                <Select
-                  label="Salary"
+              </div>
+
+              <div className="relative">
+                <label htmlFor="filter-location" className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated">
+                  Location
+                </label>
+                <input
+                  id="filter-location"
+                  type="text"
+                  placeholder="e.g. Bangalore, Mumbai"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                  aria-label="Filter by location"
+                />
+              </div>
+
+              <div className="relative">
+                <label htmlFor="filter-industry" className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated">
+                  Industry
+                </label>
+                <input
+                  id="filter-industry"
+                  type="text"
+                  placeholder="e.g. FinTech, SaaS"
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                  aria-label="Filter by industry"
+                />
+              </div>
+
+              <div className="relative">
+                <label htmlFor="filter-salary" className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated">
+                  Salary
+                </label>
+                <input
+                  id="filter-salary"
+                  type="text"
+                  placeholder="e.g. 50 LPA, 1.5 Cr"
                   value={salary}
                   onChange={(e) => setSalary(e.target.value)}
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
                   aria-label="Filter by salary"
-                  options={[{ value: '', label: 'All salary ranges' }, ...salaryOptions]}
                 />
-              )}
+              </div>
             </div>
 
             {hasFilters && (
@@ -438,7 +465,7 @@ export default function LiveFreePreview({
                               {o.title}
                             </h3>
                             <p className="flex flex-wrap items-center gap-1.5 text-xs text-content-muted">
-                              {o.company || '—'}
+                              <span className="truncate max-w-[180px] sm:max-w-[220px]">{o.company || '—'}</span>
                               {o.isPremium ? (
                                 <Badge variant="premium" className="shrink-0 text-[10px] px-1.5 py-0.5">
                                   Premium
@@ -446,11 +473,6 @@ export default function LiveFreePreview({
                               ) : (
                                 <Badge variant="success" className="shrink-0 text-[10px] px-1.5 py-0.5">
                                   Open
-                                </Badge>
-                              )}
-                              {o.category && (
-                                <Badge variant="info" className="shrink-0 text-[10px] px-1.5 py-0.5">
-                                  {titleCase(o.category)}
                                 </Badge>
                               )}
                               {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
@@ -476,6 +498,11 @@ export default function LiveFreePreview({
                                   <GlobeIcon className="h-3 w-3" />
                                   {o.country}
                                 </span>
+                              )}
+                              {o.category && (
+                                <Badge variant="info" className="shrink-0 text-[10px] px-1.5 py-0.5">
+                                  {titleCase(o.category)}
+                                </Badge>
                               )}
                             </p>
                           </div>
