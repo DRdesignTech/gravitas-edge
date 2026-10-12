@@ -62,8 +62,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    /* Offset section anchors below the sticky header (h-16 = 4rem) */
-    scroll-padding-top: 5rem;
+    /* Offset section anchors below the sticky header (h-16 = 4rem = 64px).
+       Spy offset is 88px (5.5rem) to account for header + small buffer. */
+    scroll-padding-top: 5.5rem;
   }
 
   @media (prefers-reduced-motion: no-preference) {

@@ -107,7 +107,7 @@ function TestimonialCard({ item }: { item: (typeof testimonials)[number] }) {
 
 export default function Testimonials() {
   return (
-    <section id="testimonials" className="section-glow relative scroll-mt-20 bg-surface-muted">
+    <section id="testimonials" className="section-glow relative bg-surface-muted">
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">

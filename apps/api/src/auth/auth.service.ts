@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -11,9 +16,14 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from '../common/types/auth.types';
 import type { StringValue } from 'ms';
+import { Resend } from 'resend';
 
 const ACCESS_TOKEN_TYPE = 'access';
 const REFRESH_TOKEN_TYPE = 'refresh';
+
+const RESEND_API_KEY = 're_gzt3jgFz_Moi6Z9ApCfV5o7yW6E2D2otb';
+const RESET_EMAIL_FROM = 'onboarding@resend.dev';
+const APP_URL = 'http://localhost:3000';
 
 @Injectable()
 export class AuthService {
@@ -424,7 +434,132 @@ export class AuthService {
   }
 
   private sanitizeUser(user: any) {
-    const { passwordHash, refreshTokenHash, refreshTokenExpiresAt, ...safe } = user;
+    const {
+      passwordHash,
+      refreshTokenHash,
+      refreshTokenExpiresAt,
+      passwordResetToken,
+      passwordResetExpiresAt,
+      ...safe
+    } = user;
     return safe;
+  }
+
+  async forgotPassword(dto: { email: string }, ipAddress?: string) {
+    const email = dto.email.trim().toLowerCase();
+
+    const user = await this.prisma.user.findFirst({
+      where: { email, deletedAt: null },
+      select: { id: true, email: true },
+    });
+
+    if (!user) {
+      await this.audit.record({
+        action: 'AUTH_FORGOT_PASSWORD',
+        entityType: 'User',
+        ipAddress,
+        details: { reason: 'ACCOUNT_NOT_FOUND', email },
+      });
+      throw new BadRequestException('No account found with this email. Please create an account to continue.');
+    }
+
+    const token = randomUUID();
+    const tokenHash = await bcrypt.hash(token, 10);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordResetToken: tokenHash, passwordResetExpiresAt: expiresAt },
+    });
+
+    const resetUrl = `${APP_URL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+
+    try {
+      const resend = new Resend(RESEND_API_KEY);
+      await resend.emails.send({
+        from: RESET_EMAIL_FROM,
+        to: email,
+        subject: 'Reset your Gravitas Edge password',
+        html: `
+          <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+            <div style="background: #061b36; padding: 24px; border-radius: 12px 12px 0 0;">
+              <h1 style="color: #fff; margin: 0; font-size: 24px;">Reset your password</h1>
+            </div>
+            <div style="background: #fff; padding: 24px; border: 1px solid #e9e7df; border-top: none; border-radius: 0 0 12px 12px;">
+              <p style="color: #042b6e; font-size: 16px; line-height: 1.6;">You requested to reset your password. Click the button below to create a new one:</p>
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${resetUrl}" style="background: #c8943e; color: #061b36; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">Reset Password</a>
+              </div>
+              <p style="color: #3a5791; font-size: 14px; line-height: 1.6;">This link expires in 1 hour. If you didn't request this, you can safely ignore this email.</p>
+              <hr style="border: none; border-top: 1px solid #e9e7df; margin: 24px 0;">
+              <p style="color: #768cb6; font-size: 12px;">Gravitas Edge Consulting</p>
+            </div>
+          </div>
+        `,
+      });
+    } catch (error) {
+      console.error('Failed to send reset email:', error);
+    }
+
+    await this.audit.record({
+      action: 'AUTH_FORGOT_PASSWORD',
+      entityType: 'User',
+      entityId: user.id,
+      actorUserId: user.id,
+      ipAddress,
+      details: { email },
+    });
+
+    return { message: 'If an account exists, a password reset link has been sent.' };
+  }
+
+  async resetPassword(dto: { token: string; password: string }, ipAddress?: string) {
+    const { token, password } = dto;
+
+    const users = await this.prisma.user.findMany({
+      where: { deletedAt: null, passwordResetExpiresAt: { gt: new Date() } },
+      select: { id: true, email: true, passwordResetToken: true, passwordResetExpiresAt: true },
+    });
+
+    let user: { id: string; email: string } | null = null;
+    for (const u of users) {
+      if (u.passwordResetToken && (await bcrypt.compare(token, u.passwordResetToken))) {
+        user = { id: u.id, email: u.email };
+        break;
+      }
+    }
+
+    if (!user) {
+      await this.audit.record({
+        action: 'AUTH_RESET_PASSWORD_FAILED',
+        entityType: 'User',
+        ipAddress,
+        details: { reason: 'INVALID_OR_EXPIRED_TOKEN' },
+      });
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpiresAt: null,
+        refreshTokenHash: null,
+        refreshTokenExpiresAt: null,
+      },
+    });
+
+    await this.audit.record({
+      action: 'AUTH_RESET_PASSWORD',
+      entityType: 'User',
+      entityId: user.id,
+      actorUserId: user.id,
+      ipAddress,
+    });
+
+    return { message: 'Password has been reset successfully. You can now log in.' };
   }
 }

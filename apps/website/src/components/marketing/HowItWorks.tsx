@@ -66,7 +66,7 @@ const steps: { title: string; description: string; icon: ReactNode }[] = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="section-glow-navy relative scroll-mt-20 bg-surface">
+    <section id="how-it-works" className="section-glow-navy relative bg-surface">
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">

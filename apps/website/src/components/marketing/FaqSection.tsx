@@ -64,7 +64,7 @@ export default function FaqSection() {
   const featured = faqData.filter((item) => FEATURED_FAQ_IDS.includes(item.id));
 
   return (
-    <section id="faq" className="section-glow-navy relative scroll-mt-20 border-t border-line bg-surface-muted">
+    <section id="faq" className="section-glow-navy relative border-t border-line bg-surface-muted">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="max-w-2xl">
           <Eyebrow>FAQ</Eyebrow>

@@ -262,7 +262,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="home"
-        className="relative flex min-h-[calc(100svh-4rem)] scroll-mt-16 flex-col overflow-hidden bg-[#03070C]"
+        className="relative flex min-h-[calc(100svh-4rem)] flex-col overflow-hidden bg-[#03070C]"
       >
         {/* Background image layer. The artwork is 16:9 and wider than the
             portrait hero, so object-cover crops horizontally — object-position
@@ -371,7 +371,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 2. HOW WE ARE DIFFERENT — #why-gravitas-edge                    */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="why-gravitas-edge" className="section-glow relative scroll-mt-20 bg-surface-muted">
+      <section id="why-gravitas-edge" className="section-glow relative bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
           <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">
@@ -431,7 +431,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="what-we-do" className="section-glow-navy relative scroll-mt-20 bg-surface">
+      <section id="what-we-do" className="section-glow-navy relative bg-surface">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-10 lg:grid-cols-[1fr_minmax(0,1.1fr)] lg:items-start">
             <div className="max-w-xl">
@@ -480,7 +480,7 @@ export default function Home() {
       {loading ? (
         <section
           id="free-preview"
-          className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
+          className="border-t border-line bg-surface dark:bg-surface-elevated/50"
         >
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -493,7 +493,7 @@ export default function Home() {
       ) : error ? (
         <section
           id="free-preview"
-          className="scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
+          className="border-t border-line bg-surface dark:bg-surface-elevated/50"
         >
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <ErrorState message={error} onRetry={load} />
@@ -506,7 +506,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 6. WHATSAPP FREE CONNECTION #1 — #whatsapp-free                */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="whatsapp-free" className="section-glow relative scroll-mt-20 border-t border-line bg-surface-muted">
+      <section id="whatsapp-free" className="section-glow relative border-t border-line bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <WhatsAppChannel
             note={
@@ -526,7 +526,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="vaults"
-        className="section-glow-navy relative scroll-mt-20 border-t border-line bg-surface dark:bg-surface-elevated/50"
+        className="section-glow-navy relative border-t border-line bg-surface dark:bg-surface-elevated/50"
       >
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -591,7 +591,7 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 9. WHATSAPP FREE CONNECTION #2 — #whatsapp-free-2              */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="whatsapp-free-2" className="section-glow relative scroll-mt-20 border-t border-line bg-surface-muted">
+      <section id="whatsapp-free-2" className="section-glow relative border-t border-line bg-surface-muted">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <WhatsAppChannel
             title="Stay Connected to New Opportunities"

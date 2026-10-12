@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Razorpay from 'razorpay';
@@ -46,11 +47,12 @@ export class RazorpayService implements OnModuleInit {
     paymentId: string;
     signature: string;
   }): boolean {
-    const crypto = require('crypto');
     const body = orderId + '|' + paymentId;
-    const expectedSignature = crypto
-      .createHmac('sha256', this.configService.get<string>('RAZORPAY_KEY_SECRET'))
-      .update(body.toString())
+    const expectedSignature = createHmac(
+      'sha256',
+      this.configService.get<string>('RAZORPAY_KEY_SECRET') || '',
+    )
+      .update(body)
       .digest('hex');
     return expectedSignature === signature;
   }
