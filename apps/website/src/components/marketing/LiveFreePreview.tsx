@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Opportunity } from '@/lib/types';
 import {
   Skeleton,
@@ -116,6 +116,11 @@ function readInitialView(): PreviewView {
   return 'grid';
 }
 
+function getMobileDefaultView(): PreviewView {
+  if (typeof window === 'undefined') return 'grid';
+  return window.innerWidth < 768 ? 'list' : 'grid';
+}
+
 export default function LiveFreePreview({
   opportunities,
   loading,
@@ -136,6 +141,21 @@ export default function LiveFreePreview({
   const [view, setView] = useState<PreviewView>(readInitialView);
   const canCollapse = opportunities.length > INITIAL_COUNT;
   const visible = expanded ? opportunities.length : Math.min(INITIAL_COUNT, opportunities.length);
+
+  // Update view on mobile/desktop resize
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 768;
+      const storedView = window.sessionStorage.getItem(VIEW_KEY);
+      // Only auto-switch to list on mobile if user hasn't explicitly chosen a view
+      if (isMobile && !storedView) {
+        setView('list');
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const locationOptions = useMemo(
     () => uniqueOptions(opportunities.map((o) => (o.location ? primaryLocation(o.location) : ''))),
@@ -404,77 +424,76 @@ export default function LiveFreePreview({
                   <a
                     key={o.id}
                     href={`/opportunities/${o.id}`}
-                    className="group relative flex flex-col gap-2 overflow-hidden rounded-2xl border border-line bg-surface p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:gap-4 sm:p-5 dark:bg-surface-elevated dark:hover:border-brand-500/40 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,auto)] lg:items-center lg:gap-6"
+                    className="group relative flex flex-col gap-1.5 overflow-hidden rounded-xl border border-line bg-surface p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:gap-2 sm:p-4 dark:bg-surface-elevated dark:hover:border-brand-500/40 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,auto)] lg:items-center lg:gap-4"
                   >
-                    <span className="absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
+                    <span className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-[#C8943E] to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
                     <div className="min-w-0">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
+                      <div className="flex min-w-0 items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#061B36] text-sm font-bold text-[#E3B968] shadow-sm">
                             {(o.company || o.title || '?')[0]?.toUpperCase()}
                           </span>
                           <div className="min-w-0">
-                            <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
+                            <h3 className="truncate text-base font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
                               {o.title}
                             </h3>
-                            <p className="mt-0.5 truncate text-sm text-content-muted">
+                            <p className="flex flex-wrap items-center gap-1.5 text-xs text-content-muted">
                               {o.company || '—'}
+                              {o.isPremium ? (
+                                <Badge variant="premium" className="shrink-0 text-[10px] px-1.5 py-0.5">
+                                  Premium
+                                </Badge>
+                              ) : (
+                                <Badge variant="success" className="shrink-0 text-[10px] px-1.5 py-0.5">
+                                  Open
+                                </Badge>
+                              )}
+                              {o.category && (
+                                <Badge variant="info" className="shrink-0 text-[10px] px-1.5 py-0.5">
+                                  {titleCase(o.category)}
+                                </Badge>
+                              )}
+                              {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-xs text-content-muted">
+                                  <BarsIcon className="h-3 w-3" />
+                                  {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+                                </span>
+                              )}
+                              {o.publishedDate && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-xs text-content-muted">
+                                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+                                  {formatDate(o.publishedDate)}
+                                </span>
+                              )}
+                              {o.location && (
+                                <span className="inline-flex items-center gap-1 text-content-faint">
+                                  <PinIcon className="h-3 w-3" />
+                                  {o.location.split(/[/,]/)[0].trim()}
+                                </span>
+                              )}
+                              {o.country && o.country !== o.location?.split(/[/,]/)[0].trim() && (
+                                <span className="inline-flex items-center gap-1 text-content-faint">
+                                  <GlobeIcon className="h-3 w-3" />
+                                  {o.country}
+                                </span>
+                              )}
                             </p>
                           </div>
                         </div>
-                        {o.isPremium ? (
-                          <Badge variant="premium" className="shrink-0">
-                            Premium
-                          </Badge>
-                        ) : (
-                          <Badge variant="success" className="shrink-0">
-                            Open
-                          </Badge>
+                        {isMeaningful(o.salary) && (
+                          <p className="shrink-0 text-sm font-bold text-brand-700 dark:text-brand-300 whitespace-nowrap" title={o.salary}>
+                            {o.salary}
+                          </p>
                         )}
                       </div>
 
-                      {isMeaningful(o.salary) && (
-                        <p
-                          className="mt-2 truncate text-sm font-bold text-brand-700 dark:text-brand-300 sm:text-base"
-                          title={o.salary}
-                        >
-                          {o.salary}
-                        </p>
-                      )}
-
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {o.location && (
-                          <ListMetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>
-                            {o.location}
-                          </ListMetaChip>
-                        )}
-                        {o.country && (
-                          <ListMetaChip icon={<GlobeIcon className="h-3.5 w-3.5" />}>
-                            {o.country}
-                          </ListMetaChip>
-                        )}
+                      <div className="mt-1 flex flex-wrap gap-1">
                         {o.employmentType && (
-                          <ListMetaChip icon={<BriefcaseIcon className="h-3.5 w-3.5" />}>
+                          <ListMetaChip icon={<BriefcaseIcon className="h-3 w-3" />}>
                             {titleCase(o.employmentType)}
                           </ListMetaChip>
                         )}
-                        {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
-                          <ListMetaChip icon={<BarsIcon className="h-3.5 w-3.5" />}>
-                            {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-                          </ListMetaChip>
-                        )}
                       </div>
-                    </div>
-
-                    <div className="min-w-0 lg:justify-self-end">
-                      <span className="flex flex-wrap items-center justify-end gap-2">
-                        <Badge variant="info">{titleCase(o.category)}</Badge>
-                        {o.publishedDate && (
-                          <span className="text-xs text-content-faint">
-                            {formatDate(o.publishedDate)}
-                          </span>
-                        )}
-                      </span>
                     </div>
                   </a>
                 ))}
