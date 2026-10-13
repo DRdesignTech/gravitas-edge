@@ -122,7 +122,7 @@ export default function WhatsAppChannel({
   note,
 }: WhatsAppChannelProps) {
   return (
-    <div className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/70 to-emerald-100/40 p-6 shadow-[0_28px_90px_-40px_rgba(16,185,129,0.55)] sm:p-10 lg:rounded-[2.5rem] lg:p-12 dark:border-emerald-500/25 dark:from-[#0B1A14] dark:via-emerald-950/40 dark:to-[#0B1A14] dark:shadow-[0_28px_90px_-40px_rgba(0,0,0,0.7)]">
+    <div className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/70 to-emerald-100/40 p-6 shadow-[0_28px_90px_-40px_rgba(16,185,129,0.55)] sm:p-10 lg:rounded-[2.5rem] lg:p-12 dark:border-emerald-500/25 dark:from-[#0B1A14] dark:via-emerald-950/40 dark:to-[#0B1A14] dark:shadow-[0_28px_90px_-40px_rgba(6,27,54,0.7)]">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-emerald-100/80 blur-3xl dark:bg-emerald-700/15"
@@ -158,7 +158,7 @@ export default function WhatsAppChannel({
               })}
             </div>
 
-            <div className="relative w-full overflow-hidden rounded-[2.4rem] border-[6px] border-[#0B2A20] bg-white shadow-2xl dark:shadow-black/60">
+            <div className="relative w-full overflow-hidden rounded-[2.4rem] border-[6px] border-[#0B2A20] bg-white shadow-2xl dark:shadow-[#061B36]/60">
               <div className="flex items-center justify-between gap-2 rounded-t-[1.95rem] bg-[#075E54] px-3 py-2.5">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-[#128C7E]">

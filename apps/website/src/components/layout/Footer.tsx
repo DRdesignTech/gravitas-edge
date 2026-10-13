@@ -98,7 +98,7 @@ function LinkedInIcon({ className }: { className?: string }) {
 export default function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer id="footer" className="scroll-mt-20 bg-[#061B36] text-white">
+    <footer id="footer" className="bg-[#061B36] text-white">
       {/* Slim gold accent line */}
       <div
         aria-hidden="true"

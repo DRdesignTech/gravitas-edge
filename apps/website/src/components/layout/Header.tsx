@@ -277,7 +277,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="rounded-xl bg-[#061B36] px-5 py-2.5 text-sm font-semibold text-[#FFFEFA] shadow-sm transition-colors hover:bg-[#071A35] dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              className="rounded-xl bg-[#061B36] px-5 py-2.5 text-sm font-semibold text-[#FFFEFA] shadow-sm transition-colors hover:bg-[#061B36]/90 dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
               Sign In
             </Link>

@@ -1,14 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
 import { PricingGroup } from '@/lib/types';
-import { Button, Skeleton, ErrorState } from '@/components/ui';
-import { VaultIcon } from '@/components/cards';
-import { formatMoney } from '@/lib/format';
-import { useAuth } from '@/lib/auth';
-import Eyebrow from '@/components/marketing/Eyebrow';
-import PlanCheckoutModal from '@/components/checkout/PlanCheckoutModal';
+import { Skeleton, ErrorState } from '@/components/ui';
+import OpportunityVaultCard from '@/components/plans/OpportunityVaultCard';
+import PlansIntro from '@/components/plans/PlansIntro';
 
 export default function PricingSection({
   groups,
@@ -21,38 +17,15 @@ export default function PricingSection({
   error: string;
   onRetry: () => void;
 }) {
-  const { user } = useAuth();
-  const [checkout, setCheckout] = useState<(PricingGroup & { planId: string }) | null>(null);
-
-  const handleChoose = (group: PricingGroup, plan: PricingGroup['plans'][number]) => {
-    if (!user) {
-      window.location.href = '/register';
-      return;
-    }
-    setCheckout({ ...group, planId: plan.id });
-  };
-
-  const activeGroup = checkout ? groups.find((g) => g.vault.id === checkout.vault.id) : null;
-  const activePlan = activeGroup?.plans.find((p) => p.id === checkout?.planId);
-
   return (
-    <section id="plans" className="section-glow-navy relative scroll-mt-20 border-t border-line bg-surface">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="max-w-2xl">
-          <Eyebrow>PLANS / PRICING</Eyebrow>
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
-            Plans
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-content-muted">
-            Select the Opportunity Vault relevant to your search and choose your preferred access
-            period.
-          </p>
-        </div>
+    <section id="plans" className="section-glow-navy relative border-t border-line bg-surface">
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+        <PlansIntro as="h2" />
 
         {loading ? (
-          <div className="mt-12 grid gap-6 lg:grid-cols-2">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <Skeleton key={i} className="h-96" />
+          <div className="mt-10 grid gap-5 sm:gap-6 lg:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-52" />
             ))}
           </div>
         ) : error ? (
@@ -60,77 +33,9 @@ export default function PricingSection({
         ) : groups.length === 0 ? (
           <CardError message="No plans are available right now." onRetry={onRetry} retry={false} />
         ) : (
-          <div className="mt-12 grid gap-8 lg:grid-cols-2">
+          <div className="mt-10 grid items-start gap-5 sm:gap-6 lg:grid-cols-2">
             {groups.map((group) => (
-              <div
-                key={group.vault.id}
-                className="card-static flex flex-col rounded-3xl p-7"
-              >
-                <div className="flex items-start gap-3">
-                  <VaultIcon className="mt-0.5 h-6 w-6 shrink-0 text-brand-600 dark:text-brand-400" />
-                  <div>
-                    <h3 className="text-xl font-bold text-content">{group.vault.name}</h3>
-                    {group.vault.description && (
-                      <p className="mt-1 text-sm text-content-muted">{group.vault.description}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-7 grid gap-4 sm:grid-cols-3">
-                  {group.plans.map((plan) => {
-                    const key = plan.id;
-                    const hasDiscount = (plan.discountPercentage ?? 0) > 0;
-                    const isPopular = plan.durationDays === 90;
-                    return (
-                      <div
-                        key={key}
-                        className="group/card relative flex flex-col rounded-2xl border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-400/60 hover:shadow-card hover:shadow-brand-500/5 dark:bg-surface"
-                      >
-                        {isPopular && (
-                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-brand-600 px-3 py-0.5 text-[11px] font-bold text-white shadow-sm dark:bg-brand-500">
-                            Most Popular
-                          </span>
-                        )}
-                        <p
-                          className={`flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs font-semibold uppercase tracking-wider text-content-faint ${
-                            hasDiscount ? 'justify-center' : ''
-                          }`}
-                        >
-                          {plan.durationLabel}
-                          {hasDiscount && (
-                            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
-                              {plan.discountPercentage}% OFF
-                            </span>
-                          )}
-                        </p>
-                        <div className="mt-3 flex min-h-[3.25rem] flex-col">
-                          {hasDiscount && (
-                            <span className="text-base font-bold text-slate-500 dark:text-slate-400 line-through decoration-2 decoration-slate-500/70 dark:decoration-slate-400/70">
-                              {formatMoney(plan.regularPrice, plan.currency)}
-                            </span>
-                          )}
-                          <span className="text-3xl font-extrabold tracking-tight text-content">
-                            {formatMoney(plan.discountedPrice ?? plan.price, plan.currency)}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs text-content-faint">
-                          {plan.durationLabel} access ·{' '}
-                          {formatMoney(plan.regularPrice, plan.currency)} value
-                        </p>
-                        <div className="mt-auto pt-5">
-                          <Button
-                            className="w-full"
-                            variant={hasDiscount ? 'primary' : 'outline'}
-                            onClick={() => handleChoose(group, plan)}
-                          >
-                            {user ? 'Choose Plan' : 'Get Started'}
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <OpportunityVaultCard key={group.vault.id} group={group} />
             ))}
           </div>
         )}
@@ -145,16 +50,6 @@ export default function PricingSection({
           </Link>
         </p>
       </div>
-
-      {activeGroup && activePlan && (
-        <PlanCheckoutModal
-          plan={activePlan}
-          vaultName={activeGroup.vault.name}
-          vaultId={activeGroup.vault.id}
-          open={!!checkout}
-          onClose={() => setCheckout(null)}
-        />
-      )}
     </section>
   );
 }
@@ -169,7 +64,7 @@ function CardError({
   retry?: boolean;
 }) {
   return (
-    <div className="mt-12 rounded-2xl border border-line bg-surface dark:bg-surface-elevated">
+    <div className="mt-10 rounded-2xl border border-line bg-surface dark:bg-surface-elevated">
       <ErrorState
         title="We couldn't load plans"
         message={message}

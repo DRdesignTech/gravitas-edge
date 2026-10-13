@@ -32,7 +32,8 @@ type NavItem = {
     | 'referral'
     | 'commission'
     | 'slab'
-    | 'coupon';
+    | 'coupon'
+    | 'testimonial';
 };
 
 const nav: NavItem[] = [
@@ -48,6 +49,7 @@ const nav: NavItem[] = [
   { href: '/commissions', label: 'Commissions', icon: 'commission' },
   { href: '/referral-slabs', label: 'Referral Slabs', icon: 'slab' },
   { href: '/coupons', label: 'Coupons', icon: 'coupon' },
+  { href: '/testimonials', label: 'Testimonials', icon: 'testimonial' },
 ];
 
 const iconPaths: Record<NavItem['icon'], string> = {
@@ -71,6 +73,8 @@ const iconPaths: Record<NavItem['icon'], string> = {
   slab: 'M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0l4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0l-5.571 3-5.571-3',
   coupon:
     'M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-4.5h12m0 0c0-1.657 1.007-3.75 2.25-3.75M7.5 13.5c0 1.657-1.007 3.75-2.25 3.75M21 3.75c0 1.657-1.007 3.75-2.25 3.75m0 0h-1.5m1.5 0h-1.5M7.5 3.75c0 1.657-1.007 3.75-2.25 3.75H5.25m1.5 0H5.25m0 0a2.25 2.25 0 000 4.5h3A2.25 2.25 0 0010.5 9.75V6.75A2.25 2.25 0 008.25 4.5h-3a2.25 2.25 0 000 4.5m0 12a2.25 2.25 0 000 4.5h3a2.25 2.25 0 002.25-2.25v-3a2.25 2.25 0 00-2.25-2.25h-3a2.25 2.25 0 000 4.5z',
+  testimonial:
+    'M2.25 15.75a3.75 3.75 0 013.75-3.75h.75a.75.75 0 01.75.75v6a.75.75 0 01-.75.75H6a3.75 3.75 0 01-3.75-3.75zm11.25 6a3.75 3.75 0 003.75-3.75v-6a.75.75 0 01.75-.75h.75a3.75 3.75 0 013.75 3.75V18a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75zM8.625 6a.75.75 0 00-.75.75v6a.75.75 0 00.75.75h6a.75.75 0 00.75-.75v-6a.75.75 0 00-.75-.75h-6z',
 };
 
 function NavIcon({ name }: { name: NavItem['icon'] }) {
@@ -241,7 +245,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 bg-[#061B36]/50 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
           <aside className="absolute inset-y-0 left-0 w-72 bg-surface shadow-pop dark:bg-surface-elevated">

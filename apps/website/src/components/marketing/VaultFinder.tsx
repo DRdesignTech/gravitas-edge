@@ -83,7 +83,7 @@ function OptionButton({
       aria-pressed={selected}
       className={`inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
         selected
-          ? 'border-brand-400 bg-gradient-to-br from-[#0d325c] to-[#061B36] text-white shadow-[0_12px_26px_-16px_rgba(6,27,54,0.9)]'
+          ? 'border-brand-400 bg-gradient-to-br from-[#061B36] to-[#061B36] text-white shadow-[0_12px_26px_-16px_rgba(6,27,54,0.9)]'
           : 'border-line bg-surface text-content hover:border-brand-400/60 hover:bg-surface-muted dark:bg-surface-elevated dark:hover:bg-surface'
       }`}
     >
@@ -139,7 +139,7 @@ export default function VaultFinder({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#0d325c] to-brand-600 text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.09)] ring-1 ring-inset ring-brand-400/35">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#061B36] to-brand-600 text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.09)] ring-1 ring-inset ring-brand-400/35">
                 <CompassIcon className="h-5 w-5" />
               </span>
               <Eyebrow>VAULT FINDER</Eyebrow>
@@ -196,7 +196,7 @@ export default function VaultFinder({
                   aria-pressed={locations.includes(option.key)}
                   className={`inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
                     locations.includes(option.key)
-                      ? 'border-brand-400 bg-gradient-to-br from-[#0d325c] to-[#061B36] text-white shadow-[0_12px_26px_-16px_rgba(6,27,54,0.9)]'
+                      ? 'border-brand-400 bg-gradient-to-br from-[#061B36] to-[#061B36] text-white shadow-[0_12px_26px_-16px_rgba(6,27,54,0.9)]'
                       : 'border-line bg-surface text-content hover:border-brand-400/60 hover:bg-surface-muted dark:bg-surface-elevated dark:hover:bg-surface'
                   }`}
                 >

@@ -266,13 +266,14 @@ export default function Home() {
       >
         {/* Background image layer. The artwork is 16:9 and wider than the
             portrait hero, so object-cover crops horizontally — object-position
-            pans the frame to keep the skyline, stairs and walking businessman
-            in view (subject sits toward the lower-right of the source). */}
+            pans the frame. Mobile pans to the right so the walking person
+            (lower-right of the source) is fully in frame; desktop keeps the
+            skyline, stairs and person in view via the centred crop. */}
         <img
           src="/images/hero_bg.png"
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[74%_center] sm:object-center"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[90%_center] sm:object-center"
         />
 
         {/* Navy scrim over the photo.
@@ -304,7 +305,7 @@ export default function Home() {
           className="pointer-events-none absolute inset-0 z-0 hidden sm:block"
           style={{
             backgroundImage:
-              'radial-gradient(120% 90% at 0% 30%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 60%)',
+              'radial-gradient(120% 90% at 0% 30%, rgba(6,27,54,0.55) 0%, rgba(6,27,54,0) 60%)',
           }}
         />
 

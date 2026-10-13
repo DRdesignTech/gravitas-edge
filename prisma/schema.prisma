@@ -817,6 +817,29 @@ model Payment {
 }
 
 // ==========================================================================
+// PUBLIC MARKETING CONTENT — TESTIMONIALS
+// ==========================================================================
+//
+// Subscriber stories rendered on the website homepage. Managed by admins
+// (admin/testimonials); the public endpoint only exposes active rows ordered
+// by sortOrder.
+
+model Testimonial {
+  id          String   @id @default(uuid())
+  name        String
+  role        String
+  badge       String?
+  quote       String
+  linkedinUrl String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+// ==========================================================================
 // ADMIN AUDIT
 // ==========================================================================
 

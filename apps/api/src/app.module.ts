@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { HealthController } from './health/health.controller';
 import { PublicExperienceLevelsController } from './experience-levels/public-experience-levels.controller';
+import { PublicTestimonialsController } from './testimonials/public-testimonials.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -44,7 +45,7 @@ import { PaymentsModule } from './payments/payments.module';
     ResumesModule,
     PaymentsModule,
   ],
-  controllers: [HealthController, PublicExperienceLevelsController],
+  controllers: [HealthController, PublicExperienceLevelsController, PublicTestimonialsController],
   providers: [
     {
       provide: APP_GUARD,

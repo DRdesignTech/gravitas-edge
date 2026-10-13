@@ -7,6 +7,7 @@ import { Button, Input, Alert } from '@/components/ui';
 import BrandLogo from '@/components/brand/BrandLogo';
 import { apiFetch } from '@/lib/api';
 import { parseApiError } from '@/lib/errors';
+import { getPasswordError } from '@/lib/password';
 
 interface ResetPasswordClientProps {
   token?: string;
@@ -37,7 +38,10 @@ export default function ResetPasswordClient({ token, email }: ResetPasswordClien
 
     const next: { password?: string; confirmPassword?: string } = {};
     if (!password) next.password = 'Please enter a new password.';
-    else if (password.length < 8) next.password = 'Password must be at least 8 characters.';
+    else {
+      const pwError = getPasswordError(password);
+      if (pwError) next.password = pwError;
+    }
     if (!confirmPassword) next.confirmPassword = 'Please confirm your password.';
     else if (password !== confirmPassword) next.confirmPassword = 'Passwords do not match.';
     setFieldError(next);
@@ -87,8 +91,8 @@ export default function ResetPasswordClient({ token, email }: ResetPasswordClien
               {submitted
                 ? 'Your password has been updated. You can now sign in.'
                 : invalidToken
-                ? 'This reset link is invalid or has expired. Please request a new one.'
-                : `Resetting password for ${email}`}
+                  ? 'This reset link is invalid or has expired. Please request a new one.'
+                  : `Resetting password for ${email}`}
             </p>
           </div>
 
@@ -121,9 +125,34 @@ export default function ResetPasswordClient({ token, email }: ResetPasswordClien
                     className="flex h-9 w-9 items-center justify-center rounded-lg text-content-faint transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E]"
                   >
                     {showPassword ? (
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3l18 18" /><path d="M10.58 10.58a2.75 2.75 0 003.84 3.84" /><path d="M9.36 5.43A9.62 9.62 0 0112 5.25c6 0 9.75 6.75 9.75 6.75a17.6 17.6 0 01-3.19 4.03M6.11 6.11A17.7 17.7 0 002.25 12s3.75 6.75 9.75 6.75c1.2 0 2.3-.27 3.29-.69" /></svg>
+                      <svg
+                        className="h-5 w-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 3l18 18" />
+                        <path d="M10.58 10.58a2.75 2.75 0 003.84 3.84" />
+                        <path d="M9.36 5.43A9.62 9.62 0 0112 5.25c6 0 9.75 6.75 9.75 6.75a17.6 17.6 0 01-3.19 4.03M6.11 6.11A17.7 17.7 0 002.25 12s3.75 6.75 9.75 6.75c1.2 0 2.3-.27 3.29-.69" />
+                      </svg>
                     ) : (
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12z" /><circle cx="12" cy="12" r="2.75" /></svg>
+                      <svg
+                        className="h-5 w-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12s-3.75 6.75-9.75 6.75S2.25 12 2.25 12z" />
+                        <circle cx="12" cy="12" r="2.75" />
+                      </svg>
                     )}
                   </button>
                 }
@@ -135,7 +164,8 @@ export default function ResetPasswordClient({ token, email }: ResetPasswordClien
                 value={confirmPassword}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
-                  if (fieldError.confirmPassword) setFieldError((f) => ({ ...f, confirmPassword: undefined }));
+                  if (fieldError.confirmPassword)
+                    setFieldError((f) => ({ ...f, confirmPassword: undefined }));
                 }}
                 placeholder="••••••••"
                 error={fieldError.confirmPassword}

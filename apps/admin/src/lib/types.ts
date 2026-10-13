@@ -32,6 +32,19 @@ export interface ExperienceLevel {
   sortOrder?: number;
 }
 
+export interface Testimonial {
+  id: string;
+  name: string;
+  role: string;
+  badge?: string | null;
+  quote: string;
+  linkedinUrl?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Vault {
   id: string;
   name: string;
@@ -85,12 +98,7 @@ export interface AdminSubscription {
 }
 
 export type CouponStatus =
-  | 'ACTIVE'
-  | 'SCHEDULED'
-  | 'EXPIRED'
-  | 'DISABLED'
-  | 'USAGE_LIMIT_REACHED'
-  | 'ARCHIVED';
+  'ACTIVE' | 'SCHEDULED' | 'EXPIRED' | 'DISABLED' | 'USAGE_LIMIT_REACHED' | 'ARCHIVED';
 
 export const COUPON_STATUSES: CouponStatus[] = [
   'ACTIVE',

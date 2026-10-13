@@ -26,6 +26,7 @@ import {
   ReferralAnalytics,
   CommissionAnalytics,
   ResumeAnalytics,
+  Testimonial,
 } from './types';
 
 export interface UserQuery {
@@ -168,6 +169,22 @@ export function adminUpdateExperienceLevel(id: string, body: Partial<ExperienceL
 
 export function adminDeleteExperienceLevel(id: string) {
   return api.del(`/admin/experience-levels/${id}`);
+}
+
+export function adminListTestimonials() {
+  return api.get<Testimonial[]>('/admin/testimonials');
+}
+
+export function adminCreateTestimonial(body: Partial<Testimonial>) {
+  return api.post<Testimonial>('/admin/testimonials', body);
+}
+
+export function adminUpdateTestimonial(id: string, body: Partial<Testimonial>) {
+  return api.patch<Testimonial>(`/admin/testimonials/${id}`, body);
+}
+
+export function adminDeleteTestimonial(id: string) {
+  return api.del(`/admin/testimonials/${id}`);
 }
 
 export function adminListPlans(query: PlanQuery = {}) {

@@ -17,7 +17,7 @@ import {
 
 const HIDDEN_RESUME_PREFIXES = ['/login', '/register', '/dashboard'];
 
-const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbCb0FrAe5VxQRICTf2K';
+const WHATSAPP_CHANNEL_URL = 'https://wa.me/message/5JALY3QF6BTKC1';
 
 interface ChatMessage {
   id: number;

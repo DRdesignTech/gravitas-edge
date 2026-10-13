@@ -20,7 +20,7 @@ const baseButton =
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-[#061B36] text-[#FFFEFA] shadow-sm hover:bg-[#071A35] dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm transition-all duration-200',
+    'bg-[#061B36] text-[#FFFEFA] shadow-sm hover:bg-[#061B36]/90 dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm transition-all duration-200',
   secondary:
     'bg-[#FFF3D9] text-[#061B36] hover:bg-[#FFEFCB] dark:bg-brand-950 dark:text-brand-200 dark:hover:bg-brand-900 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm transition-all duration-200',
   outline:
@@ -258,7 +258,7 @@ const badgeClasses: Record<BadgeVariant, string> = {
     'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400',
   warning: 'bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400',
   danger: 'bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400',
-  info: 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-400',
+  info: 'bg-[#061B36]/5 text-[#061B36] ring-[#061B36]/20 dark:bg-blue-500/10 dark:text-blue-400',
   neutral: 'bg-slate-50 text-slate-700 ring-slate-600/20 dark:bg-slate-500/10 dark:text-slate-300',
   premium: 'bg-[#A77931] text-white ring-[#A77931]/40',
 };
@@ -397,7 +397,7 @@ export function Modal({
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-[#061B36]/50 backdrop-blur-sm" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
@@ -547,14 +547,14 @@ let toastId = 0;
 const toastColors: Record<ToastType, string> = {
   success: 'border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-200',
   error: 'border-red-200 dark:border-red-500/30 text-red-800 dark:text-red-200',
-  info: 'border-blue-200 dark:border-blue-500/30 text-blue-800 dark:text-blue-200',
+  info: 'border-[#061B36]/20 dark:border-blue-500/30 text-[#061B36] dark:text-blue-200',
   warning: 'border-amber-200 dark:border-amber-500/30 text-amber-800 dark:text-amber-200',
 };
 
 const toastDot: Record<ToastType, string> = {
   success: 'bg-emerald-500',
   error: 'bg-red-500',
-  info: 'bg-blue-500',
+  info: 'bg-[#061B36]',
   warning: 'bg-amber-500',
 };
 
@@ -823,7 +823,7 @@ const alertClasses: Record<AlertVariant, string> = {
     'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
   warning:
     'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
-  info: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200',
+  info: 'border-[#061B36]/20 bg-[#061B36]/5 text-[#061B36] dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200',
 };
 
 export function Alert({ variant = 'info', title, children, className = '' }: AlertProps) {

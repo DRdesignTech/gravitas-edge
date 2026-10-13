@@ -121,7 +121,7 @@ export default function LoginPage() {
                   <div>
                     <Link
                       href="/register"
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#061B36] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:bg-[#071A35] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.98]"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#061B36] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:bg-[#061B36]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface active:scale-[0.98]"
                     >
                       Create an account
                     </Link>

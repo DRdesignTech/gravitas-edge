@@ -8,7 +8,11 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function ResetPasswordPage({ searchParams }: { searchParams: Promise<{ token?: string; email?: string }> }) {
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string; email?: string }>;
+}) {
   const params = await searchParams;
   return <ResetPasswordClient token={params.token} email={params.email} />;
 }

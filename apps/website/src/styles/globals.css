@@ -11,7 +11,7 @@
     --color-brand-400: 200 148 62; /* #C8943E */
     --color-brand-500: 167 121 49;
     --color-brand-600: 6 27 54; /* primary navy */
-    --color-brand-700: 7 26 53; /* #071A35 */
+    --color-brand-700: 6 27 54; /* primary navy */
     --color-brand-800: 6 27 54;
     --color-brand-900: 6 27 54;
     --color-brand-950: 6 27 54;
@@ -21,9 +21,9 @@
     --color-surface-elevated: 255 255 255;
     --color-surface-inverse: 6 27 54; /* navy */
 
-    --color-content: 4 43 110; /* #042B6E */
-    --color-content-muted: 58 87 145; /* #3A5791 */
-    --color-content-faint: 118 140 182; /* #768CB6 */
+    --color-content: 6 27 54; /* primary navy */
+    --color-content-muted: 6 27 54; /* primary navy */
+    --color-content-faint: 6 27 54; /* primary navy */
     --color-content-inverse: 255 254 250;
 
     --color-line: 233 231 223; /* #E9E7DF */
@@ -62,9 +62,10 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    /* Offset section anchors below the sticky header (h-16 = 4rem = 64px).
-       Spy offset is 88px (5.5rem) to account for header + small buffer. */
-    scroll-padding-top: 5.5rem;
+    /* Offset section anchors by exactly the sticky header height (h-16 = 4rem = 64px),
+       so the tapped section starts flush below the header and the previous section
+       is not left visible above it. */
+    scroll-padding-top: 4rem;
   }
 
   @media (prefers-reduced-motion: no-preference) {

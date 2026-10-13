@@ -152,7 +152,7 @@ export function PremiumAccessPanel({
 
       <div className="relative flex items-start gap-3.5">
         {/* Circular layered lock icon */}
-        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0d325c] to-[#061B36] text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-inset ring-brand-400/40">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#061B36] to-[#061B36] text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-inset ring-brand-400/40">
           <span
             aria-hidden="true"
             className="pointer-events-none absolute -inset-1 rounded-full border border-brand-400/30"
@@ -412,10 +412,10 @@ function ArrowRightIcon({ className = 'h-4 w-4' }: { className?: string }) {
 
 /* Vault-specific glyphs. Inline Lucide-style SVGs — CSS/inline only, no image
    assets and no new dependencies. Falls back to the generic VaultIcon. */
-function VaultGlyph({ name }: { name: string }) {
+export function VaultGlyph({ name, className = 'h-7 w-7' }: { name: string; className?: string }) {
   const n = name.toLowerCase();
   const base: React.SVGProps<SVGSVGElement> = {
-    className: 'h-7 w-7',
+    className,
     fill: 'none',
     viewBox: '0 0 24 24',
     stroke: 'currentColor',
@@ -485,7 +485,7 @@ function VaultGlyph({ name }: { name: string }) {
       </svg>
     );
   }
-  return <VaultIcon className="h-7 w-7" />;
+  return <VaultIcon className={className} />;
 }
 
 function AccessPill({ locked }: { locked: boolean }) {
@@ -551,7 +551,7 @@ export function VaultCard({
 
       {/* Header: gold glyph in navy tile, bold title, access badge */}
       <div className="relative flex items-start gap-3.5">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0d325c] to-brand-600 text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_12px_22px_-14px_rgba(6,27,54,0.85)] ring-1 ring-inset ring-brand-400/35 transition-all duration-200 group-hover:text-[#F1CE82] group-hover:ring-brand-400/70">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#061B36] to-brand-600 text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_12px_22px_-14px_rgba(6,27,54,0.85)] ring-1 ring-inset ring-brand-400/35 transition-all duration-200 group-hover:text-[#F1CE82] group-hover:ring-brand-400/70">
           <VaultGlyph name={v.name} />
         </span>
         <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-3 gap-y-2">

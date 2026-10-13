@@ -463,7 +463,7 @@ function StatBlock({
     brand: 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300',
     success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
     warning: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
-    info: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
+    info: 'bg-[#061B36]/5 text-[#061B36] dark:bg-blue-500/10 dark:text-blue-400',
   };
   return (
     <div className="rounded-2xl border border-line bg-surface p-5 card-static dark:bg-surface-elevated">
