@@ -3,8 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const HIDDEN_PREFIXES = ['/login', '/register', '/dashboard'];
-
 function UploadIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
     <svg
@@ -27,7 +25,7 @@ function UploadIcon({ className = 'h-4 w-4' }: { className?: string }) {
 export default function FloatingResumeButton() {
   const pathname = usePathname();
 
-  if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) {
+  if (pathname !== '/') {
     return null;
   }
 

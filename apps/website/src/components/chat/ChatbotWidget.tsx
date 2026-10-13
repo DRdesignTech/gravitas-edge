@@ -15,8 +15,6 @@ import {
   matchCustomQuestion,
 } from '@/data/chatbot-data';
 
-const HIDDEN_RESUME_PREFIXES = ['/login', '/register', '/dashboard'];
-
 const WHATSAPP_CHANNEL_URL = 'https://wa.me/message/5JALY3QF6BTKC1';
 
 interface ChatMessage {
@@ -114,7 +112,7 @@ function SparklesIcon({ className = 'h-4 w-4' }: { className?: string }) {
 
 export default function ChatbotWidget() {
   const pathname = usePathname();
-  const resumeVisible = !HIDDEN_RESUME_PREFIXES.some((p) => pathname.startsWith(p));
+  const isHome = pathname === '/';
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -212,9 +210,11 @@ export default function ChatbotWidget() {
     window.setTimeout(() => inputRef.current?.focus(), 40);
   };
 
-  const launcherPosition = resumeVisible
-    ? 'bottom-[4.5rem] right-4 sm:bottom-24 sm:right-6'
-    : 'bottom-4 right-4 sm:bottom-6 sm:right-6';
+  if (!isHome) {
+    return null;
+  }
+
+  const launcherPosition = 'bottom-[4.5rem] right-4 sm:bottom-24 sm:right-6';
 
   const contactTopic = chatbotTopics.find((t) => t.id === 'contact');
 
