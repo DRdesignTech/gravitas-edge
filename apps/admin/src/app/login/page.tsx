@@ -109,8 +109,15 @@ export default function LoginPage() {
         </div>
 
         <p className="relative text-xs text-brand-200/60">
-          © {new Date().getFullYear()} Designed, Developed & Marketed by PR Digital Marketing
-          Gwalior
+          © {new Date().getFullYear()} Designed, Developed &amp; Marketed by{' '}
+          <a
+            href="https://prdigitalmarketing.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-brand-200/40 underline-offset-4 hover:text-white"
+          >
+            PR Digital Marketing Gwalior
+          </a>
         </p>
       </div>
 

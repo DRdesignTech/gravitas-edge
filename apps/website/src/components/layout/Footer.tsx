@@ -158,7 +158,15 @@ export default function Footer() {
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center gap-4 text-center lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:text-left">
             <p className="text-xs text-white/60 sm:text-sm">
-              © {year} Designed, Developed &amp; Marketed by PR Digital Marketing Gwalior
+              © {year} Designed, Developed &amp; Marketed by{' '}
+              <a
+                href="https://prdigitalmarketing.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-white/30 underline-offset-4 hover:text-white"
+              >
+                PR Digital Marketing Gwalior
+              </a>
             </p>
 
             <nav
