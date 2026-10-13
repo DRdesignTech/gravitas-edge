@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { PricingGroup, PricingPlan } from '@/lib/types';
 import { VaultGlyph } from '@/components/cards';
 import { formatMoney } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
-import PlanCheckoutModal from '@/components/checkout/PlanCheckoutModal';
+import { useToast } from '@/components/ui';
+import { purchasePlan } from '@/lib/services';
+import { getErrorMessage } from '@/lib/errors';
 
 const DAYS_PER_MONTH = 30;
 
@@ -57,22 +60,34 @@ export default function OpportunityVaultCard({
 }) {
   const { vault, plans } = group;
   const { user } = useAuth();
+  const router = useRouter();
+  const { showToast } = useToast();
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const [selectedPlan, setSelectedPlan] = useState<PricingPlan | null>(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [buyingPlanId, setBuyingPlanId] = useState<string | null>(null);
 
   const tags = vaultTags(vault.name);
   const currency = plans[0]?.currency ?? 'INR';
   const fromMonthly = lowestMonthlyEquivalent(plans);
   const sortedPlans = plans.slice().sort((a, b) => a.durationDays - b.durationDays);
 
-  const handleBuy = (plan: PricingPlan) => {
+  const handleBuy = async (plan: PricingPlan) => {
     if (!user) {
       window.location.href = '/register';
       return;
     }
-    setSelectedPlan(plan);
-    setCheckoutOpen(true);
+    if (buyingPlanId) return;
+    setBuyingPlanId(plan.id);
+    try {
+      const started = await purchasePlan(plan.id, vault.id);
+      router.push(
+        `/checkout/${started.paymentId}?returnTo=${encodeURIComponent(
+          `/opportunities?vaultId=${encodeURIComponent(vault.id)}`,
+        )}`,
+      );
+    } catch (err) {
+      setBuyingPlanId(null);
+      showToast(getErrorMessage(err), 'error');
+    }
   };
 
   return (
@@ -214,9 +229,10 @@ export default function OpportunityVaultCard({
                     </div>
                     <button
                       onClick={() => handleBuy(plan)}
-                      className="inline-flex shrink-0 items-center rounded-lg bg-[#061B36] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#061B36]/90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E] dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300"
+                      disabled={buyingPlanId !== null}
+                      className="inline-flex shrink-0 items-center rounded-lg bg-[#061B36] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#061B36]/90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E] disabled:cursor-not-allowed disabled:opacity-60 dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300"
                     >
-                      Buy Now
+                      {buyingPlanId === plan.id ? 'Redirecting…' : 'Buy Now'}
                     </button>
                   </div>
                 </div>
@@ -227,17 +243,6 @@ export default function OpportunityVaultCard({
             Click “Buy Now” to complete your purchase. Access activates after successful payment.
           </p>
         </div>
-      )}
-
-      {selectedPlan && (
-        <PlanCheckoutModal
-          plan={selectedPlan}
-          vaultName={vault.name}
-          vaultId={vault.id}
-          open={checkoutOpen}
-          onClose={() => setCheckoutOpen(false)}
-          returnTo={`/opportunities?vaultId=${encodeURIComponent(vault.id)}`}
-        />
       )}
     </article>
   );

@@ -559,12 +559,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }, 4500);
   }, []);
 
-  useEffect(() => {
-    const current = timers.current;
-    return () => {
-      Object.values(current).forEach((t) => clearTimeout(t));
-    };
-  }, []);
+  // Each toast owns its dismiss timer and clears it once it fires (or when the
+  // user dismisses it). We intentionally do NOT clear every timer on unmount:
+  // React StrictMode's dev-only simulated unmount would otherwise clear the
+  // timer of a toast scheduled during the very first mount and leave that toast
+  // permanently stuck on screen.
 
   const removeToast = (id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

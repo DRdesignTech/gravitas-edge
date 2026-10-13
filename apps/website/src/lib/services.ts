@@ -1,5 +1,6 @@
 import { api, apiFetch, uploadFile } from './api';
 import {
+  AvailableCouponsResult,
   CommissionItem,
   CommissionQuery,
   CommissionStatistics,
@@ -154,6 +155,10 @@ export function purchasePlan(planId: string, vaultId?: string, couponCode?: stri
 
 export function validateCoupon(couponCode: string, planId: string) {
   return api.post<CouponValidationResult>('/coupons/validate', { couponCode, planId });
+}
+
+export function fetchAvailableCoupons(planId: string) {
+  return api.get<AvailableCouponsResult>(`/coupons/available?planId=${encodeURIComponent(planId)}`);
 }
 
 export function verifyPayment(payload: {

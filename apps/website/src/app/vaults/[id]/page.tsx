@@ -3,16 +3,15 @@
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { fetchVaults, fetchPublicPricing } from '@/lib/services';
+import { fetchVaults, fetchPublicPricing, purchasePlan } from '@/lib/services';
 import { PricingGroup, PricingPlan, Vault } from '@/lib/types';
-import { Button, Card, Skeleton, ErrorState } from '@/components/ui';
+import { Button, Card, ErrorState, Skeleton, useToast } from '@/components/ui';
 import { formatMoney } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import InfoBanner from '@/components/marketing/InfoBanner';
 import ResumeUploadCard from '@/components/marketing/ResumeUploadCard';
-import PlanCheckoutModal from '@/components/checkout/PlanCheckoutModal';
 
 function typeLabel(type: string): string {
   const map: Record<string, string> = {
@@ -62,6 +61,7 @@ export default function VaultDetailPage() {
   const vaultId = params.id;
   const router = useRouter();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [pricing, setPricing] = useState<PricingGroup[]>([]);
@@ -69,7 +69,7 @@ export default function VaultDetailPage() {
   const [error, setError] = useState('');
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [checkoutConsent, setCheckoutConsent] = useState(false);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
 
   const [checkingAccess, setCheckingAccess] = useState(true);
 
@@ -121,12 +121,24 @@ export default function VaultDetailPage() {
 
   const selectedPlan = vaultPlans.find((p) => p.id === selectedPlanId) || null;
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!user) {
       window.location.href = '/register';
       return;
     }
-    setCheckoutOpen(true);
+    if (!selectedPlan || !vault || purchasing) return;
+    setPurchasing(true);
+    try {
+      const started = await purchasePlan(selectedPlan.id, vault.id);
+      router.push(
+        `/checkout/${started.paymentId}?returnTo=${encodeURIComponent(
+          `/opportunities?vaultId=${encodeURIComponent(vault.id)}`,
+        )}`,
+      );
+    } catch (err) {
+      setPurchasing(false);
+      showToast(getErrorMessage(err), 'error');
+    }
   };
 
   if (loading || checkingAccess) {
@@ -195,7 +207,7 @@ export default function VaultDetailPage() {
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-[1fr_380px]">
             {/* LEFT COLUMN */}
-            <div className="space-y-8">
+            <div className="order-2 space-y-8 lg:order-1">
               {/* SECTION 2 — WHAT YOUR ACCESS INCLUDES */}
               <div className="rounded-2xl border border-line bg-surface p-6 dark:bg-surface-elevated sm:p-8">
                 <Eyebrow>WHAT YOUR ACCESS INCLUDES</Eyebrow>
@@ -225,7 +237,7 @@ export default function VaultDetailPage() {
             </div>
 
             {/* RIGHT COLUMN */}
-            <div className="space-y-6">
+            <div className="order-1 space-y-6 lg:order-2">
               {/* SECTION 4 — PLAN SELECTOR */}
               <div className="rounded-2xl border border-line bg-surface p-6 card-static dark:bg-surface-elevated">
                 <h2 className="text-lg font-bold text-content">Select your access period</h2>
@@ -409,7 +421,8 @@ export default function VaultDetailPage() {
                   <Button
                     className="w-full"
                     size="lg"
-                    disabled={!selectedPlan || !checkoutConsent}
+                    loading={purchasing}
+                    disabled={!selectedPlan || !checkoutConsent || purchasing}
                     onClick={handleCheckout}
                   >
                     Continue to Payment
@@ -451,17 +464,6 @@ export default function VaultDetailPage() {
           </div>
         </div>
       </section>
-
-      {selectedPlan && (
-        <PlanCheckoutModal
-          plan={selectedPlan}
-          vaultName={vault.name}
-          vaultId={vault.id}
-          open={checkoutOpen}
-          onClose={() => setCheckoutOpen(false)}
-          returnTo={`/opportunities?vaultId=${encodeURIComponent(vault.id)}`}
-        />
-      )}
     </div>
   );
 }

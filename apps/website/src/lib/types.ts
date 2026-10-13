@@ -175,6 +175,20 @@ export interface CouponValidationResult {
   finalAmount: number;
 }
 
+export interface AvailableCoupon {
+  coupon: CouponSummary;
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+}
+
+export interface AvailableCouponsResult {
+  planId: string;
+  currency: string;
+  originalAmount: number;
+  coupons: AvailableCoupon[];
+}
+
 export interface VerifyPaymentPayload {
   razorpay_payment_id: string;
   razorpay_order_id: string;

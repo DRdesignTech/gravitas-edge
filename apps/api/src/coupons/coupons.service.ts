@@ -12,6 +12,17 @@ import {
   serializeCouponSummary,
 } from './coupon.util';
 
+export interface AvailableCoupon extends CouponAmounts {
+  coupon: CouponSummary;
+}
+
+export interface AvailableCouponsResult {
+  planId: string;
+  currency: string;
+  originalAmount: number;
+  coupons: AvailableCoupon[];
+}
+
 /** Minimal Prisma surface the helpers need - works for the client and for a `$transaction` handle. */
 export type CouponExecutor = Pick<Prisma.TransactionClient, 'coupon' | 'couponUsage' | '$queryRaw'>;
 
@@ -69,6 +80,60 @@ export class CouponsService {
       planName: plan.name,
       currency: plan.currency,
       ...amounts,
+    };
+  }
+
+  /**
+   * List every coupon the given user can currently redeem against a plan,
+   * with the server-calculated discount for that plan.
+   *
+   * Applies the exact same eligibility + limit rules used by validation and
+   * the purchase flow, so a coupon is only ever shown when applying it would
+   * actually succeed.
+   */
+  async listAvailableForUser(userId: string, planId: string): Promise<AvailableCouponsResult> {
+    const plan = await this.prisma.subscriptionPlan.findFirst({
+      where: { id: planId, deletedAt: null, isActive: true },
+      select: { id: true, price: true, currency: true },
+    });
+    if (!plan) {
+      throw new NotFoundException('Plan is not available for purchase');
+    }
+
+    const now = new Date();
+    const candidates = await this.prisma.coupon.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        validFrom: { lte: now },
+        validUntil: { gte: now },
+      },
+      include: { plans: { select: { planId: true } }, users: { select: { userId: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const coupons: AvailableCoupon[] = [];
+    for (const coupon of candidates) {
+      try {
+        this.assertEligible(coupon, userId, plan.id, now);
+        await this.assertLimits(this.prisma, coupon, userId);
+      } catch {
+        // Skip coupons this user can't use for this plan right now.
+        continue;
+      }
+      const amounts = computeCouponAmounts(
+        coupon.discountType,
+        Number(coupon.discountValue),
+        Number(plan.price),
+      );
+      coupons.push({ coupon: serializeCouponSummary(coupon), ...amounts });
+    }
+
+    return {
+      planId: plan.id,
+      currency: plan.currency,
+      originalAmount: Number(plan.price),
+      coupons,
     };
   }
 
