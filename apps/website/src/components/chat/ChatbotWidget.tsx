@@ -213,8 +213,8 @@ export default function ChatbotWidget() {
   };
 
   const launcherPosition = resumeVisible
-    ? 'bottom-[9.5rem] right-4 sm:bottom-24 sm:right-6'
-    : 'bottom-[5.5rem] right-4 sm:bottom-6 sm:right-6';
+    ? 'bottom-[4.5rem] right-4 sm:bottom-24 sm:right-6'
+    : 'bottom-4 right-4 sm:bottom-6 sm:right-6';
 
   const contactTopic = chatbotTopics.find((t) => t.id === 'contact');
 
