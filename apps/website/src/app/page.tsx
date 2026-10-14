@@ -501,13 +501,22 @@ export default function Home() {
           </div>
         </section>
       ) : (
-        <LiveFreePreview opportunities={opportunities} loading={false} error="" onRetry={load} />
+        <LiveFreePreview
+          opportunities={opportunities}
+          vaults={vaults}
+          loading={false}
+          error=""
+          onRetry={load}
+        />
       )}
 
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 6. WHATSAPP FREE CONNECTION #1 — #whatsapp-free                */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="whatsapp-free" className="section-glow relative border-t border-line bg-surface-muted">
+      <section
+        id="whatsapp-free"
+        className="section-glow relative border-t border-line bg-surface-muted"
+      >
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <WhatsAppChannel
             note={
@@ -592,7 +601,10 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 9. WHATSAPP FREE CONNECTION #2 — #whatsapp-free-2              */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="whatsapp-free-2" className="section-glow relative border-t border-line bg-surface-muted">
+      <section
+        id="whatsapp-free-2"
+        className="section-glow relative border-t border-line bg-surface-muted"
+      >
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <WhatsAppChannel
             title="Stay Connected to New Opportunities"

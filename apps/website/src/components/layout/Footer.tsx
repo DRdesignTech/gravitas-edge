@@ -4,6 +4,9 @@ import BrandLogo from '@/components/brand/BrandLogo';
 
 const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbCb0FrAe5VxQRICTf2K';
 
+const BUSINESS_ADDRESS =
+  'Flat No. 704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061';
+
 const platformLinks = [
   { href: '/vaults', label: 'Opportunity Vaults' },
   { href: '/how-it-works', label: 'How It Works' },
@@ -95,6 +98,24 @@ function LinkedInIcon({ className }: { className?: string }) {
   );
 }
 
+function MapPinIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+      <path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+    </svg>
+  );
+}
+
 export default function Footer() {
   const year = new Date().getFullYear();
   return (
@@ -120,6 +141,10 @@ export default function Footer() {
             <p className="mt-5 text-sm leading-relaxed text-slate-300">
               Direct access to curated opportunities and the people involved in hiring.
             </p>
+            <address className="mt-4 flex max-w-xs items-start gap-2 text-left text-sm not-italic leading-relaxed text-slate-300">
+              <MapPinIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#C8943E]" />
+              <span>{BUSINESS_ADDRESS}</span>
+            </address>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5 lg:justify-start">
               <a
                 href={WHATSAPP_CHANNEL_URL}

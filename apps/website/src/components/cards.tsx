@@ -3,7 +3,13 @@
 import Link from 'next/link';
 import { Opportunity, Vault } from '@/lib/types';
 import { Badge, LockIcon, UnlockIcon } from '@/components/ui';
-import { titleCase, formatDate, displayExperience, hasExperience, isMeaningful } from '@/lib/format';
+import {
+  titleCase,
+  formatDate,
+  displayExperience,
+  hasExperience,
+  isMeaningful,
+} from '@/lib/format';
 import { OPPORTUNITY_FIELD_LABELS, extractEmail } from '@job-portal/shared';
 
 export interface ProtectedField {
@@ -25,12 +31,19 @@ export function formatMaskedValue(value: string | null | undefined, isEmail = fa
   // Otherwise, return as-is (API already masked with first/last char).
   if (isEmail && value.includes('@')) {
     const [local, domain] = value.split('@');
-    const maskedLocal = local.length > 2 ? `${local[0]}${'*'.repeat(Math.min(local.length - 2, 6))}${local[local.length - 1]}` : local;
+    const maskedLocal =
+      local.length > 2
+        ? `${local[0]}${'*'.repeat(Math.min(local.length - 2, 6))}${local[local.length - 1]}`
+        : local;
     const domainParts = domain.split('.');
-    const maskedDomain = domainParts.map((part, i) => {
-      if (i === domainParts.length - 1) return part; // Keep TLD
-      return part.length > 2 ? `${part[0]}${'*'.repeat(Math.min(part.length - 2, 4))}${part[part.length - 1]}` : part;
-    }).join('.');
+    const maskedDomain = domainParts
+      .map((part, i) => {
+        if (i === domainParts.length - 1) return part; // Keep TLD
+        return part.length > 2
+          ? `${part[0]}${'*'.repeat(Math.min(part.length - 2, 4))}${part[part.length - 1]}`
+          : part;
+      })
+      .join('.');
     return `${maskedLocal}@${maskedDomain}`;
   }
   return value;
@@ -126,12 +139,53 @@ export function PremiumAccessPanel({
   vaultId,
   className = '',
   onClick,
+  compact = false,
 }: {
   vaultId?: string | null;
   className?: string;
   onClick?: React.MouseEventHandler<HTMLElement>;
+  compact?: boolean;
 }) {
   const href = vaultId ? `/vaults/${vaultId}` : '/plans';
+
+  if (compact) {
+    return (
+      <Link
+        href={href}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.(e);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') e.stopPropagation();
+        }}
+        aria-label="Unlock full opportunity details with Opportunity Vault access"
+        className={`group/access relative flex items-center gap-3 overflow-hidden rounded-xl border border-brand-400/40 bg-gradient-to-br from-brand-50/80 via-surface to-surface p-3 shadow-[0_16px_40px_-28px_rgba(200,148,62,0.6)] transition-all duration-200 ease-premium hover:-translate-y-0.5 hover:border-brand-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface dark:border-brand-400/25 dark:from-brand-950/40 dark:via-surface-elevated dark:to-surface-elevated ${className}`}
+      >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(200,148,62,0.16), transparent 70%)' }}
+        />
+        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#061B36] to-[#061B36] text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-inset ring-brand-400/40">
+          <LockIcon className="h-4 w-4" />
+        </span>
+        <div className="relative min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-500 dark:text-brand-300">
+            Premium Access
+          </p>
+          <p className="text-[13px] font-bold leading-snug text-content">Unlock full details</p>
+        </div>
+        <span
+          aria-hidden="true"
+          className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-300 to-brand-400 text-white shadow-[0_8px_18px_-10px_rgba(200,148,62,0.95)] transition-transform duration-200 group-hover/access:translate-x-0.5"
+        >
+          <ArrowRightIcon className="h-3.5 w-3.5" />
+        </span>
+      </Link>
+    );
+  }
+
   return (
     <Link
       href={href}
@@ -231,9 +285,6 @@ export function OpportunityCard({
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
-              {(o.company || o.title || '?')[0]?.toUpperCase()}
-            </span>
             <div className="min-w-0">
               <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
                 {o.title}
@@ -260,6 +311,11 @@ export function OpportunityCard({
         ) : null}
 
         <div className="mt-3 flex flex-wrap gap-1.5">
+          {o.vaults?.map((v) => (
+            <MetaChip key={v.id} icon={<VaultIcon className="h-3.5 w-3.5" />}>
+              {v.name}
+            </MetaChip>
+          ))}
           {o.location && (
             <MetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>{o.location}</MetaChip>
           )}
@@ -293,7 +349,7 @@ export function OpportunityCard({
               <ProtectedFields opportunity={o} showLock={false} />
             </div>
           ) : (
-            <PremiumAccessPanel vaultId={o.vaults?.[0]?.id} className="mt-4" />
+            <PremiumAccessPanel vaultId={o.vaults?.[0]?.id} compact className="mt-4" />
           ))}
 
         <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
@@ -523,9 +579,7 @@ export function VaultCard({
   recommended?: boolean;
 }) {
   const unlocked = !v.locked;
-  const href = unlocked
-    ? `/opportunities?vaultId=${encodeURIComponent(v.id)}`
-    : `/vaults/${v.id}`;
+  const href = unlocked ? `/opportunities?vaultId=${encodeURIComponent(v.id)}` : `/vaults/${v.id}`;
   const actionText = v.locked
     ? 'Browse jobs free · Full details via subscription'
     : 'Open the jobs included with your access';
@@ -779,7 +833,11 @@ export function ContactIcon({ className = 'h-4 w-4' }: { className?: string }) {
       aria-hidden="true"
     >
       <rect width="20" height="16" x="2" y="4" rx="2" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"
+      />
     </svg>
   );
 }

@@ -284,7 +284,11 @@ export default function TermsAndConditionsPage() {
             { label: 'Business', value: 'Gravitas Edge Consulting' },
             { label: 'Email', value: CONTACT, href: `mailto:${CONTACT}` },
             { label: 'WhatsApp Support', value: WHATSAPP_URL, href: WHATSAPP_URL },
-            { label: 'Business Address', value: '[INSERT FINAL BUSINESS ADDRESS]' },
+            {
+              label: 'Business Address',
+              value:
+                'Flat No. 704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061',
+            },
           ]}
         />
       </PolicySection>

@@ -214,7 +214,7 @@ export default function ChatbotWidget() {
     return null;
   }
 
-  const launcherPosition = 'bottom-[4.5rem] right-4 sm:bottom-24 sm:right-6';
+  const launcherPosition = 'bottom-4 right-4 sm:bottom-6 sm:right-6';
 
   const contactTopic = chatbotTopics.find((t) => t.id === 'contact');
 

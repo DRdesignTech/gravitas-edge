@@ -115,7 +115,7 @@ export default function RefundPolicyPage() {
         <PolicyText>
           {`We may update this Policy from time to time. The current version will be published with a revised date.`}
         </PolicyText>
-        <PolicyText>{`Business Address: [INSERT FINAL BUSINESS ADDRESS]`}</PolicyText>
+        <PolicyText>{`Business Address: Flat No. 704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061`}</PolicyText>
       </PolicySection>
     </PolicyLayout>
   );

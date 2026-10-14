@@ -338,7 +338,7 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-line bg-surface px-4 pb-6 pt-3 xl:hidden">
+        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-line bg-surface px-4 pb-6 pt-3 xl:hidden">
           <nav
             className="space-y-1"
             aria-label="Primary mobile"

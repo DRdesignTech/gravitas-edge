@@ -7,7 +7,6 @@ import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import Header from './Header';
 import Footer from './Footer';
 import NavigationTracker from './NavigationTracker';
-import FloatingResumeButton from '@/components/marketing/FloatingResumeButton';
 import CookieConsent from './CookieConsent';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -23,7 +22,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
                 {children}
               </main>
               <Footer />
-              <FloatingResumeButton />
               <CookieConsent />
             </div>
           </ToastProvider>

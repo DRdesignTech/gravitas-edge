@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Opportunity } from '@/lib/types';
+import { Opportunity, Vault } from '@/lib/types';
 import {
   Skeleton,
   ErrorState,
@@ -10,7 +10,6 @@ import {
   ListIcon,
   LockIcon,
   Badge,
-  Select,
 } from '@/components/ui';
 import {
   OpportunityCard,
@@ -21,6 +20,7 @@ import {
   LayersIcon,
   BarsIcon,
   ProtectedFields,
+  VaultIcon,
 } from '@/components/cards';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
@@ -37,7 +37,14 @@ const INITIAL_COUNT = 6;
 const VIEW_KEY = 'free-preview-view';
 type PreviewView = 'grid' | 'list';
 
-const EXPERIENCE_BUCKETS = ['0–5 years', '5–10 years', '10–15 years', '15+ years', 'Senior / Leadership', 'Other'];
+const EXPERIENCE_BUCKETS = [
+  '0–5 years',
+  '5–10 years',
+  '10–15 years',
+  '15+ years',
+  'Senior / Leadership',
+  'Other',
+];
 const SALARY_BUCKETS = [
   'Under ₹40 LPA',
   '₹40–₹60 LPA',
@@ -124,17 +131,20 @@ function getMobileDefaultView(): PreviewView {
 
 export default function LiveFreePreview({
   opportunities,
+  vaults,
   loading,
   error,
   onRetry,
 }: {
   opportunities: Opportunity[];
+  vaults: Vault[];
   loading: boolean;
   error: string;
   onRetry: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [vault, setVault] = useState('');
   const [location, setLocation] = useState('');
   const [industry, setIndustry] = useState('');
   const [experience, setExperience] = useState('');
@@ -158,6 +168,7 @@ export default function LiveFreePreview({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const vaultOptions = useMemo(() => vaults.map((v) => ({ value: v.id, label: v.name })), [vaults]);
   const locationOptions = useMemo(
     () => uniqueOptions(opportunities.map((o) => (o.location ? primaryLocation(o.location) : ''))),
     [opportunities],
@@ -183,10 +194,11 @@ export default function LiveFreePreview({
     }));
   }, [opportunities]);
 
-  const hasFilters = Boolean(searchQuery || location || industry || experience || salary);
+  const hasFilters = Boolean(searchQuery || vault || location || industry || experience || salary);
 
   const resetFilters = () => {
     setSearchQuery('');
+    setVault('');
     setLocation('');
     setIndustry('');
     setExperience('');
@@ -202,9 +214,13 @@ export default function LiveFreePreview({
     const salaryFilter = salary.toLowerCase().trim();
 
     return opportunities.filter((o) => {
-      if (locationFilter && !(o.location || '').toLowerCase().includes(locationFilter)) return false;
-      if (industryFilter && !(o.industry || '').toLowerCase().includes(industryFilter)) return false;
-      if (experienceFilter && !(o.experienceText || '').toLowerCase().includes(experienceFilter)) return false;
+      if (vault && !(o.vaults?.some((v) => v.id === vault) ?? false)) return false;
+      if (locationFilter && !(o.location || '').toLowerCase().includes(locationFilter))
+        return false;
+      if (industryFilter && !(o.industry || '').toLowerCase().includes(industryFilter))
+        return false;
+      if (experienceFilter && !(o.experienceText || '').toLowerCase().includes(experienceFilter))
+        return false;
       if (salaryFilter && !(o.salary || '').toLowerCase().includes(salaryFilter)) return false;
       if (queries.length === 0) return true;
 
@@ -220,6 +236,7 @@ export default function LiveFreePreview({
         o.experienceText,
         ...(o.experienceLevels?.map((e) => e.name) || []),
         o.employmentType,
+        ...(o.vaults?.map((v) => v.name) || []),
       ]
         .filter(Boolean)
         .join(' ')
@@ -227,7 +244,7 @@ export default function LiveFreePreview({
 
       return queries.every((q) => textParts.includes(q));
     });
-  }, [opportunities, searchQuery, location, industry, experience, salary]);
+  }, [opportunities, searchQuery, vault, location, industry, experience, salary]);
 
   const handleViewChange = (v: PreviewView) => {
     setView(v);
@@ -239,7 +256,10 @@ export default function LiveFreePreview({
   };
 
   return (
-    <section id="free-preview" className="section-glow relative border-t border-line bg-surface-muted">
+    <section
+      id="free-preview"
+      className="section-glow relative border-t border-line bg-surface-muted"
+    >
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="mb-8 max-w-2xl">
           <Eyebrow>FREE PREVIEW</Eyebrow>
@@ -258,80 +278,120 @@ export default function LiveFreePreview({
         {!loading && !error && (
           <div className="mb-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative w-full max-w-2xl md:max-w-3xl">
-              <SearchIcon
-                className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50"
-                aria-hidden="true"
-              />
-              <input
-                id="free-preview-search"
-                type="text"
-                placeholder="Search by role, company, location, experience..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.stopPropagation()}
-                className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-10 text-base text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                aria-label="Search opportunities by title, company, or location"
-              />
-              {searchQuery && (
+              <div className="relative w-full max-w-2xl md:max-w-3xl">
+                <SearchIcon
+                  className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50"
+                  aria-hidden="true"
+                />
+                <input
+                  id="free-preview-search"
+                  type="text"
+                  placeholder="Search by role, company, location, experience..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-10 text-base text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                  aria-label="Search opportunities by title, company, or location"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
+                    aria-label="Clear search"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <div
+                className="inline-flex shrink-0 items-center gap-0.5 self-start rounded-xl border border-line bg-surface p-0.5 shadow-sm dark:bg-surface-elevated sm:self-auto"
+                role="group"
+                aria-label="Choose view layout"
+              >
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
-                  aria-label="Clear search"
+                  onClick={() => handleViewChange('grid')}
+                  aria-pressed={view === 'grid'}
+                  aria-label="Grid view"
+                  title="Grid view"
+                  className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
+                    view === 'grid'
+                      ? 'bg-brand-600 text-white shadow-sm'
+                      : 'text-content-muted hover:text-content hover:bg-surface-muted transition-all duration-150'
+                  }`}
                 >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <GridIcon className="h-4 w-4" />
                 </button>
-              )}
-            </div>
-            <div
-              className="inline-flex shrink-0 items-center gap-0.5 self-start rounded-xl border border-line bg-surface p-0.5 shadow-sm dark:bg-surface-elevated sm:self-auto"
-              role="group"
-              aria-label="Choose view layout"
-            >
-              <button
-                type="button"
-                onClick={() => handleViewChange('grid')}
-                aria-pressed={view === 'grid'}
-                aria-label="Grid view"
-                title="Grid view"
-                className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
-                  view === 'grid'
-                    ? 'bg-brand-600 text-white shadow-sm'
-                    : 'text-content-muted hover:text-content hover:bg-surface-muted transition-all duration-150'
-                }`}
-              >
-                <GridIcon className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleViewChange('list')}
-                aria-pressed={view === 'list'}
-                aria-label="List view"
-                title="List view"
-                className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
-                  view === 'list'
-                    ? 'bg-brand-600 text-white shadow-sm'
-                    : 'text-content-muted hover:text-content hover:bg-surface-muted transition-all duration-150'
-                }`}
-              >
-                <ListIcon className="h-4 w-4" />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => handleViewChange('list')}
+                  aria-pressed={view === 'list'}
+                  aria-label="List view"
+                  title="List view"
+                  className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
+                    view === 'list'
+                      ? 'bg-brand-600 text-white shadow-sm'
+                      : 'text-content-muted hover:text-content hover:bg-surface-muted transition-all duration-150'
+                  }`}
+                >
+                  <ListIcon className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <div className="relative">
-                <label htmlFor="filter-experience" className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated">
+                <label
+                  htmlFor="filter-vault"
+                  className="absolute -top-2 left-2 z-10 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
+                >
+                  Vault
+                </label>
+                <select
+                  id="filter-vault"
+                  value={vault}
+                  onChange={(e) => setVault(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-line bg-surface px-4 py-2.5 pr-9 text-sm text-content focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                  aria-label="Filter by vault"
+                >
+                  <option value="">All vaults</option>
+                  {vaultOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                  />
+                </svg>
+              </div>
+
+              <div className="relative">
+                <label
+                  htmlFor="filter-experience"
+                  className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
+                >
                   Experience
                 </label>
                 <input
@@ -346,7 +406,10 @@ export default function LiveFreePreview({
               </div>
 
               <div className="relative">
-                <label htmlFor="filter-location" className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated">
+                <label
+                  htmlFor="filter-location"
+                  className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
+                >
                   Location
                 </label>
                 <input
@@ -361,7 +424,10 @@ export default function LiveFreePreview({
               </div>
 
               <div className="relative">
-                <label htmlFor="filter-industry" className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated">
+                <label
+                  htmlFor="filter-industry"
+                  className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
+                >
                   Industry
                 </label>
                 <input
@@ -376,7 +442,10 @@ export default function LiveFreePreview({
               </div>
 
               <div className="relative">
-                <label htmlFor="filter-salary" className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated">
+                <label
+                  htmlFor="filter-salary"
+                  className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
+                >
                   Salary
                 </label>
                 <input
@@ -458,33 +527,59 @@ export default function LiveFreePreview({
                     <div className="min-w-0">
                       <div className="flex min-w-0 items-center justify-between gap-2">
                         <div className="flex min-w-0 items-center gap-2.5">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#061B36] text-sm font-bold text-[#E3B968] shadow-sm">
-                            {(o.company || o.title || '?')[0]?.toUpperCase()}
-                          </span>
                           <div className="min-w-0">
                             <h3 className="truncate text-base font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
                               {o.title}
                             </h3>
                             <p className="flex flex-wrap items-center gap-1.5 text-xs text-content-muted">
-                              <span className="truncate max-w-[180px] sm:max-w-[220px]">{o.company || '—'}</span>
+                              <span className="truncate max-w-[180px] sm:max-w-[220px]">
+                                {o.company || '—'}
+                              </span>
                               {o.isPremium ? (
-                                <Badge variant="premium" className="shrink-0 text-[10px] px-1.5 py-0.5">
+                                <Badge
+                                  variant="premium"
+                                  className="shrink-0 text-[10px] px-1.5 py-0.5"
+                                >
                                   Premium
                                 </Badge>
                               ) : (
-                                <Badge variant="success" className="shrink-0 text-[10px] px-1.5 py-0.5">
+                                <Badge
+                                  variant="success"
+                                  className="shrink-0 text-[10px] px-1.5 py-0.5"
+                                >
                                   Open
                                 </Badge>
                               )}
-                              {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+                              {hasExperience(
+                                o.experienceText,
+                                o.minExperience,
+                                o.maxExperience,
+                              ) && (
                                 <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-xs text-content-muted">
                                   <BarsIcon className="h-3 w-3" />
-                                  {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+                                  {displayExperience(
+                                    o.experienceText,
+                                    o.minExperience,
+                                    o.maxExperience,
+                                  )}
                                 </span>
                               )}
                               {o.publishedDate && (
                                 <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-xs text-content-muted">
-                                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>
+                                  <svg
+                                    className="h-3 w-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={2}
+                                    stroke="currentColor"
+                                    aria-hidden="true"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+                                    />
+                                  </svg>
                                   {formatDate(o.publishedDate)}
                                 </span>
                               )}
@@ -501,7 +596,10 @@ export default function LiveFreePreview({
                                 </span>
                               )}
                               {o.category && (
-                                <Badge variant="info" className="shrink-0 text-[10px] px-1.5 py-0.5">
+                                <Badge
+                                  variant="info"
+                                  className="shrink-0 text-[10px] px-1.5 py-0.5"
+                                >
                                   {titleCase(o.category)}
                                 </Badge>
                               )}
@@ -509,13 +607,21 @@ export default function LiveFreePreview({
                           </div>
                         </div>
                         {isMeaningful(o.salary) && (
-                          <p className="shrink-0 text-sm font-bold text-brand-700 dark:text-brand-300 whitespace-nowrap" title={o.salary}>
+                          <p
+                            className="shrink-0 text-sm font-bold text-brand-700 dark:text-brand-300 whitespace-nowrap"
+                            title={o.salary}
+                          >
                             {o.salary}
                           </p>
                         )}
                       </div>
 
                       <div className="mt-1 flex flex-wrap gap-1">
+                        {o.vaults?.map((v) => (
+                          <ListMetaChip key={v.id} icon={<VaultIcon className="h-3 w-3" />}>
+                            {v.name}
+                          </ListMetaChip>
+                        ))}
                         {o.employmentType && (
                           <ListMetaChip icon={<BriefcaseIcon className="h-3 w-3" />}>
                             {titleCase(o.employmentType)}

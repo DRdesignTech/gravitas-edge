@@ -270,7 +270,8 @@ const badgeClasses: Record<BadgeVariant, string> = {
   danger: 'bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400',
   info: 'bg-[#061B36]/5 text-[#061B36] ring-[#061B36]/20 dark:bg-blue-500/10 dark:text-blue-400',
   neutral: 'bg-slate-50 text-slate-700 ring-slate-600/20 dark:bg-slate-500/10 dark:text-slate-300',
-  premium: 'bg-[#A77931] text-white ring-[#A77931]/40',
+  premium:
+    'bg-gradient-to-br from-[#E3B968] to-[#C8943E] text-[#061B36] ring-[#C8943E]/40',
 };
 
 export function Badge({ variant = 'neutral', className = '', children }: BadgeProps) {
