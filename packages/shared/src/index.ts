@@ -4,6 +4,100 @@
  */
 
 /**
+ * Canonical opportunity field labels and order.
+ *
+ * These are the exact labels shown across the website and admin panel so both
+ * surfaces present the same opportunity spreadsheet columns in the same order.
+ * They are display labels only: the stored Prisma fields are unchanged and are
+ * mapped in `OPPORTUNITY_FIELD_SOURCES` below.
+ *
+ *   1. S. No.         -> externalRef
+ *   2. Date           -> publishedDate (falls back to createdAt for drafts)
+ *   3. Role           -> title
+ *   4. Sector         -> industry
+ *   5. Company        -> company
+ *   6. Salary         -> salary
+ *   7. Location       -> location (with country as a secondary part)
+ *   8. Experience     -> experienceText / minExperience-maxExperience
+ *   9. Qualification  -> qualification
+ *  10. Other Details  -> description
+ *  11. How to apply   -> applicationContact (preferred) / applicationUrl
+ */
+export const OPPORTUNITY_FIELD_LABELS = {
+  serialNo: 'S. No.',
+  date: 'Date',
+  role: 'Role',
+  sector: 'Sector',
+  company: 'Company',
+  salary: 'Salary',
+  location: 'Location',
+  experience: 'Experience',
+  qualification: 'Qualification',
+  otherDetails: 'Other Details',
+  howToApply: 'How to apply',
+} as const;
+
+export type OpportunityFieldKey = keyof typeof OPPORTUNITY_FIELD_LABELS;
+
+/** The exact label order required by the opportunity spreadsheet. */
+export const OPPORTUNITY_FIELD_ORDER: OpportunityFieldKey[] = [
+  'serialNo',
+  'date',
+  'role',
+  'sector',
+  'company',
+  'salary',
+  'location',
+  'experience',
+  'qualification',
+  'otherDetails',
+  'howToApply',
+];
+
+/** Lower-case email matcher used to locate an application email in text. */
+const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+
+/**
+ * Extract the first email address from any of the supplied values, in order.
+ * "How to apply" can hold a bare email, a sentence containing one, or a legacy
+ * value in `applicationUrl`; this never invents an address and returns null
+ * when none of the values contains a usable email.
+ */
+export function extractEmail(...values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    if (value === null || value === undefined) continue;
+    const text = String(value).trim();
+    if (!text) continue;
+    const match = text.match(EMAIL_PATTERN);
+    if (match) return match[0];
+  }
+  return null;
+}
+
+/** True when the value contains an email address. */
+export function containsEmail(value?: string | null): boolean {
+  return extractEmail(value) !== null;
+}
+
+/**
+ * Build a `mailto:` link for the Apply Now action. Opens the visitor's default
+ * email application — never a browser URL. Subject/body are URI-encoded so
+ * spaces and special characters survive.
+ */
+export function buildApplyMailto(
+  email: string,
+  options: { title?: string | null; company?: string | null } = {},
+): string {
+  const title = options.title?.trim() || 'this role';
+  const company = options.company?.trim();
+  const subject = `Application for ${title}${company ? ` at ${company}` : ''}`;
+  const body = `Dear Hiring Team,\n\nI would like to apply for the ${title} role${
+    company ? ` at ${company}` : ''
+  }.\n\nPlease find my details below:\n\n\n\nBest regards,\n`;
+  return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/**
  * Mask the middle of a string so only the first and last characters remain
  * visible. Used to produce safe teaser previews of protected opportunity
  * fields (Qualification, Other Details, How to Apply) for users without

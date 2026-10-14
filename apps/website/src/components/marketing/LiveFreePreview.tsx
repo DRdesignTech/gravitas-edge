@@ -31,6 +31,7 @@ import {
   isMeaningful,
   titleCase,
 } from '@/lib/format';
+import { extractEmail, buildApplyMailto } from '@job-portal/shared';
 
 const INITIAL_COUNT = 6;
 const VIEW_KEY = 'free-preview-view';
@@ -594,18 +595,20 @@ function ListMetaChip({ icon, children }: { icon: React.ReactNode; children: Rea
 
 function BrowseLink({ o }: { o: Opportunity }) {
   if (o.isFullAccess) {
-    return o.applicationUrl ? (
-      <a
-        href={o.applicationUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
-      >
-        Apply <span aria-hidden="true">→</span>
-      </a>
-    ) : (
+    const email = extractEmail(o.applicationContact, o.applicationUrl);
+    if (email) {
+      return (
+        <a
+          href={buildApplyMailto(email, { title: o.title, company: o.company })}
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
+        >
+          Apply <span aria-hidden="true">→</span>
+        </a>
+      );
+    }
+    return (
       <span className="shrink-0 truncate rounded-lg border border-line bg-surface-muted/70 px-3 py-1.5 text-xs text-content-muted">
-        {o.applicationContact || 'Contact details'}
+        Application email unavailable
       </span>
     );
   }

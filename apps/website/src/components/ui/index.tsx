@@ -13,6 +13,8 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  /** When set, renders an anchor styled as a button (e.g. mailto links). */
+  href?: string;
 }
 
 const baseButton =
@@ -44,14 +46,22 @@ export function Button({
   disabled,
   className = '',
   children,
+  href,
   ...props
 }: ButtonProps) {
+  const classes = `${baseButton} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
+
+  if (href) {
+    return (
+      <a href={href} className={classes} aria-disabled={disabled || undefined}>
+        {loading && <Spinner className="h-4 w-4" />}
+        {children}
+      </a>
+    );
+  }
+
   return (
-    <button
-      disabled={disabled || loading}
-      className={`${baseButton} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
-      {...props}
-    >
+    <button disabled={disabled || loading} className={classes} {...props}>
       {loading && <Spinner className="h-4 w-4" />}
       {children}
     </button>

@@ -36,6 +36,7 @@ import Eyebrow from '@/components/marketing/Eyebrow';
 import InfoBanner from '@/components/marketing/InfoBanner';
 import { useAuth } from '@/lib/auth';
 import { previousInternalRoute } from '@/lib/navigation';
+import { extractEmail, buildApplyMailto } from '@job-portal/shared';
 
 const PAGE_SIZE = 10;
 
@@ -189,19 +190,21 @@ function PremiumLockedBox({ o }: { o: Opportunity }) {
 
 function OpportunityAction({ o }: { o: Opportunity }) {
   if (o.isFullAccess) {
-    return o.applicationUrl ? (
-      <a
-        href={o.applicationUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => e.stopPropagation()}
-        className="inline-flex shrink-0 items-center gap-1 truncate rounded-full bg-brand-50 px-3.5 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
-      >
-        Apply <span aria-hidden="true">→</span>
-      </a>
-    ) : (
+    const email = extractEmail(o.applicationContact, o.applicationUrl);
+    if (email) {
+      return (
+        <a
+          href={buildApplyMailto(email, { title: o.title, company: o.company })}
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex shrink-0 items-center gap-1 truncate rounded-full bg-brand-50 px-3.5 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
+        >
+          Apply <span aria-hidden="true">→</span>
+        </a>
+      );
+    }
+    return (
       <span className="shrink-0 truncate rounded-full border border-line bg-surface-muted/70 px-3.5 py-1.5 text-xs text-content-muted">
-        {o.applicationContact || 'Contact details'}
+        Application email unavailable
       </span>
     );
   }

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Opportunity, Vault } from '@/lib/types';
 import { Badge, LockIcon, UnlockIcon } from '@/components/ui';
 import { titleCase, formatDate, displayExperience, hasExperience, isMeaningful } from '@/lib/format';
+import { OPPORTUNITY_FIELD_LABELS, extractEmail } from '@job-portal/shared';
 
 export interface ProtectedField {
   label: string;
@@ -50,31 +51,38 @@ export function ProtectedFields({
 }) {
   const locked = !o.isFullAccess;
 
+  const applyEmail = extractEmail(o.applicationContact, o.applicationUrl);
   const rows: ProtectedField[] = locked
     ? [
-        { label: 'Qualification', value: o.lockedPreview?.qualification },
-        { label: 'Other Details', value: o.lockedPreview?.otherDetails },
-        { label: 'How to Apply', value: o.lockedPreview?.howToApply, isEmail: true },
-        { label: 'Application Contact', value: o.lockedPreview?.applicationContact, isEmail: true },
+        { label: OPPORTUNITY_FIELD_LABELS.qualification, value: o.lockedPreview?.qualification },
+        { label: OPPORTUNITY_FIELD_LABELS.otherDetails, value: o.lockedPreview?.otherDetails },
+        {
+          label: OPPORTUNITY_FIELD_LABELS.howToApply,
+          value: o.lockedPreview?.howToApply,
+          isEmail: true,
+        },
       ]
     : [
-        { label: 'Qualification', value: o.qualification },
-        { label: 'Other Details', value: o.description },
-        { label: 'How to Apply', value: o.applicationUrl || o.applicationContact, isEmail: !o.applicationUrl && !!o.applicationContact },
-        { label: 'Application Contact', value: o.applicationContact, isEmail: true },
+        { label: OPPORTUNITY_FIELD_LABELS.qualification, value: o.qualification },
+        { label: OPPORTUNITY_FIELD_LABELS.otherDetails, value: o.description },
+        {
+          label: OPPORTUNITY_FIELD_LABELS.howToApply,
+          value: applyEmail || o.applicationContact || o.applicationUrl,
+          isEmail: !!applyEmail,
+        },
       ];
 
   return (
-    <dl className="space-y-2">
+    <dl className="space-y-3.5">
       {rows.map((row) => {
         if (row.value === null || row.value === undefined || row.value === '') {
           if (!locked) return null;
           return (
-            <div key={row.label} className="flex items-center justify-between gap-3">
-              <dt className="text-xs font-medium uppercase tracking-wider text-content-faint">
+            <div key={row.label} className="min-w-0">
+              <dt className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
                 {row.label}
               </dt>
-              <dd className="inline-flex items-center gap-1 text-sm italic text-content-faint">
+              <dd className="mt-1 inline-flex items-center gap-1.5 text-sm italic text-content-faint">
                 {showLock && <LockIcon className="h-3.5 w-3.5" />}
                 Vault Access
               </dd>
@@ -83,20 +91,22 @@ export function ProtectedFields({
         }
         const displayValue = locked ? formatMaskedValue(row.value, row.isEmail) : row.value;
         return (
-          <div key={row.label} className="flex items-baseline justify-between gap-3">
-            <dt className="shrink-0 text-xs font-medium uppercase tracking-wider text-content-faint">
+          <div key={row.label} className="min-w-0">
+            <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-content-faint">
               {row.label}
-            </dt>
-            <dd className="flex min-w-0 items-center gap-1.5 text-right text-sm text-content truncate">
-              <span className={locked ? 'select-none text-content-faint truncate' : 'truncate'} style={{ maxWidth: '100%' }}>
-                {displayValue}
-              </span>
               {locked && showLock && (
                 <LockIcon
-                  className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400"
+                  className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400"
                   aria-label={`${row.label} locked`}
                 />
               )}
+            </dt>
+            <dd
+              className={`mt-1 whitespace-pre-line break-words text-sm leading-relaxed ${
+                locked ? 'select-none text-content-faint' : 'text-content'
+              }`}
+            >
+              {displayValue}
             </dd>
           </div>
         );

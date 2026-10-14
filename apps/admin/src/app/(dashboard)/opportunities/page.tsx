@@ -41,6 +41,9 @@ import {
 } from '@/components/ui';
 import { formatDate, formatDateTime, titleCase, experienceLabel } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
+import { OPPORTUNITY_FIELD_LABELS, extractEmail } from '@job-portal/shared';
+
+const L = OPPORTUNITY_FIELD_LABELS;
 
 type OpportunityView = 'grid' | 'list';
 
@@ -377,14 +380,53 @@ export default function OpportunitiesPage() {
 
   const columns: Column<Opportunity>[] = [
     {
+      key: 'externalRef',
+      label: L.serialNo,
+      render: (o) => <span className="text-content-muted">{o.externalRef || '—'}</span>,
+    },
+    {
+      key: 'published',
+      label: L.date,
+      render: (o) => <span className="text-content-muted">{formatDate(o.publishedDate)}</span>,
+    },
+    {
       key: 'title',
-      label: 'Title',
+      label: L.role,
+      render: (o) => <p className="font-medium text-content">{o.title}</p>,
+    },
+    {
+      key: 'industry',
+      label: L.sector,
+      render: (o) => <span className="text-content-muted">{o.industry || '—'}</span>,
+    },
+    {
+      key: 'company',
+      label: L.company,
+      render: (o) => <span className="text-content">{o.company || '—'}</span>,
+    },
+    {
+      key: 'salary',
+      label: L.salary,
+      render: (o) => <span className="text-content-muted">{o.salary || '—'}</span>,
+    },
+    {
+      key: 'location',
+      label: L.location,
+      render: (o) => <span className="text-content-muted">{o.location || o.country || '—'}</span>,
+    },
+    {
+      key: 'exp',
+      label: L.experience,
       render: (o) => (
-        <div>
-          <p className="font-medium text-content">{o.title}</p>
-          {o.externalRef && <p className="text-xs text-content-faint">{o.externalRef}</p>}
-        </div>
+        <span className="text-content-muted">
+          {o.experienceText || experienceLabel(o.minExperience, o.maxExperience)}
+        </span>
       ),
+    },
+    {
+      key: 'qualification',
+      label: L.qualification,
+      render: (o) => <span className="text-content-muted">{o.qualification || '—'}</span>,
     },
     {
       key: 'vaults',
@@ -401,35 +443,6 @@ export default function OpportunitiesPage() {
       ),
     },
     {
-      key: 'company',
-      label: 'Company / Location',
-      render: (o) => (
-        <div>
-          <span className="text-content">{o.company || '—'}</span>
-          {o.location && <p className="text-xs text-content-muted">{o.location}</p>}
-        </div>
-      ),
-    },
-    {
-      key: 'salary',
-      label: 'Salary',
-      render: (o) => <span className="text-content-muted">{o.salary || '—'}</span>,
-    },
-    {
-      key: 'exp',
-      label: 'Experience',
-      render: (o) => (
-        <span className="text-content-muted">
-          {experienceLabel(o.minExperience, o.maxExperience)}
-        </span>
-      ),
-    },
-    {
-      key: 'qualification',
-      label: 'Qualification',
-      render: (o) => <span className="text-content-muted">{o.qualification || '—'}</span>,
-    },
-    {
       key: 'status',
       label: 'Status',
       render: (o) => <Badge variant={oppStatusVariant(o.status)}>{o.status}</Badge>,
@@ -443,11 +456,6 @@ export default function OpportunitiesPage() {
       key: 'updatedAt',
       label: 'Updated',
       render: (o) => <span className="text-content-muted">{formatDateTime(o.updatedAt)}</span>,
-    },
-    {
-      key: 'published',
-      label: 'Published',
-      render: (o) => <span className="text-content-muted">{formatDate(o.publishedDate)}</span>,
     },
     {
       key: 'actions',
@@ -620,31 +628,35 @@ export default function OpportunitiesPage() {
                   </div>
                   <dl className="mt-4 space-y-2 text-sm text-content-muted">
                     <div className="flex items-baseline justify-between gap-3">
-                      <dt>Company</dt>
+                      <dt>{L.sector}</dt>
+                      <dd className="truncate text-content">{o.industry || '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt>{L.company}</dt>
                       <dd className="truncate font-medium text-content">{o.company || '—'}</dd>
                     </div>
                     <div className="flex items-baseline justify-between gap-3">
-                      <dt>Location</dt>
-                      <dd className="truncate text-content">{o.location || o.country || '—'}</dd>
-                    </div>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <dt>Salary</dt>
+                      <dt>{L.salary}</dt>
                       <dd className="truncate text-content">{o.salary || '—'}</dd>
                     </div>
                     <div className="flex items-baseline justify-between gap-3">
-                      <dt>Experience</dt>
+                      <dt>{L.location}</dt>
+                      <dd className="truncate text-content">{o.location || o.country || '—'}</dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <dt>{L.experience}</dt>
                       <dd className="whitespace-nowrap text-content">
-                        {experienceLabel(o.minExperience, o.maxExperience)}
+                        {o.experienceText || experienceLabel(o.minExperience, o.maxExperience)}
                       </dd>
                     </div>
                     {o.qualification && (
                       <div className="flex items-baseline justify-between gap-3">
-                        <dt>Qualification</dt>
+                        <dt>{L.qualification}</dt>
                         <dd className="truncate text-content">{o.qualification}</dd>
                       </div>
                     )}
                     <div className="flex items-baseline justify-between gap-3">
-                      <dt>Published</dt>
+                      <dt>{L.date}</dt>
                       <dd className="whitespace-nowrap text-content">
                         {formatDate(o.publishedDate)}
                       </dd>
@@ -720,19 +732,19 @@ export default function OpportunitiesPage() {
       >
         <div className="space-y-4">
           <Input
-            label="Title"
+            label={L.role}
             required
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
           />
           <Textarea
-            label="Description"
+            label={L.otherDetails}
             rows={3}
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           />
           <Input
-            label="Qualification"
+            label={L.qualification}
             value={form.qualification}
             onChange={(e) => setForm((f) => ({ ...f, qualification: e.target.value }))}
           />
@@ -753,7 +765,7 @@ export default function OpportunitiesPage() {
               onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
             />
             <Input
-              label="Industry"
+              label={L.sector}
               value={form.industry}
               onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))}
             />
@@ -781,7 +793,7 @@ export default function OpportunitiesPage() {
               onChange={(e) => setForm((f) => ({ ...f, expiryDate: e.target.value }))}
             />
             <Input
-              label="External ref (S. No.)"
+              label={L.serialNo}
               value={form.externalRef}
               onChange={(e) => setForm((f) => ({ ...f, externalRef: e.target.value }))}
             />
@@ -805,18 +817,18 @@ export default function OpportunitiesPage() {
               onChange={(e) => setForm((f) => ({ ...f, maxExperience: e.target.value }))}
             />
             <Input
-              label="Application URL"
+              label={`${L.howToApply} (URL)`}
               value={form.applicationUrl}
               onChange={(e) => setForm((f) => ({ ...f, applicationUrl: e.target.value }))}
             />
             <Input
-              label="Application contact"
+              label={L.howToApply}
               value={form.applicationContact}
               onChange={(e) => setForm((f) => ({ ...f, applicationContact: e.target.value }))}
             />
           </div>
           <Textarea
-            label="Experience (free text)"
+            label={L.experience}
             rows={2}
             value={form.experienceText}
             onChange={(e) => setForm((f) => ({ ...f, experienceText: e.target.value }))}
@@ -933,47 +945,43 @@ export default function OpportunitiesPage() {
             </div>
 
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-3">
-              <DetailItem label="Company" value={viewTarget.company || undefined} />
-              <DetailItem label="Location" value={viewTarget.location || undefined} />
+              <DetailItem label={L.company} value={viewTarget.company || undefined} />
+              <DetailItem label={L.location} value={viewTarget.location || undefined} />
               <DetailItem label="Country" value={viewTarget.country || undefined} />
-              <DetailItem label="Industry" value={viewTarget.industry || undefined} />
+              <DetailItem label={L.sector} value={viewTarget.industry || undefined} />
               <DetailItem label="Functional area" value={viewTarget.functionalArea || undefined} />
               <DetailItem
                 label="Employment type"
                 value={viewTarget.employmentType ? titleCase(viewTarget.employmentType) : undefined}
               />
               <DetailItem
-                label="Experience"
-                value={experienceLabel(viewTarget.minExperience, viewTarget.maxExperience)}
-              />
-              <DetailItem label="Salary" value={viewTarget.salary || undefined} />
-              <DetailItem label="Qualification" value={viewTarget.qualification || undefined} />
-              <DetailItem label="Source" value={viewTarget.source || undefined} />
-              <DetailItem
-                label="Application URL"
+                label={L.experience}
                 value={
-                  viewTarget.applicationUrl ? (
-                    <a
-                      href={viewTarget.applicationUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="break-all text-brand-600 hover:underline dark:text-brand-400"
-                    >
-                      {viewTarget.applicationUrl}
-                    </a>
-                  ) : undefined
+                  viewTarget.experienceText ||
+                  experienceLabel(viewTarget.minExperience, viewTarget.maxExperience)
                 }
               />
+              <DetailItem label={L.salary} value={viewTarget.salary || undefined} />
+              <DetailItem label={L.qualification} value={viewTarget.qualification || undefined} />
+              <DetailItem label="Source" value={viewTarget.source || undefined} />
               <DetailItem
-                label="Application contact"
-                value={viewTarget.applicationContact || undefined}
+                label={`${L.howToApply} (URL)`}
+                value={viewTarget.applicationUrl || undefined}
+              />
+              <DetailItem
+                label={L.howToApply}
+                value={
+                  extractEmail(viewTarget.applicationContact, viewTarget.applicationUrl) ||
+                  viewTarget.applicationContact ||
+                  undefined
+                }
               />
             </dl>
 
             {viewTarget.experienceText && (
               <div className="rounded-xl border border-line bg-surface-muted p-3 text-sm text-content">
                 <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-content-muted">
-                  Experience (free text)
+                  {L.experience}
                 </span>
                 {viewTarget.experienceText}
               </div>
@@ -981,7 +989,7 @@ export default function OpportunitiesPage() {
             {viewTarget.description && (
               <div className="rounded-xl border border-line bg-surface-muted p-3 text-sm text-content">
                 <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-content-muted">
-                  Description
+                  {L.otherDetails}
                 </span>
                 {viewTarget.description}
               </div>
@@ -1010,7 +1018,7 @@ export default function OpportunitiesPage() {
               />
               <DetailItem label="Created" value={formatDateTime(viewTarget.createdAt)} />
               <DetailItem label="Last updated" value={formatDateTime(viewTarget.updatedAt)} />
-              <DetailItem label="Published" value={formatDateTime(viewTarget.publishedDate)} />
+              <DetailItem label={L.date} value={formatDateTime(viewTarget.publishedDate)} />
               <DetailItem label="Expiry" value={formatDate(viewTarget.expiryDate)} />
             </dl>
           </div>

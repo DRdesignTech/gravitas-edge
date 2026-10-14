@@ -22,6 +22,9 @@ import {
 } from '@/components/ui';
 import { titleCase } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
+import { OPPORTUNITY_FIELD_LABELS } from '@job-portal/shared';
+
+const L = OPPORTUNITY_FIELD_LABELS;
 
 interface FormState {
   title: string;
@@ -180,19 +183,19 @@ export default function NewOpportunityPage() {
               </Alert>
             )}
             <Input
-              label="Title"
+              label={L.role}
               required
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             />
             <Textarea
-              label="Description"
+              label={L.otherDetails}
               rows={3}
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
             <Input
-              label="Qualification"
+              label={L.qualification}
               value={form.qualification}
               onChange={(e) => setForm((f) => ({ ...f, qualification: e.target.value }))}
             />
@@ -213,7 +216,7 @@ export default function NewOpportunityPage() {
                 onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
               />
               <Input
-                label="Industry"
+                label={L.sector}
                 value={form.industry}
                 onChange={(e) => setForm((f) => ({ ...f, industry: e.target.value }))}
               />
@@ -233,7 +236,7 @@ export default function NewOpportunityPage() {
                 onChange={(e) => setForm((f) => ({ ...f, salary: e.target.value }))}
               />
               <Input
-                label="External ref (S. No.)"
+                label={L.serialNo}
                 value={form.externalRef}
                 onChange={(e) => setForm((f) => ({ ...f, externalRef: e.target.value }))}
               />
@@ -265,18 +268,18 @@ export default function NewOpportunityPage() {
                 onChange={(e) => setForm((f) => ({ ...f, maxExperience: e.target.value }))}
               />
               <Input
-                label="Application URL"
+                label={`${L.howToApply} (URL)`}
                 value={form.applicationUrl}
                 onChange={(e) => setForm((f) => ({ ...f, applicationUrl: e.target.value }))}
               />
               <Input
-                label="Application contact"
+                label={L.howToApply}
                 value={form.applicationContact}
                 onChange={(e) => setForm((f) => ({ ...f, applicationContact: e.target.value }))}
               />
             </div>
             <Textarea
-              label="Experience (free text)"
+              label={L.experience}
               rows={2}
               value={form.experienceText}
               onChange={(e) => setForm((f) => ({ ...f, experienceText: e.target.value }))}
