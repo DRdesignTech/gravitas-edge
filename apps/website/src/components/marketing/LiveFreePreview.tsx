@@ -10,31 +10,21 @@ import {
   ListIcon,
   LockIcon,
   Badge,
+  Pagination,
 } from '@/components/ui';
 import {
   OpportunityCard,
   SearchIcon,
   PinIcon,
-  GlobeIcon,
-  BriefcaseIcon,
-  LayersIcon,
   BarsIcon,
-  ProtectedFields,
   VaultIcon,
-  IdIcon,
 } from '@/components/cards';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
-import {
-  displayExperience,
-  formatDate,
-  hasExperience,
-  isMeaningful,
-  titleCase,
-} from '@/lib/format';
-import { extractEmail, buildApplyMailto, OPPORTUNITY_FIELD_LABELS } from '@job-portal/shared';
+import { displayExperience, hasExperience, isMeaningful, titleCase } from '@/lib/format';
+import { extractEmail, buildApplyMailto } from '@job-portal/shared';
 
-const INITIAL_COUNT = 6;
+const PAGE_SIZE = 6;
 const VIEW_KEY = 'free-preview-view';
 type PreviewView = 'grid' | 'list';
 
@@ -143,7 +133,6 @@ export default function LiveFreePreview({
   error: string;
   onRetry: () => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [vault, setVault] = useState('');
   const [location, setLocation] = useState('');
@@ -151,8 +140,7 @@ export default function LiveFreePreview({
   const [experience, setExperience] = useState('');
   const [salary, setSalary] = useState('');
   const [view, setView] = useState<PreviewView>(readInitialView);
-  const canCollapse = opportunities.length > INITIAL_COUNT;
-  const visible = expanded ? opportunities.length : Math.min(INITIAL_COUNT, opportunities.length);
+  const [page, setPage] = useState(1);
 
   // Update view on mobile/desktop resize
   useEffect(() => {
@@ -169,7 +157,18 @@ export default function LiveFreePreview({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const vaultOptions = useMemo(() => vaults.map((v) => ({ value: v.id, label: v.name })), [vaults]);
+  /** How many of the listed jobs belong to each vault, busiest vault first. */
+  const vaultStats = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const o of opportunities) {
+      for (const v of o.vaults ?? []) {
+        counts.set(v.id, (counts.get(v.id) ?? 0) + 1);
+      }
+    }
+    return vaults
+      .map((v) => ({ vault: v, count: counts.get(v.id) ?? 0 }))
+      .sort((a, b) => b.count - a.count || a.vault.name.localeCompare(b.vault.name));
+  }, [vaults, opportunities]);
   const locationOptions = useMemo(
     () => uniqueOptions(opportunities.map((o) => (o.location ? primaryLocation(o.location) : ''))),
     [opportunities],
@@ -248,6 +247,26 @@ export default function LiveFreePreview({
     });
   }, [opportunities, searchQuery, vault, location, industry, experience, salary]);
 
+  /** All matching jobs mixed together, most recent first. */
+  const sortedOpportunities = useMemo(() => {
+    const time = (o: Opportunity) => {
+      const parsed = o.createdAt ? Date.parse(o.createdAt) : NaN;
+      return Number.isNaN(parsed) ? 0 : parsed;
+    };
+    return [...filteredOpportunities].sort((a, b) => time(b) - time(a));
+  }, [filteredOpportunities]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedOpportunities.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginatedOpportunities = sortedOpportunities.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, vault, location, industry, experience, salary]);
+
   const handleViewChange = (v: PreviewView) => {
     setView(v);
     try {
@@ -276,6 +295,74 @@ export default function LiveFreePreview({
             Explore First. Decide if it&apos;s right for you. Then choose access.
           </p>
         </div>
+
+        {!loading && !error && vaultStats.length > 0 && (
+          <div className="mb-8">
+            <div className="mb-3 flex items-baseline justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-content">Browse by vault</h3>
+                <p className="text-xs text-content-muted">
+                  See how many opportunities each vault holds.
+                </p>
+              </div>
+              {vault && (
+                <button
+                  type="button"
+                  onClick={() => setVault('')}
+                  className="shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                >
+                  Clear selection
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              {vaultStats.map(({ vault: v, count }) => {
+                const active = vault === v.id;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setVault(active ? '' : v.id)}
+                    aria-pressed={active}
+                    className={`group relative flex w-[46%] flex-col items-center overflow-hidden rounded-2xl border px-4 pb-3.5 pt-5 text-center shadow-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:w-[200px] ${
+                      active
+                        ? '-translate-y-0.5 border-brand-400 bg-gradient-to-b from-brand-50 to-surface shadow-lg shadow-brand-400/25 dark:border-brand-500/50 dark:from-brand-950/60 dark:to-surface-elevated'
+                        : 'border-line bg-gradient-to-b from-surface to-surface-muted shadow-sm hover:-translate-y-1 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-400/10 dark:from-surface-elevated dark:to-surface-elevated/60 dark:hover:border-brand-500/40'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-400 via-[#C8943E] to-brand-400 transition-opacity duration-300 ${
+                        active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
+                    />
+                    <span
+                      className={`pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-brand-400/20 blur-2xl transition-opacity duration-300 ${
+                        active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
+                    />
+                    <span className="w-full text-sm font-semibold leading-snug text-content break-words">
+                      {v.name}
+                    </span>
+                    <span className="mt-3 flex w-full flex-col items-center border-t border-line/70 pt-2.5">
+                      <span
+                        className={`text-3xl font-extrabold leading-none tracking-tight tabular-nums ${
+                          active
+                            ? 'bg-gradient-to-br from-brand-600 to-brand-400 bg-clip-text text-transparent'
+                            : 'bg-gradient-to-br from-content to-content-muted bg-clip-text text-transparent'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                      <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-muted">
+                        {count === 1 ? 'Job' : 'Jobs'}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {!loading && !error && (
           <div className="mb-8">
@@ -351,44 +438,7 @@ export default function LiveFreePreview({
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              <div className="relative">
-                <label
-                  htmlFor="filter-vault"
-                  className="absolute -top-2 left-2 z-10 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
-                >
-                  Vault
-                </label>
-                <select
-                  id="filter-vault"
-                  value={vault}
-                  onChange={(e) => setVault(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-line bg-surface px-4 py-2.5 pr-9 text-sm text-content focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                  aria-label="Filter by vault"
-                >
-                  <option value="">All vaults</option>
-                  {vaultOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <svg
-                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-                  />
-                </svg>
-              </div>
-
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="relative">
                 <label
                   htmlFor="filter-experience"
@@ -513,127 +563,62 @@ export default function LiveFreePreview({
           <>
             {view === 'grid' ? (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-                {filteredOpportunities.slice(0, visible).map((o) => (
+                {paginatedOpportunities.map((o) => (
                   <OpportunityCard key={o.id} opportunity={o} />
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
-                {filteredOpportunities.slice(0, visible).map((o) => (
+              <div className="space-y-2 sm:space-y-3">
+                {paginatedOpportunities.map((o) => (
                   <a
                     key={o.id}
                     href={`/opportunities/${o.id}`}
-                    className="group relative flex flex-col gap-1.5 overflow-hidden rounded-xl border border-line bg-surface p-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:gap-2 sm:p-4 dark:bg-surface-elevated dark:hover:border-brand-500/40 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,auto)] lg:items-center lg:gap-4"
+                    className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-line bg-gradient-to-b from-surface to-surface-muted px-3 py-2.5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-400/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:px-4 sm:py-3 dark:from-surface-elevated dark:to-surface-elevated/60 dark:hover:border-brand-500/40"
                   >
-                    <span className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-[#C8943E] to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <div className="min-w-0">
-                            <h3 className="truncate text-base font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
-                              {o.title}
-                            </h3>
-                            <p className="flex flex-wrap items-center gap-1.5 text-xs text-content-muted">
-                              <span className="truncate max-w-[180px] sm:max-w-[220px]">
-                                {o.company || '—'}
-                              </span>
-                              {o.isPremium ? (
-                                <Badge
-                                  variant="premium"
-                                  className="shrink-0 text-[10px] px-1.5 py-0.5"
-                                >
-                                  Premium
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="success"
-                                  className="shrink-0 text-[10px] px-1.5 py-0.5"
-                                >
-                                  Open
-                                </Badge>
-                              )}
-                              {hasExperience(
+                    <span className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-400 via-[#C8943E] to-brand-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <span className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-brand-400/20 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-bold leading-snug text-content group-hover:text-brand-700 sm:text-[15px] dark:group-hover:text-brand-300">
+                        {o.title}
+                      </h3>
+                      <p className="mt-0.5 truncate text-xs text-content-muted">
+                        {o.company || '—'}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {o.location && (
+                          <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
+                            <PinIcon className="h-3 w-3 shrink-0 text-content-faint" />
+                            <span className="truncate">
+                              {o.location.split(/[/,]/)[0].trim()}
+                            </span>
+                          </span>
+                        )}
+                        {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+                          <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
+                            <BarsIcon className="h-3 w-3 shrink-0 text-content-faint" />
+                            <span className="truncate">
+                              {displayExperience(
                                 o.experienceText,
                                 o.minExperience,
                                 o.maxExperience,
-                              ) && (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-xs text-content-muted">
-                                  <BarsIcon className="h-3 w-3" />
-                                  {displayExperience(
-                                    o.experienceText,
-                                    o.minExperience,
-                                    o.maxExperience,
-                                  )}
-                                </span>
                               )}
-                              {o.publishedDate && (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-xs text-content-muted">
-                                  <svg
-                                    className="h-3 w-3"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    strokeWidth={2}
-                                    stroke="currentColor"
-                                    aria-hidden="true"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
-                                    />
-                                  </svg>
-                                  {formatDate(o.publishedDate)}
-                                </span>
-                              )}
-                              {o.location && (
-                                <span className="inline-flex items-center gap-1 text-content-faint">
-                                  <PinIcon className="h-3 w-3" />
-                                  {o.location.split(/[/,]/)[0].trim()}
-                                </span>
-                              )}
-                              {o.country && o.country !== o.location?.split(/[/,]/)[0].trim() && (
-                                <span className="inline-flex items-center gap-1 text-content-faint">
-                                  <GlobeIcon className="h-3 w-3" />
-                                  {o.country}
-                                </span>
-                              )}
-                              {o.category && (
-                                <Badge
-                                  variant="info"
-                                  className="shrink-0 text-[10px] px-1.5 py-0.5"
-                                >
-                                  {titleCase(o.category)}
-                                </Badge>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        {isMeaningful(o.salary) && (
-                          <p
-                            className="shrink-0 text-sm font-bold text-brand-700 dark:text-brand-300 whitespace-nowrap"
-                            title={o.salary}
-                          >
-                            {o.salary}
-                          </p>
+                            </span>
+                          </span>
                         )}
-                      </div>
-
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {o.jobId && (
-                          <ListMetaChip icon={<IdIcon className="h-3 w-3" />}>
-                            {OPPORTUNITY_FIELD_LABELS.jobId}: {o.jobId}
-                          </ListMetaChip>
+                        {o.category && (
+                          <Badge variant="info" className="shrink-0 text-[10px] px-1.5 py-0.5">
+                            {titleCase(o.category)}
+                          </Badge>
                         )}
                         {o.vaults?.map((v) => (
-                          <ListMetaChip key={v.id} icon={<VaultIcon className="h-3 w-3" />}>
-                            {v.name}
-                          </ListMetaChip>
+                          <span
+                            key={v.id}
+                            className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface"
+                          >
+                            <VaultIcon className="h-3 w-3 shrink-0 text-content-faint" />
+                            <span className="truncate">{v.name}</span>
+                          </span>
                         ))}
-                        {o.employmentType && (
-                          <ListMetaChip icon={<BriefcaseIcon className="h-3 w-3" />}>
-                            {titleCase(o.employmentType)}
-                          </ListMetaChip>
-                        )}
                       </div>
                     </div>
                   </a>
@@ -641,32 +626,23 @@ export default function LiveFreePreview({
               </div>
             )}
 
-            {filteredOpportunities.length > INITIAL_COUNT && (
-              <div className="mt-10 text-center">
-                <button
-                  type="button"
-                  onClick={() => setExpanded((v) => !v)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-7 py-3 text-sm font-semibold text-content shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:bg-surface-muted hover:shadow-md dark:bg-surface-elevated"
-                  aria-expanded={expanded}
-                >
-                  {expanded ? 'Show Fewer Opportunities' : 'Show More Opportunities'}
-                  <svg
-                    className={`h-4 w-4 text-brand-500 transition-transform duration-200 ${
-                      expanded ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19.5 8.25l-7.5 7.5-7.5-7.5"
-                    />
-                  </svg>
-                </button>
+            {sortedOpportunities.length > 0 && (
+              <div className="mt-10">
+                <Pagination
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  onPageChange={(p) => {
+                    setPage(p);
+                    if (typeof window !== 'undefined') {
+                      document
+                        .getElementById('free-preview')
+                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                />
+                <p className="mt-3 text-center text-xs text-content-muted">
+                  Page {safePage} of {totalPages} · {sortedOpportunities.length} opportunities
+                </p>
               </div>
             )}
 
@@ -694,15 +670,6 @@ export default function LiveFreePreview({
         )}
       </div>
     </section>
-  );
-}
-
-function ListMetaChip({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <span className="inline-flex max-w-full items-center gap-1.5 truncate rounded-full border border-line bg-surface-muted/70 px-2.5 py-1 text-xs font-medium text-content-muted dark:bg-surface">
-      <span className="shrink-0 text-content-faint">{icon}</span>
-      <span className="truncate">{children}</span>
-    </span>
   );
 }
 

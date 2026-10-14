@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
 import { fetchOpportunities, fetchPublicPricing, fetchVaults } from '@/lib/services';
-import { Opportunity, PaginatedResult, PricingGroup, Vault } from '@/lib/types';
+import { Opportunity, PricingGroup, Vault } from '@/lib/types';
 import { Skeleton, ErrorState, EmptyState } from '@/components/ui';
 import { VaultCard } from '@/components/cards';
 import VaultFinder from '@/components/marketing/VaultFinder';
@@ -21,7 +21,22 @@ import FaqSection from '@/components/marketing/FaqSection';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
 import { scrollToHash } from '@/lib/scroll';
 
-const FREE_PREVIEW_LIMIT = 24;
+const PAGE_FETCH_LIMIT = 100;
+
+/** Fetch every published opportunity, most recent first. */
+async function fetchAllOpportunities(): Promise<Opportunity[]> {
+  const query = { page: 1, limit: PAGE_FETCH_LIMIT, sortBy: 'createdAt', sortOrder: 'desc' as const };
+  const first = await fetchOpportunities(query);
+  const items = [...(first.items || [])];
+  const totalPages = first.meta?.totalPages ?? 1;
+  if (totalPages > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) => fetchOpportunities({ ...query, page: i + 2 })),
+    );
+    for (const page of rest) items.push(...(page.items || []));
+  }
+  return items;
+}
 
 function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -216,12 +231,12 @@ export default function Home() {
     setLoading(true);
     setError('');
     Promise.all([
-      fetchOpportunities({ page: 1, limit: FREE_PREVIEW_LIMIT, balanced: true }),
+      fetchAllOpportunities(),
       fetchVaults(),
       fetchPublicPricing(),
     ])
       .then(([opps, v, p]) => {
-        setOpportunities((opps as PaginatedResult<Opportunity>).items || []);
+        setOpportunities(opps || []);
         setVaults(v || []);
         setPricing(p || []);
       })
