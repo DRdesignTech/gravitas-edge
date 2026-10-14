@@ -324,7 +324,7 @@ export default function LiveFreePreview({
                     type="button"
                     onClick={() => setVault(active ? '' : v.id)}
                     aria-pressed={active}
-                    className={`group relative flex w-[46%] flex-col items-center overflow-hidden rounded-2xl border px-4 pb-3.5 pt-5 text-center shadow-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:w-[200px] ${
+                    className={`group relative flex w-[calc(50%-0.375rem)] shrink-0 flex-col items-center overflow-hidden rounded-2xl border px-4 py-3.5 text-center shadow-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] ${
                       active
                         ? '-translate-y-0.5 border-brand-400 bg-gradient-to-b from-brand-50 to-surface shadow-lg shadow-brand-400/25 dark:border-brand-500/50 dark:from-brand-950/60 dark:to-surface-elevated'
                         : 'border-line bg-gradient-to-b from-surface to-surface-muted shadow-sm hover:-translate-y-1 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-400/10 dark:from-surface-elevated dark:to-surface-elevated/60 dark:hover:border-brand-500/40'
@@ -340,12 +340,12 @@ export default function LiveFreePreview({
                         active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                       }`}
                     />
-                    <span className="w-full text-sm font-semibold leading-snug text-content break-words">
+                    <span className="flex min-h-[2.25rem] w-full items-center justify-center text-sm font-semibold leading-snug text-content break-words">
                       {v.name}
                     </span>
-                    <span className="mt-3 flex w-full flex-col items-center border-t border-line/70 pt-2.5">
+                    <span className="mt-2.5 flex w-full flex-1 flex-col items-center justify-center border-t border-line/70 pt-2.5">
                       <span
-                        className={`text-3xl font-extrabold leading-none tracking-tight tabular-nums ${
+                        className={`text-2xl font-extrabold leading-none tracking-tight tabular-nums ${
                           active
                             ? 'bg-gradient-to-br from-brand-600 to-brand-400 bg-clip-text text-transparent'
                             : 'bg-gradient-to-br from-content to-content-muted bg-clip-text text-transparent'
