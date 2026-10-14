@@ -14,6 +14,7 @@ import InfoCard from '@/components/marketing/InfoCard';
 import HowItWorks from '@/components/marketing/HowItWorks';
 import Testimonials from '@/components/marketing/Testimonials';
 import LiveFreePreview from '@/components/marketing/LiveFreePreview';
+import ResumeUploadCard from '@/components/marketing/ResumeUploadCard';
 import PricingSection from '@/components/marketing/PricingSection';
 import WhatsAppChannel from '@/components/marketing/WhatsAppChannel';
 import FaqSection from '@/components/marketing/FaqSection';
@@ -615,12 +616,51 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 10. TESTIMONIALS — #testimonials                                 */}
+      {/* 10. UPLOAD RESUME — #upload-resume                              */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <section
+        id="upload-resume"
+        className="section-glow relative border-t border-line bg-surface dark:bg-surface-elevated/50"
+      >
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-12">
+            <div className="max-w-2xl">
+              <Eyebrow>RESUME</Eyebrow>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight text-content sm:text-3xl">
+                Upload your resume
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-content-muted sm:text-base">
+                Make your profile ready for the right opportunities. Share your resume once and let
+                relevant roles come to you — no account needed to start.
+              </p>
+              <ul className="mt-6 space-y-3">
+                {[
+                  'Get matched with relevant opportunities',
+                  'Keep your resume ready for recruiters',
+                  'Upload or update it any time',
+                  'Your data is shared only with your consent',
+                ].map((point) => (
+                  <li key={point} className="flex items-start gap-3">
+                    <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                      <CheckAccent className="h-3.5 w-3.5" />
+                    </span>
+                    <span className="text-sm text-content-muted sm:text-base">{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <ResumeUploadCard />
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* 11. TESTIMONIALS — #testimonials                                 */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <Testimonials />
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 11. FAQ — #faq                                                  */}
+      {/* 12. FAQ — #faq                                                  */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <FaqSection />
     </div>

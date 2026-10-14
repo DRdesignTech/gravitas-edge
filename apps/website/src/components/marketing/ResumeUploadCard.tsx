@@ -445,14 +445,16 @@ export default function ResumeUploadCard({
       )}
 
       {/* Benefit items */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {BENEFITS.map((benefit) => (
           <div
             key={benefit}
-            className="flex items-center gap-2.5 rounded-xl border border-line bg-surface-muted/50 px-3 py-2.5 dark:bg-surface"
+            className="flex min-w-0 items-center gap-2.5 rounded-xl border border-line bg-surface-muted/50 px-3 py-2.5 dark:bg-surface"
           >
             <BenefitCheck />
-            <span className="text-sm font-semibold leading-tight text-content">{benefit}</span>
+            <span className="min-w-0 break-words text-sm font-semibold leading-tight text-content">
+              {benefit}
+            </span>
           </div>
         ))}
       </div>
