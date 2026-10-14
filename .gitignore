@@ -9,6 +9,10 @@ build/
 .next/
 out/
 
+# Next/TypeScript generated files
+next-env.d.ts
+*.tsbuildinfo
+
 # Environment files
 .env
 .env.local
