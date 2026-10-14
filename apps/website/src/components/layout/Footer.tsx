@@ -28,7 +28,7 @@ const socialLinks: { label: string; href: string; icon: ReactNode }[] = [
   },
   {
     label: 'LinkedIn',
-    href: 'https://www.linkedin.com/in/sumit-sinha-186072b',
+    href: 'https://www.linkedin.com/company/gravitas-edge-consultant/',
     icon: <LinkedInIcon className="h-4 w-4" />,
   },
 ];
