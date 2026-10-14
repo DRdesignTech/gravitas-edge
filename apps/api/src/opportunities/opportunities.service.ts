@@ -6,6 +6,7 @@ import {
   buildPaginationMeta,
   buildPaginationParams,
   PaginatedResult,
+  PaginationParams,
 } from '../common/pagination/pagination.util';
 import { maskProtectedValue } from '@job-portal/shared';
 
@@ -22,6 +23,8 @@ export interface UserOpportunityQuery {
   vaultId?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  /** When true, spread results evenly across all vaults (round-robin) instead of a flat sort. */
+  balanced?: boolean | string;
 }
 
 export interface VaultRef {
@@ -86,6 +89,43 @@ export class OpportunitiesService {
   ): Promise<PaginatedResult<PublicOpportunityDto>> {
     const params = buildPaginationParams(query.page, query.limit);
 
+    if (this.isBalanced(query) && !query.vaultId) {
+      return this.listBalancedForUser(userId, query, params);
+    }
+
+    const where = this.buildWhere(query);
+
+    const accessibleVaultIds = userId ? await this.access.getAccessibleVaultIds(userId) : [];
+    const accessibleVaultIdSet = new Set(accessibleVaultIds);
+
+    const validSortFields = new Set(['createdAt', 'publishedDate', 'expiryDate', 'title']);
+    const sortField = validSortFields.has(query.sortBy ?? '') ? query.sortBy! : 'createdAt';
+    const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
+
+    const [items, totalItems] = await this.prisma.$transaction([
+      this.prisma.opportunity.findMany({
+        where,
+        orderBy: { [sortField]: sortOrder },
+        skip: params.skip,
+        take: params.limit,
+        include: {
+          vaults: { select: { vault: { select: { id: true, name: true, type: true } } } },
+          experienceLevels: {
+            select: {
+              experienceLevel: { select: { id: true, name: true, minYears: true, maxYears: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.opportunity.count({ where }),
+    ]);
+
+    const normalized = items.map((o) => this.serializeOpportunity(o, accessibleVaultIdSet));
+
+    return buildPaginationMeta(normalized, totalItems, params);
+  }
+
+  private buildWhere(query: UserOpportunityQuery): Prisma.OpportunityWhereInput {
     const where: Prisma.OpportunityWhereInput = {
       deletedAt: null,
       status: 'PUBLISHED',
@@ -116,32 +156,85 @@ export class OpportunitiesService {
       where.vaults = { some: { vaultId: query.vaultId } };
     }
 
-    const accessibleVaultIds = userId ? await this.access.getAccessibleVaultIds(userId) : [];
-    const accessibleVaultIdSet = new Set(accessibleVaultIds);
+    return where;
+  }
 
-    const validSortFields = new Set(['createdAt', 'publishedDate', 'expiryDate', 'title']);
-    const sortField = validSortFields.has(query.sortBy ?? '') ? query.sortBy! : 'createdAt';
-    const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
+  private isBalanced(query: UserOpportunityQuery): boolean {
+    return query.balanced === true || query.balanced === 'true';
+  }
 
-    const [items, totalItems] = await this.prisma.$transaction([
-      this.prisma.opportunity.findMany({
-        where,
-        orderBy: { [sortField]: sortOrder },
-        skip: params.skip,
-        take: params.limit,
-        include: {
-          vaults: { select: { vault: { select: { id: true, name: true, type: true } } } },
-          experienceLevels: {
-            select: {
-              experienceLevel: { select: { id: true, name: true, minYears: true, maxYears: true } },
-            },
-          },
+  /**
+   * Round-robin list that spreads results across every vault so no single vault
+   * dominates the first page. Used by the homepage Free Preview. Filters are
+   * honoured, but any leftover slots are filled with remaining jobs.
+   */
+  private async listBalancedForUser(
+    userId: string | undefined,
+    query: UserOpportunityQuery,
+    params: PaginationParams,
+  ): Promise<PaginatedResult<PublicOpportunityDto>> {
+    const where = this.buildWhere({ ...query, vaultId: undefined });
+
+    const vaults = await this.prisma.vault.findMany({
+      where: { deletedAt: null },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true },
+    });
+
+    const include: Prisma.OpportunityInclude = {
+      vaults: { select: { vault: { select: { id: true, name: true, type: true } } } },
+      experienceLevels: {
+        select: {
+          experienceLevel: { select: { id: true, name: true, minYears: true, maxYears: true } },
         },
-      }),
+      },
+    };
+
+    const perVault = vaults.length
+      ? Math.max(1, Math.ceil(params.limit / vaults.length))
+      : params.limit;
+
+    const buckets = await Promise.all(
+      vaults.map((vault) =>
+        this.prisma.opportunity.findMany({
+          where: { ...where, vaults: { some: { vaultId: vault.id } } },
+          orderBy: { createdAt: 'desc' },
+          take: perVault,
+          include,
+        }),
+      ),
+    );
+
+    const picked: any[] = [];
+    const seen = new Set<string>();
+    const maxDepth = buckets.reduce((max, bucket) => Math.max(max, bucket.length), 0);
+    for (let depth = 0; depth < maxDepth && picked.length < params.limit; depth += 1) {
+      for (const bucket of buckets) {
+        const item = bucket[depth];
+        if (!item || seen.has(item.id)) continue;
+        seen.add(item.id);
+        picked.push(item);
+        if (picked.length >= params.limit) break;
+      }
+    }
+
+    if (picked.length < params.limit) {
+      const filler = await this.prisma.opportunity.findMany({
+        where: { ...where, id: { notIn: [...seen] } },
+        orderBy: { createdAt: 'desc' },
+        take: params.limit - picked.length,
+        include,
+      });
+      picked.push(...filler);
+    }
+
+    const [accessibleVaultIds, totalItems] = await Promise.all([
+      userId ? this.access.getAccessibleVaultIds(userId) : Promise.resolve([]),
       this.prisma.opportunity.count({ where }),
     ]);
+    const accessibleVaultIdSet = new Set(accessibleVaultIds);
 
-    const normalized = items.map((o) => this.serializeOpportunity(o, accessibleVaultIdSet));
+    const normalized = picked.map((o) => this.serializeOpportunity(o, accessibleVaultIdSet));
 
     return buildPaginationMeta(normalized, totalItems, params);
   }

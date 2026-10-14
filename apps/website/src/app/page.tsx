@@ -215,7 +215,7 @@ export default function Home() {
     setLoading(true);
     setError('');
     Promise.all([
-      fetchOpportunities({ page: 1, limit: FREE_PREVIEW_LIMIT }),
+      fetchOpportunities({ page: 1, limit: FREE_PREVIEW_LIMIT, balanced: true }),
       fetchVaults(),
       fetchPublicPricing(),
     ])

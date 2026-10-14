@@ -34,6 +34,7 @@ export class OpportunitiesController {
       vaultId?: string;
       sortBy?: string;
       sortOrder?: string;
+      balanced?: string | boolean;
     },
   ) {
     return this.opportunitiesService.listForUser(user?.id, {

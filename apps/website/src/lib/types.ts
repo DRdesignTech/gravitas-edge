@@ -255,6 +255,8 @@ export interface OpportunityQuery {
   vaultId?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  /** When true, spread results evenly across all vaults (round-robin). */
+  balanced?: boolean;
 }
 
 export const OPPORTUNITY_CATEGORIES = [
