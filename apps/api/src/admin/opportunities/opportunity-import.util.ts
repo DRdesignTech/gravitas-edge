@@ -77,8 +77,9 @@ const HEADER_ALIASES: Record<string, string> = {
   expirydate: 'expiryDate',
   status: 'status',
   category: 'category',
-  sno: 'externalRef',
-  sn: 'externalRef',
+  jobid: 'jobId',
+  jobidnumber: 'jobId',
+  jobidentifier: 'jobId',
   notes: 'notes',
   remark: 'notes',
   remarks: 'notes',
@@ -450,7 +451,6 @@ export interface DuplicateComparableJob {
   description?: string | null;
   applicationUrl?: string | null;
   applicationContact?: string | null;
-  externalRef?: string | null;
   status?: string | null;
 }
 
@@ -467,7 +467,6 @@ const DUPLICATE_TEXT_FIELDS = [
   'description',
   'applicationUrl',
   'applicationContact',
-  'externalRef',
 ] as const;
 
 /** Archived/expired postings must not block a genuinely new posting. */

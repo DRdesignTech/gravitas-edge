@@ -471,6 +471,14 @@ model Opportunity {
   salary             String?
   experienceText     String?
   externalRef        String?
+  // Human-facing unique job identifier supplied by admins or the import file.
+  // Nullable for backward compatibility: grandfathered rows keep no Job ID
+  // until one is provided. The unique index allows multiple NULLs in Postgres.
+  jobId              String?             @unique
+  // Auto-assigned, database-wide display serial ("S. No."). Assigned by a
+  // Postgres sequence on insert so the number is stable and never reused;
+  // existing rows were backfilled in `createdAt` order by its migration.
+  serialNo           Int                 @unique @default(autoincrement())
   category           OpportunityCategory @default(OTHER)
   status             OpportunityStatus   @default(DRAFT)
   createdBy          String?

@@ -181,10 +181,31 @@ describe('OpportunitiesService', () => {
               { title: { contains: 'engineer', mode: 'insensitive' } },
               { location: { contains: 'engineer', mode: 'insensitive' } },
               { industry: { contains: 'engineer', mode: 'insensitive' } },
+              { jobId: { contains: 'engineer', mode: 'insensitive' } },
             ]),
           }),
         }),
       );
+    });
+
+    it('returns the Job ID on public opportunities', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([
+        { ...baseOpportunity, jobId: 'JOB-2026-0001', vaults: [], experienceLevels: [] },
+      ]);
+      prisma.opportunity.count.mockResolvedValue(1);
+
+      const result = await service.listForUser(undefined, { page: 1, limit: 20 });
+      expect(result.items[0].jobId).toBe('JOB-2026-0001');
+    });
+
+    it('serializes a missing Job ID as null', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([
+        { ...baseOpportunity, jobId: null, vaults: [], experienceLevels: [] },
+      ]);
+      prisma.opportunity.count.mockResolvedValue(1);
+
+      const result = await service.listForUser(undefined, { page: 1, limit: 20 });
+      expect(result.items[0].jobId).toBeNull();
     });
 
     it('filters jobs by vault', async () => {

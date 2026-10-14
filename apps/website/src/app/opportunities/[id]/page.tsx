@@ -791,8 +791,8 @@ export default function OpportunityPage() {
                   <SnapshotRow label="Posted" value={formatDate(o.publishedDate)} />
                   <SnapshotRow label="Expires" value={formatDate(o.expiryDate)} />
                   <SnapshotRow
-                    label="Reference"
-                    value={isMeaningful(o.externalRef) ? o.externalRef : undefined}
+                    label={L.jobId}
+                    value={isMeaningful(o.jobId) ? o.jobId : undefined}
                   />
                   <SnapshotRow label="Source" value={source} />
                   <SnapshotRow

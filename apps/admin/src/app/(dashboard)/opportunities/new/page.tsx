@@ -43,7 +43,7 @@ interface FormState {
   source: string;
   salary: string;
   experienceText: string;
-  externalRef: string;
+  jobId: string;
   category: string;
   status: string;
   expiryDate: string;
@@ -74,7 +74,7 @@ export default function NewOpportunityPage() {
     source: '',
     salary: '',
     experienceText: '',
-    externalRef: '',
+    jobId: '',
     category: 'INDIA',
     status: 'DRAFT',
     expiryDate: '',
@@ -125,7 +125,7 @@ export default function NewOpportunityPage() {
         source: form.source || undefined,
         salary: form.salary || undefined,
         experienceText: form.experienceText || undefined,
-        externalRef: form.externalRef || undefined,
+        jobId: form.jobId || undefined,
         category: form.category,
         status: form.status || undefined,
         expiryDate: form.expiryDate || undefined,
@@ -151,7 +151,7 @@ export default function NewOpportunityPage() {
         source: '',
         salary: '',
         experienceText: '',
-        externalRef: '',
+        jobId: '',
         expiryDate: '',
         vaultIds: [],
         experienceLevelIds: [],
@@ -236,9 +236,10 @@ export default function NewOpportunityPage() {
                 onChange={(e) => setForm((f) => ({ ...f, salary: e.target.value }))}
               />
               <Input
-                label={L.serialNo}
-                value={form.externalRef}
-                onChange={(e) => setForm((f) => ({ ...f, externalRef: e.target.value }))}
+                label={L.jobId}
+                placeholder="Unique Job ID"
+                value={form.jobId}
+                onChange={(e) => setForm((f) => ({ ...f, jobId: e.target.value }))}
               />
               <Select
                 label="Employment type"

@@ -60,6 +60,7 @@ export interface Opportunity {
   salary?: string | null;
   experienceText?: string | null;
   externalRef?: string | null;
+  jobId?: string | null;
   applicationUrl?: string | null;
   applicationContact?: string | null;
   source?: string | null;

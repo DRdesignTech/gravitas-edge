@@ -119,6 +119,15 @@ export class CreateOpportunityDto {
   @MaxLength(100)
   externalRef?: string;
 
+  @ApiPropertyOptional({
+    example: 'JOB-2026-0001',
+    description: 'Human-facing Job ID. Must be unique across all opportunities.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  jobId?: string;
+
   @ApiProperty({ enum: OpportunityCategory, default: OpportunityCategory.OTHER })
   @IsEnum(OpportunityCategory)
   category: OpportunityCategory;

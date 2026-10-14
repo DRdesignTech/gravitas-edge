@@ -118,6 +118,7 @@ export default function ImportOpportunitiesPage() {
   const rowDetail = (row: ImportPreviewRow): string =>
     row.classification === 'VALID'
       ? [
+          row.fields?.jobId ? `Job ID: ${row.fields.jobId}` : null,
           row.fields?.location,
           row.fields?.industry,
           row.fields?.salary,

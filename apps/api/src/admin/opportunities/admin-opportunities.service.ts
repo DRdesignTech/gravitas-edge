@@ -49,7 +49,6 @@ const DUPLICATE_FIELD_SELECT = {
   description: true,
   applicationUrl: true,
   applicationContact: true,
-  externalRef: true,
   status: true,
 } as const satisfies Prisma.OpportunitySelect;
 
@@ -141,7 +140,12 @@ export class AdminOpportunitiesService {
         { title: { contains: term, mode: 'insensitive' } },
         { description: { contains: term, mode: 'insensitive' } },
         { company: { contains: term, mode: 'insensitive' } },
+        { jobId: { contains: term, mode: 'insensitive' } },
       ];
+    }
+
+    if (query.jobId) {
+      where.jobId = query.jobId.trim();
     }
 
     if (query.experienceLevelId) {
@@ -172,6 +176,7 @@ export class AdminOpportunitiesService {
       'publishedDate',
       'expiryDate',
       'title',
+      'serialNo',
     ]);
     const sortField = validSortFields.has(query.sortBy ?? '') ? query.sortBy! : 'createdAt';
     const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
@@ -232,6 +237,7 @@ export class AdminOpportunitiesService {
       salary: dto.salary ?? null,
       experienceText: dto.experienceText ?? null,
       externalRef: dto.externalRef ?? null,
+      jobId: dto.jobId?.trim() || null,
       category: dto.category,
       status: dto.status ?? 'DRAFT',
       expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
@@ -267,17 +273,7 @@ export class AdminOpportunitiesService {
       };
     }
 
-    const opportunity = await this.prisma.opportunity.create({
-      data,
-      include: {
-        vaults: { select: { vault: { select: { id: true, name: true, type: true } } } },
-        experienceLevels: {
-          select: {
-            experienceLevel: { select: { id: true, name: true, minYears: true, maxYears: true } },
-          },
-        },
-      },
-    });
+    const opportunity = await this.createOpportunity(data);
 
     await this.audit.record({
       action: 'OPPORTUNITY_CREATED',
@@ -319,6 +315,7 @@ export class AdminOpportunitiesService {
     if (dto.salary !== undefined) data.salary = dto.salary;
     if (dto.experienceText !== undefined) data.experienceText = dto.experienceText;
     if (dto.externalRef !== undefined) data.externalRef = dto.externalRef;
+    if (dto.jobId !== undefined) data.jobId = dto.jobId?.trim() || null;
     if (dto.category !== undefined) data.category = dto.category;
 
     if (dto.status !== undefined) {
@@ -371,18 +368,7 @@ export class AdminOpportunitiesService {
       }
     }
 
-    const updated = await this.prisma.opportunity.update({
-      where: { id },
-      data,
-      include: {
-        vaults: { select: { vault: { select: { id: true, name: true, type: true } } } },
-        experienceLevels: {
-          select: {
-            experienceLevel: { select: { id: true, name: true, minYears: true, maxYears: true } },
-          },
-        },
-      },
-    });
+    const updated = await this.updateOpportunity(id, data);
 
     await this.audit.record({
       action: 'OPPORTUNITY_UPDATED',
@@ -629,6 +615,10 @@ export class AdminOpportunitiesService {
     }
 
     const seenByKeyByVault = new Map<string, DuplicateTitleIndex>();
+    // Job IDs are unique globally (not per vault), so a file must not reuse a
+    // Job ID that already exists anywhere or appears twice within the import.
+    const existingJobIds = await this.collectExistingJobIds();
+    const seenJobIds = new Set<string>();
 
     const analyzedSheets: SheetAnalysis[] = [];
     for (const sheet of sheets) {
@@ -708,6 +698,8 @@ export class AdminOpportunitiesService {
         defaultStatus,
         seenByKey,
         existingByKey,
+        existingJobIds,
+        seenJobIds,
       );
 
       analyzedSheets.push({
@@ -731,6 +723,8 @@ export class AdminOpportunitiesService {
     defaultStatus: OpportunityStatus,
     seenByKey: DuplicateTitleIndex,
     existingByKey: DuplicateTitleIndex,
+    existingJobIds: Set<string>,
+    seenJobIds: Set<string>,
   ): ImportAnalysisRow[] {
     const analyzed: ImportAnalysisRow[] = [];
 
@@ -779,6 +773,19 @@ export class AdminOpportunitiesService {
         continue;
       }
 
+      const jobId = built.data.jobId ?? null;
+      if (jobId && (existingJobIds.has(jobId) || seenJobIds.has(jobId))) {
+        analyzed.push({
+          excelRow: row.excelRow,
+          classification: 'DUPLICATE',
+          title,
+          reason: existingJobIds.has(jobId)
+            ? 'Job ID already exists'
+            : 'Duplicate Job ID within import file',
+        });
+        continue;
+      }
+
       const duplicateReason = this.detectDuplicate(built.data, seenByKey, existingByKey);
       if (duplicateReason) {
         analyzed.push({
@@ -790,6 +797,7 @@ export class AdminOpportunitiesService {
         continue;
       }
 
+      if (jobId) seenJobIds.add(jobId);
       addJobToTitleIndex(seenByKey, built.data);
 
       analyzed.push({
@@ -852,7 +860,7 @@ export class AdminOpportunitiesService {
 
     const salary = fields.salary?.trim() || null;
     const experienceText = fields.experienceText?.trim() || null;
-    const externalRef = fields.externalRef?.trim() || null;
+    const jobId = fields.jobId?.trim() || null;
 
     const { minExperience, maxExperience } = parseExperience(experienceText);
     const minExpFromCol = this.toIntOrNull(fields.minExperience);
@@ -882,7 +890,7 @@ export class AdminOpportunitiesService {
       source: fields.source?.trim() || null,
       salary,
       experienceText,
-      externalRef,
+      jobId,
       category,
       status,
       publishedDate: status === 'PUBLISHED' ? (parsedDate.date ?? new Date()) : null,
@@ -907,7 +915,7 @@ export class AdminOpportunitiesService {
       maxExperience: data.maxExperience,
       salary: data.salary,
       experienceText: data.experienceText,
-      externalRef: data.externalRef,
+      jobId: data.jobId,
       category: data.category,
       status: data.status,
       publishedDate: data.publishedDate,
@@ -944,8 +952,27 @@ export class AdminOpportunitiesService {
         (existingRows ?? []).filter((job) => !isBlockingDuplicateStatus(job.status)),
       );
 
+      const existingJobIdRows = await tx.opportunity.findMany({
+        where: { jobId: { not: null } },
+        select: { jobId: true },
+      });
+      const committedJobIds = new Set(
+        existingJobIdRows.map((r) => r.jobId).filter((id): id is string => Boolean(id)),
+      );
+
       for (const { excelRow, data } of validRows) {
         try {
+          const jobId = data.jobId ?? null;
+          if (jobId && committedJobIds.has(jobId)) {
+            results.errors.push({
+              row: excelRow,
+              title: String(data.title),
+              error: 'Job ID already exists',
+            });
+            results.failed++;
+            continue;
+          }
+
           const duplicateReason = this.detectDuplicate(data, committedByKey, committedByKey);
           if (duplicateReason) {
             results.errors.push({
@@ -959,6 +986,7 @@ export class AdminOpportunitiesService {
 
           await tx.opportunity.create({ data });
           results.imported++;
+          if (jobId) committedJobIds.add(jobId);
           // Later rows in this batch must see what was just written.
           addJobToTitleIndex(committedByKey, data);
         } catch (err: any) {
@@ -966,7 +994,9 @@ export class AdminOpportunitiesService {
           results.errors.push({
             row: excelRow,
             title: String(data.title),
-            error: err?.message ?? 'Unknown error',
+            error: this.isJobIdUniqueViolation(err)
+              ? 'Job ID already exists'
+              : (err?.message ?? 'Unknown error'),
           });
         }
       }
@@ -1139,6 +1169,83 @@ export class AdminOpportunitiesService {
       .toUpperCase()
       .replace(/[\s-]+/g, '_') as T;
     return allowed.includes(normalized) ? normalized : fallback;
+  }
+
+  /**
+   * All Job IDs currently stored, across every vault and including archived
+   * rows (a soft-deleted row still owns its Job ID because the unique index
+   * does not consider `deletedAt`). Used to classify import rows up front so a
+   * clash surfaces in the preview instead of failing at write time.
+   */
+  private async collectExistingJobIds(): Promise<Set<string>> {
+    const rows = await this.prisma.opportunity.findMany({
+      where: { jobId: { not: null } },
+      select: { jobId: true },
+    });
+    return new Set(rows.map((r) => r.jobId).filter((id): id is string => Boolean(id)));
+  }
+
+  /**
+   * Create an opportunity, translating the unique-index violation on `jobId`
+   * into a friendly message. The DB constraint is the source of truth, so a
+   * concurrent request that races past a prior existence check still fails
+   * cleanly instead of leaking a raw Prisma error.
+   */
+  private async createOpportunity(data: Prisma.OpportunityCreateInput) {
+    try {
+      return await this.prisma.opportunity.create({
+        data,
+        include: {
+          vaults: { select: { vault: { select: { id: true, name: true, type: true } } } },
+          experienceLevels: {
+            select: {
+              experienceLevel: { select: { id: true, name: true, minYears: true, maxYears: true } },
+            },
+          },
+        },
+      });
+    } catch (err) {
+      if (this.isJobIdUniqueViolation(err)) {
+        throw new BadRequestException('Job ID already exists');
+      }
+      throw err;
+    }
+  }
+
+  /** Update an opportunity, translating a `jobId` unique violation cleanly. */
+  private async updateOpportunity(id: string, data: Prisma.OpportunityUpdateInput) {
+    try {
+      return await this.prisma.opportunity.update({
+        where: { id },
+        data,
+        include: {
+          vaults: { select: { vault: { select: { id: true, name: true, type: true } } } },
+          experienceLevels: {
+            select: {
+              experienceLevel: { select: { id: true, name: true, minYears: true, maxYears: true } },
+            },
+          },
+        },
+      });
+    } catch (err) {
+      if (this.isJobIdUniqueViolation(err)) {
+        throw new BadRequestException('Job ID already exists');
+      }
+      throw err;
+    }
+  }
+
+  private isJobIdUniqueViolation(err: unknown): boolean {
+    // `jobId` is the only unique column on Opportunity besides the primary key
+    // (which we never supply), so a P2002 on create/update is a Job ID clash.
+    // When Prisma reports the target we double-check it for extra safety.
+    if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== 'P2002') {
+      return false;
+    }
+    const target = err.meta?.target;
+    if (target === undefined) return true;
+    const fields = Array.isArray(target) ? target : [target];
+    return fields.some((field) => String(field).toLowerCase().includes('jobid'));
   }
 
   private async findOpportunity(id: string) {

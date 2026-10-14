@@ -11,19 +11,21 @@
  * They are display labels only: the stored Prisma fields are unchanged and are
  * mapped in `OPPORTUNITY_FIELD_SOURCES` below.
  *
- *   1. S. No.         -> externalRef
- *   2. Date           -> publishedDate (falls back to createdAt for drafts)
- *   3. Role           -> title
- *   4. Sector         -> industry
- *   5. Company        -> company
- *   6. Salary         -> salary
- *   7. Location       -> location (with country as a secondary part)
- *   8. Experience     -> experienceText / minExperience-maxExperience
- *   9. Qualification  -> qualification
- *  10. Other Details  -> description
- *  11. How to apply   -> applicationContact (preferred) / applicationUrl
+ *   1. Job ID         -> jobId
+ *   2. S. No.         -> serialNo (auto-assigned display serial)
+ *   3. Date           -> publishedDate (falls back to createdAt for drafts)
+ *   4. Role           -> title
+ *   5. Sector         -> industry
+ *   6. Company        -> company
+ *   7. Salary         -> salary
+ *   8. Location       -> location (with country as a secondary part)
+ *   9. Experience     -> experienceText / minExperience-maxExperience
+ *  10. Qualification  -> qualification
+ *  11. Other Details  -> description
+ *  12. How to apply   -> applicationContact (preferred) / applicationUrl
  */
 export const OPPORTUNITY_FIELD_LABELS = {
+  jobId: 'Job ID',
   serialNo: 'S. No.',
   date: 'Date',
   role: 'Role',
@@ -41,6 +43,7 @@ export type OpportunityFieldKey = keyof typeof OPPORTUNITY_FIELD_LABELS;
 
 /** The exact label order required by the opportunity spreadsheet. */
 export const OPPORTUNITY_FIELD_ORDER: OpportunityFieldKey[] = [
+  'jobId',
   'serialNo',
   'date',
   'role',

@@ -29,7 +29,6 @@ describe('opportunity-import.util', () => {
   describe('mapHeadersToFields', () => {
     it('maps client workbook headers to canonical fields', () => {
       const colMap = mapHeadersToFields([
-        'S. No.',
         'Date',
         'Role (B)',
         'Sector (C)',
@@ -38,8 +37,12 @@ describe('opportunity-import.util', () => {
         'Experience (G)',
       ]);
       expect(Object.values(colMap).sort()).toEqual(
-        ['title', 'industry', 'salary', 'location', 'experienceText', 'date', 'externalRef'].sort(),
+        ['title', 'industry', 'salary', 'location', 'experienceText', 'date'].sort(),
       );
+    });
+
+    it('ignores a legacy "S. No." column so serial numbers stay auto-assigned', () => {
+      expect(Object.values(mapHeadersToFields(['S. No.', 'Sn']))).toEqual([]);
     });
 
     it('maps qualification and how-to-apply headers to canonical fields', () => {
@@ -52,6 +55,23 @@ describe('opportunity-import.util', () => {
       ]);
       expect(Object.values(colMap).sort()).toEqual(
         ['applicationContact', 'applicationUrl', 'description', 'qualification'].sort(),
+      );
+    });
+
+    it('maps Job ID headers (with or without a space) to jobId', () => {
+      expect(Object.values(mapHeadersToFields(['Job ID']))).toEqual(['jobId']);
+      expect(Object.values(mapHeadersToFields(['JobId']))).toEqual(['jobId']);
+      expect(Object.values(mapHeadersToFields(['Job Identifier']))).toEqual(['jobId']);
+    });
+
+    it('recognizes a header row that carries Job ID alongside title and meta', () => {
+      const header = findHeaderRow([
+        ['Job ID', 'Role', 'Location'],
+        ['JOB-1', 'Engineer', 'Dubai'],
+      ]);
+      expect(header?.colMap[0]).toBe('jobId');
+      expect(Object.values(header?.colMap ?? {})).toEqual(
+        expect.arrayContaining(['jobId', 'title', 'location']),
       );
     });
   });
@@ -235,15 +255,6 @@ describe('opportunity-import.util', () => {
       });
       expect(result.duplicate).toBe(true);
       expect(result.oneSided).toContain('country');
-    });
-
-    it('treats a differing external reference as a difference', () => {
-      const result = compareJobsForDuplicate(
-        { ...fullJob, externalRef: '101' },
-        { ...fullJob, externalRef: '999' },
-      );
-      expect(result.duplicate).toBe(false);
-      expect(result.conflicts).toContain('externalRef');
     });
   });
 

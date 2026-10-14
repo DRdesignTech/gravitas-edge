@@ -24,6 +24,11 @@ export class QueryOpportunitiesDto {
   @IsString()
   search?: string;
 
+  @ApiPropertyOptional({ example: 'JOB-2026-0001', description: 'Filter by Job ID (exact match)' })
+  @IsOptional()
+  @IsString()
+  jobId?: string;
+
   @ApiPropertyOptional({ enum: OpportunityStatus })
   @IsOptional()
   @IsEnum(OpportunityStatus)

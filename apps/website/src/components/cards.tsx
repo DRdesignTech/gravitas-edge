@@ -311,6 +311,11 @@ export function OpportunityCard({
         ) : null}
 
         <div className="mt-3 flex flex-wrap gap-1.5">
+          {o.jobId && (
+            <MetaChip icon={<IdIcon className="h-3.5 w-3.5" />}>
+              {OPPORTUNITY_FIELD_LABELS.jobId}: {o.jobId}
+            </MetaChip>
+          )}
           {o.vaults?.map((v) => (
             <MetaChip key={v.id} icon={<VaultIcon className="h-3.5 w-3.5" />}>
               {v.name}
@@ -405,6 +410,11 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
             </p>
           )}
           <div className="mt-2.5 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-content-muted">
+            {o.jobId && (
+              <span className="inline-flex items-center gap-1.5">
+                <IdIcon className="h-4 w-4" /> {OPPORTUNITY_FIELD_LABELS.jobId}: {o.jobId}
+              </span>
+            )}
             {o.location && (
               <span className="inline-flex items-center gap-1.5">
                 <PinIcon className="h-4 w-4" /> {o.location}
@@ -737,6 +747,23 @@ export function BarsIcon({ className = 'h-4 w-4' }: { className?: string }) {
         strokeLinejoin="round"
         d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
       />
+    </svg>
+  );
+}
+
+export function IdIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <rect x="2.25" y="5.25" width="19.5" height="13.5" rx="2.25" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 9.75h4M6 13.5h6" />
+      <circle cx="16.5" cy="10.5" r="2.25" />
     </svg>
   );
 }

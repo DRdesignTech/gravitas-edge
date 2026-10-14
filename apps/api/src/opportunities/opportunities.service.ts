@@ -46,6 +46,7 @@ export interface PublicOpportunityDto {
   maxExperience: number | null;
   salary: string | null;
   experienceText: string | null;
+  jobId: string | null;
   category: string;
   status: string;
   publishedDate: Date | null;
@@ -139,6 +140,7 @@ export class OpportunitiesService {
         { company: { contains: term, mode: 'insensitive' } },
         { location: { contains: term, mode: 'insensitive' } },
         { industry: { contains: term, mode: 'insensitive' } },
+        { jobId: { contains: term, mode: 'insensitive' } },
       ];
     }
 
@@ -294,6 +296,7 @@ export class OpportunitiesService {
       maxExperience: o.maxExperience,
       salary: o.salary,
       experienceText: o.experienceText,
+      jobId: o.jobId ?? null,
       category: o.category,
       status: o.status,
       publishedDate: o.publishedDate,

@@ -76,6 +76,7 @@ export interface OpportunityQuery {
   location?: string;
   industry?: string;
   employmentType?: string;
+  jobId?: string;
   vaultId?: string;
   sortBy?: string;
   sortOrder?: string;

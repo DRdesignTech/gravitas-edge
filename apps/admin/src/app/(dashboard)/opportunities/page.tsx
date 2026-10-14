@@ -150,7 +150,7 @@ interface FormState {
   source: string;
   salary: string;
   experienceText: string;
-  externalRef: string;
+  jobId: string;
   category: string;
   status: string;
   expiryDate: string;
@@ -175,7 +175,7 @@ const emptyForm: FormState = {
   source: '',
   salary: '',
   experienceText: '',
-  externalRef: '',
+  jobId: '',
   category: 'INDIA',
   status: 'DRAFT',
   expiryDate: '',
@@ -266,7 +266,7 @@ export default function OpportunitiesPage() {
       source: o.source ?? '',
       salary: o.salary ?? '',
       experienceText: o.experienceText ?? '',
-      externalRef: o.externalRef ?? '',
+      jobId: o.jobId ?? '',
       category: o.category,
       status: o.status,
       expiryDate: o.expiryDate ? o.expiryDate.slice(0, 10) : '',
@@ -296,7 +296,7 @@ export default function OpportunitiesPage() {
         source: form.source || undefined,
         salary: form.salary || undefined,
         experienceText: form.experienceText || undefined,
-        externalRef: form.externalRef || undefined,
+        jobId: form.jobId || undefined,
         category: form.category,
         status: form.status || undefined,
         expiryDate: form.expiryDate || undefined,
@@ -380,9 +380,20 @@ export default function OpportunitiesPage() {
 
   const columns: Column<Opportunity>[] = [
     {
-      key: 'externalRef',
+      key: 'serialNo',
       label: L.serialNo,
-      render: (o) => <span className="text-content-muted">{o.externalRef || '—'}</span>,
+      render: (o) => (
+        <span className="tabular-nums text-content-muted">
+          {o.serialNo != null ? o.serialNo : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'jobId',
+      label: L.jobId,
+      render: (o) => (
+        <span className="font-medium text-content-muted">{o.jobId || '—'}</span>
+      ),
     },
     {
       key: 'published',
@@ -524,7 +535,7 @@ export default function OpportunitiesPage() {
         <form onSubmit={handleSearch} className="grid gap-4 p-5 md:grid-cols-6">
           <Input
             label="Search"
-            placeholder="Title, company"
+            placeholder="Title, company, Job ID"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -612,8 +623,15 @@ export default function OpportunitiesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-semibold text-content">{o.title}</h3>
-                      {o.externalRef && (
-                        <p className="mt-0.5 text-xs text-content-faint">{o.externalRef}</p>
+                      {o.serialNo != null && (
+                        <p className="mt-0.5 text-xs text-content-faint">
+                          {L.serialNo}: {o.serialNo}
+                        </p>
+                      )}
+                      {o.jobId && (
+                        <p className="mt-0.5 text-xs font-medium text-content-muted">
+                          {L.jobId}: {o.jobId}
+                        </p>
                       )}
                     </div>
                     <Badge variant={oppStatusVariant(o.status)}>{o.status}</Badge>
@@ -793,9 +811,10 @@ export default function OpportunitiesPage() {
               onChange={(e) => setForm((f) => ({ ...f, expiryDate: e.target.value }))}
             />
             <Input
-              label={L.serialNo}
-              value={form.externalRef}
-              onChange={(e) => setForm((f) => ({ ...f, externalRef: e.target.value }))}
+              label={L.jobId}
+              placeholder="Unique Job ID"
+              value={form.jobId}
+              onChange={(e) => setForm((f) => ({ ...f, jobId: e.target.value }))}
             />
             <Input
               label="Salary"
@@ -939,12 +958,24 @@ export default function OpportunitiesPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={oppStatusVariant(viewTarget.status)}>{viewTarget.status}</Badge>
               <Badge variant="info">{titleCase(viewTarget.category)}</Badge>
-              {viewTarget.externalRef && (
-                <span className="text-xs text-content-faint">S. No. {viewTarget.externalRef}</span>
+              {viewTarget.serialNo != null && (
+                <span className="text-xs text-content-faint">
+                  {L.serialNo} {viewTarget.serialNo}
+                </span>
+              )}
+              {viewTarget.jobId && (
+                <span className="text-xs font-medium text-content">
+                  {L.jobId}: {viewTarget.jobId}
+                </span>
               )}
             </div>
 
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-3">
+              <DetailItem
+                label={L.serialNo}
+                value={viewTarget.serialNo != null ? String(viewTarget.serialNo) : undefined}
+              />
+              <DetailItem label={L.jobId} value={viewTarget.jobId || undefined} />
               <DetailItem label={L.company} value={viewTarget.company || undefined} />
               <DetailItem label={L.location} value={viewTarget.location || undefined} />
               <DetailItem label="Country" value={viewTarget.country || undefined} />

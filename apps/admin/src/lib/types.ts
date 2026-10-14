@@ -165,6 +165,8 @@ export interface Opportunity {
   salary?: string | null;
   experienceText?: string | null;
   externalRef?: string | null;
+  jobId?: string | null;
+  serialNo?: number;
   category: string;
   status: string;
   publishedDate?: string | null;

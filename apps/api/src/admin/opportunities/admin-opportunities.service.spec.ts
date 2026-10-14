@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import * as XLSX from 'xlsx';
 import { AdminOpportunitiesService } from './admin-opportunities.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -246,6 +247,80 @@ describe('AdminOpportunitiesService', () => {
         'admin-1',
       );
     });
+
+    it('persists a trimmed Job ID', async () => {
+      prisma.vault.findMany.mockResolvedValue([{ id: 'v-1' }]);
+      prisma.opportunity.create.mockImplementation(async (args: any) => {
+        expect(args.data.jobId).toBe('JOB-2026-0001');
+        return { id: 'opp-1', ...args.data, vaults: [], experienceLevels: [] };
+      });
+
+      await service.create(
+        {
+          title: 'Dev',
+          category: 'INDIA',
+          jobId: '  JOB-2026-0001  ',
+          vaultIds: ['v-1'],
+        } as any,
+        'admin-1',
+      );
+      expect(prisma.opportunity.create).toHaveBeenCalled();
+    });
+
+    it('stores a blank Job ID as null', async () => {
+      prisma.vault.findMany.mockResolvedValue([{ id: 'v-1' }]);
+      prisma.opportunity.create.mockImplementation(async (args: any) => {
+        expect(args.data.jobId).toBeNull();
+        return { id: 'opp-1', ...args.data, vaults: [], experienceLevels: [] };
+      });
+
+      await service.create(
+        { title: 'Dev', category: 'INDIA', jobId: '   ', vaultIds: ['v-1'] } as any,
+        'admin-1',
+      );
+    });
+
+    it('translates a Job ID unique violation into a friendly error', async () => {
+      prisma.vault.findMany.mockResolvedValue([{ id: 'v-1' }]);
+      prisma.opportunity.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('dup', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: ['jobId'] },
+        }),
+      );
+
+      await expect(
+        service.create(
+          { title: 'Dev', category: 'INDIA', jobId: 'JOB-1', vaultIds: ['v-1'] } as any,
+          'admin-1',
+        ),
+      ).rejects.toThrow('Job ID already exists');
+    });
+
+    it('rethrows non-Job-ID create errors untouched', async () => {
+      prisma.vault.findMany.mockResolvedValue([{ id: 'v-1' }]);
+      const boom = new Error('db exploded');
+      prisma.opportunity.create.mockRejectedValue(boom);
+
+      await expect(
+        service.create({ title: 'Dev', category: 'INDIA', vaultIds: ['v-1'] } as any, 'admin-1'),
+      ).rejects.toThrow('db exploded');
+    });
+
+    it('never sends a serialNo on create (the database assigns it)', async () => {
+      prisma.vault.findMany.mockResolvedValue([{ id: 'v-1' }]);
+      prisma.opportunity.create.mockImplementation(async (args: any) => {
+        expect(args.data.serialNo).toBeUndefined();
+        return { id: 'opp-1', ...args.data, vaults: [], experienceLevels: [] };
+      });
+
+      await service.create(
+        { title: 'Dev', category: 'INDIA', vaultIds: ['v-1'] } as any,
+        'admin-1',
+      );
+      expect(prisma.opportunity.create).toHaveBeenCalled();
+    });
   });
 
   describe('update', () => {
@@ -347,6 +422,51 @@ describe('AdminOpportunitiesService', () => {
 
       await expect(service.update('opp-1', { vaultIds: ['bad-vault'] }, 'admin-1')).rejects.toThrow(
         BadRequestException,
+      );
+    });
+
+    it('updates the Job ID when provided', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue({ id: 'opp-1', publishedDate: null });
+      prisma.opportunity.update.mockImplementation(async (args: any) => {
+        expect(args.data.jobId).toBe('JOB-42');
+        return { id: 'opp-1', ...args.data, vaults: [], experienceLevels: [] };
+      });
+
+      await service.update('opp-1', { jobId: ' JOB-42 ' } as any, 'admin-1');
+    });
+
+    it('clears the Job ID when set to blank', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue({ id: 'opp-1', publishedDate: null });
+      prisma.opportunity.update.mockImplementation(async (args: any) => {
+        expect(args.data.jobId).toBeNull();
+        return { id: 'opp-1', ...args.data, vaults: [], experienceLevels: [] };
+      });
+
+      await service.update('opp-1', { jobId: '' } as any, 'admin-1');
+    });
+
+    it('leaves the Job ID untouched when omitted', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue({ id: 'opp-1', publishedDate: null });
+      prisma.opportunity.update.mockImplementation(async (args: any) => {
+        expect('jobId' in args.data).toBe(false);
+        return { id: 'opp-1', ...args.data, vaults: [], experienceLevels: [] };
+      });
+
+      await service.update('opp-1', { title: 'New' }, 'admin-1');
+    });
+
+    it('translates a Job ID unique violation on update into a friendly error', async () => {
+      prisma.opportunity.findFirst.mockResolvedValue({ id: 'opp-1', publishedDate: null });
+      prisma.opportunity.update.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('dup', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: { target: 'Opportunity_jobId_key' },
+        }),
+      );
+
+      await expect(service.update('opp-1', { jobId: 'JOB-1' } as any, 'admin-1')).rejects.toThrow(
+        'Job ID already exists',
       );
     });
   });
@@ -463,6 +583,61 @@ describe('AdminOpportunitiesService', () => {
       expect(matches[0].classification).toBe('VALID');
       expect(matches[1].classification).toBe('DUPLICATE');
       expect(matches[1].reason).toBe('Duplicate job within import file');
+    });
+
+    it('surfaces the parsed Job ID in the preview payload', async () => {
+      const file = csvFile('Title,Job ID\nRole A,JOB-2026-0001');
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      expect(result.sheets[0].rows[0].classification).toBe('VALID');
+      expect(result.sheets[0].rows[0].fields?.jobId).toBe('JOB-2026-0001');
+    });
+
+    it('ignores the file\'s "S. No." column (serial numbers are auto-assigned)', async () => {
+      const file = csvFile('S. No.,Title,Location\n37,Role A,Dubai');
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      const row = result.sheets[0].rows[0];
+      expect(row.classification).toBe('VALID');
+      expect(row.fields?.externalRef).toBeUndefined();
+      expect(row.fields?.serialNo).toBeUndefined();
+    });
+
+    it('flags a Job ID that already exists globally as DUPLICATE', async () => {
+      // collectExistingJobIds() reads every stored Job ID across all vaults.
+      prisma.opportunity.findMany.mockResolvedValue([{ jobId: 'JOB-2026-0001' }]);
+      const file = csvFile('Title,Job ID\nRole A,JOB-2026-0001');
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      const row = result.sheets[0].rows[0];
+      expect(row.classification).toBe('DUPLICATE');
+      expect(row.reason).toBe('Job ID already exists');
+      expect(result.sheets[0].summary.valid).toBe(0);
+    });
+
+    it('flags a Job ID repeated within the same import file', async () => {
+      const file = csvFile('Title,Job ID\nRole A,JOB-7\nRole B,JOB-7');
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      const rows = result.sheets[0].rows;
+      expect(rows[0].classification).toBe('VALID');
+      expect(rows[1].classification).toBe('DUPLICATE');
+      expect(rows[1].reason).toBe('Duplicate Job ID within import file');
+    });
+
+    it('does not let a rejected row consume its Job ID for later valid rows', async () => {
+      // First row carries an unparseable date (INVALID); the second carries the
+      // same Job ID and must still import cleanly because the invalid row
+      // reserves nothing.
+      const file = csvFile(
+        'Title,Job ID,Date\nBad Role,JOB-9,not-a-date\nReal Role,JOB-9,2026-01-01',
+      );
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      const rows = result.sheets[0].rows;
+      expect(rows[0].classification).toBe('INVALID');
+      expect(rows[1].classification).toBe('VALID');
+      expect(rows[1].fields?.jobId).toBe('JOB-9');
     });
 
     const engineerExistingJob = {
@@ -725,8 +900,10 @@ describe('AdminOpportunitiesService', () => {
 
       expect(bySheet['Remote Access']?.summary.valid).toBe(74);
       expect(bySheet['Executive']?.summary.valid).toBe(143);
-      expect(bySheet['Management']?.summary.valid).toBe(228);
-      expect(bySheet['UAE & Global']?.summary.valid).toBe(179);
+      // "S. No." is no longer a content field, so rows that differ only by their
+      // spreadsheet serial now collapse into duplicates.
+      expect(bySheet['Management']?.summary.valid).toBe(224);
+      expect(bySheet['UAE & Global']?.summary.valid).toBe(176);
     });
 
     it('skips a job sheet with no matching vault and keeps processing the rest', async () => {

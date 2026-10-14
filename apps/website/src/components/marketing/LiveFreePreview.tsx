@@ -21,6 +21,7 @@ import {
   BarsIcon,
   ProtectedFields,
   VaultIcon,
+  IdIcon,
 } from '@/components/cards';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
@@ -31,7 +32,7 @@ import {
   isMeaningful,
   titleCase,
 } from '@/lib/format';
-import { extractEmail, buildApplyMailto } from '@job-portal/shared';
+import { extractEmail, buildApplyMailto, OPPORTUNITY_FIELD_LABELS } from '@job-portal/shared';
 
 const INITIAL_COUNT = 6;
 const VIEW_KEY = 'free-preview-view';
@@ -234,6 +235,7 @@ export default function LiveFreePreview({
         o.source,
         o.salary,
         o.experienceText,
+        o.jobId,
         ...(o.experienceLevels?.map((e) => e.name) || []),
         o.employmentType,
         ...(o.vaults?.map((v) => v.name) || []),
@@ -617,6 +619,11 @@ export default function LiveFreePreview({
                       </div>
 
                       <div className="mt-1 flex flex-wrap gap-1">
+                        {o.jobId && (
+                          <ListMetaChip icon={<IdIcon className="h-3 w-3" />}>
+                            {OPPORTUNITY_FIELD_LABELS.jobId}: {o.jobId}
+                          </ListMetaChip>
+                        )}
                         {o.vaults?.map((v) => (
                           <ListMetaChip key={v.id} icon={<VaultIcon className="h-3 w-3" />}>
                             {v.name}
