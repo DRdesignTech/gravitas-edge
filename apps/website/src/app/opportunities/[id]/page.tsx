@@ -352,9 +352,19 @@ function MaskedBlock({
       <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-content-faint">
         <LockIcon className="h-3 w-3 text-amber-500" /> {label}
       </p>
-      <p className="mt-2 select-none whitespace-pre-line break-words rounded-xl border border-dashed border-line bg-surface-muted/60 px-4 py-3 text-sm leading-relaxed text-content-faint dark:bg-surface-muted/40">
-        {value}
-      </p>
+      <div className="relative mt-2 overflow-hidden rounded-xl border border-dashed border-line bg-surface-muted/60 px-4 py-3.5 dark:bg-surface-muted/40">
+        <div aria-hidden="true" className="select-none space-y-2.5 blur-[3px]">
+          <div className="h-2.5 w-4/5 rounded-full bg-line" />
+          <div className="h-2.5 w-full rounded-full bg-line" />
+          <div className="h-2.5 w-3/5 rounded-full bg-line" />
+        </div>
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-content-muted shadow-sm">
+            <LockIcon className="h-3 w-3 text-amber-500" />
+            Locked
+          </span>
+        </span>
+      </div>
     </div>
   );
 }
@@ -642,9 +652,8 @@ export default function OpportunityPage() {
                   title="Full details are locked"
                 >
                   <p className="text-sm leading-relaxed text-content-muted">
-                    Qualification, other details and how to apply unlock with access to the relevant
-                    Vault. What you see below is a masked preview — no original details are
-                    revealed.
+                    Qualification, other details and how to apply are locked for this Vault. Unlock
+                    the relevant Vault to reveal the full details.
                   </p>
                   <div className="mt-6 grid gap-5 border-t border-line pt-6 sm:grid-cols-2">
                     <MaskedBlock label={L.qualification} value={o.lockedPreview?.qualification} />
