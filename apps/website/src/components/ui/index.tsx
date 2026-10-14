@@ -90,7 +90,7 @@ export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
 /* ------------------------------------------------------------------ */
 
 const fieldBase =
-  'w-full rounded-xl border bg-surface px-3.5 py-2.5 text-sm text-content shadow-sm transition placeholder:text-content-faint focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500';
+  'w-full rounded-xl border bg-surface px-3.5 py-2.5 text-sm text-content shadow-sm transition placeholder:text-hint focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500';
 
 function fieldError(error?: string) {
   return error ? '!border-red-500 focus:!ring-red-500/50' : 'border-line focus:border-brand-500';

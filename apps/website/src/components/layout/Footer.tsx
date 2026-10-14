@@ -11,6 +11,7 @@ const platformLinks = [
   { href: '/vaults', label: 'Opportunity Vaults' },
   { href: '/how-it-works', label: 'How It Works' },
   { href: '/plans', label: 'Plans & Pricing' },
+  { href: '/refer-and-earn', label: 'Refer & Earn' },
   { href: '/faq', label: 'FAQ' },
 ];
 

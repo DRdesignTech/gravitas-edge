@@ -31,6 +31,7 @@ const config: Config = {
           faint: 'rgb(var(--color-content-faint) / <alpha-value>)',
           inverse: 'rgb(var(--color-content-inverse) / <alpha-value>)',
         },
+        hint: 'rgb(var(--color-hint) / <alpha-value>)',
         line: {
           DEFAULT: 'rgb(var(--color-line) / <alpha-value>)',
           strong: 'rgb(var(--color-line-strong) / <alpha-value>)',

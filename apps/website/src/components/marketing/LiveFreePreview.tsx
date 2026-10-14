@@ -290,7 +290,7 @@ export default function LiveFreePreview({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.stopPropagation()}
-                  className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-10 text-base text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                  className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-10 text-base text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
                   aria-label="Search opportunities by title, company, or location"
                 />
                 {searchQuery && (
@@ -400,7 +400,7 @@ export default function LiveFreePreview({
                   placeholder="e.g. 5 years, Senior"
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
                   aria-label="Filter by experience"
                 />
               </div>
@@ -418,7 +418,7 @@ export default function LiveFreePreview({
                   placeholder="e.g. Bangalore, Mumbai"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
                   aria-label="Filter by location"
                 />
               </div>
@@ -436,7 +436,7 @@ export default function LiveFreePreview({
                   placeholder="e.g. FinTech, SaaS"
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
                   aria-label="Filter by industry"
                 />
               </div>
@@ -454,7 +454,7 @@ export default function LiveFreePreview({
                   placeholder="e.g. 50 LPA, 1.5 Cr"
                   value={salary}
                   onChange={(e) => setSalary(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
                   aria-label="Filter by salary"
                 />
               </div>

@@ -405,7 +405,7 @@ export default function ChatbotWidget() {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Type your question..."
                   aria-label="Type your question"
-                  className="h-11 w-full rounded-full border border-line bg-surface px-4 pr-4 text-[13px] text-content shadow-sm transition placeholder:font-medium placeholder:text-content-faint focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/40 dark:bg-surface"
+                  className="h-11 w-full rounded-full border border-line bg-surface px-4 pr-4 text-[13px] text-content shadow-sm transition placeholder:font-medium placeholder:text-hint focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-400/40 dark:bg-surface"
                 />
                 {customMode && (
                   <span className="pointer-events-none absolute -top-7 left-1 whitespace-nowrap text-[11px] font-medium text-brand-600 dark:text-brand-400">

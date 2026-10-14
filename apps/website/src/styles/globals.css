@@ -26,6 +26,9 @@
     --color-content-faint: 6 27 54; /* primary navy */
     --color-content-inverse: 255 254 250;
 
+    /* Input hint / placeholder text — intentionally lighter than real values. */
+    --color-hint: 148 156 170; /* #949CAA */
+
     --color-line: 233 231 223; /* #E9E7DF */
     --color-line-strong: 214 210 198;
   }
@@ -52,6 +55,9 @@
     --color-content-muted: 154 168 189;
     --color-content-faint: 104 120 145;
     --color-content-inverse: 8 13 28;
+
+    /* Input hint / placeholder text — slightly lighter than real values. */
+    --color-hint: 122 137 163; /* #7A89A3 */
 
     --color-line: 30 43 78;
     --color-line-strong: 45 62 102;

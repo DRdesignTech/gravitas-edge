@@ -232,7 +232,7 @@ export default function FaqPage() {
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search questions, answers or categories..."
-          className="w-full rounded-2xl border border-line bg-surface py-3 pl-11 pr-12 text-sm text-content shadow-sm transition placeholder:text-content-faint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 sm:text-base"
+          className="w-full rounded-2xl border border-line bg-surface py-3 pl-11 pr-12 text-sm text-content shadow-sm transition placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 sm:text-base"
         />
         {search && (
           <button
