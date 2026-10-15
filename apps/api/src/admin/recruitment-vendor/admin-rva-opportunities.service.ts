@@ -15,11 +15,6 @@ import { CreateRvaOpportunityDto } from './dto/create-rva-opportunity.dto';
 import { UpdateRvaOpportunityDto } from './dto/update-rva-opportunity.dto';
 import { QueryRvaOpportunitiesDto } from './dto/query-rva-opportunities.dto';
 import {
-  addJobToTitleIndex,
-  compareJobsForDuplicate,
-  DuplicateComparableJob,
-  indexJobsByTitle,
-  normalizeDuplicateText,
   parseDateCell,
   parseExperience,
   ParsedRow,
@@ -36,32 +31,7 @@ import {
 
 const ENTITY = 'RecruitmentVendorOpportunity';
 
-const IMPORT_LIMIT = 500;
 const BATCH_SIZE = 50;
-
-/** Archived/expired rows must not block a genuinely new posting. */
-const NON_BLOCKING_STATUSES: RecruitmentVendorOpportunityStatus[] = ['ARCHIVED', 'EXPIRED'];
-
-/** Content fields fetched for RVA duplicate comparison. */
-const RVA_DUPLICATE_SELECT = {
-  title: true,
-  role: true,
-  sector: true,
-  company: true,
-  organization: true,
-  location: true,
-  country: true,
-  salary: true,
-  budget: true,
-  experienceText: true,
-  minExperience: true,
-  maxExperience: true,
-  qualification: true,
-  description: true,
-  applicationUrl: true,
-  applicationContact: true,
-  status: true,
-} as const satisfies Prisma.RecruitmentVendorOpportunitySelect;
 
 type RvaImportClassification = 'VALID' | 'INVALID' | 'DUPLICATE' | 'SKIPPED';
 
@@ -420,9 +390,7 @@ export class AdminRvaOpportunitiesService {
     adminUserId: string,
   ): Promise<RvaSheetAnalysis[]> {
     const existingJobIds = await this.collectExistingJobIds();
-    const existingByKey = await this.collectExistingJobs();
     const seenJobIds = new Set<string>();
-    const seenByKey = new Map<string, DuplicateComparableJob[]>();
 
     const analyzed: RvaSheetAnalysis[] = [];
     for (const sheet of sheets) {
@@ -453,15 +421,11 @@ export class AdminRvaOpportunitiesService {
         continue;
       }
 
-      // Take the latest 500 rows if there are more than the limit.
-      const rowsToAnalyze = meaningfulRows.slice(-IMPORT_LIMIT);
       const rows = this.analyzeRows(
-        rowsToAnalyze,
+        meaningfulRows,
         selectedCategory,
         defaultStatus,
         adminUserId,
-        seenByKey,
-        existingByKey,
         existingJobIds,
         seenJobIds,
       );
@@ -484,8 +448,6 @@ export class AdminRvaOpportunitiesService {
     selectedCategory: RvaCategoryValue,
     defaultStatus: RecruitmentVendorOpportunityStatus,
     adminUserId: string,
-    seenByKey: Map<string, DuplicateComparableJob[]>,
-    existingByKey: Map<string, DuplicateComparableJob[]>,
     existingJobIds: Set<string>,
     seenJobIds: Set<string>,
   ): RvaImportAnalysisRow[] {
@@ -525,35 +487,22 @@ export class AdminRvaOpportunitiesService {
       }
 
       const jobId = built.data.jobId ?? null;
-      if (jobId && (existingJobIds.has(jobId) || seenJobIds.has(jobId))) {
-        analyzed.push({
-          excelRow: row.excelRow,
-          classification: 'DUPLICATE',
-          title,
-          reason: existingJobIds.has(jobId)
-            ? 'Job ID already exists'
-            : 'Duplicate Job ID within import file',
-        });
-        continue;
-      }
-
-      // A Job ID is authoritative: identical content under a different Job ID is
-      // a distinct posting. Content comparison only applies to rows without one.
-      if (!jobId && built.comparable) {
-        const duplicateReason = this.detectDuplicate(built.comparable, seenByKey, existingByKey);
-        if (duplicateReason) {
+      if (jobId) {
+        const normalizedJobId = jobId.trim();
+        if (existingJobIds.has(normalizedJobId) || seenJobIds.has(normalizedJobId)) {
           analyzed.push({
             excelRow: row.excelRow,
             classification: 'DUPLICATE',
             title,
-            reason: duplicateReason,
+            reason: existingJobIds.has(normalizedJobId)
+              ? 'Job ID already exists'
+              : 'Duplicate Job ID within import file',
           });
           continue;
         }
+        seenJobIds.add(normalizedJobId);
       }
-
-      if (jobId) seenJobIds.add(jobId);
-      else if (built.comparable) addJobToTitleIndex(seenByKey, built.comparable);
+      // No Job ID: treat each row as unique (no content-based deduplication per requirements)
 
       analyzed.push({
         excelRow: row.excelRow,
@@ -567,24 +516,6 @@ export class AdminRvaOpportunitiesService {
     return analyzed;
   }
 
-  private detectDuplicate(
-    job: DuplicateComparableJob,
-    seenByKey: Map<string, DuplicateComparableJob[]>,
-    existingByKey: Map<string, DuplicateComparableJob[]>,
-  ): string | null {
-    const key = normalizeDuplicateText(job.title);
-    const candidates = [
-      ...(existingByKey.get(key) ?? []).map((c) => ({ candidate: c, existing: true })),
-      ...(seenByKey.get(key) ?? []).map((c) => ({ candidate: c, existing: false })),
-    ];
-    for (const { candidate, existing } of candidates) {
-      if (compareJobsForDuplicate(job, candidate).duplicate) {
-        return existing ? 'Duplicate of an existing opportunity' : 'Duplicate within import file';
-      }
-    }
-    return null;
-  }
-
   private buildFields(
     row: ParsedRow,
     selectedCategory: RvaCategoryValue,
@@ -593,7 +524,6 @@ export class AdminRvaOpportunitiesService {
   ): {
     data?: Prisma.RecruitmentVendorOpportunityUncheckedCreateInput;
     preview?: Record<string, unknown>;
-    comparable?: DuplicateComparableJob;
     error?: string;
   } {
     const f = row.fields;
@@ -670,26 +600,7 @@ export class AdminRvaOpportunitiesService {
       howToApply: data.howToApply,
     };
 
-    const comparable: DuplicateComparableJob = {
-      title,
-      company: data.company,
-      location: data.location,
-      country: data.country,
-      salary: data.salary,
-      experienceText: data.experienceText,
-      minExperience,
-      maxExperience,
-      industry: data.sector,
-      functionalArea: data.role,
-      employmentType: null,
-      qualification: data.qualification,
-      description: data.description,
-      applicationUrl: data.applicationUrl,
-      applicationContact: data.applicationContact,
-      status,
-    };
-
-    return { data, preview, comparable };
+    return { data, preview };
   }
 
   private async importBatch(rows: RvaImportAnalysisRow[]): Promise<{
@@ -727,33 +638,6 @@ export class AdminRvaOpportunitiesService {
       select: { jobId: true },
     });
     return new Set(rows.map((r) => r.jobId).filter((id): id is string => Boolean(id)));
-  }
-
-  private async collectExistingJobs(): Promise<Map<string, DuplicateComparableJob[]>> {
-    const rows = await this.prisma.recruitmentVendorOpportunity.findMany({
-      where: { deletedAt: null, status: { notIn: NON_BLOCKING_STATUSES } },
-      select: RVA_DUPLICATE_SELECT,
-    });
-    return indexJobsByTitle(
-      rows.map((row): DuplicateComparableJob => ({
-        title: row.title,
-        company: row.company,
-        location: row.location,
-        country: row.country,
-        salary: row.salary,
-        experienceText: row.experienceText,
-        minExperience: row.minExperience,
-        maxExperience: row.maxExperience,
-        industry: row.sector,
-        functionalArea: row.role,
-        employmentType: null,
-        qualification: row.qualification,
-        description: row.description,
-        applicationUrl: row.applicationUrl,
-        applicationContact: row.applicationContact,
-        status: row.status,
-      })),
-    );
   }
 
   private async createOpportunity(data: Prisma.RecruitmentVendorOpportunityUncheckedCreateInput) {

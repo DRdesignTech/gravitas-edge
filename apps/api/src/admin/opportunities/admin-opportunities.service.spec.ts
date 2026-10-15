@@ -562,27 +562,26 @@ describe('AdminOpportunitiesService', () => {
       expect(prisma.opportunity.create).not.toHaveBeenCalled();
     });
 
-    it('classifies duplicates against existing rows in the selected vault', async () => {
-      prisma.opportunity.findMany.mockResolvedValue([
-        { title: 'Duplicate Dev', externalRef: null },
-      ]);
-      const file = csvFile('Title\nDuplicate Dev\nFresh Role');
+    it('classifies duplicates against existing rows in the selected vault by Job ID only', async () => {
+      // Existing job with a Job ID in the vault
+      prisma.opportunity.findMany.mockResolvedValue([{ jobId: 'JOB-EXISTING' }]);
+      const file = csvFile('Title,Job ID\nDuplicate Dev,JOB-EXISTING\nFresh Role,JOB-NEW');
       const result = await service.previewImport(file, 'vault-uae', 'admin-1');
 
       const dup = result.sheets[0].rows.find((r) => r.title === 'Duplicate Dev');
       expect(dup?.classification).toBe('DUPLICATE');
-      expect(dup?.reason).toBe('Duplicate job already exists in vault');
+      expect(dup?.reason).toBe('Job ID already exists in vault');
       expect(result.sheets[0].summary.duplicate).toBe(1);
     });
 
-    it('flags repeated titles within the same file', async () => {
+    it('does NOT flag repeated titles within the same file as duplicates (Job ID is sole identifier)', async () => {
       const file = csvFile('Title\nRepeat Role\nRepeat Role');
       const result = await service.previewImport(file, 'vault-uae', 'admin-1');
 
       const matches = result.sheets[0].rows.filter((r) => r.title === 'Repeat Role');
       expect(matches[0].classification).toBe('VALID');
-      expect(matches[1].classification).toBe('DUPLICATE');
-      expect(matches[1].reason).toBe('Duplicate job within import file');
+      expect(matches[1].classification).toBe('VALID');
+      expect(result.sheets[0].summary.duplicate).toBe(0);
     });
 
     it('surfaces the parsed Job ID in the preview payload', async () => {
@@ -686,7 +685,7 @@ describe('AdminOpportunitiesService', () => {
     const engineerCsvHeader =
       'Title,Company,Location,Country,Salary,Experience,Industry,Functional Area,Employment Type,Qualification,Other Details,How to Apply,How to Apply Email,S. No.';
 
-    it('marks a completely identical job as DUPLICATE even with formatting differences', async () => {
+    it('does NOT mark a completely identical job as DUPLICATE when Job ID differs (Job ID is sole identifier)', async () => {
       prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob }]);
       const file = csvFile(
         engineerCsvHeader +
@@ -696,10 +695,9 @@ describe('AdminOpportunitiesService', () => {
       const result = await service.previewImport(file, 'vault-uae', 'admin-1');
 
       const row = result.sheets[0].rows[0];
-      expect(row.classification).toBe('DUPLICATE');
-      expect(row.reason).toBe('Duplicate job already exists in vault');
-      expect(result.sheets[0].summary.duplicate).toBe(1);
-      expect(result.sheets[0].summary.valid).toBe(0);
+      expect(row.classification).toBe('VALID');
+      expect(result.sheets[0].summary.duplicate).toBe(0);
+      expect(result.sheets[0].summary.valid).toBe(1);
     });
 
     it('does not mark a job duplicate when only the title matches but the company differs', async () => {
@@ -751,7 +749,7 @@ describe('AdminOpportunitiesService', () => {
       expect(result.sheets[0].summary.duplicate).toBe(0);
     });
 
-    it('marks the exact same job imported twice within the file as DUPLICATE', async () => {
+    it('does NOT mark the exact same job imported twice within the file as DUPLICATE when no Job ID (Job ID is sole identifier)', async () => {
       const row =
         'Software Engineer,Acme Corp,Dubai,AED 20000 monthly,5+ years,Build and maintain APIs,101';
       const file = csvFile(
@@ -761,23 +759,23 @@ describe('AdminOpportunitiesService', () => {
       const result = await service.previewImport(file, 'vault-uae', 'admin-1');
 
       expect(result.sheets[0].rows[0].classification).toBe('VALID');
-      expect(result.sheets[0].rows[1].classification).toBe('DUPLICATE');
-      expect(result.sheets[0].rows[1].reason).toBe('Duplicate job within import file');
-      expect(result.sheets[0].summary.duplicate).toBe(1);
-      expect(result.sheets[0].summary.valid).toBe(1);
+      expect(result.sheets[0].rows[1].classification).toBe('VALID');
+      expect(result.sheets[0].summary.duplicate).toBe(0);
+      expect(result.sheets[0].summary.valid).toBe(2);
     });
 
-    it('applies the same duplicate logic during import: only the matching row fails', async () => {
+    it('applies the same duplicate logic during import: only Job ID duplicates fail', async () => {
       // Route writes through this same mock so create() calls are observable.
       prisma.$transaction = jest.fn(async (cbOrFns: any) =>
         typeof cbOrFns === 'function' ? cbOrFns(prisma as any) : [],
       );
-      prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob }]);
+      // Existing job with Job ID in the vault
+      prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob, jobId: 'JOB-EXISTING' }]);
       prisma.opportunity.create.mockResolvedValue({ id: 'opp-new', title: 'Data Scientist' });
       const file = csvFile(
-        'Title,Company,Location,Salary,Experience,Other Details,S. No.\n' +
-          'Software Engineer,Acme Corp,Dubai,AED 20000 monthly,5+ years,Build and maintain APIs,101\n' +
-          'Data Scientist,Globex,Remote,AED 25000 monthly,3+ years,Build ML pipelines,102',
+        'Title,Company,Location,Salary,Experience,Other Details,Job ID\n' +
+          'Software Engineer,Acme Corp,Dubai,AED 20000 monthly,5+ years,Build and maintain APIs,JOB-EXISTING\n' +
+          'Data Scientist,Globex,Remote,AED 25000 monthly,3+ years,Build ML pipelines,JOB-NEW',
       );
 
       const result = await service.import(file, 'vault-uae', 'admin-1');
@@ -788,13 +786,15 @@ describe('AdminOpportunitiesService', () => {
         expect.objectContaining({
           row: 2,
           title: 'Software Engineer',
-          error: 'Duplicate job already exists in vault',
+          error: 'Job ID already exists in vault',
         }),
       ]);
       expect(prisma.opportunity.create).toHaveBeenCalledTimes(1);
     });
 
-    it('does not let archived or expired jobs block a genuinely new posting', async () => {
+    it('does not let archived or expired jobs block a genuinely new posting (no content-based dedup)', async () => {
+      // With Job ID as sole identifier, content-based duplicate detection is removed.
+      // This test verifies that rows without Job IDs are still imported regardless of existing content.
       prisma.opportunity.findMany.mockResolvedValue([
         { title: 'Software Engineer', status: 'ARCHIVED' },
         { title: 'Data Analyst', status: 'EXPIRED' },
@@ -805,11 +805,6 @@ describe('AdminOpportunitiesService', () => {
 
       expect(result.sheets[0].summary.valid).toBe(2);
       expect(result.sheets[0].summary.duplicate).toBe(0);
-      expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ status: { notIn: ['ARCHIVED', 'EXPIRED'] } }),
-        }),
-      );
     });
 
     it('marks rows missing a title as INVALID and ignores empty rows', async () => {
@@ -862,11 +857,11 @@ describe('AdminOpportunitiesService', () => {
       }
     });
 
-    it('truncates to latest 500 rows when file exceeds import limit', async () => {
+    it('processes ALL rows when file exceeds 500 rows (no truncation)', async () => {
       const header = 'Title\n';
       const fill = Array.from({ length: 501 }, (_, i) => `Job ${i}`).join('\n');
       const result = await service.previewImport(csvFile(header + fill), 'vault-uae', 'admin-1');
-      expect(result.sheets[0].summary.total).toBe(500);
+      expect(result.sheets[0].summary.total).toBe(501);
     });
 
     it('single-sheet workbooks import into the selected destination vault regardless of name', async () => {
@@ -921,12 +916,14 @@ describe('AdminOpportunitiesService', () => {
       expect(bySheet['Management']?.vault?.id).toBe('management');
       expect(bySheet['Early Career']?.vault?.id).toBe('early');
 
-      expect(bySheet['Remote Access']?.summary.valid).toBe(74);
-      expect(bySheet['Executive']?.summary.valid).toBe(143);
-      // "S. No." is no longer a content field, so rows that differ only by their
-      // spreadsheet serial now collapse into duplicates.
-      expect(bySheet['Management']?.summary.valid).toBe(224);
-      expect(bySheet['UAE & Global']?.summary.valid).toBe(176);
+      // With Job ID as sole duplicate identifier, all rows with titles are VALID
+      // (no content-based deduplication). Counts reflect rows with non-empty titles.
+      expect(bySheet['Remote Access']?.summary.valid).toBe(75);
+      expect(bySheet['Executive']?.summary.valid).toBe(147);
+      expect(bySheet['Leadership']?.summary.valid).toBe(206);
+      expect(bySheet['Management']?.summary.valid).toBe(228);
+      expect(bySheet['UAE & Global']?.summary.valid).toBe(179);
+      expect(bySheet['Early Career']?.summary.valid).toBe(93);
     });
 
     it('skips a job sheet with no matching vault and keeps processing the rest', async () => {
