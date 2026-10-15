@@ -138,6 +138,7 @@ export default function LiveFreePreview({
   const [salary, setSalary] = useState('');
   const [view, setView] = useState<PreviewView>(readInitialView);
   const [page, setPage] = useState(1);
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -207,8 +208,11 @@ export default function LiveFreePreview({
     await promise;
   }, []);
 
-  // Load opportunities when filters/page/vault change
+  // Load opportunities when searchTrigger, page, or filters change
+  // searchTrigger increments ONLY when search button is clicked
   useEffect(() => {
+    // Search button ONLY does keyword search (searchQuery)
+    // Filters (vault, experience, location, industry, salary) apply instantly
     loadOpportunities({
       page,
       limit: PAGE_SIZE,
@@ -219,7 +223,7 @@ export default function LiveFreePreview({
       sortBy: 'createdAt',
       sortOrder: 'desc',
     });
-  }, [page, vault, searchQuery, location, industry, loadOpportunities]);
+  }, [searchTrigger, page, vault, experience, salary, location, industry, loadOpportunities]);
 
   /** How many of the listed jobs belong to each vault, busiest vault first. */
   const vaultStats = useMemo(() => {
@@ -252,6 +256,7 @@ export default function LiveFreePreview({
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
     setPage(1);
+    setSearchTrigger(t => t + 1);
   };
 
   return (
@@ -346,39 +351,54 @@ export default function LiveFreePreview({
           <div className="mb-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative w-full max-w-2xl md:max-w-3xl">
-                <SearchIcon
-                  className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50"
-                  aria-hidden="true"
-                />
-                <input
-                  id="free-preview-search"
-                  type="text"
-                  placeholder="Search by role, company, location, experience..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-10 text-base text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                  aria-label="Search opportunities by title, company, or location"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
-                    aria-label="Clear search"
-                  >
-                    <svg
-                      className="h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                      aria-hidden="true"
+                <form onSubmit={handleSearch}>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <SearchIcon
+                        className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50"
+                        aria-hidden="true"
+                      />
+                      <input
+                        id="free-preview-search"
+                        type="text"
+                        placeholder="Search by role, company, location, experience..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-4 text-base text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                        aria-label="Search opportunities by title, company, or location"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => { setSearchQuery(''); handleSearch(); }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
+                          aria-label="Clear search"
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                            stroke="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      type="submit"
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={loading}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      Search
+                    </button>
+                  </div>
+                </form>
               </div>
               <div
                 className="inline-flex shrink-0 items-center gap-0.5 self-start rounded-xl border border-line bg-surface p-0.5 shadow-sm dark:bg-surface-elevated sm:self-auto"
@@ -504,6 +524,21 @@ export default function LiveFreePreview({
           </div>
         )}
 
+        {/* Results count header */}
+        {!loading && !error && totalItems > 0 && (
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-content-muted">
+            <p>
+              <span className="font-medium text-content">{totalItems}</span> opportunit{totalItems === 1 ? 'y' : 'ies'} found
+              {hasFilters && <span className="ml-2 text-xs text-brand-600 dark:text-brand-400">(filtered)</span>}
+            </p>
+            {vault && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-medium dark:bg-brand-950 dark:text-brand-300">
+                Vault: {vaults.find(v => v.id === vault)?.name || vault}
+              </span>
+            )}
+          </div>
+        )}
+
         <div id="free-preview-results">
           {loading ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -563,6 +598,12 @@ export default function LiveFreePreview({
                         <p className="mt-0.5 truncate text-xs text-content-muted">
                           {o.company || '—'}
                         </p>
+                        {o.jobId && (
+                          <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
+                            <span className="text-[10px] font-mono text-brand-600 dark:text-brand-400">#</span>
+                            <span className="truncate font-mono text-[11px]">{o.jobId}</span>
+                          </span>
+                        )}
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                           {o.location && (
                             <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
@@ -621,6 +662,11 @@ export default function LiveFreePreview({
                     Page {page} of {totalPages} · {totalItems} opportunities
                   </p>
                 </div>
+              )}
+              {totalItems > 0 && totalPages === 1 && (
+                <p className="mt-6 text-center text-xs text-content-muted">
+                  {totalItems} opportunit{totalItems === 1 ? 'y' : 'ies'} on this page
+                </p>
               )}
 
               <div className="mt-10 flex flex-col items-start gap-2 rounded-2xl border border-line bg-surface-muted px-5 py-4 text-sm text-content-muted dark:bg-surface/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
