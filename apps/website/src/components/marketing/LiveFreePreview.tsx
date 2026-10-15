@@ -12,13 +12,7 @@ import {
   Badge,
   Pagination,
 } from '@/components/ui';
-import {
-  OpportunityCard,
-  SearchIcon,
-  PinIcon,
-  BarsIcon,
-  VaultIcon,
-} from '@/components/cards';
+import { OpportunityCard, SearchIcon, PinIcon, BarsIcon, VaultIcon } from '@/components/cards';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
 import { displayExperience, hasExperience, isMeaningful, titleCase } from '@/lib/format';
@@ -526,148 +520,148 @@ export default function LiveFreePreview({
           </div>
         )}
 
-        {loading ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-64" />
-            ))}
-          </div>
-        ) : error ? (
-          <ErrorState message={error} onRetry={onRetry} />
-        ) : filteredOpportunities.length === 0 ? (
-          <div className="rounded-2xl border border-line bg-surface dark:bg-surface-elevated">
-            <EmptyState
-              icon={<SearchIcon className="h-6 w-6" />}
-              title={hasFilters ? 'No matching opportunities' : 'No opportunities yet'}
-              description={
-                hasFilters
-                  ? 'No opportunities match your search and filters. Clear them to see the full list.'
-                  : 'Check back soon — new opportunities are added regularly.'
-              }
-              action={
-                hasFilters ? (
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={resetFilters}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-content transition-all duration-150 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 dark:bg-transparent"
-                    >
-                      Clear all filters
-                    </button>
-                  </div>
-                ) : null
-              }
-            />
-          </div>
-        ) : (
-          <>
-            {view === 'grid' ? (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-                {paginatedOpportunities.map((o) => (
-                  <OpportunityCard key={o.id} opportunity={o} />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2 sm:space-y-3">
-                {paginatedOpportunities.map((o) => (
-                  <a
-                    key={o.id}
-                    href={`/opportunities/${o.id}`}
-                    className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-line bg-gradient-to-b from-surface to-surface-muted px-3 py-2.5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-400/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:px-4 sm:py-3 dark:from-surface-elevated dark:to-surface-elevated/60 dark:hover:border-brand-500/40"
-                  >
-                    <span className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-400 via-[#C8943E] to-brand-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    <span className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-brand-400/20 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-bold leading-snug text-content group-hover:text-brand-700 sm:text-[15px] dark:group-hover:text-brand-300">
-                        {o.title}
-                      </h3>
-                      <p className="mt-0.5 truncate text-xs text-content-muted">
-                        {o.company || '—'}
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        {o.location && (
-                          <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
-                            <PinIcon className="h-3 w-3 shrink-0 text-content-faint" />
-                            <span className="truncate">
-                              {o.location.split(/[/,]/)[0].trim()}
-                            </span>
-                          </span>
-                        )}
-                        {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
-                          <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
-                            <BarsIcon className="h-3 w-3 shrink-0 text-content-faint" />
-                            <span className="truncate">
-                              {displayExperience(
-                                o.experienceText,
-                                o.minExperience,
-                                o.maxExperience,
-                              )}
-                            </span>
-                          </span>
-                        )}
-                        {o.category && (
-                          <Badge variant="info" className="shrink-0 text-[10px] px-1.5 py-0.5">
-                            {titleCase(o.category)}
-                          </Badge>
-                        )}
-                        {o.vaults?.map((v) => (
-                          <span
-                            key={v.id}
-                            className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface"
-                          >
-                            <VaultIcon className="h-3 w-3 shrink-0 text-content-faint" />
-                            <span className="truncate">{v.name}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            )}
-
-            {sortedOpportunities.length > 0 && (
-              <div className="mt-10">
-                <Pagination
-                  currentPage={safePage}
-                  totalPages={totalPages}
-                  onPageChange={(p) => {
-                    setPage(p);
-                    if (typeof window !== 'undefined') {
-                      document
-                        .getElementById('free-preview')
-                        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  }}
-                />
-                <p className="mt-3 text-center text-xs text-content-muted">
-                  Page {safePage} of {totalPages} · {sortedOpportunities.length} opportunities
-                </p>
-              </div>
-            )}
-
-            <div className="mt-10 flex flex-col items-start gap-2 rounded-2xl border border-line bg-surface-muted px-5 py-4 text-sm text-content-muted dark:bg-surface/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <p>
-                Full company, source, contact and application details for premium opportunities
-                become available with the relevant Opportunity Vault access.
-              </p>
-              <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1">
-                <HomeAnchor
-                  href="#vaults"
-                  className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                >
-                  Explore Opportunity Vaults →
-                </HomeAnchor>
-                <HomeAnchor
-                  href="#plans"
-                  className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                >
-                  View Plans →
-                </HomeAnchor>
-              </div>
+        <div id="free-preview-results">
+          {loading ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-64" />
+              ))}
             </div>
-          </>
-        )}
+          ) : error ? (
+            <ErrorState message={error} onRetry={onRetry} />
+          ) : filteredOpportunities.length === 0 ? (
+            <div className="rounded-2xl border border-line bg-surface dark:bg-surface-elevated">
+              <EmptyState
+                icon={<SearchIcon className="h-6 w-6" />}
+                title={hasFilters ? 'No matching opportunities' : 'No opportunities yet'}
+                description={
+                  hasFilters
+                    ? 'No opportunities match your search and filters. Clear them to see the full list.'
+                    : 'Check back soon — new opportunities are added regularly.'
+                }
+                action={
+                  hasFilters ? (
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={resetFilters}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-content transition-all duration-150 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 dark:bg-transparent"
+                      >
+                        Clear all filters
+                      </button>
+                    </div>
+                  ) : null
+                }
+              />
+            </div>
+          ) : (
+            <>
+              {view === 'grid' ? (
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+                  {paginatedOpportunities.map((o) => (
+                    <OpportunityCard key={o.id} opportunity={o} />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2 sm:space-y-3">
+                  {paginatedOpportunities.map((o) => (
+                    <a
+                      key={o.id}
+                      href={`/opportunities/${o.id}`}
+                      className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-line bg-gradient-to-b from-surface to-surface-muted px-3 py-2.5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-400/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:px-4 sm:py-3 dark:from-surface-elevated dark:to-surface-elevated/60 dark:hover:border-brand-500/40"
+                    >
+                      <span className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-400 via-[#C8943E] to-brand-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                      <span className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-brand-400/20 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm font-bold leading-snug text-content group-hover:text-brand-700 sm:text-[15px] dark:group-hover:text-brand-300">
+                          {o.title}
+                        </h3>
+                        <p className="mt-0.5 truncate text-xs text-content-muted">
+                          {o.company || '—'}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          {o.location && (
+                            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
+                              <PinIcon className="h-3 w-3 shrink-0 text-content-faint" />
+                              <span className="truncate">{o.location.split(/[/,]/)[0].trim()}</span>
+                            </span>
+                          )}
+                          {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+                            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
+                              <BarsIcon className="h-3 w-3 shrink-0 text-content-faint" />
+                              <span className="truncate">
+                                {displayExperience(
+                                  o.experienceText,
+                                  o.minExperience,
+                                  o.maxExperience,
+                                )}
+                              </span>
+                            </span>
+                          )}
+                          {o.category && (
+                            <Badge variant="info" className="shrink-0 text-[10px] px-1.5 py-0.5">
+                              {titleCase(o.category)}
+                            </Badge>
+                          )}
+                          {o.vaults?.map((v) => (
+                            <span
+                              key={v.id}
+                              className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface"
+                            >
+                              <VaultIcon className="h-3 w-3 shrink-0 text-content-faint" />
+                              <span className="truncate">{v.name}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              {sortedOpportunities.length > 0 && (
+                <div className="mt-10">
+                  <Pagination
+                    currentPage={safePage}
+                    totalPages={totalPages}
+                    onPageChange={(p) => {
+                      setPage(p);
+                      if (typeof window !== 'undefined') {
+                        document
+                          .getElementById('free-preview-results')
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }}
+                  />
+                  <p className="mt-3 text-center text-xs text-content-muted">
+                    Page {safePage} of {totalPages} · {sortedOpportunities.length} opportunities
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-10 flex flex-col items-start gap-2 rounded-2xl border border-line bg-surface-muted px-5 py-4 text-sm text-content-muted dark:bg-surface/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <p>
+                  Full company, source, contact and application details for premium opportunities
+                  become available with the relevant Opportunity Vault access.
+                </p>
+                <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1">
+                  <HomeAnchor
+                    href="#vaults"
+                    className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                  >
+                    Explore Opportunity Vaults →
+                  </HomeAnchor>
+                  <HomeAnchor
+                    href="#plans"
+                    className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                  >
+                    View Plans →
+                  </HomeAnchor>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </section>
   );
