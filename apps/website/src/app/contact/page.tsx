@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 const WHATSAPP_URL = 'https://wa.me/message/5JALY3QF6BTKC1';
 const CONTACT = 'enquiry@gravitasedgeconsulting.com';
 const ADDRESS =
-  'Flat No. 704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061';
+  '704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061';
 
 export default function ContactPage() {
   return (

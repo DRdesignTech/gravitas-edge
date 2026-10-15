@@ -31,6 +31,7 @@ import {
   RvaOpportunity,
   RvaOpportunityAnalytics,
   RvaOpportunityQuery,
+  RvaImportPreviewResponse,
   RvaPlan,
   RvaSubscription,
   RvaSubscriptionAnalytics,
@@ -463,6 +464,33 @@ export function adminArchiveRvaOpportunity(id: string) {
 
 export function adminDeleteRvaOpportunityPermanent(id: string) {
   return api.del(`/admin/recruitment-vendor/opportunities/${id}/permanent`);
+}
+
+export function adminImportRvaOpportunities(
+  file: File,
+  category: string,
+  defaultStatus?: string,
+) {
+  return uploadFile<{
+    imported: number;
+    failed: number;
+    skipped: number;
+    errors: Array<{ row: number; title?: string; error: string }>;
+  }>('/admin/recruitment-vendor/opportunities/import', file, {
+    category,
+    ...(defaultStatus ? { defaultStatus } : {}),
+  });
+}
+
+export function adminPreviewRvaImport(file: File, category: string, defaultStatus?: string) {
+  return uploadFile<RvaImportPreviewResponse>(
+    '/admin/recruitment-vendor/opportunities/import/preview',
+    file,
+    {
+      category,
+      ...(defaultStatus ? { defaultStatus } : {}),
+    },
+  );
 }
 
 export function adminListRvaPlans() {

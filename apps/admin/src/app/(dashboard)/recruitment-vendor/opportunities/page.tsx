@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   adminListRvaOpportunities,
   adminCreateRvaOpportunity,
@@ -338,14 +339,20 @@ export default function RvaOpportunitiesPage() {
 
   const columns: Column<RvaOpportunity>[] = [
     {
+      key: 'jobId',
+      label: 'Job ID',
+      render: (o) => (
+        <span className="font-medium text-content-muted">{o.jobId || '—'}</span>
+      ),
+    },
+    {
       key: 'title',
       label: 'Opportunity',
       render: (o) => (
         <div className="max-w-xs">
           <p className="font-medium text-content">{o.title}</p>
           <p className="truncate text-xs text-content-muted">
-            {[o.company || o.organization, o.jobId || o.referenceId].filter(Boolean).join(' · ') ||
-              '—'}
+            {[o.company || o.organization, o.referenceId].filter(Boolean).join(' · ') || '—'}
           </p>
         </div>
       ),
@@ -423,9 +430,14 @@ export default function RvaOpportunitiesPage() {
             : 'Procurement, RFP and vendor opportunities'
         }
         actions={
-          <Button onClick={openCreate}>
-            <span className="text-lg leading-none">+</span> New Opportunity
-          </Button>
+          <>
+            <Link href="/recruitment-vendor/opportunities/import">
+              <Button variant="secondary">Import Jobs</Button>
+            </Link>
+            <Button onClick={openCreate}>
+              <span className="text-lg leading-none">+</span> New Opportunity
+            </Button>
+          </>
         }
       />
 

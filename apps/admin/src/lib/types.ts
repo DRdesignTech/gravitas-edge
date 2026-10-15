@@ -439,6 +439,31 @@ export interface RvaOpportunity {
   creator?: { id: string; email: string } | null;
 }
 
+export interface RvaImportPreviewRow {
+  excelRow: number;
+  classification: 'VALID' | 'INVALID' | 'DUPLICATE' | 'SKIPPED';
+  title: string | null;
+  reason: string | null;
+  fields: Record<string, unknown> | null;
+}
+
+export interface RvaImportPreviewSheet {
+  sheetName: string;
+  status: 'IMPORTED' | 'EMPTY' | 'SKIPPED';
+  matchStatus: 'matched' | 'meta';
+  category: string;
+  reason: string | null;
+  summary: ImportSheetSummary;
+  rows: RvaImportPreviewRow[];
+}
+
+export interface RvaImportPreviewResponse {
+  sourceType: 'csv' | 'xlsx';
+  selectedCategory: string;
+  sheets: RvaImportPreviewSheet[];
+  summary: ImportSheetSummary;
+}
+
 export interface RvaPlan {
   id: string;
   name: string;

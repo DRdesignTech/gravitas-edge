@@ -595,6 +595,7 @@ export class AdminOpportunitiesService {
     }
 
     const existingByKeyByVault = new Map<string, DuplicateTitleIndex>();
+    const existingJobIdsByVault = new Map<string, Set<string>>();
 
     const vaultIds = [
       ...new Set(sheets.map((s) => s.vault?.id).filter((id): id is string => Boolean(id))),
@@ -612,13 +613,13 @@ export class AdminOpportunitiesService {
         vaultId,
         indexJobsByTitle(existing.filter((job) => !isBlockingDuplicateStatus(job.status))),
       );
+      existingJobIdsByVault.set(vaultId, await this.collectExistingJobIds(vaultId));
     }
 
     const seenByKeyByVault = new Map<string, DuplicateTitleIndex>();
-    // Job IDs are unique globally (not per vault), so a file must not reuse a
-    // Job ID that already exists anywhere or appears twice within the import.
-    const existingJobIds = await this.collectExistingJobIds();
-    const seenJobIds = new Set<string>();
+    // Job IDs are scoped per vault: the same posting can legitimately live in
+    // more than one vault, so a Job ID only duplicates within its own vault.
+    const seenJobIdsByVault = new Map<string, Set<string>>();
 
     const analyzedSheets: SheetAnalysis[] = [];
     for (const sheet of sheets) {
@@ -686,6 +687,12 @@ export class AdminOpportunitiesService {
       if (!seenByKey) {
         seenByKey = new Map<string, DuplicateComparableJob[]>();
         seenByKeyByVault.set(vault.id, seenByKey);
+      }
+      const existingJobIds = existingJobIdsByVault.get(vault.id) ?? new Set<string>();
+      let seenJobIds = seenJobIdsByVault.get(vault.id);
+      if (!seenJobIds) {
+        seenJobIds = new Set<string>();
+        seenJobIdsByVault.set(vault.id, seenJobIds);
       }
 
       // Take the latest 500 rows if there are more than the limit
@@ -780,25 +787,33 @@ export class AdminOpportunitiesService {
           classification: 'DUPLICATE',
           title,
           reason: existingJobIds.has(jobId)
-            ? 'Job ID already exists'
+            ? 'Job ID already exists in vault'
             : 'Duplicate Job ID within import file',
         });
         continue;
       }
 
-      const duplicateReason = this.detectDuplicate(built.data, seenByKey, existingByKey);
-      if (duplicateReason) {
-        analyzed.push({
-          excelRow: row.excelRow,
-          classification: 'DUPLICATE',
-          title,
-          reason: duplicateReason,
-        });
-        continue;
+      // With a Job ID present the Job ID is authoritative: identical content
+      // under a different Job ID is a distinct posting, not a duplicate. The
+      // content comparison only applies to rows that carry no Job ID.
+      if (!jobId) {
+        const duplicateReason = this.detectDuplicate(built.data, seenByKey, existingByKey);
+        if (duplicateReason) {
+          analyzed.push({
+            excelRow: row.excelRow,
+            classification: 'DUPLICATE',
+            title,
+            reason: duplicateReason,
+          });
+          continue;
+        }
       }
 
-      if (jobId) seenJobIds.add(jobId);
-      addJobToTitleIndex(seenByKey, built.data);
+      if (jobId) {
+        seenJobIds.add(jobId);
+      } else {
+        addJobToTitleIndex(seenByKey, built.data);
+      }
 
       analyzed.push({
         excelRow: row.excelRow,
@@ -937,9 +952,9 @@ export class AdminOpportunitiesService {
     if (validRows.length === 0) return results;
 
     await this.prisma.$transaction(async (tx) => {
-      // Same duplicate logic as preview/analysis: compare all identifying
-      // fields of the row against live jobs already in this vault, so a row
-      // is only rejected when it truly duplicates an existing posting.
+      // Same duplicate logic as preview/analysis: Job IDs are scoped to this
+      // vault, and rows without a Job ID fall back to a content comparison
+      // against live jobs already in the vault.
       const existingRows = await tx.opportunity.findMany({
         where: {
           deletedAt: null,
@@ -953,7 +968,7 @@ export class AdminOpportunitiesService {
       );
 
       const existingJobIdRows = await tx.opportunity.findMany({
-        where: { jobId: { not: null } },
+        where: { jobId: { not: null }, vaults: { some: { vaultId: vault.id } } },
         select: { jobId: true },
       });
       const committedJobIds = new Set(
@@ -967,28 +982,35 @@ export class AdminOpportunitiesService {
             results.errors.push({
               row: excelRow,
               title: String(data.title),
-              error: 'Job ID already exists',
+              error: 'Job ID already exists in vault',
             });
             results.failed++;
             continue;
           }
 
-          const duplicateReason = this.detectDuplicate(data, committedByKey, committedByKey);
-          if (duplicateReason) {
-            results.errors.push({
-              row: excelRow,
-              title: String(data.title),
-              error: duplicateReason,
-            });
-            results.failed++;
-            continue;
+          // Only rows without a Job ID fall back to content deduplication; a
+          // Job ID is authoritative when present.
+          if (!jobId) {
+            const duplicateReason = this.detectDuplicate(data, committedByKey, committedByKey);
+            if (duplicateReason) {
+              results.errors.push({
+                row: excelRow,
+                title: String(data.title),
+                error: duplicateReason,
+              });
+              results.failed++;
+              continue;
+            }
           }
 
           await tx.opportunity.create({ data });
           results.imported++;
-          if (jobId) committedJobIds.add(jobId);
-          // Later rows in this batch must see what was just written.
-          addJobToTitleIndex(committedByKey, data);
+          if (jobId) {
+            committedJobIds.add(jobId);
+          } else {
+            // Later no-Job-ID rows in this batch must see what was just written.
+            addJobToTitleIndex(committedByKey, data);
+          }
         } catch (err: any) {
           results.failed++;
           results.errors.push({
@@ -1172,14 +1194,18 @@ export class AdminOpportunitiesService {
   }
 
   /**
-   * All Job IDs currently stored, across every vault and including archived
-   * rows (a soft-deleted row still owns its Job ID because the unique index
-   * does not consider `deletedAt`). Used to classify import rows up front so a
-   * clash surfaces in the preview instead of failing at write time.
+   * Job IDs currently stored in a vault (all of them when no vault is given),
+   * including archived rows (a soft-deleted row still owns its Job ID because
+   * the unique index does not consider `deletedAt`). Used to classify import
+   * rows up front so a clash surfaces in the preview instead of failing at
+   * write time.
    */
-  private async collectExistingJobIds(): Promise<Set<string>> {
+  private async collectExistingJobIds(vaultId?: string): Promise<Set<string>> {
     const rows = await this.prisma.opportunity.findMany({
-      where: { jobId: { not: null } },
+      where: {
+        jobId: { not: null },
+        ...(vaultId ? { vaults: { some: { vaultId } } } : {}),
+      },
       select: { jobId: true },
     });
     return new Set(rows.map((r) => r.jobId).filter((id): id is string => Boolean(id)));

@@ -88,7 +88,7 @@ export default function DisclaimerPage() {
           {`Email: `}
           <a href={`mailto:${CONTACT}`}>{CONTACT}</a>
         </p>
-        <PolicyText>{`Business Address: Flat No. 704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061`}</PolicyText>
+        <PolicyText>{`Business Address: 704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061`}</PolicyText>
       </PolicySection>
     </PolicyLayout>
   );

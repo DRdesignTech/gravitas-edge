@@ -5,7 +5,7 @@ import BrandLogo from '@/components/brand/BrandLogo';
 const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbCb0FrAe5VxQRICTf2K';
 
 const BUSINESS_ADDRESS =
-  'Flat No. 704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061';
+  '704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061';
 
 const platformLinks = [
   { href: '/vaults', label: 'Opportunity Vaults' },

@@ -1,0 +1,124 @@
+import { Test } from '@nestjs/testing';
+import * as XLSX from 'xlsx';
+import { AdminRvaOpportunitiesService } from './admin-rva-opportunities.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { AuditService } from '../../audit/audit.service';
+
+function xlsxFile(rows: unknown[][]): Express.Multer.File {
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Jobs');
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+  return { buffer, originalname: 'jobs.xlsx' } as unknown as Express.Multer.File;
+}
+
+function mockPrisma(existingJobIds: string[] = []) {
+  return {
+    recruitmentVendorOpportunity: {
+      findMany: jest.fn(async ({ select }: { select?: Record<string, boolean> }) => {
+        if (select && 'jobId' in select) return existingJobIds.map((jobId) => ({ jobId }));
+        return [];
+      }),
+      create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+        id: 'new-id',
+        ...data,
+      })),
+    },
+  } as any;
+}
+
+describe('AdminRvaOpportunitiesService import', () => {
+  let service: AdminRvaOpportunitiesService;
+
+  const build = async (prisma: ReturnType<typeof mockPrisma>) => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        AdminRvaOpportunitiesService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AuditService, useValue: { record: jest.fn() } },
+      ],
+    }).compile();
+    return moduleRef.get(AdminRvaOpportunitiesService);
+  };
+
+  describe('previewImport', () => {
+    it('flags an existing Job ID and an in-file duplicate Job ID', async () => {
+      const prisma = mockPrisma(['RVA-1']);
+      service = await build(prisma);
+
+      const file = xlsxFile([
+        ['Title', 'Company', 'Job ID'],
+        ['RFP A', 'Acme', 'RVA-1'],
+        ['RFP B', 'Beta', 'RVA-2'],
+        ['RFP C', 'Gamma', 'RVA-2'],
+      ]);
+
+      const preview = await service.previewImport(file, 'RFP_EOI_RFQ', 'admin-1', 'PUBLISHED');
+
+      expect(preview.selectedCategory).toBe('RFP_EOI_RFQ');
+      expect(preview.summary.total).toBe(3);
+      expect(preview.summary.valid).toBe(1);
+      expect(preview.summary.duplicate).toBe(2);
+
+      const rows = preview.sheets[0].rows;
+      expect(rows[0].classification).toBe('DUPLICATE');
+      expect(rows[0].reason).toContain('already exists');
+      expect(rows[1].classification).toBe('VALID');
+      expect(rows[2].classification).toBe('DUPLICATE');
+      expect(rows[2].reason).toContain('within import file');
+    });
+
+    it('marks a row without a title as invalid', async () => {
+      const prisma = mockPrisma();
+      service = await build(prisma);
+
+      const file = xlsxFile([
+        ['Title', 'Company'],
+        ['', 'Acme'],
+      ]);
+
+      const preview = await service.previewImport(file, 'STAFFING_RPO', 'admin-1', 'PUBLISHED');
+      expect(preview.summary.invalid).toBe(1);
+      expect(preview.sheets[0].rows[0].reason).toContain('title');
+    });
+
+    it('lets a row category override the selected default', async () => {
+      const prisma = mockPrisma();
+      service = await build(prisma);
+
+      const file = xlsxFile([
+        ['Title', 'Company', 'Category'],
+        ['Exec search', 'Acme', 'Executive Search'],
+      ]);
+
+      const preview = await service.previewImport(file, 'RFP_EOI_RFQ', 'admin-1', 'PUBLISHED');
+      expect(preview.sheets[0].category).toBe('RFP_EOI_RFQ');
+      expect(preview.sheets[0].rows[0].fields?.category).toBe('EXECUTIVE_SEARCH');
+    });
+  });
+
+  describe('import', () => {
+    it('creates valid rows and reports counts', async () => {
+      const prisma = mockPrisma();
+      service = await build(prisma);
+
+      const file = xlsxFile([
+        ['Title', 'Company', 'Job ID', 'Status'],
+        ['A', 'Acme', 'RVA-100', ''],
+        ['B', 'Beta', 'RVA-101', ''],
+      ]);
+
+      const result = await service.import(file, 'OTHER', 'admin-1', undefined, 'PUBLISHED');
+
+      expect(result.imported).toBe(2);
+      expect(result.failed).toBe(0);
+      expect(prisma.recruitmentVendorOpportunity.create).toHaveBeenCalledTimes(2);
+      const firstCall = prisma.recruitmentVendorOpportunity.create.mock.calls[0][0];
+      expect(firstCall.data).toMatchObject({
+        title: 'A',
+        status: 'PUBLISHED',
+        createdBy: 'admin-1',
+      });
+    });
+  });
+});

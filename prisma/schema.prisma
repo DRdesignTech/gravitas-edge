@@ -852,7 +852,7 @@ model RecruitmentVendorOpportunity {
   applicationContact String?
   source             String?
   referenceId        String?
-  jobId              String?
+  jobId              String?                            @unique
   publishedDate      DateTime?
   expiryDate         DateTime?
   status             RecruitmentVendorOpportunityStatus @default(DRAFT)

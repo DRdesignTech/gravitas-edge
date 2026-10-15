@@ -18,7 +18,6 @@ import ResumeUploadCard from '@/components/marketing/ResumeUploadCard';
 import PricingSection from '@/components/marketing/PricingSection';
 import WhatsAppChannel from '@/components/marketing/WhatsAppChannel';
 import FaqSection from '@/components/marketing/FaqSection';
-import HomeAnchor from '@/components/marketing/HomeAnchor';
 import { scrollToHash } from '@/lib/scroll';
 
 const PAGE_FETCH_LIMIT = 100;
@@ -527,28 +526,7 @@ export default function Home() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 6. WHATSAPP FREE CONNECTION #1 — #whatsapp-free                */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section
-        id="whatsapp-free"
-        className="section-glow relative border-t border-line bg-surface-muted"
-      >
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <WhatsAppChannel
-            note={
-              <HomeAnchor
-                href="#vaults"
-                className="font-medium underline underline-offset-2 hover:text-[#8a6524] dark:hover:text-[#E3B968]"
-              >
-                Explore Opportunity Vaults below →
-              </HomeAnchor>
-            }
-          />
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 7. OPPORTUNITY VAULTS — #vaults                                */}
+      {/* 6. OPPORTUNITY VAULTS — #vaults                                */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="vaults"
@@ -615,7 +593,7 @@ export default function Home() {
       <PricingSection groups={pricing} loading={loading} error={error} onRetry={load} />
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 9. WHATSAPP FREE CONNECTION #2 — #whatsapp-free-2              */}
+      {/* 9. WHATSAPP FREE CONNECTION — #whatsapp-free-2                 */}
       {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="whatsapp-free-2"

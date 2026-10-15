@@ -10,9 +10,13 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AdminRvaOpportunitiesService } from './admin-rva-opportunities.service';
 import { CreateRvaOpportunityDto } from './dto/create-rva-opportunity.dto';
@@ -77,6 +81,45 @@ export class AdminRvaOpportunitiesController {
   @ApiOperation({ summary: 'Permanently delete a Recruitment Vendor Access opportunity' })
   hardDelete(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
     return this.service.hardDelete(id, user.id, this.clientIp(req));
+  }
+
+  @Post('import')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Import RVA opportunities from a CSV/Excel file' })
+  import(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('category') category: string,
+    @Body('defaultStatus') defaultStatus: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
+  ) {
+    return this.service.import(file, category, user.id, this.clientIp(req), defaultStatus);
+  }
+
+  @Post('import/preview')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Preview (validate) an RVA import without persisting any rows' })
+  previewImport(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('category') category: string,
+    @Body('defaultStatus') defaultStatus: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.previewImport(file, category, user.id, defaultStatus);
   }
 
   private clientIp(req: Request): string | undefined {

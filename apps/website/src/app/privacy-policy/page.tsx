@@ -201,7 +201,7 @@ export default function PrivacyPolicyPage() {
             {
               label: 'Business Address',
               value:
-                'Flat No. 704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061',
+                '704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061',
             },
             { label: 'Grievance Officer / Privacy Contact', value: '[INSERT IF REQUIRED]' },
           ]}

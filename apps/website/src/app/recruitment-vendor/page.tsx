@@ -10,6 +10,7 @@ import {
   GridIcon,
   ListIcon,
   LockIcon,
+  Pagination,
   Skeleton,
   useToast,
 } from '@/components/ui';
@@ -18,7 +19,7 @@ import Eyebrow from '@/components/marketing/Eyebrow';
 import { formatMoney } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
-import { fetchRvaOverview, purchaseRvaPlan } from '@/lib/services';
+import { fetchRvaOverview, fetchRvaOpportunities, purchaseRvaPlan } from '@/lib/services';
 import { RvaFaq, RvaOpportunity, RvaOverview, RvaPlan } from '@/lib/types';
 
 const PREVIEW_LIMIT = 6;
@@ -182,8 +183,12 @@ export default function RecruitmentVendorPage() {
   const [buyingPlanId, setBuyingPlanId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('list');
+  const [opportunities, setOpportunities] = useState<RvaOpportunity[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingPage, setLoadingPage] = useState(false);
 
-  const load = useCallback(() => {
+  const loadOverview = useCallback(() => {
     setLoading(true);
     setError('');
     fetchRvaOverview(PREVIEW_LIMIT)
@@ -192,9 +197,48 @@ export default function RecruitmentVendorPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const goToPage = useCallback(async (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || loadingPage) return;
+    setLoadingPage(true);
+    try {
+      const res = await fetchRvaOpportunities({ page: newPage, limit: PREVIEW_LIMIT, search: searchQuery || undefined });
+      setOpportunities(res.items);
+      setTotalPages(res.meta.totalPages);
+      setPage(newPage);
+    } catch (e) {
+      showToast(getErrorMessage(e), 'error');
+    } finally {
+      setLoadingPage(false);
+    }
+  }, [totalPages, loadingPage, searchQuery, showToast]);
+
   useEffect(() => {
-    load();
-  }, [load]);
+    loadOverview();
+  }, [loadOverview]);
+
+  // Initialize opportunities from overview preview
+  useEffect(() => {
+    if (overview?.previewOpportunities) {
+      setOpportunities(overview.previewOpportunities);
+      setTotalPages(overview.previewMeta.totalPages);
+      setPage(1);
+    }
+  }, [overview]);
+
+  // Refetch opportunities when search query changes
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      setLoadingPage(true);
+      fetchRvaOpportunities({ page: 1, limit: PREVIEW_LIMIT, search: searchQuery || undefined })
+        .then((res) => {
+          setOpportunities(res.items);
+          setTotalPages(res.meta.totalPages);
+          setPage(1);
+        })
+        .catch((e) => showToast(getErrorMessage(e), 'error'))
+        .finally(() => setLoadingPage(false));
+    }
+  }, [searchQuery]);
 
   // Restore the user's preferred layout (defaulting to list on small screens).
   useEffect(() => {
@@ -237,13 +281,12 @@ export default function RecruitmentVendorPage() {
   );
   const plans = overview?.plans ?? [];
   const faqs = overview?.faqs ?? [];
-  const preview = overview?.previewOpportunities ?? [];
   const publishedCount = overview?.publishedOpportunityCount ?? 0;
 
-  const filteredPreview = useMemo(() => {
+  const filteredOpportunities = useMemo(() => {
     const terms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (terms.length === 0) return preview;
-    return preview.filter((o) => {
+    if (terms.length === 0) return opportunities;
+    return opportunities.filter((o) => {
       const haystack = [
         o.title,
         o.role,
@@ -263,7 +306,7 @@ export default function RecruitmentVendorPage() {
         .toLowerCase();
       return terms.every((t) => haystack.includes(t));
     });
-  }, [preview, searchQuery]);
+  }, [opportunities, searchQuery]);
 
   return (
     <div className="overflow-x-clip">
@@ -396,7 +439,7 @@ export default function RecruitmentVendorPage() {
         <section className="border-t border-line bg-surface-muted">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
             <div className="rounded-2xl border border-line bg-surface dark:bg-surface-elevated">
-              <ErrorState message={error} onRetry={load} />
+              <ErrorState message={error} onRetry={loadOverview} />
             </div>
           </div>
         </section>
@@ -472,7 +515,7 @@ export default function RecruitmentVendorPage() {
             </div>
 
             {/* Search + layout toggle */}
-            {!loading && preview.length > 0 && (
+            {!loading && opportunities.length > 0 && (
               <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative w-full max-w-2xl md:max-w-3xl">
                   <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-content-muted/50" />
@@ -481,7 +524,10 @@ export default function RecruitmentVendorPage() {
                     type="text"
                     placeholder="Search by role, company, location, category..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSearchQuery(value);
+                    }}
                     onKeyDown={(e) => e.stopPropagation()}
                     className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-10 text-base text-content placeholder:text-hint shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated"
                     aria-label="Search recruitment vendor opportunities"
@@ -549,13 +595,13 @@ export default function RecruitmentVendorPage() {
                   <Skeleton key={i} className="h-56" />
                 ))}
               </div>
-            ) : preview.length === 0 ? (
+            ) : opportunities.length === 0 ? (
               <div className="rounded-2xl border border-line bg-surface-muted px-6 py-10 text-center">
                 <p className="text-sm text-content-muted">
                   New opportunities will appear here as they are published.
                 </p>
               </div>
-            ) : filteredPreview.length === 0 ? (
+            ) : filteredOpportunities.length === 0 ? (
               <div className="rounded-2xl border border-line bg-surface-muted px-6 py-10 text-center">
                 <p className="text-sm text-content-muted">
                   No opportunities match your search.{' '}
@@ -570,15 +616,25 @@ export default function RecruitmentVendorPage() {
               </div>
             ) : view === 'grid' ? (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredPreview.map((o) => (
+                {filteredOpportunities.map((o) => (
                   <PreviewCard key={o.id} opportunity={o} onUnlock={() => scrollToId('plans')} />
                 ))}
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredPreview.map((o) => (
+                {filteredOpportunities.map((o) => (
                   <PreviewRow key={o.id} opportunity={o} onUnlock={() => scrollToId('plans')} />
                 ))}
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="mt-8">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                />
               </div>
             )}
 

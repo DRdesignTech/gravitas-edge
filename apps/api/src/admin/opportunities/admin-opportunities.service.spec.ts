@@ -603,16 +603,39 @@ describe('AdminOpportunitiesService', () => {
       expect(row.fields?.serialNo).toBeUndefined();
     });
 
-    it('flags a Job ID that already exists globally as DUPLICATE', async () => {
-      // collectExistingJobIds() reads every stored Job ID across all vaults.
+    it('flags a Job ID that already exists in the same vault as DUPLICATE', async () => {
+      // collectExistingJobIds() reads the stored Job IDs for the selected vault.
       prisma.opportunity.findMany.mockResolvedValue([{ jobId: 'JOB-2026-0001' }]);
       const file = csvFile('Title,Job ID\nRole A,JOB-2026-0001');
       const result = await service.previewImport(file, 'vault-uae', 'admin-1');
 
       const row = result.sheets[0].rows[0];
       expect(row.classification).toBe('DUPLICATE');
-      expect(row.reason).toBe('Job ID already exists');
+      expect(row.reason).toBe('Job ID already exists in vault');
       expect(result.sheets[0].summary.valid).toBe(0);
+    });
+
+    it('treats identical content with a different Job ID as a new posting, not a duplicate', async () => {
+      prisma.opportunity.findMany.mockResolvedValue([
+        {
+          title: 'Software Engineer',
+          company: 'Acme Corp',
+          location: 'Dubai',
+          country: 'UAE',
+          jobId: 'JOB-OLD-1',
+          status: 'PUBLISHED',
+        },
+      ]);
+      const file = csvFile(
+        'Title,Company,Location,Country,Job ID\nSoftware Engineer,Acme Corp,Dubai,UAE,JOB-NEW-2',
+      );
+
+      const result = await service.previewImport(file, 'vault-uae', 'admin-1');
+
+      const row = result.sheets[0].rows[0];
+      expect(row.classification).toBe('VALID');
+      expect(result.sheets[0].summary.duplicate).toBe(0);
+      expect(result.sheets[0].summary.valid).toBe(1);
     });
 
     it('flags a Job ID repeated within the same import file', async () => {
