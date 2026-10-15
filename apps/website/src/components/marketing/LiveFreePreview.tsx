@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { Opportunity, Vault } from '@/lib/types';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { Opportunity, Vault, VaultOpportunityCount, OpportunityQuery, PaginatedResult } from '@/lib/types';
 import {
   Skeleton,
   ErrorState,
@@ -17,8 +17,9 @@ import Eyebrow from '@/components/marketing/Eyebrow';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
 import { displayExperience, hasExperience, isMeaningful, titleCase } from '@/lib/format';
 import { extractEmail, buildApplyMailto } from '@job-portal/shared';
+import { fetchOpportunities, fetchVaultOpportunityCounts } from '@/lib/services';
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 12;
 const VIEW_KEY = 'free-preview-view';
 type PreviewView = 'grid' | 'list';
 
@@ -114,14 +115,16 @@ function getMobileDefaultView(): PreviewView {
   return window.innerWidth < 768 ? 'list' : 'grid';
 }
 
+interface VaultCountMap {
+  [vaultId: string]: number;
+}
+
 export default function LiveFreePreview({
-  opportunities,
   vaults,
-  loading,
-  error,
+  loading: initialLoading,
+  error: initialError,
   onRetry,
 }: {
-  opportunities: Opportunity[];
   vaults: Vault[];
   loading: boolean;
   error: string;
@@ -136,12 +139,37 @@ export default function LiveFreePreview({
   const [view, setView] = useState<PreviewView>(readInitialView);
   const [page, setPage] = useState(1);
 
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [vaultCounts, setVaultCounts] = useState<VaultCountMap>({});
+
+  const inFlightRef = useRef<Promise<void> | null>(null);
+
+  // Load vault counts on mount
+  useEffect(() => {
+    let cancelled = false;
+    fetchVaultOpportunityCounts()
+      .then((counts) => {
+        if (!cancelled) {
+          const map: VaultCountMap = {};
+          counts.forEach((c) => { map[c.vaultId] = c.count; });
+          setVaultCounts(map);
+        }
+      })
+      .catch(() => {
+        // Silently fail - counts are supplementary
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   // Update view on mobile/desktop resize
   useEffect(() => {
     const handleResize = () => {
       const isMobile = window.innerWidth < 768;
       const storedView = window.sessionStorage.getItem(VIEW_KEY);
-      // Only auto-switch to list on mobile if user hasn't explicitly chosen a view
       if (isMobile && !storedView) {
         setView('list');
       }
@@ -151,42 +179,54 @@ export default function LiveFreePreview({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const loadOpportunities = useCallback(async (opts: OpportunityQuery) => {
+    // Prevent duplicate concurrent requests
+    if (inFlightRef.current) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    const promise = fetchOpportunities(opts)
+      .then((data: PaginatedResult<Opportunity>) => {
+        setOpportunities(data.items);
+        setTotalItems(data.meta.totalItems);
+        setTotalPages(data.meta.totalPages);
+      })
+      .catch((e) => {
+        setError(e?.message || 'Failed to load opportunities');
+        setOpportunities([]);
+        setTotalItems(0);
+        setTotalPages(1);
+      })
+      .finally(() => {
+        setLoading(false);
+        inFlightRef.current = null;
+      });
+    
+    inFlightRef.current = promise;
+    await promise;
+  }, []);
+
+  // Load opportunities when filters/page/vault change
+  useEffect(() => {
+    loadOpportunities({
+      page,
+      limit: PAGE_SIZE,
+      search: searchQuery || undefined,
+      vaultId: vault || undefined,
+      location: location || undefined,
+      industry: industry || undefined,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+    });
+  }, [page, vault, searchQuery, location, industry, loadOpportunities]);
+
   /** How many of the listed jobs belong to each vault, busiest vault first. */
   const vaultStats = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const o of opportunities) {
-      for (const v of o.vaults ?? []) {
-        counts.set(v.id, (counts.get(v.id) ?? 0) + 1);
-      }
-    }
     return vaults
-      .map((v) => ({ vault: v, count: counts.get(v.id) ?? 0 }))
+      .map((v) => ({ vault: v, count: vaultCounts[v.id] ?? 0 }))
       .sort((a, b) => b.count - a.count || a.vault.name.localeCompare(b.vault.name));
-  }, [vaults, opportunities]);
-  const locationOptions = useMemo(
-    () => uniqueOptions(opportunities.map((o) => (o.location ? primaryLocation(o.location) : ''))),
-    [opportunities],
-  );
-  const industryOptions = useMemo(
-    () => uniqueOptions(opportunities.map((o) => (o.industry ? primaryIndustry(o.industry) : ''))),
-    [opportunities],
-  );
-  const experienceOptions = useMemo(() => {
-    const present = new Set(
-      opportunities.map((o) => (o.experienceText ? experienceBucket(o.experienceText) : '')),
-    );
-    return EXPERIENCE_BUCKETS.filter((bucket) => present.has(bucket)).map((bucket) => ({
-      value: bucket,
-      label: bucket,
-    }));
-  }, [opportunities]);
-  const salaryOptions = useMemo(() => {
-    const present = new Set(opportunities.map((o) => (o.salary ? salaryBucket(o.salary) : '')));
-    return SALARY_BUCKETS.filter((bucket) => present.has(bucket)).map((bucket) => ({
-      value: bucket,
-      label: bucket,
-    }));
-  }, [opportunities]);
+  }, [vaults, vaultCounts]);
 
   const hasFilters = Boolean(searchQuery || vault || location || industry || experience || salary);
 
@@ -197,69 +237,8 @@ export default function LiveFreePreview({
     setIndustry('');
     setExperience('');
     setSalary('');
-  };
-
-  const filteredOpportunities = useMemo(() => {
-    const term = searchQuery.trim();
-    const queries = term ? term.toLowerCase().split(/\s+/).filter(Boolean) : [];
-    const locationFilter = location.toLowerCase().trim();
-    const industryFilter = industry.toLowerCase().trim();
-    const experienceFilter = experience.toLowerCase().trim();
-    const salaryFilter = salary.toLowerCase().trim();
-
-    return opportunities.filter((o) => {
-      if (vault && !(o.vaults?.some((v) => v.id === vault) ?? false)) return false;
-      if (locationFilter && !(o.location || '').toLowerCase().includes(locationFilter))
-        return false;
-      if (industryFilter && !(o.industry || '').toLowerCase().includes(industryFilter))
-        return false;
-      if (experienceFilter && !(o.experienceText || '').toLowerCase().includes(experienceFilter))
-        return false;
-      if (salaryFilter && !(o.salary || '').toLowerCase().includes(salaryFilter)) return false;
-      if (queries.length === 0) return true;
-
-      const textParts = [
-        o.title,
-        o.company,
-        o.location,
-        o.country,
-        o.industry,
-        o.functionalArea,
-        o.source,
-        o.salary,
-        o.experienceText,
-        o.jobId,
-        ...(o.experienceLevels?.map((e) => e.name) || []),
-        o.employmentType,
-        ...(o.vaults?.map((v) => v.name) || []),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      return queries.every((q) => textParts.includes(q));
-    });
-  }, [opportunities, searchQuery, vault, location, industry, experience, salary]);
-
-  /** All matching jobs mixed together, most recent first. */
-  const sortedOpportunities = useMemo(() => {
-    const time = (o: Opportunity) => {
-      const parsed = o.createdAt ? Date.parse(o.createdAt) : NaN;
-      return Number.isNaN(parsed) ? 0 : parsed;
-    };
-    return [...filteredOpportunities].sort((a, b) => time(b) - time(a));
-  }, [filteredOpportunities]);
-
-  const totalPages = Math.max(1, Math.ceil(sortedOpportunities.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const paginatedOpportunities = sortedOpportunities.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
-
-  useEffect(() => {
     setPage(1);
-  }, [searchQuery, vault, location, industry, experience, salary]);
+  };
 
   const handleViewChange = (v: PreviewView) => {
     setView(v);
@@ -268,6 +247,11 @@ export default function LiveFreePreview({
     } catch {
       // Ignore storage failures.
     }
+  };
+
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setPage(1);
   };
 
   return (
@@ -529,7 +513,7 @@ export default function LiveFreePreview({
             </div>
           ) : error ? (
             <ErrorState message={error} onRetry={onRetry} />
-          ) : filteredOpportunities.length === 0 ? (
+          ) : opportunities.length === 0 && totalItems === 0 ? (
             <div className="rounded-2xl border border-line bg-surface dark:bg-surface-elevated">
               <EmptyState
                 icon={<SearchIcon className="h-6 w-6" />}
@@ -558,13 +542,13 @@ export default function LiveFreePreview({
             <>
               {view === 'grid' ? (
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-                  {paginatedOpportunities.map((o) => (
+                  {opportunities.map((o) => (
                     <OpportunityCard key={o.id} opportunity={o} />
                   ))}
                 </div>
               ) : (
                 <div className="space-y-2 sm:space-y-3">
-                  {paginatedOpportunities.map((o) => (
+                  {opportunities.map((o) => (
                     <a
                       key={o.id}
                       href={`/opportunities/${o.id}`}
@@ -619,10 +603,10 @@ export default function LiveFreePreview({
                 </div>
               )}
 
-              {sortedOpportunities.length > 0 && (
+              {totalItems > 0 && totalPages > 1 && (
                 <div className="mt-10">
                   <Pagination
-                    currentPage={safePage}
+                    currentPage={page}
                     totalPages={totalPages}
                     onPageChange={(p) => {
                       setPage(p);
@@ -634,7 +618,7 @@ export default function LiveFreePreview({
                     }}
                   />
                   <p className="mt-3 text-center text-xs text-content-muted">
-                    Page {safePage} of {totalPages} · {sortedOpportunities.length} opportunities
+                    Page {page} of {totalPages} · {totalItems} opportunities
                   </p>
                 </div>
               )}

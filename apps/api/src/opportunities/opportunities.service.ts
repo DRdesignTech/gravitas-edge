@@ -33,6 +33,13 @@ export interface VaultRef {
   type: string;
 }
 
+export interface VaultOpportunityCount {
+  vaultId: string;
+  vaultName: string;
+  vaultType: string;
+  count: number;
+}
+
 export interface PublicOpportunityDto {
   id: string;
   title: string;
@@ -338,5 +345,37 @@ export class OpportunitiesService {
       applicationContact: o.applicationContact,
       source: o.source,
     };
+  }
+
+  /**
+   * Get published opportunity counts grouped by vault.
+   * Used by the Free Preview to show accurate per-vault totals.
+   */
+  async getVaultOpportunityCounts(): Promise<VaultOpportunityCount[]> {
+    const vaults = await this.prisma.vault.findMany({
+      where: { deletedAt: null, status: 'ACTIVE' },
+      select: { id: true, name: true, type: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+
+    const counts = await Promise.all(
+      vaults.map(async (vault) => {
+        const count = await this.prisma.opportunity.count({
+          where: {
+            deletedAt: null,
+            status: 'PUBLISHED',
+            vaults: { some: { vaultId: vault.id } },
+          },
+        });
+        return {
+          vaultId: vault.id,
+          vaultName: vault.name,
+          vaultType: vault.type,
+          count,
+        };
+      }),
+    );
+
+    return counts;
   }
 }

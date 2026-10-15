@@ -31,6 +31,7 @@ import {
   User,
   UserProfile,
   Vault,
+  VaultOpportunityCount,
 } from './types';
 
 export function fetchOpportunities(query: OpportunityQuery = {}) {
@@ -281,4 +282,9 @@ export function failRvaPayment(paymentId: string) {
   return api.post<{ paymentId: string; status: string }>('/recruitment-vendor/purchase/fail', {
     paymentId,
   });
+}
+
+/** Fetch published opportunity counts per vault for the Free Preview. */
+export function fetchVaultOpportunityCounts(): Promise<VaultOpportunityCount[]> {
+  return api.get<VaultOpportunityCount[]>('/opportunities/vault-counts');
 }

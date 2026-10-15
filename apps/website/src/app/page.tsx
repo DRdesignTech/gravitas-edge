@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
-import { fetchOpportunities, fetchPublicPricing, fetchVaults } from '@/lib/services';
-import { Opportunity, PricingGroup, Vault } from '@/lib/types';
+import { fetchVaults, fetchPublicPricing } from '@/lib/services';
+import { PricingGroup, Vault } from '@/lib/types';
 import { Skeleton, ErrorState, EmptyState } from '@/components/ui';
 import { VaultCard } from '@/components/cards';
 import VaultFinder from '@/components/marketing/VaultFinder';
@@ -19,38 +19,6 @@ import PricingSection from '@/components/marketing/PricingSection';
 import WhatsAppChannel from '@/components/marketing/WhatsAppChannel';
 import FaqSection from '@/components/marketing/FaqSection';
 import { scrollToHash } from '@/lib/scroll';
-
-const PAGE_FETCH_LIMIT = 100;
-
-/** Fetch every published opportunity, most recent first. */
-async function fetchAllOpportunities(): Promise<Opportunity[]> {
-  const query = { page: 1, limit: PAGE_FETCH_LIMIT, sortBy: 'createdAt', sortOrder: 'desc' as const };
-  const first = await fetchOpportunities(query);
-  const items = [...(first.items || [])];
-  const totalPages = first.meta?.totalPages ?? 1;
-  if (totalPages > 1) {
-    const rest = await Promise.all(
-      Array.from({ length: totalPages - 1 }, (_, i) => fetchOpportunities({ ...query, page: i + 2 })),
-    );
-    for (const page of rest) items.push(...(page.items || []));
-  }
-  return items;
-}
-
-function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2.2}
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-    </svg>
-  );
-}
 
 const whatWeDoCards = [
   {
@@ -79,6 +47,21 @@ const whatWeDoPoints = [
   'How to Apply',
   'Save Time',
 ];
+
+function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={2.2}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
 
 /* ─────────────────────────────────────────────────────────────────────
    HOW WE ARE DIFFERENT — content + icons
@@ -219,7 +202,6 @@ const heroFeatures: { label: string; icon: ReactNode }[] = [
 
 export default function Home() {
   const { user } = useAuth();
-  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [pricing, setPricing] = useState<PricingGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,12 +212,10 @@ export default function Home() {
     setLoading(true);
     setError('');
     Promise.all([
-      fetchAllOpportunities(),
       fetchVaults(),
       fetchPublicPricing(),
     ])
-      .then(([opps, v, p]) => {
-        setOpportunities(opps || []);
+      .then(([v, p]) => {
         setVaults(v || []);
         setPricing(p || []);
       })
@@ -517,7 +497,6 @@ export default function Home() {
         </section>
       ) : (
         <LiveFreePreview
-          opportunities={opportunities}
           vaults={vaults}
           loading={false}
           error=""

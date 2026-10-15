@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { OpportunitiesService } from './opportunities.service';
+import { Throttle } from '@nestjs/throttler';
+import { OpportunitiesService, VaultOpportunityCount } from './opportunities.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { AuthenticatedUser } from '../common/types/auth.types';
@@ -12,6 +13,7 @@ export class OpportunitiesController {
 
   @Public()
   @Get()
+  @Throttle({ default: { limit: 200, ttl: 60000 } })
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'List published opportunities (public + authenticated)',
@@ -41,6 +43,17 @@ export class OpportunitiesController {
       ...query,
       sortOrder: query.sortOrder === 'asc' ? 'asc' : 'desc',
     });
+  }
+
+  @Public()
+  @Get('vault-counts')
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'Get published opportunity counts per vault',
+    description: 'Returns the count of published opportunities for each active vault.',
+  })
+  async getVaultCounts(): Promise<VaultOpportunityCount[]> {
+    return this.opportunitiesService.getVaultOpportunityCounts();
   }
 
   @Public()

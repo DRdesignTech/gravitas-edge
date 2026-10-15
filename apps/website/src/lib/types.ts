@@ -44,6 +44,13 @@ export interface Vault {
   experienceLevels?: ExperienceLevel[];
 }
 
+export interface VaultOpportunityCount {
+  vaultId: string;
+  vaultName: string;
+  vaultType: string;
+  count: number;
+}
+
 export interface Opportunity {
   id: string;
   title: string;
