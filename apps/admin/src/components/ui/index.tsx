@@ -430,7 +430,7 @@ export function CloseIcon({ className = 'h-5 w-5' }: { className?: string }) {
 
 export interface Column<T> {
   key: string;
-  label: string;
+  label: React.ReactNode;
   className?: string;
   render?: (item: T) => React.ReactNode;
 }

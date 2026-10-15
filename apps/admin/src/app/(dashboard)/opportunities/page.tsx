@@ -209,6 +209,10 @@ export default function OpportunitiesPage() {
   const [viewTarget, setViewTarget] = useState<Opportunity | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [publishTarget, setPublishTarget] = useState<Opportunity | null>(null);
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [permDeletingAll, setPermDeletingAll] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [confirmPermDeleteAll, setConfirmPermDeleteAll] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -364,6 +368,77 @@ export default function OpportunitiesPage() {
       showToast(getErrorMessage(err), 'error');
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const openConfirmDeleteAll = () => setConfirmDeleteAll(true);
+  const openConfirmPermDeleteAll = () => setConfirmPermDeleteAll(true);
+
+  const executeDeleteAll = async () => {
+    setDeletingAll(true);
+    setConfirmDeleteAll(false);
+    try {
+      // Delete all opportunities (archived)
+      // We need to fetch all pages and delete them
+      let pageNum = 1;
+      let hasMore = true;
+      let totalDeleted = 0;
+      while (hasMore) {
+        const res = await adminListOpportunities({
+          page: pageNum,
+          limit: 100,
+          search,
+          status,
+          category,
+          employmentType,
+          vaultId,
+        });
+        for (const o of res.items) {
+          await adminDeleteOpportunity(o.id);
+          totalDeleted++;
+        }
+        hasMore = res.meta.hasNextPage;
+        pageNum++;
+      }
+      showToast(`${totalDeleted} opportunities archived`, 'success');
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
+  const executeDeleteAllPermanent = async () => {
+    setPermDeletingAll(true);
+    setConfirmPermDeleteAll(false);
+    try {
+      let pageNum = 1;
+      let hasMore = true;
+      let totalDeleted = 0;
+      while (hasMore) {
+        const res = await adminListOpportunities({
+          page: pageNum,
+          limit: 100,
+          search,
+          status,
+          category,
+          employmentType,
+          vaultId,
+        });
+        for (const o of res.items) {
+          await adminDeleteOpportunityPermanent(o.id);
+          totalDeleted++;
+        }
+        hasMore = res.meta.hasNextPage;
+        pageNum++;
+      }
+      showToast(`${totalDeleted} opportunities deleted permanently`, 'success');
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setPermDeletingAll(false);
     }
   };
 
@@ -610,7 +685,27 @@ export default function OpportunitiesPage() {
         </Card>
       ) : data && data.items.length > 0 ? (
         <>
-          <div className="mb-4 flex justify-end">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={openConfirmDeleteAll}
+                loading={deletingAll}
+                disabled={deletingAll}
+                size="sm"
+              >
+                Archive All
+              </Button>
+              <Button
+                variant="danger"
+                onClick={openConfirmPermDeleteAll}
+                loading={permDeletingAll}
+                disabled={permDeletingAll}
+                size="sm"
+              >
+                Delete All Permanently
+              </Button>
+            </div>
             <ViewToggle view={view} onChange={setView} />
           </div>
           {view === 'grid' ? (
@@ -1055,6 +1150,27 @@ export default function OpportunitiesPage() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmDeleteAll}
+        onClose={() => setConfirmDeleteAll(false)}
+        onConfirm={executeDeleteAll}
+        title="Archive all opportunities"
+        message="This will archive ALL opportunities matching the current filters. This action cannot be undone."
+        confirmText="Archive all"
+        loading={deletingAll}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmPermDeleteAll}
+        onClose={() => setConfirmPermDeleteAll(false)}
+        onConfirm={executeDeleteAllPermanent}
+        title="Delete all opportunities permanently"
+        message="This will PERMANENTLY DELETE ALL opportunities matching the current filters. This action cannot be undone."
+        confirmText="Yes, delete all permanently"
+        variant="danger"
+        loading={permDeletingAll}
+      />
     </div>
   );
 }

@@ -468,7 +468,7 @@ export function adminDeleteRvaOpportunityPermanent(id: string) {
 
 export function adminImportRvaOpportunities(
   file: File,
-  category: string,
+  category?: string,
   defaultStatus?: string,
 ) {
   return uploadFile<{
@@ -477,17 +477,17 @@ export function adminImportRvaOpportunities(
     skipped: number;
     errors: Array<{ row: number; title?: string; error: string }>;
   }>('/admin/recruitment-vendor/opportunities/import', file, {
-    category,
+    ...(category ? { category } : {}),
     ...(defaultStatus ? { defaultStatus } : {}),
   });
 }
 
-export function adminPreviewRvaImport(file: File, category: string, defaultStatus?: string) {
+export function adminPreviewRvaImport(file: File, category?: string, defaultStatus?: string) {
   return uploadFile<RvaImportPreviewResponse>(
     '/admin/recruitment-vendor/opportunities/import/preview',
     file,
     {
-      category,
+      ...(category ? { category } : {}),
       ...(defaultStatus ? { defaultStatus } : {}),
     },
   );

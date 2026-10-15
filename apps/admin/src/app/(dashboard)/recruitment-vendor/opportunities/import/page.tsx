@@ -37,7 +37,7 @@ export default function ImportRvaOpportunitiesPage() {
     setAnalyzing(true);
     setError('');
     try {
-      const res = await adminPreviewRvaImport(file, undefined, defaultStatus);
+      const res = await adminPreviewRvaImport(file, defaultStatus);
       setPreview(res);
     } catch (e) {
       setError(getErrorMessage(e));
@@ -52,7 +52,7 @@ export default function ImportRvaOpportunitiesPage() {
     setImporting(true);
     setError('');
     try {
-      const res = await adminImportRvaOpportunities(file, undefined, defaultStatus);
+      const res = await adminImportRvaOpportunities(file, defaultStatus);
       showToast(
         `Imported ${res.imported}, failed ${res.failed}, skipped ${res.skipped}`,
         'success',
