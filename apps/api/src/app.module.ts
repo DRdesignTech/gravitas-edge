@@ -20,6 +20,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ResumesModule } from './resumes/resumes.module';
 import { PaymentsModule } from './payments/payments.module';
+import { RecruitmentVendorModule } from './recruitment-vendor/recruitment-vendor.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { PaymentsModule } from './payments/payments.module';
     ReferralsModule,
     ResumesModule,
     PaymentsModule,
+    RecruitmentVendorModule,
   ],
   controllers: [HealthController, PublicExperienceLevelsController, PublicTestimonialsController],
   providers: [

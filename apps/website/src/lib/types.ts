@@ -419,3 +419,136 @@ export interface GuestResumeInfo {
   uploadedAt: string;
   linked?: boolean;
 }
+
+// ── Recruitment Vendor Access (RVA) ─────────────────────────────────
+
+export interface RvaCategory {
+  value: string;
+  label: string;
+  count: number;
+}
+
+export interface RvaPlan {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  regularPrice: number;
+  discountedPrice: number;
+  discountPercentage: number;
+  currency: string;
+  durationDays: number;
+  durationLabel: string;
+  vault: string;
+}
+
+/** Server-masked teaser of protected RVA fields for callers without access. */
+export interface RvaLockedPreview {
+  qualification: string | null;
+  requirements: string | null;
+  otherDetails: string | null;
+  howToApply: string | null;
+  applicationContact: string | null;
+  budget: string | null;
+}
+
+export interface RvaOpportunity {
+  id: string;
+  jobId: string | null;
+  referenceId: string | null;
+  title: string;
+  role: string | null;
+  category: string;
+  categoryLabel: string;
+  sector: string | null;
+  company: string | null;
+  organization: string | null;
+  location: string | null;
+  geography: string | null;
+  country: string | null;
+  experienceText: string | null;
+  minExperience: number | null;
+  maxExperience: number | null;
+  publishedDate: string | null;
+  expiryDate: string | null;
+  createdAt: string;
+  status: string;
+  isFullAccess: boolean;
+  /** Always-visible safe teaser (null when the caller has no access). */
+  budget?: string | null;
+  /** Only present for entitled callers. */
+  qualification?: string | null;
+  requirements?: string | null;
+  eligibility?: string | null;
+  otherDetails?: string | null;
+  description?: string | null;
+  howToApply?: string | null;
+  applicationUrl?: string | null;
+  applicationContact?: string | null;
+  source?: string | null;
+  lockedPreview?: RvaLockedPreview;
+}
+
+export interface RvaFaq {
+  id: string;
+  question: string;
+  answer: string;
+  category?: string | null;
+  sortOrder: number;
+}
+
+export interface RvaOverview {
+  vault: string;
+  publishedOpportunityCount: number;
+  categories: RvaCategory[];
+  previewOpportunities: RvaOpportunity[];
+  previewMeta: PaginatedResult<RvaOpportunity>['meta'];
+  plans: RvaPlan[];
+  faqs: RvaFaq[];
+}
+
+export interface RvaPurchaseResult {
+  paymentId: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  planId: string;
+  planName: string;
+  durationDays: number;
+  status: string;
+  keyId?: string;
+}
+
+export interface RvaPaymentSession {
+  paymentId: string;
+  orderId: string | null;
+  status: string;
+  amount: number;
+  currency: string;
+  planId: string | null;
+  planName: string | null;
+  durationDays: number | null;
+  keyId?: string;
+}
+
+export interface RvaConfirmResult {
+  subscription: {
+    id: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    vault: string;
+    plan?: {
+      id: string;
+      name: string;
+      price: number;
+      regularPrice: number;
+      discountedPrice: number;
+      discountPercentage: number;
+      currency: string;
+      durationDays: number;
+      durationLabel: string;
+    } | null;
+  } | null;
+  payment: { id: string; status: string; amount: number; currency: string };
+}

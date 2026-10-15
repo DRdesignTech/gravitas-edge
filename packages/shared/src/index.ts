@@ -57,6 +57,67 @@ export const OPPORTUNITY_FIELD_ORDER: OpportunityFieldKey[] = [
   'howToApply',
 ];
 
+/**
+ * Recruitment Vendor Access (RVA) vault namespace.
+ *
+ * The RVA vault is a separate business vertical that shares the same database
+ * and global user accounts but has its own opportunities, plans,
+ * subscriptions, entitlements, payments and analytics. This key is the single
+ * stable identifier used by admin/website for vault scoping; the backend
+ * enforces isolation through dedicated RVA tables (see Prisma schema:
+ * RecruitmentVendor* models) rather than through this string.
+ */
+export const RECRUITMENT_VENDOR_VAULT_KEY = 'recruitment-vendor-access';
+
+export const RECRUITMENT_VENDOR_VAULT_NAME = 'Recruitment Vendor Access';
+
+/** Canonical RVA opportunity categories (client reference design). */
+export const RECRUITMENT_VENDOR_CATEGORIES = [
+  { value: 'VENDOR_ENABLEMENT', label: 'Vendor Enablement' },
+  { value: 'RFP_EOI_RFQ', label: 'RFP / EOI / RFQ' },
+  { value: 'STAFFING_RPO', label: 'Staffing & RPO' },
+  { value: 'EXECUTIVE_SEARCH', label: 'Executive Search' },
+  { value: 'OTHER', label: 'Other' },
+] as const;
+
+export type RecruitmentVendorCategoryValue =
+  (typeof RECRUITMENT_VENDOR_CATEGORIES)[number]['value'];
+
+/**
+ * Canonical RVA opportunity field labels and order (mirrors the client
+ * spreadsheet/design). Display labels only; stored fields are documented in
+ * the Prisma RecruitmentVendorOpportunity model.
+ */
+export const RECRUITMENT_VENDOR_FIELD_LABELS = {
+  jobId: 'Opportunity ID',
+  date: 'Published Date',
+  role: 'Role / Opportunity Title',
+  sector: 'Sector / Category',
+  company: 'Company / Organization',
+  budget: 'Budget / Commercial Value',
+  location: 'Location / Geography',
+  experience: 'Experience / Eligibility',
+  qualification: 'Qualification / Requirements',
+  otherDetails: 'Other Details',
+  howToApply: 'How to apply',
+} as const;
+
+export type RecruitmentVendorFieldKey = keyof typeof RECRUITMENT_VENDOR_FIELD_LABELS;
+
+export const RECRUITMENT_VENDOR_FIELD_ORDER: RecruitmentVendorFieldKey[] = [
+  'jobId',
+  'date',
+  'role',
+  'sector',
+  'company',
+  'budget',
+  'location',
+  'experience',
+  'qualification',
+  'otherDetails',
+  'howToApply',
+];
+
 /** Lower-case email matcher used to locate an application email in text. */
 const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
 

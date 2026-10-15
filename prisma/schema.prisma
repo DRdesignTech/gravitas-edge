@@ -59,6 +59,14 @@ enum OpportunityCategory {
   OTHER
 }
 
+enum RecruitmentVendorCategory {
+  VENDOR_ENABLEMENT
+  RFP_EOI_RFQ
+  STAFFING_RPO
+  EXECUTIVE_SEARCH
+  OTHER
+}
+
 enum EmploymentType {
   FULL_TIME
   PART_TIME
@@ -160,6 +168,9 @@ model User {
   payments           Payment[]
   couponAccess       CouponUser[]
   couponUsages       CouponUsage[]
+  recruitmentVendorSubscriptions RecruitmentVendorSubscription[]
+  recruitmentVendorOpportunitiesOwned RecruitmentVendorOpportunity[]
+  recruitmentVendorEnrollment RecruitmentVendorEnrollment?
   adminAuditLogs     AuditLog[]         @relation("AuditAdminUser")
   actionAuditLogs    AuditLog[]         @relation("AuditActorUser")
 
@@ -428,6 +439,7 @@ model CouponUsage {
   planId         String
   paymentId      String   @unique // one usage per payment session (double-spend guard)
   subscriptionId String?
+  recruitmentVendorSubscriptionId String?
   originalAmount Decimal  @db.Decimal(12, 2)
   discountAmount Decimal  @db.Decimal(12, 2)
   finalAmount    Decimal  @db.Decimal(12, 2)
@@ -438,13 +450,15 @@ model CouponUsage {
   user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan         SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
   payment      Payment          @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  subscription Subscription?    @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  subscription                Subscription?                @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  recruitmentVendorSubscription RecruitmentVendorSubscription? @relation(fields: [recruitmentVendorSubscriptionId], references: [id], onDelete: SetNull)
 
   @@index([couponId])
   @@index([userId])
   @@index([couponId, userId])
   @@index([planId])
   @@index([subscriptionId])
+  @@index([recruitmentVendorSubscriptionId])
   @@index([usedAt])
 }
 
@@ -795,6 +809,157 @@ model CandidateFunctionalArea {
 }
 
 // ==========================================================================
+
+
+// ==========================================================================
+// RECRUITMENT VENDOR ACCESS (RVA)
+// A completely separate vault vertical. Reuse User/auth where appropriate,
+// but subscriptions, opportunities, plans, entitlements, payments, FAQs,
+// audits remain independently identifiable.
+// ==========================================================================
+
+enum RecruitmentVendorOpportunityStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  EXPIRED
+}
+
+model RecruitmentVendorOpportunity {
+  id                 String                             @id @default(uuid())
+  title              String
+  description        String?
+  role               String?
+  sector             String?
+  category           RecruitmentVendorCategory         @default(OTHER)
+  company            String?
+  organization       String?
+  budget             String?
+  salary             String?
+  commercialValue    String?
+  location           String?
+  geography          String?
+  country            String?
+  experienceText     String?
+  minExperience      Int?
+  maxExperience      Int?
+  eligibility        String?
+  qualification      String?
+  requirements       String?
+  otherDetails       String?
+  howToApply         String?
+  applicationUrl     String?
+  applicationContact String?
+  source             String?
+  referenceId        String?
+  jobId              String?
+  publishedDate      DateTime?
+  expiryDate         DateTime?
+  status             RecruitmentVendorOpportunityStatus @default(DRAFT)
+  createdBy          String?
+  createdAt          DateTime                           @default(now())
+  updatedAt          DateTime                           @updatedAt
+  deletedAt          DateTime?
+
+  creator User? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([category])
+  @@index([location])
+  @@index([country])
+  @@index([sector])
+  @@index([publishedDate])
+  @@index([expiryDate])
+  @@index([deletedAt])
+  @@index([status, category, expiryDate])
+}
+
+model RecruitmentVendorPlan {
+  id                  String    @id @default(uuid())
+  name                String    @unique
+  description         String?
+  price               Decimal   @db.Decimal(10, 2)
+  regularPrice        Decimal   @default(0) @db.Decimal(10, 2)
+  discountPercentage  Int       @default(0)
+  currency            String    @default("INR")
+  durationDays        Int
+  isActive            Boolean   @default(true)
+  sortOrder           Int       @default(0)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  subscriptions RecruitmentVendorSubscription[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+  @@index([durationDays])
+}
+
+model RecruitmentVendorSubscription {
+  id                   String             @id @default(uuid())
+  userId               String
+  planId               String
+  startDate            DateTime
+  endDate              DateTime
+  status               SubscriptionStatus @default(PENDING)
+  paymentReference     String?
+  razorpaySubscriptionId String?
+  cancelledAt          DateTime?
+  cancellationReason   String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan        RecruitmentVendorPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payments    Payment[]
+  couponUsages CouponUsage[]
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([endDate])
+  @@index([userId, status, endDate])
+}
+
+model RecruitmentVendorFaq {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  category  String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([isActive, sortOrder])
+  @@index([category])
+  @@index([deletedAt])
+}
+
+// Optional Recruitment Vendor Access onboarding record. Distinct from any
+// existing-vault enrollment: a global User may have at most one RVA
+// enrollment, captured separately so the new vault's signups are always
+// independently identifiable without duplicating the global account.
+model RecruitmentVendorEnrollment {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  companyName String?
+  contactName String?
+  vendorType  String?
+  source      String?
+  status      String    @default("ENROLLED")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([deletedAt])
+}
+
 // PAYMENTS (Razorpay foundation)
 // ==========================================================================
 
@@ -802,6 +967,7 @@ model Payment {
   id                     String        @id @default(uuid())
   userId                 String
   subscriptionId         String?
+  recruitmentVendorSubscriptionId String?
   razorpayPaymentId      String?       @unique
   razorpayOrderId        String?       @unique
   razorpaySubscriptionId String?
@@ -813,13 +979,15 @@ model Payment {
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
-  couponUsages CouponUsage[]
+  user                        User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription                Subscription?              @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  recruitmentVendorSubscription RecruitmentVendorSubscription? @relation(fields: [recruitmentVendorSubscriptionId], references: [id], onDelete: SetNull)
+  couponUsages                CouponUsage[]
 
   @@unique([razorpayOrderId, razorpayPaymentId])
   @@index([userId])
   @@index([subscriptionId])
+  @@index([recruitmentVendorSubscriptionId])
   @@index([status])
   @@index([razorpaySubscriptionId])
 }

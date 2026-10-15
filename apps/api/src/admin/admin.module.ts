@@ -24,10 +24,17 @@ import { AdminTestimonialsService } from './testimonials/admin-testimonials.serv
 import { AuditModule } from '../audit/audit.module';
 import { AccessModule } from '../access/access.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { AdminRecruitmentVendorModule } from './recruitment-vendor/admin-recruitment-vendor.module';
 import { ReferralsModule } from '../referrals/referrals.module';
 
 @Module({
-  imports: [AuditModule, AccessModule, AnalyticsModule, ReferralsModule],
+  imports: [
+    AuditModule,
+    AccessModule,
+    AnalyticsModule,
+    ReferralsModule,
+    AdminRecruitmentVendorModule,
+  ],
   controllers: [
     AdminUsersController,
     AdminVaultsController,

@@ -4,6 +4,7 @@ import { PricingService } from './pricing.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
 import { CouponsService } from '../coupons/coupons.service';
+import { RazorpayService } from '../payments/razorpay.service';
 
 function mockPrismaService() {
   return {
@@ -42,6 +43,14 @@ describe('PricingService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: SubscriptionAccessService, useValue: access },
         { provide: CouponsService, useValue: {} },
+        {
+          provide: RazorpayService,
+          useValue: {
+            createOrder: jest.fn().mockResolvedValue({ id: 'order_abc' }),
+            getKeyId: jest.fn().mockReturnValue('key'),
+            verifySignature: jest.fn().mockReturnValue(true),
+          },
+        },
       ],
     }).compile();
     service = moduleRef.get(PricingService);
@@ -383,6 +392,7 @@ describe('PricingService', () => {
         originalAmount: 1499,
         discountAmount: 300,
         finalAmount: 1199,
+        keyId: 'key',
       });
     });
 

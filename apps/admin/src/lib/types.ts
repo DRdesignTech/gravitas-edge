@@ -378,6 +378,197 @@ export const COMMISSION_STATUS_LABELS: Record<string, string> = {
 
 export type DateRange = 'today' | '7d' | '30d' | '90d' | '1y' | 'month' | 'custom';
 
+/* ------------------------------------------------------------------ */
+/*  Recruitment Vendor Access (RVA)                                    */
+/* ------------------------------------------------------------------ */
+
+export const RVA_CATEGORIES = [
+  'VENDOR_ENABLEMENT',
+  'RFP_EOI_RFQ',
+  'STAFFING_RPO',
+  'EXECUTIVE_SEARCH',
+  'OTHER',
+] as const;
+
+export type RvaCategory = (typeof RVA_CATEGORIES)[number];
+
+export const RVA_CATEGORY_LABELS: Record<string, string> = {
+  VENDOR_ENABLEMENT: 'Vendor Enablement',
+  RFP_EOI_RFQ: 'RFP / EOI / RFQ',
+  STAFFING_RPO: 'Staffing & RPO',
+  EXECUTIVE_SEARCH: 'Executive Search',
+  OTHER: 'Other',
+};
+
+export const RVA_OPPORTUNITY_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'EXPIRED'] as const;
+
+export interface RvaOpportunity {
+  id: string;
+  title: string;
+  description?: string | null;
+  role?: string | null;
+  sector?: string | null;
+  category: string;
+  company?: string | null;
+  organization?: string | null;
+  budget?: string | null;
+  salary?: string | null;
+  commercialValue?: string | null;
+  location?: string | null;
+  geography?: string | null;
+  country?: string | null;
+  experienceText?: string | null;
+  minExperience?: number | null;
+  maxExperience?: number | null;
+  eligibility?: string | null;
+  qualification?: string | null;
+  requirements?: string | null;
+  otherDetails?: string | null;
+  howToApply?: string | null;
+  applicationUrl?: string | null;
+  applicationContact?: string | null;
+  source?: string | null;
+  referenceId?: string | null;
+  jobId?: string | null;
+  publishedDate?: string | null;
+  expiryDate?: string | null;
+  status: string;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  creator?: { id: string; email: string } | null;
+}
+
+export interface RvaPlan {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number | string;
+  regularPrice: number | string;
+  discountPercentage: number;
+  currency: string;
+  durationDays: number;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+}
+
+export interface RvaSubscriptionPlanRef {
+  id: string;
+  name: string;
+  durationDays: number;
+  price: number;
+  currency: string;
+}
+
+export interface RvaSubscription {
+  id: string;
+  userId: string;
+  planId: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  paymentReference?: string | null;
+  razorpaySubscriptionId?: string | null;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  plan?: RvaSubscriptionPlanRef | null;
+  user: { id: string; email: string; phone?: string | null };
+}
+
+export interface RvaSubscriptionDetail extends Omit<RvaSubscription, 'plan'> {
+  plan?: RvaPlan | null;
+  payments?: {
+    id: string;
+    status: string;
+    amount: number | string;
+    currency: string;
+    createdAt: string;
+  }[];
+}
+
+export interface RvaFaq {
+  id: string;
+  question: string;
+  answer: string;
+  category?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+}
+
+export interface RvaOpportunityQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  category?: string;
+  country?: string;
+  location?: string;
+  sector?: string;
+  sortBy?: string;
+  sortOrder?: string;
+}
+
+export interface RvaSubscriptionQuery {
+  page?: number;
+  limit?: number;
+  status?: string;
+  planId?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: string;
+}
+
+export interface RvaAnalyticsOverview {
+  vault: string;
+  totalOpportunities: number;
+  publishedOpportunities: number;
+  draftOpportunities: number;
+  archivedOpportunities: number;
+  totalPlans: number;
+  activePlans: number;
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  expiredSubscriptions: number;
+  pendingSubscriptions: number;
+  failedSubscriptions: number;
+  cancelledSubscriptions: number;
+  totalEnrollments: number;
+  periodEnrollments: number;
+  grossRevenue: number;
+  periodRevenue: number;
+  refundedCount: number;
+  refundedAmount: number;
+}
+
+export interface RvaRevenueData {
+  vault: string;
+  totalRevenue: number;
+  periodRevenue: number;
+  timeline: RevenueTimeline[];
+}
+
+export interface RvaOpportunityAnalytics {
+  vault: string;
+  publishedInPeriod: number;
+  byCategory: { category: string; count: number }[];
+  byStatus: { status: string; count: number }[];
+}
+
+export interface RvaSubscriptionAnalytics {
+  vault: string;
+  newInPeriod: number;
+  byPlan: { planId: string; planName: string | null; durationDays: number | null; count: number }[];
+  byStatus: { status: string; count: number }[];
+}
+
 export interface AnalyticsOverview {
   totalUsers: number;
   newUsers: number;

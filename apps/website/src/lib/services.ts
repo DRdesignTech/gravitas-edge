@@ -19,6 +19,13 @@ import {
   ReferralQuery,
   ReferralSummary,
   Resume,
+  RvaConfirmResult,
+  RvaFaq,
+  RvaOpportunity,
+  RvaOverview,
+  RvaPaymentSession,
+  RvaPlan,
+  RvaPurchaseResult,
   Subscription,
   SubscriptionPlan,
   User,
@@ -218,4 +225,60 @@ export function fetchMyCommissions(query: CommissionQuery = {}) {
 
 export function fetchCommissionStatistics() {
   return api.get<CommissionStatistics>('/referrals/me/statistics');
+}
+
+// ── Recruitment Vendor Access (RVA) services ───────────────────────
+
+/** Aggregated landing-page data for the RVA vault (public). */
+export function fetchRvaOverview(previewLimit?: number) {
+  const qs = previewLimit ? `?previewLimit=${encodeURIComponent(String(previewLimit))}` : '';
+  return api.get<RvaOverview>(`/recruitment-vendor/overview${qs}`);
+}
+
+export function fetchRvaPlans() {
+  return api.get<RvaPlan[]>('/recruitment-vendor/plans');
+}
+
+export function fetchRvaFaqs() {
+  return api.get<RvaFaq[]>('/recruitment-vendor/faqs');
+}
+
+export function fetchRvaOpportunities(query: { page?: number; limit?: number; search?: string } = {}) {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params.set(key, String(value));
+    }
+  });
+  const qs = params.toString();
+  return api.get<PaginatedResult<RvaOpportunity>>(
+    `/recruitment-vendor/opportunities${qs ? `?${qs}` : ''}`,
+  );
+}
+
+export function fetchRvaOpportunity(id: string) {
+  return api.get<RvaOpportunity>(`/recruitment-vendor/opportunities/${id}`);
+}
+
+export function purchaseRvaPlan(planId: string) {
+  return api.post<RvaPurchaseResult>('/recruitment-vendor/purchase', { planId });
+}
+
+export function fetchRvaPaymentSession(paymentId: string) {
+  return api.get<RvaPaymentSession>(`/recruitment-vendor/payments/${paymentId}`);
+}
+
+export function verifyRvaPayment(payload: {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+  paymentId: string;
+}) {
+  return api.post<RvaConfirmResult>('/recruitment-vendor/purchase/verify', payload);
+}
+
+export function failRvaPayment(paymentId: string) {
+  return api.post<{ paymentId: string; status: string }>('/recruitment-vendor/purchase/fail', {
+    paymentId,
+  });
 }

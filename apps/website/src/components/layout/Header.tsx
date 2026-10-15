@@ -15,6 +15,7 @@ const navLinks = [
   { href: '#vaults', label: 'Opportunity Vaults' },
   { href: '#how-it-works', label: 'How It Works' },
   { href: '#plans', label: 'Plans' },
+  { href: '/recruitment-vendor', label: 'Recruitment Vendor' },
   { href: '#faq', label: 'FAQ' },
   { href: '/contact', label: 'Contact Us' },
 ];
@@ -177,7 +178,7 @@ export default function Header() {
   };
 
   const navLinkClass = (href: string) =>
-    `rounded-lg px-1.5 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+    `rounded-lg px-2.5 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
       isActive(href)
         ? 'bg-[#FFF3D9] text-[#061B36] border border-[#C8943E] dark:bg-brand-950 dark:text-brand-200 dark:border-brand-500/60'
         : 'text-content-muted hover:bg-surface-muted hover:text-content hover:border hover:border-[#C8943E]/40 border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2'
@@ -185,7 +186,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-2 sm:px-4 lg:px-5">
+      <div className="mx-auto flex h-16 w-full items-center justify-between gap-1 px-4 sm:gap-3 sm:px-6 xl:px-[15rem]">
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <Link
             href="/#home"
@@ -198,7 +199,7 @@ export default function Header() {
               nameClassName="hidden text-base font-bold tracking-tight text-content lg:inline lg:text-lg"
             />
           </Link>
-          <nav className="hidden items-center gap-x-0.5 xl:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-x-0 xl:flex" aria-label="Primary">
             {navLinks.map((link) =>
               link.href.startsWith('#') ? (
                 <Link
@@ -218,7 +219,7 @@ export default function Header() {
           </nav>
         </div>
 
-        <div className="hidden items-center gap-2.5 xl:flex xl:pl-8">
+        <div className="hidden shrink-0 items-center gap-3 xl:flex xl:pl-6">
           <ThemeToggle />
           {user ? (
             <div className="relative" ref={menuRef}>
@@ -277,7 +278,7 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="rounded-xl bg-[#061B36] px-5 py-2.5 text-sm font-semibold text-[#FFFEFA] shadow-sm transition-colors hover:bg-[#061B36]/90 dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              className="whitespace-nowrap rounded-xl bg-[#061B36] px-4 py-2.5 text-sm font-semibold text-[#FFFEFA] shadow-sm transition-colors hover:bg-[#061B36]/90 dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
               Sign In
             </Link>

@@ -27,6 +27,17 @@ import {
   CommissionAnalytics,
   ResumeAnalytics,
   Testimonial,
+  RvaFaq,
+  RvaOpportunity,
+  RvaOpportunityAnalytics,
+  RvaOpportunityQuery,
+  RvaPlan,
+  RvaSubscription,
+  RvaSubscriptionAnalytics,
+  RvaSubscriptionDetail,
+  RvaSubscriptionQuery,
+  RvaRevenueData,
+  RvaAnalyticsOverview,
 } from './types';
 
 export interface UserQuery {
@@ -422,4 +433,112 @@ function analyticsQs(range: DateRange, startDate?: string, endDate?: string) {
   if (startDate) p.set('startDate', startDate);
   if (endDate) p.set('endDate', endDate);
   return `?${p.toString()}`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Recruitment Vendor Access (RVA)                                    */
+/* ------------------------------------------------------------------ */
+
+export function adminListRvaOpportunities(query: RvaOpportunityQuery = {}) {
+  return api.get<PaginatedResult<RvaOpportunity>>(
+    `/admin/recruitment-vendor/opportunities${qs(query)}`,
+  );
+}
+
+export function adminGetRvaOpportunity(id: string) {
+  return api.get<RvaOpportunity>(`/admin/recruitment-vendor/opportunities/${id}`);
+}
+
+export function adminCreateRvaOpportunity(body: Partial<RvaOpportunity>) {
+  return api.post<RvaOpportunity>('/admin/recruitment-vendor/opportunities', body);
+}
+
+export function adminUpdateRvaOpportunity(id: string, body: Partial<RvaOpportunity>) {
+  return api.patch<RvaOpportunity>(`/admin/recruitment-vendor/opportunities/${id}`, body);
+}
+
+export function adminArchiveRvaOpportunity(id: string) {
+  return api.del(`/admin/recruitment-vendor/opportunities/${id}`);
+}
+
+export function adminDeleteRvaOpportunityPermanent(id: string) {
+  return api.del(`/admin/recruitment-vendor/opportunities/${id}/permanent`);
+}
+
+export function adminListRvaPlans() {
+  return api.get<RvaPlan[]>('/admin/recruitment-vendor/plans');
+}
+
+export function adminGetRvaPlan(id: string) {
+  return api.get<RvaPlan>(`/admin/recruitment-vendor/plans/${id}`);
+}
+
+export function adminCreateRvaPlan(body: Partial<RvaPlan>) {
+  return api.post<RvaPlan>('/admin/recruitment-vendor/plans', body);
+}
+
+export function adminUpdateRvaPlan(id: string, body: Partial<RvaPlan>) {
+  return api.patch<RvaPlan>(`/admin/recruitment-vendor/plans/${id}`, body);
+}
+
+export function adminArchiveRvaPlan(id: string) {
+  return api.del(`/admin/recruitment-vendor/plans/${id}`);
+}
+
+export function adminListRvaFaqs() {
+  return api.get<RvaFaq[]>('/admin/recruitment-vendor/faqs');
+}
+
+export function adminCreateRvaFaq(body: Partial<RvaFaq>) {
+  return api.post<RvaFaq>('/admin/recruitment-vendor/faqs', body);
+}
+
+export function adminUpdateRvaFaq(id: string, body: Partial<RvaFaq>) {
+  return api.patch<RvaFaq>(`/admin/recruitment-vendor/faqs/${id}`, body);
+}
+
+export function adminArchiveRvaFaq(id: string) {
+  return api.del(`/admin/recruitment-vendor/faqs/${id}`);
+}
+
+export function adminListRvaSubscriptions(query: RvaSubscriptionQuery = {}) {
+  return api.get<PaginatedResult<RvaSubscription>>(
+    `/admin/recruitment-vendor/subscriptions${qs(query)}`,
+  );
+}
+
+export function adminGetRvaSubscription(id: string) {
+  return api.get<RvaSubscriptionDetail>(`/admin/recruitment-vendor/subscriptions/${id}`);
+}
+
+export function adminRvaAnalyticsOverview(range: DateRange, startDate?: string, endDate?: string) {
+  return api.get<RvaAnalyticsOverview>(
+    `/admin/recruitment-vendor/analytics/overview${analyticsQs(range, startDate, endDate)}`,
+  );
+}
+
+export function adminRvaAnalyticsRevenue(range: DateRange, startDate?: string, endDate?: string) {
+  return api.get<RvaRevenueData>(
+    `/admin/recruitment-vendor/analytics/revenue${analyticsQs(range, startDate, endDate)}`,
+  );
+}
+
+export function adminRvaAnalyticsOpportunities(
+  range: DateRange,
+  startDate?: string,
+  endDate?: string,
+) {
+  return api.get<RvaOpportunityAnalytics>(
+    `/admin/recruitment-vendor/analytics/opportunities${analyticsQs(range, startDate, endDate)}`,
+  );
+}
+
+export function adminRvaAnalyticsSubscriptions(
+  range: DateRange,
+  startDate?: string,
+  endDate?: string,
+) {
+  return api.get<RvaSubscriptionAnalytics>(
+    `/admin/recruitment-vendor/analytics/subscriptions${analyticsQs(range, startDate, endDate)}`,
+  );
 }

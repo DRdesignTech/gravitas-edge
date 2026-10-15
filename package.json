@@ -25,6 +25,7 @@
     "db:studio": "npm run db:studio --workspace=apps/api",
     "db:seed": "npm run db:seed --workspace=apps/api",
     "db:seed:dev": "npm run db:seed --workspace=apps/api",
+    "db:seed:rva": "npm run db:seed:rva --workspace=apps/api",
     "db:reset-demo": "npm run db:reset-demo --workspace=apps/api",
     "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules"
   },

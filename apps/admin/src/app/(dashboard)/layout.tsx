@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { VaultSwitcher } from '@/components/VaultSwitcher';
 import { Spinner } from '@/components/ui';
 import BrandLogo, { BRAND_NAME } from '@/components/brand/BrandLogo';
 import { Poppins } from 'next/font/google';
@@ -50,6 +51,14 @@ const nav: NavItem[] = [
   { href: '/referral-slabs', label: 'Referral Slabs', icon: 'slab' },
   { href: '/coupons', label: 'Coupons', icon: 'coupon' },
   { href: '/testimonials', label: 'Testimonials', icon: 'testimonial' },
+];
+
+const rvaNav: NavItem[] = [
+  { href: '/recruitment-vendor', label: 'RVA Overview', exact: true, icon: 'chart' },
+  { href: '/recruitment-vendor/opportunities', label: 'RVA Opportunities', icon: 'briefcase' },
+  { href: '/recruitment-vendor/plans', label: 'RVA Plans', icon: 'plan' },
+  { href: '/recruitment-vendor/subscriptions', label: 'RVA Subscriptions', icon: 'subs' },
+  { href: '/recruitment-vendor/faqs', label: 'RVA FAQs', icon: 'tag' },
 ];
 
 const iconPaths: Record<NavItem['icon'], string> = {
@@ -135,7 +144,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [loading, user, admin, router]);
 
   const current = useMemo(() => {
-    const match = nav.find((item) =>
+    const activeNav = pathname.startsWith('/recruitment-vendor') ? rvaNav : nav;
+    const match = activeNav.find((item) =>
       item.exact ? pathname === item.href : pathname.startsWith(item.href),
     );
     return match?.label ?? 'Dashboard';
@@ -143,7 +153,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading || !user || !admin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface text-brand-600 dark:text-brand-400" style={{ fontFamily: 'var(--font-poppins)' }}>
+      <div
+        className="flex min-h-screen items-center justify-center bg-surface text-brand-600 dark:text-brand-400"
+        style={{ fontFamily: 'var(--font-poppins)' }}
+      >
         <Spinner className="h-9 w-9" />
       </div>
     );
@@ -160,7 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {collapsed ? (
           <BrandLogo className="h-10 w-auto" showName={false} />
         ) : (
-<>
+          <>
             <BrandLogo className="h-10 w-auto shrink-0" showName={false} />
             <div className="min-w-0">
               <p className="truncate text-sm font-extrabold text-brand-400">{BRAND_NAME}</p>
@@ -170,7 +183,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )}
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 scrollbar-thin">
-        {nav.map((item) => {
+        {(pathname.startsWith('/recruitment-vendor') ? rvaNav : nav).map((item) => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           return (
             <SidebarLink
@@ -231,7 +244,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="min-h-screen bg-surface-muted dark:bg-surface" style={{ fontFamily: 'var(--font-poppins)' }}>
+    <div
+      className="min-h-screen bg-surface-muted dark:bg-surface"
+      style={{ fontFamily: 'var(--font-poppins)' }}
+    >
       {/* Desktop sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 hidden border-r border-line bg-surface transition-[width] duration-200 dark:bg-surface-elevated lg:block ${
@@ -298,6 +314,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </button>
           <h1 className="text-base font-semibold text-content">{current}</h1>
           <div className="ml-auto flex items-center gap-2">
+            <VaultSwitcher />
             <ThemeToggle />
           </div>
         </header>
