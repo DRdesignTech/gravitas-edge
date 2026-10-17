@@ -58,6 +58,7 @@ const rvaNav: NavItem[] = [
   { href: '/recruitment-vendor/opportunities', label: 'RVA Opportunities', icon: 'briefcase' },
   { href: '/recruitment-vendor/plans', label: 'RVA Plans', icon: 'plan' },
   { href: '/recruitment-vendor/subscriptions', label: 'RVA Subscriptions', icon: 'subs' },
+  { href: '/recruitment-vendor/coupons', label: 'RVA Coupons', icon: 'coupon' },
   { href: '/recruitment-vendor/faqs', label: 'RVA FAQs', icon: 'tag' },
 ];
 
@@ -143,13 +144,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [loading, user, admin, router]);
 
+  const isRva = pathname.startsWith('/recruitment-vendor');
+
   const current = useMemo(() => {
-    const activeNav = pathname.startsWith('/recruitment-vendor') ? rvaNav : nav;
+    const activeNav = isRva ? rvaNav : nav;
     const match = activeNav.find((item) =>
       item.exact ? pathname === item.href : pathname.startsWith(item.href),
     );
     return match?.label ?? 'Dashboard';
-  }, [pathname]);
+  }, [pathname, isRva]);
 
   if (loading || !user || !admin) {
     return (
@@ -176,14 +179,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <>
             <BrandLogo className="h-10 w-auto shrink-0" showName={false} />
             <div className="min-w-0">
-              <p className="truncate text-sm font-extrabold text-brand-400">{BRAND_NAME}</p>
+              <p className="truncate text-sm font-extrabold text-[#C8943E]">{BRAND_NAME}</p>
               <p className="truncate text-[11px] text-content-muted">Admin Console</p>
             </div>
           </>
         )}
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4 scrollbar-thin">
-        {(pathname.startsWith('/recruitment-vendor') ? rvaNav : nav).map((item) => {
+        {!collapsed && (
+          <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">
+            {isRva ? 'Recruitment Vendor Vault' : 'Opportunity Vault'}
+          </p>
+        )}
+        {(isRva ? rvaNav : nav).map((item) => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           return (
             <SidebarLink
@@ -246,6 +254,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div
       className="min-h-screen bg-surface-muted dark:bg-surface"
+      data-section={isRva ? 'rva' : undefined}
       style={{ fontFamily: 'var(--font-poppins)' }}
     >
       {/* Desktop sidebar */}

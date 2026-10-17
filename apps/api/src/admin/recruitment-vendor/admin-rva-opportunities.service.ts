@@ -14,12 +14,14 @@ import {
 import { CreateRvaOpportunityDto } from './dto/create-rva-opportunity.dto';
 import { UpdateRvaOpportunityDto } from './dto/update-rva-opportunity.dto';
 import { QueryRvaOpportunitiesDto } from './dto/query-rva-opportunities.dto';
+import { BulkDeleteRvaOpportunitiesDto } from './dto/bulk-delete-rva-opportunities.dto';
 import {
   parseDateCell,
   parseExperience,
   ParsedRow,
 } from '../opportunities/opportunity-import.util';
 import {
+  deriveRvaTitle,
   isBlankRvaRow,
   listRvaJobSheets,
   parseRvaCategory,
@@ -76,28 +78,72 @@ export class AdminRvaOpportunitiesService {
     private readonly audit: AuditService,
   ) {}
 
-  async list(
-    query: QueryRvaOpportunitiesDto,
-  ): Promise<PaginatedResult<RecruitmentVendorOpportunity>> {
-    const params = buildPaginationParams(query.page, query.limit);
-    const where: Prisma.RecruitmentVendorOpportunityWhereInput = { deletedAt: null };
+  private buildWhere(
+    query: QueryRvaOpportunitiesDto & {
+      publishedAfter?: string;
+      publishedBefore?: string;
+      expiryAfter?: string;
+      expiryBefore?: string;
+      createdAfter?: string;
+      createdBefore?: string;
+    },
+  ): Prisma.RecruitmentVendorOpportunityWhereInput {
+    const where: Prisma.RecruitmentVendorOpportunityWhereInput = {};
 
     if (query.status) where.status = query.status;
-    if (query.category) where.category = query.category;
+    if (query.category) where.category = query.category as any;
     if (query.country) where.country = { contains: query.country, mode: 'insensitive' };
     if (query.location) where.location = { contains: query.location, mode: 'insensitive' };
     if (query.sector) where.sector = { contains: query.sector, mode: 'insensitive' };
     if (query.search) {
-      const term = query.search.trim();
-      where.OR = [
-        { title: { contains: term, mode: 'insensitive' } },
-        { role: { contains: term, mode: 'insensitive' } },
-        { company: { contains: term, mode: 'insensitive' } },
-        { organization: { contains: term, mode: 'insensitive' } },
-        { jobId: { contains: term, mode: 'insensitive' } },
-        { referenceId: { contains: term, mode: 'insensitive' } },
-      ];
+      const tokens = query.search.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length) {
+        where.AND = tokens.map((token) => ({
+          OR: [
+            { title: { contains: token, mode: 'insensitive' } },
+            { role: { contains: token, mode: 'insensitive' } },
+            { company: { contains: token, mode: 'insensitive' } },
+            { organization: { contains: token, mode: 'insensitive' } },
+            { location: { contains: token, mode: 'insensitive' } },
+            { country: { contains: token, mode: 'insensitive' } },
+            { sector: { contains: token, mode: 'insensitive' } },
+            { geography: { contains: token, mode: 'insensitive' } },
+            { requirements: { contains: token, mode: 'insensitive' } },
+            { eligibility: { contains: token, mode: 'insensitive' } },
+            { jobId: { contains: token, mode: 'insensitive' } },
+            { referenceId: { contains: token, mode: 'insensitive' } },
+          ],
+        }));
+      }
     }
+
+    if (query.publishedAfter || query.publishedBefore) {
+      where.publishedDate = {};
+      if (query.publishedAfter) where.publishedDate.gte = new Date(query.publishedAfter);
+      if (query.publishedBefore) where.publishedDate.lte = new Date(query.publishedBefore);
+    }
+    if (query.expiryAfter || query.expiryBefore) {
+      where.expiryDate = {};
+      if (query.expiryAfter) where.expiryDate.gte = new Date(query.expiryAfter);
+      if (query.expiryBefore) where.expiryDate.lte = new Date(query.expiryBefore);
+    }
+    if (query.createdAfter || query.createdBefore) {
+      where.createdAt = {};
+      if (query.createdAfter) where.createdAt.gte = new Date(query.createdAfter);
+      if (query.createdBefore) where.createdAt.lte = new Date(query.createdBefore);
+    }
+
+    return where;
+  }
+
+  async list(
+    query: QueryRvaOpportunitiesDto,
+  ): Promise<PaginatedResult<RecruitmentVendorOpportunity>> {
+    const params = buildPaginationParams(query.page, query.limit);
+    const where: Prisma.RecruitmentVendorOpportunityWhereInput = {
+      ...this.buildWhere(query),
+      deletedAt: null,
+    };
 
     const validSortFields = new Set([
       'createdAt',
@@ -105,6 +151,7 @@ export class AdminRvaOpportunitiesService {
       'publishedDate',
       'expiryDate',
       'title',
+      'serialNo',
     ]);
     const sortField = validSortFields.has(query.sortBy ?? '') ? query.sortBy! : 'createdAt';
     const sortOrder = query.sortOrder === 'asc' ? 'asc' : 'desc';
@@ -182,6 +229,11 @@ export class AdminRvaOpportunitiesService {
   }
 
   async hardDelete(id: string, adminUserId: string, ipAddress?: string) {
+    await this.permanentDelete(id, adminUserId, ipAddress);
+    return { id, deleted: true };
+  }
+
+  async permanentDelete(id: string, adminUserId: string, ipAddress?: string) {
     await this.findOne(id);
     await this.prisma.recruitmentVendorOpportunity.delete({ where: { id } });
     await this.audit.record({
@@ -192,6 +244,55 @@ export class AdminRvaOpportunitiesService {
       ipAddress,
     });
     return { id, deleted: true };
+  }
+  async bulkDelete(dto: BulkDeleteRvaOpportunitiesDto, adminUserId: string, ipAddress?: string) {
+    const ids = dto.ids?.map((id) => id.trim()).filter(Boolean) ?? [];
+    const hasFilters = Boolean(
+      dto.search ||
+      dto.status ||
+      dto.category ||
+      dto.country ||
+      dto.location ||
+      dto.sector ||
+      dto.publishedAfter ||
+      dto.publishedBefore ||
+      dto.expiryAfter ||
+      dto.expiryBefore ||
+      dto.createdAfter ||
+      dto.createdBefore,
+    );
+    if (ids.length === 0 && !hasFilters && dto.confirmAll !== true) {
+      throw new BadRequestException(
+        'Refusing to delete every RVA opportunity without confirmation (pass confirmAll).',
+      );
+    }
+    const where: Prisma.RecruitmentVendorOpportunityWhereInput =
+      ids.length > 0
+        ? { id: { in: ids } }
+        : { ...this.buildWhere(dto), ...(dto.mode === 'archive' ? { deletedAt: null } : {}) };
+    if (dto.mode === 'archive') {
+      const result = await this.prisma.recruitmentVendorOpportunity.updateMany({
+        where,
+        data: { status: RecruitmentVendorOpportunityStatus.ARCHIVED, deletedAt: new Date() },
+      });
+      await this.audit.record({
+        adminUserId,
+        action: 'ARCHIVE_BULK',
+        entityType: ENTITY,
+        ipAddress,
+        details: { count: result.count },
+      });
+      return { mode: 'archive' as const, count: result.count };
+    }
+    const result = await this.prisma.recruitmentVendorOpportunity.deleteMany({ where });
+    await this.audit.record({
+      adminUserId,
+      action: 'DELETE_BULK',
+      entityType: ENTITY,
+      ipAddress,
+      details: { count: result.count },
+    });
+    return { mode: 'permanent' as const, count: result.count };
   }
 
   async import(
@@ -464,7 +565,7 @@ export class AdminRvaOpportunitiesService {
         continue;
       }
 
-      const title = row.fields.title?.trim();
+      const title = deriveRvaTitle(row.fields);
       if (!title) {
         analyzed.push({
           excelRow: row.excelRow,
@@ -527,7 +628,7 @@ export class AdminRvaOpportunitiesService {
     error?: string;
   } {
     const f = row.fields;
-    const title = f.title?.trim();
+    const title = deriveRvaTitle(f);
     if (!title) return { error: 'Missing required field: title' };
 
     const published = parseDateCell(f.publishedDate);
@@ -550,6 +651,7 @@ export class AdminRvaOpportunitiesService {
     };
 
     const data = {
+      serialNo: this.toIntOrNull(f.serialNo),
       title,
       description: text(f.description),
       role: text(f.role),
@@ -583,6 +685,7 @@ export class AdminRvaOpportunitiesService {
     } satisfies Prisma.RecruitmentVendorOpportunityUncheckedCreateInput;
 
     const preview: Record<string, unknown> = {
+      serialNo: data.serialNo,
       jobId: data.jobId,
       category,
       role: data.role,
@@ -603,7 +706,7 @@ export class AdminRvaOpportunitiesService {
     return { data, preview };
   }
 
-  private async importBatch(rows: RvaImportAnalysisRow[]): Promise<{
+  async importBatch(rows: RvaImportAnalysisRow[]): Promise<{
     imported: number;
     failed: number;
     errors: Array<{ row: number; title?: string; error: string }>;
@@ -762,6 +865,7 @@ export class AdminRvaOpportunitiesService {
       if (value !== undefined) data[key] = value;
     };
 
+    assign('serialNo', dto.serialNo);
     assign('title', dto.title);
     assign('description', dto.description);
     assign('role', dto.role);

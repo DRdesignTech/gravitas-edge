@@ -15,90 +15,13 @@ import {
 import { OpportunityCard, SearchIcon, PinIcon, BarsIcon, VaultIcon } from '@/components/cards';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import HomeAnchor from '@/components/marketing/HomeAnchor';
-import { displayExperience, hasExperience, isMeaningful, titleCase } from '@/lib/format';
+import { displayExperience, hasExperience, titleCase } from '@/lib/format';
 import { extractEmail, buildApplyMailto } from '@job-portal/shared';
 import { fetchOpportunities, fetchVaultOpportunityCounts } from '@/lib/services';
 
 const PAGE_SIZE = 12;
 const VIEW_KEY = 'free-preview-view';
 type PreviewView = 'grid' | 'list';
-
-const EXPERIENCE_BUCKETS = [
-  '0–5 years',
-  '5–10 years',
-  '10–15 years',
-  '15+ years',
-  'Senior / Leadership',
-  'Other',
-];
-const SALARY_BUCKETS = [
-  'Under ₹40 LPA',
-  '₹40–₹60 LPA',
-  '₹60 LPA and above',
-  'Competitive / Market',
-  'Not specified',
-];
-
-function uniqueOptions(values: (string | null | undefined)[]): { value: string; label: string }[] {
-  const seen = new Set<string>();
-  const out: { value: string; label: string }[] = [];
-  for (const raw of values) {
-    const value = raw?.trim();
-    if (!value || !isMeaningful(value) || seen.has(value)) continue;
-    seen.add(value);
-    out.push({ value, label: value });
-  }
-  return out.sort((a, b) => a.label.localeCompare(b.label));
-}
-
-/** Primary city from a raw location like "Bangalore / Chennai" or "Mumbai, Maharashtra". */
-function primaryLocation(value: string): string {
-  return value.split(/[/,]/)[0].trim();
-}
-
-/** Primary sector from a raw industry like "Banking / Financial Services / HR". */
-function primaryIndustry(value: string): string {
-  return value.split('/')[0].trim();
-}
-
-/** Bucket a free-text experience value (e.g. "15+ Years") into a coarse range. */
-function experienceBucket(value: string): string {
-  const text = value.trim();
-  if (!text) return '';
-  const match = text.match(/\d+/);
-  if (match) {
-    const years = Number(match[0]);
-    if (years < 5) return '0–5 years';
-    if (years < 10) return '5–10 years';
-    if (years < 15) return '10–15 years';
-    return '15+ years';
-  }
-  const lower = text.toLowerCase();
-  if (['leadership', 'senior', 'executive', 'c-suite', 'cxo'].some((w) => lower.includes(w))) {
-    return 'Senior / Leadership';
-  }
-  return 'Other';
-}
-
-/** Bucket a free-text salary value into a coarse range. */
-function salaryBucket(value: string): string {
-  const text = value.trim();
-  if (!text) return '';
-  const lower = text.toLowerCase();
-  if (/not mention|not specif|n\/a/.test(lower)) return 'Not specified';
-  if (/competitive|industry standard|attractive|negotiable/.test(lower)) {
-    return 'Competitive / Market';
-  }
-  const numbers = (text.match(/\d+(?:\.\d+)?/g) ?? []).map((n) => Number(n.replace(/,/g, '')));
-  const max = numbers.length ? Math.max(...numbers) : 0;
-  if (lower.includes('cr')) return '₹60 LPA and above';
-  if (/lpa|lac|lakh/.test(lower)) {
-    if (max >= 60) return '₹60 LPA and above';
-    if (max >= 40) return '₹40–₹60 LPA';
-    return 'Under ₹40 LPA';
-  }
-  return 'Competitive / Market';
-}
 
 function readInitialView(): PreviewView {
   if (typeof window === 'undefined') return 'grid';
@@ -132,10 +55,6 @@ export default function LiveFreePreview({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [vault, setVault] = useState('');
-  const [location, setLocation] = useState('');
-  const [industry, setIndustry] = useState('');
-  const [experience, setExperience] = useState('');
-  const [salary, setSalary] = useState('');
   const [view, setView] = useState<PreviewView>(readInitialView);
   const [page, setPage] = useState(1);
   const [searchTrigger, setSearchTrigger] = useState(0);
@@ -211,19 +130,15 @@ export default function LiveFreePreview({
   // Load opportunities when searchTrigger, page, or filters change
   // searchTrigger increments ONLY when search button is clicked
   useEffect(() => {
-    // Search button ONLY does keyword search (searchQuery)
-    // Filters (vault, experience, location, industry, salary) apply instantly
     loadOpportunities({
       page,
       limit: PAGE_SIZE,
       search: searchQuery || undefined,
       vaultId: vault || undefined,
-      location: location || undefined,
-      industry: industry || undefined,
       sortBy: 'createdAt',
       sortOrder: 'desc',
     });
-  }, [searchTrigger, page, vault, experience, salary, location, industry, loadOpportunities]);
+  }, [searchTrigger, page, vault, loadOpportunities]);
 
   /** How many of the listed jobs belong to each vault, busiest vault first. */
   const vaultStats = useMemo(() => {
@@ -232,15 +147,11 @@ export default function LiveFreePreview({
       .sort((a, b) => b.count - a.count || a.vault.name.localeCompare(b.vault.name));
   }, [vaults, vaultCounts]);
 
-  const hasFilters = Boolean(searchQuery || vault || location || industry || experience || salary);
+  const hasFilters = Boolean(searchQuery || vault);
 
   const resetFilters = () => {
     setSearchQuery('');
     setVault('');
-    setLocation('');
-    setIndustry('');
-    setExperience('');
-    setSalary('');
     setPage(1);
   };
 
@@ -270,10 +181,10 @@ export default function LiveFreePreview({
           <h2 className="mt-3 text-2xl font-bold tracking-tight text-content sm:text-3xl">
             Explore before you decide
           </h2>
-          <p className="mt-2 text-sm text-content-muted sm:text-base">
-            See what opportunities are currently available and discover what is relevant for you to
-            your experience, function &amp; preferred market.
-          </p>
+                <p className="mt-2 text-sm text-content-muted sm:text-base">
+                  See what opportunities are currently available. Use the search to find what&apos;s relevant
+                  for you.
+                </p>
           <p className="mt-2 text-sm font-medium text-content sm:text-base">
             Explore First. Decide if it&apos;s right for you. Then choose access.
           </p>
@@ -349,57 +260,60 @@ export default function LiveFreePreview({
 
         {!loading && !error && (
           <div className="mb-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative w-full max-w-2xl md:max-w-3xl">
-                <form onSubmit={handleSearch}>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <SearchIcon
-                        className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50"
-                        aria-hidden="true"
-                      />
-                      <input
-                        id="free-preview-search"
-                        type="text"
-                        placeholder="Search by role, company, location, experience..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-4 text-base text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                        aria-label="Search opportunities by title, company, or location"
-                      />
-                      {searchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => { setSearchQuery(''); handleSearch(); }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
-                          aria-label="Clear search"
-                        >
-                          <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            strokeWidth={2}
-                            stroke="currentColor"
-                            aria-hidden="true"
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="relative w-full max-w-2xl md:max-w-3xl">
+                      <form onSubmit={handleSearch}>
+                        <div className="flex flex-col gap-2">
+                          <div className="relative flex-1">
+                            <SearchIcon
+                              className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50"
+                              aria-hidden="true"
+                            />
+                            <input
+                              id="free-preview-search"
+                              type="text"
+                              placeholder="Search by role, company, location, salary, experience..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-4 text-base text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
+                              aria-label="Search opportunities by keywords (role, company, location, salary, experience, etc.)"
+                            />
+                            {searchQuery && (
+                              <button
+                                type="button"
+                                onClick={() => { setSearchQuery(''); handleSearch(); }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
+                                aria-label="Clear search"
+                              >
+                                <svg
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth={2}
+                                  stroke="currentColor"
+                                  aria-hidden="true"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-center text-xs text-content-muted">
+                            You can search anything — try multiple keywords like company, role, location, or salary
+                          </p>
+                          <button
+                            type="submit"
+                            className="mx-auto inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={loading}
                           >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
+                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            Search
+                          </button>
+                        </div>
+                      </form>
                     </div>
-                    <button
-                      type="submit"
-                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={loading}
-                    >
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                      Search
-                    </button>
-                  </div>
-                </form>
-              </div>
               <div
                 className="inline-flex shrink-0 items-center gap-0.5 self-start rounded-xl border border-line bg-surface p-0.5 shadow-sm dark:bg-surface-elevated sm:self-auto"
                 role="group"
@@ -436,91 +350,7 @@ export default function LiveFreePreview({
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="relative">
-                <label
-                  htmlFor="filter-experience"
-                  className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
-                >
-                  Experience
-                </label>
-                <input
-                  id="filter-experience"
-                  type="text"
-                  placeholder="e.g. 5 years, Senior"
-                  value={experience}
-                  onChange={(e) => setExperience(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                  aria-label="Filter by experience"
-                />
-              </div>
 
-              <div className="relative">
-                <label
-                  htmlFor="filter-location"
-                  className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
-                >
-                  Location
-                </label>
-                <input
-                  id="filter-location"
-                  type="text"
-                  placeholder="e.g. Bangalore, Mumbai"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                  aria-label="Filter by location"
-                />
-              </div>
-
-              <div className="relative">
-                <label
-                  htmlFor="filter-industry"
-                  className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
-                >
-                  Industry
-                </label>
-                <input
-                  id="filter-industry"
-                  type="text"
-                  placeholder="e.g. FinTech, SaaS"
-                  value={industry}
-                  onChange={(e) => setIndustry(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                  aria-label="Filter by industry"
-                />
-              </div>
-
-              <div className="relative">
-                <label
-                  htmlFor="filter-salary"
-                  className="absolute -top-2 left-2 text-[10px] font-medium text-brand-600 bg-surface px-1 dark:bg-surface-elevated"
-                >
-                  Salary
-                </label>
-                <input
-                  id="filter-salary"
-                  type="text"
-                  placeholder="e.g. 50 LPA, 1.5 Cr"
-                  value={salary}
-                  onChange={(e) => setSalary(e.target.value)}
-                  className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                  aria-label="Filter by salary"
-                />
-              </div>
-            </div>
-
-            {hasFilters && (
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                >
-                  Clear all filters
-                </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -555,7 +385,7 @@ export default function LiveFreePreview({
                 title={hasFilters ? 'No matching opportunities' : 'No opportunities yet'}
                 description={
                   hasFilters
-                    ? 'No opportunities match your search and filters. Clear them to see the full list.'
+                    ? 'No opportunities match your search. Clear it to see the full list.'
                     : 'Check back soon — new opportunities are added regularly.'
                 }
                 action={
@@ -566,7 +396,7 @@ export default function LiveFreePreview({
                         onClick={resetFilters}
                         className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-content transition-all duration-150 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 dark:bg-transparent"
                       >
-                        Clear all filters
+                        Clear search
                       </button>
                     </div>
                   ) : null

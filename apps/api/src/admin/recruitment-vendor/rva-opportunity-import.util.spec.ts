@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import {
+  deriveRvaTitle,
   findRvaHeaderRow,
   isBlankRvaRow,
   isRvaJobSheet,
@@ -49,7 +50,40 @@ describe('rva-opportunity-import.util', () => {
     });
 
     it('ignores unrecognized columns', () => {
-      expect(Object.values(mapRvaHeadersToFields(['Serial No', 'Priority']))).toEqual([]);
+      expect(Object.values(mapRvaHeadersToFields(['Priority', 'Owner']))).toEqual([]);
+    });
+
+    it('maps the canonical Recruitment Vendor Access Vault columns', () => {
+      const colMap = mapRvaHeadersToFields([
+        'S. No.',
+        'Job ID',
+        'Date',
+        'Opportunity Type',
+        'Organisation',
+        'Industry',
+        'Geography',
+        'Vendor Requirement / Scope',
+        'Eligibility / Vendor Criteria',
+        'Deadline',
+        'Contact Person',
+        'Other Details',
+        'How to Apply',
+      ]);
+      expect(Object.values(colMap)).toEqual([
+        'serialNo',
+        'jobId',
+        'publishedDate',
+        'title',
+        'organization',
+        'sector',
+        'geography',
+        'requirements',
+        'eligibility',
+        'expiryDate',
+        'applicationContact',
+        'otherDetails',
+        'howToApply',
+      ]);
     });
   });
 
@@ -72,6 +106,61 @@ describe('rva-opportunity-import.util', () => {
 
     it('requires more than the title alone', () => {
       expect(findRvaHeaderRow([['Title', 'Description']])).toBeNull();
+    });
+
+    it('detects the canonical workbook header row with no Title column', () => {
+      const header = findRvaHeaderRow([
+        ['Recruitment Vendor Access'],
+        [
+          'S. No.',
+          'Job ID',
+          'Date',
+          'Opportunity Type',
+          'Organisation',
+          'Industry',
+          'Geography',
+          'Vendor Requirement / Scope',
+          'Eligibility / Vendor Criteria',
+          'Deadline',
+          'Contact Person',
+          'Other Details',
+          'How to Apply',
+        ],
+        [
+          1,
+          'RVA-1',
+          '2026-01-05',
+          'Staffing partner',
+          'Acme',
+          'Banking',
+          'Dubai',
+          'Supply 20 engineers',
+          '5+ years',
+          'Not mentioned',
+          'hr@acme.com',
+          'Ref 42',
+          'Email your profile',
+        ],
+      ]);
+      expect(header?.index).toBe(1);
+      expect(Object.values(header?.colMap ?? {})).toContain('serialNo');
+      expect(Object.values(header?.colMap ?? {})).toContain('howToApply');
+    });
+
+    it('treats the canonical sheet with a Not mentioned deadline as a job sheet', () => {
+      const sheet = sheetFromRows([
+        ['S. No.', 'Job ID', 'Vendor Requirement / Scope', 'Organisation', 'Deadline'],
+        [1, 'RVA-2', 'Supply staff', 'Acme', 'Not mentioned'],
+      ]);
+      const rows = parseRvaSheetRows(sheet);
+      expect(rows).toHaveLength(1);
+      expect(rows[0].fields).toMatchObject({
+        serialNo: '1',
+        jobId: 'RVA-2',
+        requirements: 'Supply staff',
+        organization: 'Acme',
+        expiryDate: 'Not mentioned',
+      });
     });
   });
 
@@ -140,6 +229,30 @@ describe('rva-opportunity-import.util', () => {
         company: 'Acme',
         jobId: 'RVA-9',
       });
+    });
+  });
+
+  describe('deriveRvaTitle', () => {
+    it('prefers an explicit title', () => {
+      expect(deriveRvaTitle({ title: 'Staffing RFP', requirements: 'Ignore me' })).toBe(
+        'Staffing RFP',
+      );
+    });
+
+    it('falls back through requirements, organisation, role and sector', () => {
+      expect(deriveRvaTitle({ requirements: 'Supply 20 engineers' })).toBe('Supply 20 engineers');
+      expect(deriveRvaTitle({ organization: 'Acme' })).toBe('Acme');
+      expect(deriveRvaTitle({ role: 'Recruiter' })).toBe('Recruiter');
+      expect(deriveRvaTitle({ sector: 'Banking' })).toBe('Banking');
+    });
+
+    it('returns an empty string when nothing is present', () => {
+      expect(deriveRvaTitle({})).toBe('');
+    });
+
+    it('truncates long values to the 300-char title budget', () => {
+      const long = 'x'.repeat(350);
+      expect(deriveRvaTitle({ requirements: long })).toHaveLength(300);
     });
   });
 

@@ -14,9 +14,16 @@ import {
   Skeleton,
   useToast,
 } from '@/components/ui';
-import { PinIcon, SearchIcon } from '@/components/cards';
+import {
+  BarsIcon,
+  BriefcaseIcon,
+  IdIcon,
+  LayersIcon,
+  PinIcon,
+  SearchIcon,
+} from '@/components/cards';
 import Eyebrow from '@/components/marketing/Eyebrow';
-import { formatMoney } from '@/lib/format';
+import { formatDate, formatMoney } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import { fetchRvaOverview, fetchRvaOpportunities, purchaseRvaPlan } from '@/lib/services';
@@ -181,6 +188,7 @@ export default function RecruitmentVendorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [buyingPlanId, setBuyingPlanId] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('list');
   const [opportunities, setOpportunities] = useState<RvaOpportunity[]>([]);
@@ -260,6 +268,18 @@ export default function RecruitmentVendorPage() {
     }
   };
 
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setPage(1);
+    setSearchQuery(searchInput);
+  };
+
+  const clearSearch = () => {
+    setSearchInput('');
+    setSearchQuery('');
+    setPage(1);
+  };
+
   const handleChoosePlan = async (plan: RvaPlan) => {
     if (!user) {
       router.push('/register');
@@ -282,6 +302,7 @@ export default function RecruitmentVendorPage() {
   const plans = overview?.plans ?? [];
   const faqs = overview?.faqs ?? [];
   const publishedCount = overview?.publishedOpportunityCount ?? 0;
+  const hasSearch = searchQuery.trim().length > 0;
 
   const filteredOpportunities = useMemo(() => {
     const terms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -515,42 +536,56 @@ export default function RecruitmentVendorPage() {
             </div>
 
             {/* Search + layout toggle */}
-            {!loading && opportunities.length > 0 && (
-              <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative w-full max-w-2xl md:max-w-3xl">
-                  <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-content-muted/50" />
-                  <input
-                    id="rva-preview-search"
-                    type="text"
-                    placeholder="Search by role, company, location, category..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setSearchQuery(value);
-                    }}
-                    onKeyDown={(e) => e.stopPropagation()}
-                    className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-10 text-base text-content placeholder:text-hint shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated"
-                    aria-label="Search recruitment vendor opportunities"
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
-                      aria-label="Clear search"
-                    >
-                      <svg
-                        className="h-4 w-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                        aria-hidden="true"
+            {!loading && (opportunities.length > 0 || hasSearch) && (
+              <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="w-full max-w-2xl md:max-w-3xl">
+                  <form onSubmit={handleSearch}>
+                    <div className="flex flex-col gap-2">
+                      <div className="relative flex-1">
+                        <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-content-muted/50" />
+                        <input
+                          id="rva-preview-search"
+                          type="text"
+                          placeholder="Search by role, company, location, salary, experience..."
+                          value={searchInput}
+                          onChange={(e) => setSearchInput(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-10 text-base text-content placeholder:text-hint shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated"
+                          aria-label="Search recruitment vendor opportunities by keywords"
+                        />
+                        {searchInput && (
+                          <button
+                            type="button"
+                            onClick={clearSearch}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
+                            aria-label="Clear search"
+                          >
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={2}
+                              stroke="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-center text-xs text-content-muted">
+                        You can search anything — try multiple keywords like opportunity type, organisation, industry, geography, or Job ID
+                      </p>
+                      <button
+                        type="submit"
+                        className="mx-auto inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={loadingPage}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
+                        <SearchIcon className="h-5 w-5" />
+                        Search
+                      </button>
+                    </div>
+                  </form>
                 </div>
                 <div
                   className="inline-flex shrink-0 items-center gap-0.5 self-start rounded-xl border border-line bg-surface p-0.5 shadow-sm dark:bg-surface-elevated sm:self-auto"
@@ -595,23 +630,23 @@ export default function RecruitmentVendorPage() {
                   <Skeleton key={i} className="h-56" />
                 ))}
               </div>
-            ) : opportunities.length === 0 ? (
-              <div className="rounded-2xl border border-line bg-surface-muted px-6 py-10 text-center">
-                <p className="text-sm text-content-muted">
-                  New opportunities will appear here as they are published.
-                </p>
-              </div>
-            ) : filteredOpportunities.length === 0 ? (
+            ) : hasSearch && filteredOpportunities.length === 0 ? (
               <div className="rounded-2xl border border-line bg-surface-muted px-6 py-10 text-center">
                 <p className="text-sm text-content-muted">
                   No opportunities match your search.{' '}
                   <button
                     type="button"
-                    onClick={() => setSearchQuery('')}
+                    onClick={clearSearch}
                     className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
                   >
                     Clear search
                   </button>
+                </p>
+              </div>
+            ) : opportunities.length === 0 ? (
+              <div className="rounded-2xl border border-line bg-surface-muted px-6 py-10 text-center">
+                <p className="text-sm text-content-muted">
+                  New opportunities will appear here as they are published.
                 </p>
               </div>
             ) : view === 'grid' ? (
@@ -621,7 +656,7 @@ export default function RecruitmentVendorPage() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {filteredOpportunities.map((o) => (
                   <PreviewRow key={o.id} opportunity={o} onUnlock={() => scrollToId('plans')} />
                 ))}
@@ -772,6 +807,70 @@ export default function RecruitmentVendorPage() {
 const PREVIEW_WRAPPER =
   'group card-premium relative flex h-full flex-col overflow-hidden rounded-2xl';
 
+function RvaField({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | number | null;
+}) {
+  if (value === null || value === undefined || String(value).trim() === '') return null;
+  return (
+    <div className="flex flex-col gap-0.5 text-xs">
+      <span className="font-semibold uppercase tracking-wide text-content-faint">{label}</span>
+      <span className="whitespace-pre-line text-content">{value}</span>
+    </div>
+  );
+}
+
+/** A compact icon + label pill, mirroring the Opportunity Vault meta chips. */
+function RvaChip({ icon, children }: { icon?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <span className="inline-flex max-w-full items-center gap-1.5 truncate rounded-full border border-line bg-surface-muted/70 px-2.5 py-1 text-xs font-medium text-content-muted dark:bg-surface">
+      {icon && <span className="shrink-0 text-content-faint">{icon}</span>}
+      <span className="truncate">{children}</span>
+    </span>
+  );
+}
+
+/** The short source-workbook columns, rendered as space-saving chips. */
+function RvaChips({ opportunity }: { opportunity: RvaOpportunity }) {
+  const org = opportunity.organization || opportunity.company;
+  const geography = opportunity.geography || opportunity.location;
+  const published = formatDate(opportunity.publishedDate);
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <Badge variant="info" className="shrink-0">
+        {opportunity.categoryLabel}
+      </Badge>
+      {opportunity.jobId && (
+        <RvaChip icon={<IdIcon className="h-3.5 w-3.5" />}>#{opportunity.jobId}</RvaChip>
+      )}
+      {org && <RvaChip icon={<BriefcaseIcon className="h-3.5 w-3.5" />}>{org}</RvaChip>}
+      {opportunity.sector && (
+        <RvaChip icon={<LayersIcon className="h-3.5 w-3.5" />}>{opportunity.sector}</RvaChip>
+      )}
+      {geography && <RvaChip icon={<PinIcon className="h-3.5 w-3.5" />}>{geography}</RvaChip>}
+      {opportunity.experienceText && (
+        <RvaChip icon={<BarsIcon className="h-3.5 w-3.5" />}>{opportunity.experienceText}</RvaChip>
+      )}
+      {published && <RvaChip>{published}</RvaChip>}
+    </div>
+  );
+}
+
+/** Full contact + application details, shown only when the viewer is entitled. */
+function RvaFullDetails({ opportunity }: { opportunity: RvaOpportunity }) {
+  if (!opportunity.isFullAccess) return null;
+  return (
+    <div className="mt-4 space-y-3 rounded-xl border border-line bg-surface-muted/60 p-3 dark:bg-surface/60">
+      <RvaField label="Contact Person" value={opportunity.applicationContact} />
+      <RvaField label="Other Details" value={opportunity.otherDetails} />
+      <RvaField label="How to Apply" value={opportunity.howToApply} />
+    </div>
+  );
+}
+
 function PreviewCard({
   opportunity,
   onUnlock,
@@ -810,13 +909,14 @@ function PreviewCard({
         className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-brand-400/15 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100"
       />
 
-      <div className="relative flex items-start justify-between gap-3">
-        <Badge variant="info" className="shrink-0">
-          {opportunity.categoryLabel}
-        </Badge>
-        {opportunity.isFullAccess && (
+      <div className="relative flex items-start justify-end gap-3">
+        {opportunity.isFullAccess ? (
           <Badge variant="success" className="shrink-0">
             Full access
+          </Badge>
+        ) : (
+          <Badge variant="warning" className="shrink-0">
+            <LockIcon className="mr-1 h-3 w-3" /> Locked
           </Badge>
         )}
       </div>
@@ -824,27 +924,12 @@ function PreviewCard({
       <h3 className="relative mt-3 text-base font-bold leading-snug text-content transition-colors group-hover:text-brand-700 dark:group-hover:text-brand-300">
         {opportunity.title}
       </h3>
-      <p className="relative mt-1 text-sm text-content-muted">
-        {opportunity.organization || opportunity.company || '—'}
-      </p>
 
-      <div className="relative mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-content-muted">
-        {opportunity.location && (
-          <span className="inline-flex items-center gap-1">
-            <PinIcon className="h-3.5 w-3.5 text-content-faint" />
-            {opportunity.location}
-          </span>
-        )}
-        {opportunity.experienceText && <span>{opportunity.experienceText}</span>}
+      <div className="relative mt-3">
+        <RvaChips opportunity={opportunity} />
       </div>
 
-      <div className="relative mt-4 flex-1" />
-
-      {!opportunity.isFullAccess && (
-        <span className="relative mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#C8943E]/40 bg-[#FFF3D9] px-3 py-2 text-xs font-semibold text-[#061B36] transition-colors group-hover:bg-[#F6E6BE] dark:border-[#C8943E]/40 dark:bg-[#C8943E]/10 dark:text-[#E3B968] dark:group-hover:bg-[#C8943E]/20">
-          <LockIcon className="h-3.5 w-3.5" /> Unlock Full Access
-        </span>
-      )}
+      <RvaFullDetails opportunity={opportunity} />
     </article>
   );
 }
@@ -872,7 +957,7 @@ function PreviewRow({
             }
           : undefined
       }
-      className={`group card-premium relative overflow-hidden rounded-2xl p-4 sm:p-5 ${
+      className={`group card-premium relative overflow-hidden rounded-2xl px-4 py-3 sm:px-5 sm:py-3.5 ${
         clickable
           ? 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2'
           : ''
@@ -883,37 +968,27 @@ function PreviewRow({
         className="pointer-events-none absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-transparent via-[#C8943E] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
       />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-1 items-start gap-4">
-          <div className="min-w-0">
-            <h3 className="truncate text-[15px] font-bold leading-snug text-content transition-colors group-hover:text-brand-700 dark:group-hover:text-brand-300">
-              {opportunity.title}
-            </h3>
-            <p className="mt-0.5 truncate text-sm text-content-muted">
-              {opportunity.organization || opportunity.company || '—'}
-            </p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-content-muted">
-              <Badge variant="info" className="shrink-0 text-[10px] px-1.5 py-0.5">
-                {opportunity.categoryLabel}
-              </Badge>
-              {opportunity.location && (
-                <span className="inline-flex items-center gap-1">
-                  <PinIcon className="h-3.5 w-3.5 text-content-faint" />
-                  {opportunity.location}
-                </span>
-              )}
-              {opportunity.experienceText && <span>{opportunity.experienceText}</span>}
-            </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-[15px] font-bold leading-snug text-content transition-colors group-hover:text-brand-700 dark:group-hover:text-brand-300">
+            {opportunity.title}
+          </h3>
+          <div className="mt-1.5">
+            <RvaChips opportunity={opportunity} />
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3 self-start sm:self-auto">
           {opportunity.isFullAccess ? (
             <Badge variant="success">Full access</Badge>
           ) : (
-            <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#C8943E]/40 bg-[#FFF3D9] px-3 py-2 text-xs font-semibold text-[#061B36] transition-colors group-hover:bg-[#F6E6BE] dark:border-[#C8943E]/40 dark:bg-[#C8943E]/10 dark:text-[#E3B968] dark:group-hover:bg-[#C8943E]/20">
-              <LockIcon className="h-3.5 w-3.5" /> Unlock Full Access
-            </span>
+            <Badge variant="warning">
+              <LockIcon className="mr-1 h-3 w-3" /> Locked
+            </Badge>
           )}
         </div>
+      </div>
+
+      <div className="mt-4">
+        <RvaFullDetails opportunity={opportunity} />
       </div>
     </article>
   );

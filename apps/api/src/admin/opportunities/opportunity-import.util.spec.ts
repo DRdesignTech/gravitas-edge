@@ -103,6 +103,21 @@ describe('opportunity-import.util', () => {
       expect(parseDateCell('')).toEqual({ date: null, error: null });
     });
 
+    it('treats open-ended deadline phrases as no date instead of invalid', () => {
+      expect(parseDateCell('Immediate')).toEqual({ date: null, error: null });
+      expect(parseDateCell('Immediate / Ongoing')).toEqual({ date: null, error: null });
+      expect(parseDateCell('Ongoing')).toEqual({ date: null, error: null });
+      expect(parseDateCell('ASAP')).toEqual({ date: null, error: null });
+      expect(parseDateCell('Rolling basis')).toEqual({ date: null, error: null });
+      expect(parseDateCell('Open until filled')).toEqual({ date: null, error: null });
+      expect(parseDateCell('No deadline')).toEqual({ date: null, error: null });
+      expect(parseDateCell('  ongoing  ')).toEqual({ date: null, error: null });
+    });
+
+    it('still treats open-ended words combined with a real date as a date', () => {
+      expect(parseDateCell('Immediate - apply by 2026-12-31')?.error).toBeTruthy();
+    });
+
     it('flags unparseable dates', () => {
       const res = parseDateCell('sometime next year');
       expect(res.error).toBeTruthy();

@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 const baseOpp = {
   id: 'opp-1',
+  serialNo: 7,
   jobId: 'RVA-1',
   referenceId: null,
   title: 'RFP for staffing partner',
@@ -82,10 +83,33 @@ describe('RvaOpportunitiesService', () => {
     expect(dto.isFullAccess).toBe(false);
     expect(dto.applicationContact).toBeUndefined();
     expect(dto.howToApply).toBeUndefined();
+    expect(dto.otherDetails).toBeUndefined();
     expect(dto.qualification).toBeUndefined();
     expect(dto.lockedPreview).toBeDefined();
     expect(dto.lockedPreview?.applicationContact).not.toBe('procurement@acme.com');
     expect(dto.lockedPreview?.applicationContact).toMatch(/^p.*m$/);
+  });
+
+  it('exposes the first ten workbook columns (incl. requirements/eligibility) to public visitors', async () => {
+    prisma.recruitmentVendorOpportunity.findFirst.mockResolvedValue(baseOpp);
+    jest
+      .spyOn(access, 'requireAccess')
+      .mockResolvedValue({ authorized: false, reason: 'UNAUTHENTICATED' });
+
+    const dto = await service.findOneForUser('opp-1', undefined);
+
+    expect(dto.serialNo).toBe(7);
+    expect(dto.jobId).toBe('RVA-1');
+    expect(dto.title).toBe('RFP for staffing partner');
+    expect(dto.organization).toBe('Acme Pvt Ltd');
+    expect(dto.sector).toBe('Staffing');
+    expect(dto.geography).toBe('Middle East');
+    expect(dto.requirements).toBe('UAE labour law compliance');
+    expect(dto.eligibility).toBe('Registered staffing firm');
+    expect(dto.expiryDate).toEqual(new Date('2026-12-01'));
+    // Field 8/9 never live inside the locked teaser.
+    expect(JSON.stringify(dto.lockedPreview)).not.toContain('UAE labour law compliance');
+    expect(JSON.stringify(dto.lockedPreview)).not.toContain('Registered staffing firm');
   });
 
   it('returns full protected fields when the caller has an active RVA entitlement', async () => {
@@ -98,7 +122,11 @@ describe('RvaOpportunitiesService', () => {
 
     expect(dto.isFullAccess).toBe(true);
     expect(dto.applicationContact).toBe('procurement@acme.com');
+    expect(dto.otherDetails).toBe('Deadline 30 Nov');
+    expect(dto.howToApply).toBe('Email procurement@acme.com');
     expect(dto.qualification).toBe('Valid trade license');
+    expect(dto.requirements).toBe('UAE labour law compliance');
+    expect(dto.eligibility).toBe('Registered staffing firm');
     expect(dto.lockedPreview).toBeUndefined();
   });
 

@@ -140,15 +140,28 @@ export class OpportunitiesService {
     };
 
     if (query.search) {
-      const term = query.search.trim();
-      where.OR = [
-        { title: { contains: term, mode: 'insensitive' } },
-        { description: { contains: term, mode: 'insensitive' } },
-        { company: { contains: term, mode: 'insensitive' } },
-        { location: { contains: term, mode: 'insensitive' } },
-        { industry: { contains: term, mode: 'insensitive' } },
-        { jobId: { contains: term, mode: 'insensitive' } },
-      ];
+      // Split the query into keywords so a search like "dubai hr 500000" matches
+      // opportunities where every keyword appears somewhere across the indexed
+      // fields (location, function, salary, company, etc.). Keywords are ANDed
+      // together; each keyword may match any one of the searchable fields.
+      const tokens = query.search.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length) {
+        where.AND = tokens.map((token) => ({
+          OR: [
+            { title: { contains: token, mode: 'insensitive' } },
+            { description: { contains: token, mode: 'insensitive' } },
+            { company: { contains: token, mode: 'insensitive' } },
+            { location: { contains: token, mode: 'insensitive' } },
+            { country: { contains: token, mode: 'insensitive' } },
+            { industry: { contains: token, mode: 'insensitive' } },
+            { functionalArea: { contains: token, mode: 'insensitive' } },
+            { salary: { contains: token, mode: 'insensitive' } },
+            { experienceText: { contains: token, mode: 'insensitive' } },
+            { qualification: { contains: token, mode: 'insensitive' } },
+            { jobId: { contains: token, mode: 'insensitive' } },
+          ],
+        }));
+      }
     }
 
     if (query.category) where.category = query.category as any;

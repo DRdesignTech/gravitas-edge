@@ -8,6 +8,7 @@ import {
   adminCreateOpportunity,
   adminDeleteOpportunity,
   adminDeleteOpportunityPermanent,
+  adminBulkDeleteOpportunities,
   adminListVaults,
   adminListExperienceLevels,
 } from '@/lib/services';
@@ -214,6 +215,15 @@ export default function OpportunitiesPage() {
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [confirmPermDeleteAll, setConfirmPermDeleteAll] = useState(false);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkConfirmMode, setBulkConfirmMode] = useState<'archive' | 'permanent' | null>(null);
+  const [dateDeleteOpen, setDateDeleteOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [dateMode, setDateMode] = useState<'archive' | 'permanent'>('archive');
+  const [dateDeleting, setDateDeleting] = useState(false);
+
   const load = () => {
     setLoading(true);
     setError('');
@@ -374,33 +384,27 @@ export default function OpportunitiesPage() {
   const openConfirmDeleteAll = () => setConfirmDeleteAll(true);
   const openConfirmPermDeleteAll = () => setConfirmPermDeleteAll(true);
 
+  const activeFilters = () => ({
+    search: search || undefined,
+    status: status || undefined,
+    category: category || undefined,
+    employmentType: employmentType || undefined,
+    vaultId: vaultId || undefined,
+  });
+
   const executeDeleteAll = async () => {
     setDeletingAll(true);
     setConfirmDeleteAll(false);
     try {
-      // Delete all opportunities (archived)
-      // We need to fetch all pages and delete them
-      let pageNum = 1;
-      let hasMore = true;
-      let totalDeleted = 0;
-      while (hasMore) {
-        const res = await adminListOpportunities({
-          page: pageNum,
-          limit: 100,
-          search,
-          status,
-          category,
-          employmentType,
-          vaultId,
-        });
-        for (const o of res.items) {
-          await adminDeleteOpportunity(o.id);
-          totalDeleted++;
-        }
-        hasMore = res.meta.hasNextPage;
-        pageNum++;
-      }
-      showToast(`${totalDeleted} opportunities archived`, 'success');
+      const filters = activeFilters();
+      const hasFilters = Object.values(filters).some(Boolean);
+      const res = await adminBulkDeleteOpportunities({
+        mode: 'archive',
+        ...filters,
+        ...(hasFilters ? {} : { confirmAll: true as const }),
+      });
+      showToast(`${res.count} opportunities archived`, 'success');
+      setSelectedIds(new Set());
       load();
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
@@ -413,32 +417,92 @@ export default function OpportunitiesPage() {
     setPermDeletingAll(true);
     setConfirmPermDeleteAll(false);
     try {
-      let pageNum = 1;
-      let hasMore = true;
-      let totalDeleted = 0;
-      while (hasMore) {
-        const res = await adminListOpportunities({
-          page: pageNum,
-          limit: 100,
-          search,
-          status,
-          category,
-          employmentType,
-          vaultId,
-        });
-        for (const o of res.items) {
-          await adminDeleteOpportunityPermanent(o.id);
-          totalDeleted++;
-        }
-        hasMore = res.meta.hasNextPage;
-        pageNum++;
-      }
-      showToast(`${totalDeleted} opportunities deleted permanently`, 'success');
+      const filters = activeFilters();
+      const hasFilters = Object.values(filters).some(Boolean);
+      const res = await adminBulkDeleteOpportunities({
+        mode: 'permanent',
+        ...filters,
+        ...(hasFilters ? {} : { confirmAll: true as const }),
+      });
+      showToast(`${res.count} opportunities deleted permanently`, 'success');
+      setSelectedIds(new Set());
       load();
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
     } finally {
       setPermDeletingAll(false);
+    }
+  };
+
+  const toggleSelected = (id: string, checked: boolean) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
+  const toggleSelectAllOnPage = (checked: boolean) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const o of data?.items ?? []) {
+        if (checked) next.add(o.id);
+        else next.delete(o.id);
+      }
+      return next;
+    });
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const executeBulkSelected = async () => {
+    const mode = bulkConfirmMode;
+    if (!mode || selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      const res = await adminBulkDeleteOpportunities({ mode, ids: [...selectedIds] });
+      showToast(
+        `${res.count} ${selectedIds.size === 1 ? 'opportunity' : 'opportunities'} ${
+          mode === 'archive' ? 'archived' : 'deleted'
+        }`,
+        'success',
+      );
+      setSelectedIds(new Set());
+      setBulkConfirmMode(null);
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const executeDateDelete = async () => {
+    if (!dateFrom && !dateTo) {
+      showToast('Pick a start or end date first', 'error');
+      return;
+    }
+    setDateDeleting(true);
+    try {
+      const res = await adminBulkDeleteOpportunities({
+        mode: dateMode,
+        publishedAfter: dateFrom ? new Date(dateFrom).toISOString() : undefined,
+        publishedBefore: dateTo ? new Date(`${dateTo}T23:59:59.999`).toISOString() : undefined,
+      });
+      showToast(
+        `${res.count} ${res.count === 1 ? 'opportunity' : 'opportunities'} ${
+          dateMode === 'archive' ? 'archived' : 'deleted'
+        }`,
+        'success',
+      );
+      setDateDeleteOpen(false);
+      setDateFrom('');
+      setDateTo('');
+      setSelectedIds(new Set());
+      load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setDateDeleting(false);
     }
   };
 
@@ -453,7 +517,40 @@ export default function OpportunitiesPage() {
   const oppStatusVariant = (s: string): 'success' | 'neutral' | 'danger' =>
     s === 'PUBLISHED' ? 'success' : s === 'DRAFT' ? 'neutral' : 'danger';
 
+  const pageIds = (data?.items ?? []).map((o) => o.id);
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const someOnPageSelected = pageIds.some((id) => selectedIds.has(id));
+
   const columns: Column<Opportunity>[] = [
+    {
+      key: 'select',
+      label: (
+        <input
+          type="checkbox"
+          aria-label="Select all on this page"
+          className="h-4 w-4 cursor-pointer accent-brand-600"
+          checked={allOnPageSelected}
+          ref={(el) => {
+            if (el) el.indeterminate = someOnPageSelected && !allOnPageSelected;
+          }}
+          onChange={(e) => toggleSelectAllOnPage(e.target.checked)}
+        />
+      ),
+      render: (o) => (
+        <input
+          type="checkbox"
+          aria-label={`Select ${o.title}`}
+          className="h-4 w-4 cursor-pointer accent-brand-600"
+          checked={selectedIds.has(o.id)}
+          onChange={(e) => {
+            const next = new Set(selectedIds);
+            if (e.target.checked) next.add(o.id);
+            else next.delete(o.id);
+            setSelectedIds(next);
+          }}
+        />
+      ),
+    },
     {
       key: 'serialNo',
       label: L.serialNo,
@@ -685,8 +782,8 @@ export default function OpportunitiesPage() {
         </Card>
       ) : data && data.items.length > 0 ? (
         <>
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="secondary"
                 onClick={openConfirmDeleteAll}
@@ -705,9 +802,45 @@ export default function OpportunitiesPage() {
               >
                 Delete All Permanently
               </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setDateDeleteOpen(true)}
+                size="sm"
+              >
+                Delete by Date
+              </Button>
             </div>
             <ViewToggle view={view} onChange={setView} />
           </div>
+
+          {selectedIds.size > 0 && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-300 bg-brand-50 px-4 py-2.5 text-sm dark:border-brand-500/40 dark:bg-brand-500/10">
+              <span className="font-medium text-content">
+                {selectedIds.size} selected
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={bulkDeleting}
+                  onClick={() => setBulkConfirmMode('archive')}
+                >
+                  Archive Selected
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={bulkDeleting}
+                  onClick={() => setBulkConfirmMode('permanent')}
+                >
+                  Delete Selected
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                  Clear
+                </Button>
+              </div>
+            </div>
+          )}
           {view === 'grid' ? (
             <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {data.items.map((o) => (
@@ -716,18 +849,32 @@ export default function OpportunitiesPage() {
                   className="flex flex-col rounded-2xl border border-line bg-surface p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-sm font-semibold text-content">{o.title}</h3>
-                      {o.serialNo != null && (
-                        <p className="mt-0.5 text-xs text-content-faint">
-                          {L.serialNo}: {o.serialNo}
-                        </p>
-                      )}
-                      {o.jobId && (
-                        <p className="mt-0.5 text-xs font-medium text-content-muted">
-                          {L.jobId}: {o.jobId}
-                        </p>
-                      )}
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${o.title}`}
+                        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-brand-600"
+                        checked={selectedIds.has(o.id)}
+                        onChange={(e) => {
+                          const next = new Set(selectedIds);
+                          if (e.target.checked) next.add(o.id);
+                          else next.delete(o.id);
+                          setSelectedIds(next);
+                        }}
+                      />
+                      <div className="min-w-0">
+                        <h3 className="truncate text-sm font-semibold text-content">{o.title}</h3>
+                        {o.serialNo != null && (
+                          <p className="mt-0.5 text-xs text-content-faint">
+                            {L.serialNo}: {o.serialNo}
+                          </p>
+                        )}
+                        {o.jobId && (
+                          <p className="mt-0.5 text-xs font-medium text-content-muted">
+                            {L.jobId}: {o.jobId}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <Badge variant={oppStatusVariant(o.status)}>{o.status}</Badge>
                   </div>
@@ -1171,6 +1318,84 @@ export default function OpportunitiesPage() {
         variant="danger"
         loading={permDeletingAll}
       />
+
+      <ConfirmDialog
+        isOpen={bulkConfirmMode !== null}
+        onClose={() => setBulkConfirmMode(null)}
+        onConfirm={executeBulkSelected}
+        title={
+          bulkConfirmMode === 'archive'
+            ? 'Archive selected opportunities'
+            : 'Delete selected opportunities'
+        }
+        message={
+          bulkConfirmMode === 'archive'
+            ? `Archive ${selectedIds.size} selected ${
+                selectedIds.size === 1 ? 'opportunity' : 'opportunities'
+              }? This cannot be undone.`
+            : `Permanently delete ${selectedIds.size} selected ${
+                selectedIds.size === 1 ? 'opportunity' : 'opportunities'
+              }? This action cannot be undone.`
+        }
+        confirmText={bulkConfirmMode === 'archive' ? 'Archive selected' : 'Delete selected'}
+        variant={bulkConfirmMode === 'permanent' ? 'danger' : 'primary'}
+        loading={bulkDeleting}
+      />
+
+      <Modal
+        isOpen={dateDeleteOpen}
+        onClose={() => setDateDeleteOpen(false)}
+        title="Delete opportunities by date"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setDateDeleteOpen(false)} disabled={dateDeleting}>
+              Cancel
+            </Button>
+            <Button
+              variant={dateMode === 'permanent' ? 'danger' : 'primary'}
+              onClick={executeDateDelete}
+              loading={dateDeleting}
+            >
+              {dateMode === 'archive' ? 'Archive matching' : 'Delete matching'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-content-muted">
+            Target opportunities by their published date (the date shown in the list). Leave one
+            side empty for an open-ended range.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Published from"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+            <Input
+              label="Published to"
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+          <Select
+            label="Action"
+            value={dateMode}
+            onChange={(e) => setDateMode(e.target.value as 'archive' | 'permanent')}
+            options={[
+              { value: 'archive', label: 'Archive (soft delete)' },
+              { value: 'permanent', label: 'Delete permanently' },
+            ]}
+          />
+          <p className="text-xs text-content-muted">
+            {dateMode === 'archive'
+              ? 'Archived opportunities are removed from the list.'
+              : 'Permanent deletion cannot be undone.'}
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }

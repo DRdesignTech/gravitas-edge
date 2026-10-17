@@ -452,7 +452,6 @@ export interface RvaPlan {
 /** Server-masked teaser of protected RVA fields for callers without access. */
 export interface RvaLockedPreview {
   qualification: string | null;
-  requirements: string | null;
   otherDetails: string | null;
   howToApply: string | null;
   applicationContact: string | null;
@@ -461,6 +460,7 @@ export interface RvaLockedPreview {
 
 export interface RvaOpportunity {
   id: string;
+  serialNo: number | null;
   jobId: string | null;
   referenceId: string | null;
   title: string;
@@ -481,12 +481,14 @@ export interface RvaOpportunity {
   createdAt: string;
   status: string;
   isFullAccess: boolean;
+  /** Field 8 — Vendor Requirement / Scope (always visible). */
+  requirements: string | null;
+  /** Field 9 — Eligibility / Vendor Criteria (always visible). */
+  eligibility: string | null;
   /** Always-visible safe teaser (null when the caller has no access). */
   budget?: string | null;
-  /** Only present for entitled callers. */
+  /** Only present for entitled callers (last 3 workbook columns). */
   qualification?: string | null;
-  requirements?: string | null;
-  eligibility?: string | null;
   otherDetails?: string | null;
   description?: string | null;
   howToApply?: string | null;
@@ -523,6 +525,9 @@ export interface RvaPurchaseResult {
   planName: string;
   durationDays: number;
   status: string;
+  originalAmount?: number;
+  discountAmount?: number;
+  coupon?: CouponSummary;
   keyId?: string;
 }
 
@@ -535,6 +540,10 @@ export interface RvaPaymentSession {
   planId: string | null;
   planName: string | null;
   durationDays: number | null;
+  couponCode: string | null;
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
   keyId?: string;
 }
 
@@ -558,4 +567,5 @@ export interface RvaConfirmResult {
     } | null;
   } | null;
   payment: { id: string; status: string; amount: number; currency: string };
+  coupon?: PurchaseCouponInfo;
 }

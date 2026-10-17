@@ -11,6 +11,8 @@ import { AdminRvaSubscriptionsController } from './admin-rva-subscriptions.contr
 import { AdminRvaSubscriptionsService } from './admin-rva-subscriptions.service';
 import { AdminRvaAnalyticsController } from './admin-rva-analytics.controller';
 import { AdminRvaAnalyticsService } from './admin-rva-analytics.service';
+import { AdminRvaCouponsController } from './admin-rva-coupons.controller';
+import { AdminRvaCouponsService } from './admin-rva-coupons.service';
 
 @Module({
   imports: [AuditModule],
@@ -21,6 +23,7 @@ import { AdminRvaAnalyticsService } from './admin-rva-analytics.service';
     AdminRvaFaqsController,
     AdminRvaSubscriptionsController,
     AdminRvaAnalyticsController,
+    AdminRvaCouponsController,
   ],
   providers: [
     AdminRvaOpportunitiesService,
@@ -28,6 +31,7 @@ import { AdminRvaAnalyticsService } from './admin-rva-analytics.service';
     AdminRvaFaqsService,
     AdminRvaSubscriptionsService,
     AdminRvaAnalyticsService,
+    AdminRvaCouponsService,
   ],
 })
 export class AdminRecruitmentVendorModule {}

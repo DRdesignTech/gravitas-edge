@@ -10,6 +10,7 @@ import {
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { QueryOpportunitiesDto } from './dto/query-opportunities.dto';
+import { BulkDeleteOpportunitiesDto } from './dto/bulk-delete-opportunities.dto';
 import {
   describeSheetMatchFailure,
   isBlankRow,
@@ -91,16 +92,33 @@ export class AdminOpportunitiesService {
     private readonly audit: AuditService,
   ) {}
 
-  async list(query: QueryOpportunitiesDto): Promise<PaginatedResult<any>> {
-    const params = buildPaginationParams(query.page, query.limit);
-    const where: Prisma.OpportunityWhereInput = { deletedAt: null };
+  /** Shared filter builder for list and bulk operations (never includes `deletedAt`). */
+  private buildFilterWhere(query: {
+    search?: string;
+    status?: OpportunityStatus;
+    category?: OpportunityCategory;
+    country?: string;
+    location?: string;
+    industry?: string;
+    employmentType?: string;
+    jobId?: string;
+    experienceLevelId?: string;
+    vaultId?: string;
+    publishedAfter?: string;
+    publishedBefore?: string;
+    expiryAfter?: string;
+    expiryBefore?: string;
+    createdAfter?: string;
+    createdBefore?: string;
+  }): Prisma.OpportunityWhereInput {
+    const where: Prisma.OpportunityWhereInput = {};
 
     if (query.status) where.status = query.status;
     if (query.category) where.category = query.category;
     if (query.country) where.country = { contains: query.country, mode: 'insensitive' };
     if (query.location) where.location = { contains: query.location, mode: 'insensitive' };
     if (query.industry) where.industry = { contains: query.industry, mode: 'insensitive' };
-    if (query.employmentType) where.employmentType = query.employmentType;
+    if (query.employmentType) where.employmentType = query.employmentType as any;
 
     if (query.search) {
       const term = query.search.trim();
@@ -137,6 +155,22 @@ export class AdminOpportunitiesService {
       if (query.expiryAfter) where.expiryDate.gte = new Date(query.expiryAfter);
       if (query.expiryBefore) where.expiryDate.lte = new Date(query.expiryBefore);
     }
+
+    if (query.createdAfter || query.createdBefore) {
+      where.createdAt = {};
+      if (query.createdAfter) where.createdAt.gte = new Date(query.createdAfter);
+      if (query.createdBefore) where.createdAt.lte = new Date(query.createdBefore);
+    }
+
+    return where;
+  }
+
+  async list(query: QueryOpportunitiesDto): Promise<PaginatedResult<any>> {
+    const params = buildPaginationParams(query.page, query.limit);
+    const where: Prisma.OpportunityWhereInput = {
+      ...this.buildFilterWhere(query),
+      deletedAt: null,
+    };
 
     const validSortFields = new Set([
       'createdAt',
@@ -387,6 +421,94 @@ export class AdminOpportunitiesService {
     });
 
     return { id, deleted: true };
+  }
+
+  /**
+   * Bulk archive (soft delete) or permanently delete opportunities selected by
+   * explicit IDs or by the same filters the admin list supports (including date
+   * ranges). A no-IDs, no-filter call requires `confirmAll` so a stray request
+   * cannot wipe the table.
+   */
+  async bulkDelete(dto: BulkDeleteOpportunitiesDto, adminUserId: string, ipAddress?: string) {
+    const ids = dto.ids?.map((id) => id.trim()).filter(Boolean) ?? [];
+    const hasFilters = Boolean(
+      dto.search ||
+      dto.status ||
+      dto.category ||
+      dto.country ||
+      dto.location ||
+      dto.industry ||
+      dto.employmentType ||
+      dto.vaultId ||
+      dto.publishedAfter ||
+      dto.publishedBefore ||
+      dto.expiryAfter ||
+      dto.expiryBefore ||
+      dto.createdAfter ||
+      dto.createdBefore,
+    );
+
+    if (ids.length === 0 && !hasFilters && dto.confirmAll !== true) {
+      throw new BadRequestException(
+        'Refusing to delete every opportunity without confirmation (pass confirmAll).',
+      );
+    }
+
+    const where: Prisma.OpportunityWhereInput =
+      ids.length > 0
+        ? { id: { in: ids } }
+        : { ...this.buildFilterWhere(dto), ...(dto.mode === 'archive' ? { deletedAt: null } : {}) };
+
+    if (dto.mode === 'archive') {
+      const result = await this.prisma.opportunity.updateMany({
+        where,
+        data: { status: 'ARCHIVED', deletedAt: new Date() },
+      });
+
+      await this.audit.record({
+        action: 'OPPORTUNITY_BULK_ARCHIVED',
+        entityType: 'Opportunity',
+        adminUserId,
+        ipAddress,
+        details: {
+          count: result.count,
+          byIds: ids.length > 0,
+          filters: this.describeBulkFilters(dto),
+        } as Prisma.InputJsonObject,
+      });
+
+      return { mode: 'archive' as const, count: result.count };
+    }
+
+    const result = await this.prisma.opportunity.deleteMany({ where });
+
+    await this.audit.record({
+      action: 'OPPORTUNITY_BULK_DELETED',
+      entityType: 'Opportunity',
+      adminUserId,
+      ipAddress,
+      details: {
+        count: result.count,
+        byIds: ids.length > 0,
+        filters: this.describeBulkFilters(dto),
+      } as Prisma.InputJsonObject,
+    });
+
+    return { mode: 'permanent' as const, count: result.count };
+  }
+
+  private describeBulkFilters(dto: BulkDeleteOpportunitiesDto): Prisma.InputJsonObject {
+    return {
+      search: dto.search ?? null,
+      status: dto.status ?? null,
+      category: dto.category ?? null,
+      employmentType: dto.employmentType ?? null,
+      vaultId: dto.vaultId ?? null,
+      publishedAfter: dto.publishedAfter ?? null,
+      publishedBefore: dto.publishedBefore ?? null,
+      createdAtAfter: dto.createdAfter ?? null,
+      createdAtBefore: dto.createdBefore ?? null,
+    } as Prisma.InputJsonObject;
   }
 
   async import(

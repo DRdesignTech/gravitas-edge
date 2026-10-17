@@ -43,6 +43,7 @@ const CATEGORY_OPTIONS = RVA_CATEGORIES.map((c) => ({ value: c, label: RVA_CATEG
 const STATUS_OPTIONS = RVA_OPPORTUNITY_STATUSES.map((s) => ({ value: s, label: s }));
 
 interface FormState {
+  serialNo: string;
   title: string;
   category: string;
   status: string;
@@ -75,6 +76,7 @@ interface FormState {
 }
 
 const emptyForm: FormState = {
+  serialNo: '',
   title: '',
   category: 'RFP_EOI_RFQ',
   status: 'DRAFT',
@@ -168,6 +170,7 @@ export default function RvaOpportunitiesPage() {
   const openEdit = (o: RvaOpportunity) => {
     setEditing(o);
     setForm({
+      serialNo: o.serialNo != null ? String(o.serialNo) : '',
       title: o.title,
       category: o.category,
       status: o.status,
@@ -205,6 +208,7 @@ export default function RvaOpportunitiesPage() {
     const text = (v: string) => (v.trim() ? v.trim() : null);
     const num = (v: string) => (v.trim() === '' ? null : Number(v));
     return {
+      serialNo: form.serialNo.trim() === '' ? null : Number(form.serialNo),
       title: form.title.trim(),
       category: form.category,
       status: form.status,
@@ -339,6 +343,11 @@ export default function RvaOpportunitiesPage() {
 
   const columns: Column<RvaOpportunity>[] = [
     {
+      key: 'serialNo',
+      label: 'S. No.',
+      render: (o) => <span className="text-content-muted">{o.serialNo ?? '—'}</span>,
+    },
+    {
       key: 'jobId',
       label: 'Job ID',
       render: (o) => (
@@ -347,7 +356,7 @@ export default function RvaOpportunitiesPage() {
     },
     {
       key: 'title',
-      label: 'Opportunity',
+      label: 'Opportunity Type',
       render: (o) => (
         <div className="max-w-xs">
           <p className="font-medium text-content">{o.title}</p>
@@ -358,32 +367,30 @@ export default function RvaOpportunitiesPage() {
       ),
     },
     {
-      key: 'category',
-      label: 'Category',
-      render: (o) => <Badge variant="info">{RVA_CATEGORY_LABELS[o.category] ?? o.category}</Badge>,
+      key: 'organization',
+      label: 'Organisation',
+      render: (o) => (
+        <span className="text-content-muted">{o.organization || o.company || '—'}</span>
+      ),
     },
     {
-      key: 'role',
-      label: 'Role / Sector',
+      key: 'sector',
+      label: 'Industry',
+      render: (o) => <span className="text-content-muted">{o.sector || '—'}</span>,
+    },
+    {
+      key: 'geography',
+      label: 'Geography',
       render: (o) => (
         <span className="text-content-muted">
-          {[o.role, o.sector].filter(Boolean).join(' · ') || '—'}
+          {[o.geography, o.location, o.country].filter(Boolean).join(', ') || '—'}
         </span>
       ),
     },
     {
-      key: 'location',
-      label: 'Location',
-      render: (o) => (
-        <span className="text-content-muted">
-          {[o.location, o.country].filter(Boolean).join(', ') || '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'publishedDate',
-      label: 'Published',
-      render: (o) => <span className="text-content-muted">{formatDate(o.publishedDate)}</span>,
+      key: 'expiryDate',
+      label: 'Deadline',
+      render: (o) => <span className="text-content-muted">{formatDate(o.expiryDate)}</span>,
     },
     { key: 'status', label: 'Status', render: (o) => <StatusBadge status={o.status} /> },
     {
@@ -520,14 +527,89 @@ export default function RvaOpportunitiesPage() {
       >
         <div className="space-y-6">
           <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-content">Core details</h3>
-            <Input
-              label="Title"
-              required
-              placeholder="RFP: Contingent staffing partner"
-              value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            <h3 className="text-sm font-semibold text-content">Source workbook fields</h3>
+            <p className="text-xs text-content-muted">
+              These match the &quot;Recruitment Vendor Access Vault&quot; workbook columns exactly.
+              The last three (Contact Person, Other Details, How to Apply) are locked behind an
+              active Recruitment Vendor Access plan.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="S. No."
+                type="number"
+                min={0}
+                value={form.serialNo}
+                onChange={(e) => setForm((f) => ({ ...f, serialNo: e.target.value }))}
+              />
+              <Input
+                label="Job ID"
+                value={form.jobId}
+                onChange={(e) => setForm((f) => ({ ...f, jobId: e.target.value }))}
+              />
+              <Input
+                label="Date"
+                type="date"
+                value={form.publishedDate}
+                onChange={(e) => setForm((f) => ({ ...f, publishedDate: e.target.value }))}
+              />
+              <Input
+                label="Opportunity Type"
+                required
+                placeholder="Recruitment and Staffing Partner Requirement"
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              />
+              <Input
+                label="Organisation"
+                value={form.organization}
+                onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
+              />
+              <Input
+                label="Industry"
+                value={form.sector}
+                onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))}
+              />
+              <Input
+                label="Geography"
+                value={form.geography}
+                onChange={(e) => setForm((f) => ({ ...f, geography: e.target.value }))}
+              />
+              <Input
+                label="Deadline"
+                type="date"
+                value={form.expiryDate}
+                onChange={(e) => setForm((f) => ({ ...f, expiryDate: e.target.value }))}
+              />
+            </div>
+            <Textarea
+              label="Vendor Requirement / Scope"
+              value={form.requirements}
+              onChange={(e) => setForm((f) => ({ ...f, requirements: e.target.value }))}
             />
+            <Textarea
+              label="Eligibility / Vendor Criteria"
+              value={form.eligibility}
+              onChange={(e) => setForm((f) => ({ ...f, eligibility: e.target.value }))}
+            />
+            <Textarea
+              label="Contact Person"
+              value={form.applicationContact}
+              onChange={(e) => setForm((f) => ({ ...f, applicationContact: e.target.value }))}
+            />
+            <Textarea
+              label="Other Details"
+              value={form.otherDetails}
+              onChange={(e) => setForm((f) => ({ ...f, otherDetails: e.target.value }))}
+            />
+            <Textarea
+              label="How to Apply"
+              value={form.howToApply}
+              onChange={(e) => setForm((f) => ({ ...f, howToApply: e.target.value }))}
+            />
+          </section>
+
+          <section className="space-y-4">
+            <h3 className="text-sm font-semibold text-content">Additional / internal fields</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <Select
                 label="Category"
@@ -541,26 +623,10 @@ export default function RvaOpportunitiesPage() {
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
                 options={STATUS_OPTIONS}
               />
-            </div>
-            <Textarea
-              label="Description"
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            />
-          </section>
-
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-content">Scope & party</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
               <Input
-                label="Role / Opportunity title"
+                label="Role"
                 value={form.role}
                 onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-              />
-              <Input
-                label="Sector"
-                value={form.sector}
-                onChange={(e) => setForm((f) => ({ ...f, sector: e.target.value }))}
               />
               <Input
                 label="Company"
@@ -568,31 +634,15 @@ export default function RvaOpportunitiesPage() {
                 onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
               />
               <Input
-                label="Organization"
-                value={form.organization}
-                onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
-              />
-              <Input
                 label="Location"
                 value={form.location}
                 onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-              />
-              <Input
-                label="Geography"
-                value={form.geography}
-                onChange={(e) => setForm((f) => ({ ...f, geography: e.target.value }))}
               />
               <Input
                 label="Country"
                 value={form.country}
                 onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
               />
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-content">Commercials</h3>
-            <div className="grid gap-4 sm:grid-cols-3">
               <Input
                 label="Budget"
                 value={form.budget}
@@ -608,12 +658,6 @@ export default function RvaOpportunitiesPage() {
                 value={form.commercialValue}
                 onChange={(e) => setForm((f) => ({ ...f, commercialValue: e.target.value }))}
               />
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-content">Experience & eligibility</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 label="Min experience (years)"
                 type="number"
@@ -628,59 +672,22 @@ export default function RvaOpportunitiesPage() {
                 value={form.maxExperience}
                 onChange={(e) => setForm((f) => ({ ...f, maxExperience: e.target.value }))}
               />
-            </div>
-            <Input
-              label="Experience text"
-              value={form.experienceText}
-              onChange={(e) => setForm((f) => ({ ...f, experienceText: e.target.value }))}
-            />
-            <Textarea
-              label="Eligibility"
-              value={form.eligibility}
-              onChange={(e) => setForm((f) => ({ ...f, eligibility: e.target.value }))}
-            />
-            <Textarea
-              label="Qualification"
-              value={form.qualification}
-              onChange={(e) => setForm((f) => ({ ...f, qualification: e.target.value }))}
-            />
-            <Textarea
-              label="Requirements"
-              value={form.requirements}
-              onChange={(e) => setForm((f) => ({ ...f, requirements: e.target.value }))}
-            />
-            <Textarea
-              label="Other details"
-              value={form.otherDetails}
-              onChange={(e) => setForm((f) => ({ ...f, otherDetails: e.target.value }))}
-            />
-          </section>
-
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-content">Application</h3>
-            <Textarea
-              label="How to apply"
-              value={form.howToApply}
-              onChange={(e) => setForm((f) => ({ ...f, howToApply: e.target.value }))}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="Experience text"
+                value={form.experienceText}
+                onChange={(e) => setForm((f) => ({ ...f, experienceText: e.target.value }))}
+              />
+              <Input
+                label="Qualification"
+                value={form.qualification}
+                onChange={(e) => setForm((f) => ({ ...f, qualification: e.target.value }))}
+              />
               <Input
                 label="Application URL"
                 placeholder="https://"
                 value={form.applicationUrl}
                 onChange={(e) => setForm((f) => ({ ...f, applicationUrl: e.target.value }))}
               />
-              <Input
-                label="Application contact"
-                value={form.applicationContact}
-                onChange={(e) => setForm((f) => ({ ...f, applicationContact: e.target.value }))}
-              />
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-content">Tracking</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
               <Input
                 label="Source"
                 value={form.source}
@@ -691,25 +698,14 @@ export default function RvaOpportunitiesPage() {
                 value={form.referenceId}
                 onChange={(e) => setForm((f) => ({ ...f, referenceId: e.target.value }))}
               />
-              <Input
-                label="Opportunity ID"
-                value={form.jobId}
-                onChange={(e) => setForm((f) => ({ ...f, jobId: e.target.value }))}
-              />
-              <Input
-                label="Published date"
-                type="date"
-                value={form.publishedDate}
-                onChange={(e) => setForm((f) => ({ ...f, publishedDate: e.target.value }))}
-              />
-              <Input
-                label="Expiry date"
-                type="date"
-                value={form.expiryDate}
-                onChange={(e) => setForm((f) => ({ ...f, expiryDate: e.target.value }))}
-              />
             </div>
+            <Textarea
+              label="Description"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
           </section>
+
         </div>
       </Modal>
 

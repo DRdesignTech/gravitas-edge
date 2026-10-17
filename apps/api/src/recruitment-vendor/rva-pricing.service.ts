@@ -8,6 +8,8 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RazorpayService } from '../payments/razorpay.service';
 import { durationLabel } from '../subscriptions/pricing-catalog';
+import { RvaCouponsService } from './rva-coupons.service';
+import { couponError, normalizeCouponCode, serializeCouponSummary } from '../coupons/coupon.util';
 
 export const RVA_PAYMENT_METADATA_KIND = 'RECRUITMENT_VENDOR_ACCESS';
 
@@ -21,21 +23,28 @@ export const RVA_PAYMENT_METADATA_KIND = 'RECRUITMENT_VENDOR_ACCESS';
  * RVA purchase therefore cannot unlock the Opportunity Vault (and vice-versa).
  *
  * Prices are always read server-side from the plan row; the client only sends
- * a planId.
+ * a planId (and an optional RVA-only coupon code whose discount is recomputed
+ * server-side).
  */
 @Injectable()
 export class RvaPricingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly razorpayService: RazorpayService,
+    private readonly coupons: RvaCouponsService,
   ) {}
 
-  async purchase(userId: string, planId: string) {
+  async purchase(userId: string, planId: string, couponCode?: string) {
     const plan = await this.prisma.recruitmentVendorPlan.findFirst({
       where: { id: planId, deletedAt: null, isActive: true },
     });
     if (!plan) {
       throw new NotFoundException('Plan is not available for purchase');
+    }
+
+    // An empty/whitespace-only coupon code simply means "no coupon".
+    if (couponCode !== undefined && normalizeCouponCode(couponCode) !== '') {
+      return this.purchaseWithCoupon(userId, couponCode, plan);
     }
 
     const order = await this.razorpayService.createOrder({
@@ -80,12 +89,119 @@ export class RvaPricingService {
     };
   }
 
+  /**
+   * RVA coupon purchase path: eligibility, limits and discount math are all
+   * re-checked inside one transaction, with the RVA coupon row locked so
+   * concurrent redemptions serialize on the usage limit instead of
+   * double-spending it. The payable amount is derived from the RVA plan price
+   * in the database; the full breakdown is stored on the payment metadata and
+   * the `RecruitmentVendorCouponUsage` row.
+   */
+  private async purchaseWithCoupon(
+    userId: string,
+    rawCode: string,
+    plan: {
+      id: string;
+      name: string;
+      price: unknown;
+      currency: string;
+      durationDays: number;
+    },
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const found = await this.coupons.resolve(tx, rawCode);
+      await this.coupons.lock(tx, found.id);
+
+      // Re-read under the lock: the coupon may have been edited/archived
+      // between the lookup and lock acquisition.
+      const coupon = await this.coupons.reload(tx, found.id);
+      if (!coupon) {
+        throw couponError('COUPON_NOT_FOUND');
+      }
+      this.coupons.assertEligible(coupon, userId, plan.id, new Date());
+      await this.coupons.assertLimits(tx, coupon, userId);
+
+      const { originalAmount, discountAmount, finalAmount } = this.coupons.computeAmounts(
+        coupon,
+        Number(plan.price),
+      );
+
+      const order = await this.razorpayService.createOrder({
+        amount: Number(finalAmount),
+        currency: plan.currency,
+        receipt: `rva_${randomUUID().replace(/-/g, '')}`,
+        notes: {
+          kind: RVA_PAYMENT_METADATA_KIND,
+          userId,
+          planId: plan.id,
+          couponCode: coupon.code,
+        },
+      });
+
+      const payment = await tx.payment.create({
+        data: {
+          userId,
+          amount: finalAmount,
+          currency: plan.currency,
+          status: 'CREATED',
+          razorpayOrderId: order.id,
+          metadata: {
+            kind: RVA_PAYMENT_METADATA_KIND,
+            recruitmentVendorPlanId: plan.id,
+            planId: plan.id,
+            planName: plan.name,
+            durationDays: plan.durationDays,
+            vault: 'recruitment-vendor-access',
+            couponId: coupon.id,
+            couponCode: coupon.code,
+            originalAmount,
+            discountAmount,
+          },
+        },
+      });
+
+      // Reserves one redemption. paymentId is unique, so a payment session can
+      // never reserve twice; failed/cancelled/refunded payments release their
+      // slot when counting (see COUNTED_PAYMENT_STATUSES).
+      await tx.recruitmentVendorCouponUsage.create({
+        data: {
+          couponId: coupon.id,
+          userId,
+          planId: plan.id,
+          paymentId: payment.id,
+          originalAmount,
+          discountAmount,
+          finalAmount,
+          currency: plan.currency,
+        },
+      });
+
+      return {
+        paymentId: payment.id,
+        orderId: payment.razorpayOrderId,
+        amount: Number(payment.amount),
+        originalAmount,
+        discountAmount,
+        coupon: serializeCouponSummary(coupon),
+        currency: payment.currency,
+        planId: plan.id,
+        planName: plan.name,
+        durationDays: plan.durationDays,
+        status: payment.status,
+        keyId: this.razorpayService.getKeyId(),
+      };
+    });
+  }
+
   async getPaymentSession(userId: string, paymentId: string) {
     const payment = await this.assertOwnedRvaPayment(userId, paymentId);
     const meta = (payment.metadata ?? {}) as {
       planId?: string;
       planName?: string;
       durationDays?: number;
+      couponCode?: string;
+      originalAmount?: number;
+      discountAmount?: number;
     };
     return {
       paymentId: payment.id,
@@ -96,6 +212,10 @@ export class RvaPricingService {
       planId: meta.planId ?? null,
       planName: meta.planName ?? null,
       durationDays: meta.durationDays ?? null,
+      couponCode: meta.couponCode ?? null,
+      originalAmount: Number(meta.originalAmount ?? payment.amount),
+      discountAmount: Number(meta.discountAmount ?? 0),
+      finalAmount: Number(payment.amount),
       keyId: this.razorpayService.getKeyId(),
     };
   }
@@ -182,7 +302,13 @@ export class RvaPricingService {
     razorpayPaymentId: string | null,
     webhookEvent: string,
   ) {
-    const meta = (payment.metadata ?? {}) as { planId?: string };
+    const meta = (payment.metadata ?? {}) as {
+      planId?: string;
+      couponId?: string;
+      couponCode?: string;
+      originalAmount?: number;
+      discountAmount?: number;
+    };
     if (!meta.planId) {
       throw new BadRequestException('Purchase session is missing required metadata');
     }
@@ -219,6 +345,13 @@ export class RvaPricingService {
         },
       });
 
+      // Link the reserved redemption to the activated RVA subscription
+      // (no-op for purchases without a coupon).
+      await tx.recruitmentVendorCouponUsage.updateMany({
+        where: { paymentId: payment.id },
+        data: { recruitmentVendorSubscriptionId: subscription.id },
+      });
+
       return subscription;
     });
 
@@ -247,6 +380,17 @@ export class RvaPricingService {
         amount: Number(payment.amount),
         currency: payment.currency,
       },
+      ...(meta.couponId
+        ? {
+            coupon: {
+              id: meta.couponId,
+              code: meta.couponCode ?? null,
+              originalAmount: Number(meta.originalAmount ?? 0),
+              discountAmount: Number(meta.discountAmount ?? 0),
+              finalAmount: Number(payment.amount),
+            },
+          }
+        : {}),
     };
   }
 
@@ -256,6 +400,7 @@ export class RvaPricingService {
     status: string;
     amount: unknown;
     currency: string;
+    metadata: unknown;
   }) {
     if (!payment.recruitmentVendorSubscriptionId) {
       throw new ConflictException('Payment is already processed');
@@ -264,6 +409,12 @@ export class RvaPricingService {
       where: { id: payment.recruitmentVendorSubscriptionId },
       include: { plan: true },
     });
+    const meta = (payment.metadata ?? {}) as {
+      couponId?: string;
+      couponCode?: string;
+      originalAmount?: number;
+      discountAmount?: number;
+    };
     return {
       subscription: sub
         ? {
@@ -293,6 +444,17 @@ export class RvaPricingService {
         amount: Number(payment.amount),
         currency: payment.currency,
       },
+      ...(meta.couponId
+        ? {
+            coupon: {
+              id: meta.couponId,
+              code: meta.couponCode ?? null,
+              originalAmount: Number(meta.originalAmount ?? 0),
+              discountAmount: Number(meta.discountAmount ?? 0),
+              finalAmount: Number(payment.amount),
+            },
+          }
+        : {}),
     };
   }
 

@@ -10,10 +10,12 @@ import { RvaOverviewService } from './rva-overview.service';
 import { RvaOpportunitiesService } from './rva-opportunities.service';
 import { RvaOpportunitiesController } from './rva-opportunities.controller';
 import { RvaPublicController } from './rva-public.controller';
+import { RvaCouponsService } from './rva-coupons.service';
+import { RvaCouponsController } from './rva-coupons.controller';
 
 @Module({
   imports: [PaymentsModule],
-  controllers: [RvaPublicController, RvaOpportunitiesController],
+  controllers: [RvaPublicController, RvaOpportunitiesController, RvaCouponsController],
   providers: [
     RvaAccessService,
     RvaPlansService,
@@ -23,6 +25,7 @@ import { RvaPublicController } from './rva-public.controller';
     RvaFaqsService,
     RvaOverviewService,
     RvaOpportunitiesService,
+    RvaCouponsService,
   ],
   exports: [RvaAccessService],
 })

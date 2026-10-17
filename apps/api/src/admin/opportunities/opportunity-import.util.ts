@@ -33,7 +33,66 @@ export const MONTH_NAMES: Record<string, number> = {
   december: 11,
 };
 
-const EMPTY_DATE_VALUES = new Set(['', 'na', 'n/a', 'none', 'not specified', 'notspecified', '-']);
+const EMPTY_DATE_VALUES = new Set([
+  '',
+  'na',
+  'n/a',
+  'none',
+  'not specified',
+  'notspecified',
+  'not mentioned',
+  'notmentioned',
+  'not available',
+  'notavailable',
+  'tbd',
+  '-',
+]);
+
+/**
+ * Words that describe an open-ended / rolling deadline rather than a concrete
+ * date (e.g. "Immediate", "Ongoing", "Open until filled", "Rolling basis").
+ * A Deadline cell made up entirely of these words (and no digits) is treated as
+ * "no fixed deadline" instead of an invalid date, matching how recruiters fill
+ * these sheets.
+ */
+const OPEN_DATE_TOKENS = new Set([
+  'immediate',
+  'immediately',
+  'asap',
+  'ongoing',
+  'continuous',
+  'continuing',
+  'rolling',
+  'roll',
+  'open',
+  'opening',
+  'anytime',
+  'flexible',
+  'no',
+  'deadline',
+  'until',
+  'till',
+  'filled',
+  'fill',
+  'basis',
+  'always',
+  'application',
+  'applications',
+  'apply',
+  'invited',
+  'welcome',
+  'to',
+  'be',
+]);
+
+function isOpenEndedDateValue(value: string): boolean {
+  if (/\d/.test(value)) return false;
+  const tokens = value
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter(Boolean);
+  return tokens.length > 0 && tokens.every((t) => OPEN_DATE_TOKENS.has(t));
+}
 
 export function normalizeHeaderKey(value: unknown): string {
   if (value === null || value === undefined) return '';
@@ -361,7 +420,7 @@ export function parseDateCell(
 
   const s = String(raw).trim();
   const lower = s.toLowerCase();
-  if (!s || EMPTY_DATE_VALUES.has(lower.replace(/\s+/g, ''))) {
+  if (!s || EMPTY_DATE_VALUES.has(lower.replace(/\s+/g, '')) || isOpenEndedDateValue(s)) {
     return { date: null, error: null };
   }
 

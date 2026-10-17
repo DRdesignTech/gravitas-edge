@@ -3,7 +3,16 @@ import { RecruitmentVendorCategory, RecruitmentVendorOpportunityStatus } from '@
 import { IsEnum, IsInt, IsOptional, IsString, IsUrl, MaxLength, Min } from 'class-validator';
 
 export class CreateRvaOpportunityDto {
-  @ApiProperty({ example: 'RFP: Contingent staffing partner for GCC' })
+  @ApiPropertyOptional({ example: 1, description: 'Excel "S. No." display serial' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  serialNo?: number;
+
+  @ApiProperty({
+    example: 'Recruitment and Staffing Partner Requirement',
+    description: 'Human-facing title (maps to the Excel "Opportunity Type" column).',
+  })
   @IsString()
   @MaxLength(300)
   title: string;

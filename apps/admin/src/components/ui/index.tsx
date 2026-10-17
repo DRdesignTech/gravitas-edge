@@ -18,19 +18,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const baseButton =
-  'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#C8943E] disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]';
+  'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-[#061B36] text-[#FFFEFA] shadow-sm hover:bg-[#071A35] dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm transition-all duration-200',
+    'bg-brand-600 text-[#FFFEFA] shadow-sm hover:bg-brand-700 dark:bg-brand-400 dark:text-brand-900 dark:hover:bg-brand-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm transition-all duration-200',
   secondary:
-    'bg-[#FFF3D9] text-[#061B36] hover:bg-[#FFEFCB] dark:bg-brand-950 dark:text-brand-200 dark:hover:bg-brand-900 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm transition-all duration-200',
+    'bg-brand-50 text-brand-600 hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-200 dark:hover:bg-brand-900 hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 active:translate-y-0 active:shadow-sm transition-all duration-200',
   outline:
-    'border border-line bg-surface text-content hover:border-[#C8943E] hover:bg-surface-muted hover:-translate-y-0.5 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 active:translate-y-0 transition-all duration-200',
+    'border border-line bg-surface text-content hover:border-brand-400 hover:bg-surface-muted hover:-translate-y-0.5 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 active:translate-y-0 transition-all duration-200',
   danger:
     'bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-500 focus-visible:ring-offset-surface',
   ghost:
-    'bg-transparent text-content-muted hover:bg-surface-muted hover:text-content focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 transition-all duration-200',
+    'bg-transparent text-content-muted hover:bg-surface-muted hover:text-content focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 transition-all duration-200',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

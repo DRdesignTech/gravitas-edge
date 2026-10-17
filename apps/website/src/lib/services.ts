@@ -261,8 +261,24 @@ export function fetchRvaOpportunity(id: string) {
   return api.get<RvaOpportunity>(`/recruitment-vendor/opportunities/${id}`);
 }
 
-export function purchaseRvaPlan(planId: string) {
-  return api.post<RvaPurchaseResult>('/recruitment-vendor/purchase', { planId });
+export function purchaseRvaPlan(planId: string, couponCode?: string) {
+  return api.post<RvaPurchaseResult>('/recruitment-vendor/purchase', {
+    planId,
+    ...(couponCode ? { couponCode } : {}),
+  });
+}
+
+export function validateRvaCoupon(couponCode: string, planId: string) {
+  return api.post<CouponValidationResult>('/recruitment-vendor/coupons/validate', {
+    couponCode,
+    planId,
+  });
+}
+
+export function fetchAvailableRvaCoupons(planId: string) {
+  return api.get<AvailableCouponsResult>(
+    `/recruitment-vendor/coupons/available?planId=${encodeURIComponent(planId)}`,
+  );
 }
 
 export function fetchRvaPaymentSession(paymentId: string) {

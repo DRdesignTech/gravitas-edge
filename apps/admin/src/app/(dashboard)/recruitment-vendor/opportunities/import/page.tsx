@@ -140,8 +140,8 @@ export default function ImportRvaOpportunitiesPage() {
               Every job sheet in the workbook is uploaded as-is, with no category required. A row
               may still set its own &quot;Category&quot; column, and a recognized &quot;Status&quot;
               column overrides the default status. Rows with a Job ID that already exists are
-              skipped as duplicates. Empty rows are ignored, and the latest 500 rows per sheet are
-              processed.
+              skipped as duplicates. Empty rows are ignored; all valid rows in each sheet are
+              processed (no row cap).
             </p>
             {error && <Alert variant="error">{error}</Alert>}
             <Button
@@ -198,7 +198,7 @@ export default function ImportRvaOpportunitiesPage() {
                         <table className="min-w-full divide-y divide-line text-sm">
                           <thead className="sticky top-0 bg-surface-muted dark:bg-surface">
                             <tr>
-                              {['Row', 'Result', 'Title', 'Detail'].map((h) => (
+                              {['Row', 'Result', 'Opportunity Type', 'Detail'].map((h) => (
                                 <th
                                   key={h}
                                   className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider text-content-muted"
@@ -245,8 +245,8 @@ export default function ImportRvaOpportunitiesPage() {
 
               <div className="mt-5 flex items-center justify-between gap-3">
                 <p className="text-xs text-content-muted">
-                  Valid rows will be imported into the selected category. Invalid and duplicate rows
-                  are skipped. This action is logged to the audit trail.
+                  Valid rows will be imported with the selected default status. Invalid and duplicate
+                  rows are skipped. This action is logged to the audit trail.
                 </p>
                 <div className="flex gap-2">
                   <Button variant="secondary" onClick={runPreview} loading={analyzing}>
@@ -262,8 +262,8 @@ export default function ImportRvaOpportunitiesPage() {
             <Card className="flex h-full flex-col items-center justify-center py-16 text-center">
               <p className="text-lg font-semibold text-content">Awaiting preview</p>
               <p className="mt-1 max-w-sm text-sm text-content-muted">
-                Pick a category and a file, then click &quot;Preview import&quot; to see exactly what
-                will be created, rejected, or skipped — nothing is saved until you confirm.
+                Pick a file, then click &quot;Preview import&quot; to see exactly what will be
+                created, rejected, or skipped — nothing is saved until you confirm.
               </p>
             </Card>
           )}

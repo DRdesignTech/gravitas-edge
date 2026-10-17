@@ -177,15 +177,39 @@ describe('OpportunitiesService', () => {
       expect(prisma.opportunity.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            OR: expect.arrayContaining([
-              { title: { contains: 'engineer', mode: 'insensitive' } },
-              { location: { contains: 'engineer', mode: 'insensitive' } },
-              { industry: { contains: 'engineer', mode: 'insensitive' } },
-              { jobId: { contains: 'engineer', mode: 'insensitive' } },
+            AND: expect.arrayContaining([
+              expect.objectContaining({
+                OR: expect.arrayContaining([
+                  { title: { contains: 'engineer', mode: 'insensitive' } },
+                  { location: { contains: 'engineer', mode: 'insensitive' } },
+                  { industry: { contains: 'engineer', mode: 'insensitive' } },
+                  { jobId: { contains: 'engineer', mode: 'insensitive' } },
+                ]),
+              }),
             ]),
           }),
         }),
       );
+    });
+
+    it('ANDs multiple search keywords across fields', async () => {
+      access.getAccessibleVaultIds.mockResolvedValue(['v-1']);
+      prisma.opportunity.findMany.mockResolvedValue([]);
+      prisma.opportunity.count.mockResolvedValue(0);
+
+      await service.listForUser(undefined, {
+        page: 1,
+        limit: 20,
+        search: 'dubai engineer 500000',
+      });
+
+      const where = prisma.opportunity.findMany.mock.calls[0][0].where;
+      expect(where.AND).toHaveLength(3);
+      for (const [i, term] of ['dubai', 'engineer', '500000'].entries()) {
+        expect(where.AND[i].OR).toEqual(
+          expect.arrayContaining([{ location: { contains: term, mode: 'insensitive' } }]),
+        );
+      }
     });
 
     it('returns the Job ID on public opportunities', async () => {

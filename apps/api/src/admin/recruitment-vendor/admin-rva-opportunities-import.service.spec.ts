@@ -120,5 +120,110 @@ describe('AdminRvaOpportunitiesService import', () => {
         createdBy: 'admin-1',
       });
     });
+
+    it('imports the canonical workbook without a Title column and a Not mentioned deadline', async () => {
+      const prisma = mockPrisma();
+      service = await build(prisma);
+
+      const file = xlsxFile([
+        [
+          'S. No.',
+          'Job ID',
+          'Date',
+          'Opportunity Type',
+          'Organisation',
+          'Industry',
+          'Geography',
+          'Vendor Requirement / Scope',
+          'Eligibility / Vendor Criteria',
+          'Deadline',
+          'Contact Person',
+          'Other Details',
+          'How to Apply',
+        ],
+        [
+          1,
+          'RVA-500',
+          '2026-01-05',
+          'Recruitment and Staffing Partner Requirement',
+          'Acme Corp',
+          'Banking',
+          'Dubai',
+          'Supply 20 engineers',
+          '5+ years, valid license',
+          'Not mentioned',
+          'hr@acme.com',
+          'Ref 42',
+          'Email your profile to hr@acme.com',
+        ],
+      ]);
+
+      const result = await service.import(file, 'STAFFING_RPO', 'admin-1', undefined, 'PUBLISHED');
+      expect(result.imported).toBe(1);
+      expect(result.failed).toBe(0);
+
+      const data = prisma.recruitmentVendorOpportunity.create.mock.calls[0][0].data;
+      expect(data).toMatchObject({
+        serialNo: 1,
+        jobId: 'RVA-500',
+        title: 'Recruitment and Staffing Partner Requirement',
+        organization: 'Acme Corp',
+        sector: 'Banking',
+        geography: 'Dubai',
+        requirements: 'Supply 20 engineers',
+        eligibility: '5+ years, valid license',
+        applicationContact: 'hr@acme.com',
+        otherDetails: 'Ref 42',
+        howToApply: 'Email your profile to hr@acme.com',
+      });
+      // "Not mentioned" must not be parsed into a bogus date.
+      expect(data.expiryDate).toBeNull();
+    });
+
+    it('accepts an open-ended Deadline ("Immediate / Ongoing") without flagging it invalid', async () => {
+      const prisma = mockPrisma();
+      service = await build(prisma);
+
+      const file = xlsxFile([
+        [
+          'S. No.',
+          'Job ID',
+          'Date',
+          'Opportunity Type',
+          'Organisation',
+          'Industry',
+          'Geography',
+          'Vendor Requirement / Scope',
+          'Eligibility / Vendor Criteria',
+          'Deadline',
+          'Contact Person',
+          'Other Details',
+          'How to Apply',
+        ],
+        [
+          2,
+          'RVA-501',
+          '2026-01-05',
+          'Recruitment and Staffing Partner Requirement',
+          'Acme Corp',
+          'Banking',
+          'Dubai',
+          'Supply 20 engineers',
+          '5+ years, valid license',
+          'Immediate / Ongoing',
+          'hr@acme.com',
+          'Ref 42',
+          'Email your profile to hr@acme.com',
+        ],
+      ]);
+
+      const result = await service.import(file, 'STAFFING_RPO', 'admin-1', undefined, 'PUBLISHED');
+      expect(result.imported).toBe(1);
+      expect(result.failed).toBe(0);
+
+      const data = prisma.recruitmentVendorOpportunity.create.mock.calls[0][0].data;
+      expect(data.expiryDate).toBeNull();
+      expect(data.jobId).toBe('RVA-501');
+    });
   });
 });

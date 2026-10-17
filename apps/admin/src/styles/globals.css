@@ -57,6 +57,41 @@
     --color-line-strong: 45 62 102;
   }
 
+  /* ── RVA section theme ────────────────────────────────────────────────
+     The Recruitment Vendor Access vault swaps the brand accent from
+     gold/navy to teal so admins can tell at a glance which vault they are
+     in. Scoped to [data-section="rva"] (set on the dashboard shell by
+     (dashboard)/layout.tsx), every brand-* token inside the RVA routes —
+     sidebar active item, VaultSwitcher pill, header hairline, buttons,
+     pagination, focus rings — recolors automatically. */
+  [data-section='rva'] {
+    --color-brand-50: 240 253 250; /* #F0FDFA */
+    --color-brand-100: 204 251 241; /* #CCFBF1 */
+    --color-brand-200: 153 246 228; /* #99F6E4 */
+    --color-brand-300: 94 234 212; /* #5EEAD4 */
+    --color-brand-400: 45 212 191; /* #2DD4BF */
+    --color-brand-500: 20 184 166; /* #14B8A6 */
+    --color-brand-600: 15 118 110; /* #0F766E primary */
+    --color-brand-700: 17 94 89; /* #115E59 */
+    --color-brand-800: 19 78 74; /* #134E4A */
+    --color-brand-900: 17 66 62; /* #11423E */
+    --color-brand-950: 4 47 46; /* #042F2E */
+  }
+
+  .dark [data-section='rva'] {
+    --color-brand-50: 20 43 42;
+    --color-brand-100: 24 56 54;
+    --color-brand-200: 153 246 228;
+    --color-brand-300: 94 234 212;
+    --color-brand-400: 45 212 191;
+    --color-brand-500: 20 184 166;
+    --color-brand-600: 15 118 110;
+    --color-brand-700: 17 94 89;
+    --color-brand-800: 15 66 63;
+    --color-brand-900: 17 74 70;
+    --color-brand-950: 4 47 46;
+  }
+
   html {
     color-scheme: light;
     -webkit-font-smoothing: antialiased;

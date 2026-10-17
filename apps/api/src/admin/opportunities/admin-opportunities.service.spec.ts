@@ -16,6 +16,8 @@ function mockPrismaService(): any {
       count: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     opportunityVault: {
       deleteMany: jest.fn(),
@@ -493,6 +495,66 @@ describe('AdminOpportunitiesService', () => {
     });
   });
 
+  describe('bulkDelete', () => {
+    it('archives selected IDs and audits the operation', async () => {
+      prisma.opportunity.updateMany.mockResolvedValue({ count: 3 });
+
+      const result = await service.bulkDelete({ mode: 'archive', ids: ['a', 'b', 'c'] }, 'admin-1');
+
+      expect(result).toEqual({ mode: 'archive', count: 3 });
+      expect(prisma.opportunity.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['a', 'b', 'c'] } },
+        data: { status: 'ARCHIVED', deletedAt: expect.any(Date) },
+      });
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'OPPORTUNITY_BULK_ARCHIVED' }),
+      );
+    });
+
+    it('permanently deletes by filters (date range) without a deletedAt guard', async () => {
+      prisma.opportunity.deleteMany.mockResolvedValue({ count: 5 });
+
+      const result = await service.bulkDelete(
+        { mode: 'permanent', publishedBefore: '2026-01-01T00:00:00.000Z' },
+        'admin-1',
+      );
+
+      expect(result).toEqual({ mode: 'permanent', count: 5 });
+      const arg = prisma.opportunity.deleteMany.mock.calls[0][0];
+      expect(arg.where.publishedDate.lte).toEqual(new Date('2026-01-01T00:00:00.000Z'));
+      expect(arg.where.deletedAt).toBeUndefined();
+      expect(audit.record).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'OPPORTUNITY_BULK_DELETED' }),
+      );
+    });
+
+    it('archive applies a deletedAt: null guard so already-archived rows are untouched', async () => {
+      prisma.opportunity.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.bulkDelete({ mode: 'archive', status: 'PUBLISHED' }, 'admin-1');
+
+      const arg = prisma.opportunity.updateMany.mock.calls[0][0];
+      expect(arg.where.status).toBe('PUBLISHED');
+      expect(arg.where.deletedAt).toBeNull();
+    });
+
+    it('refuses a no-IDs, no-filter delete unless confirmAll is set', async () => {
+      await expect(service.bulkDelete({ mode: 'permanent' }, 'admin-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.opportunity.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('allows a full wipe when confirmAll is true', async () => {
+      prisma.opportunity.deleteMany.mockResolvedValue({ count: 42 });
+
+      const result = await service.bulkDelete({ mode: 'permanent', confirmAll: true }, 'admin-1');
+
+      expect(result.count).toBe(42);
+      expect(prisma.opportunity.deleteMany).toHaveBeenCalledWith({ where: {} });
+    });
+  });
+
   describe('import & preview', () => {
     const csvFile = (content: string) =>
       ({
@@ -770,7 +832,9 @@ describe('AdminOpportunitiesService', () => {
         typeof cbOrFns === 'function' ? cbOrFns(prisma as any) : [],
       );
       // Existing job with Job ID in the vault
-      prisma.opportunity.findMany.mockResolvedValue([{ ...engineerExistingJob, jobId: 'JOB-EXISTING' }]);
+      prisma.opportunity.findMany.mockResolvedValue([
+        { ...engineerExistingJob, jobId: 'JOB-EXISTING' },
+      ]);
       prisma.opportunity.create.mockResolvedValue({ id: 'opp-new', title: 'Data Scientist' });
       const file = csvFile(
         'Title,Company,Location,Salary,Experience,Other Details,Job ID\n' +

@@ -404,6 +404,7 @@ export const RVA_OPPORTUNITY_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED', 'EXPI
 
 export interface RvaOpportunity {
   id: string;
+  serialNo?: number | null;
   title: string;
   description?: string | null;
   role?: string | null;
@@ -478,6 +479,41 @@ export interface RvaPlan {
   createdAt?: string;
   updatedAt?: string;
   deletedAt?: string | null;
+}
+
+export interface RvaCoupon {
+  id: string;
+  code: string;
+  description?: string | null;
+  discountType: (typeof COUPON_DISCOUNT_TYPES)[number];
+  discountValue: number;
+  validFrom: string;
+  validUntil: string;
+  usageLimit?: number | null;
+  perUserUsageLimit: number;
+  appliesToAllUsers: boolean;
+  isActive: boolean;
+  status?: CouponStatus;
+  usageCount?: number;
+  remainingUsage?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+  plans?: { id: string; name: string }[];
+  users?: { id: string; email: string; name?: string | null }[];
+}
+
+export interface RvaCouponUsageRow {
+  id: string;
+  usedAt: string;
+  originalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+  currency: string;
+  user: { id: string; email: string; name: string | null };
+  plan: { id: string; name: string };
+  payment: { id: string; status: string };
+  subscription: { id: string; status: string } | null;
 }
 
 export interface RvaSubscriptionPlanRef {

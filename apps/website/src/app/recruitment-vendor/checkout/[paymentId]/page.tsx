@@ -3,11 +3,18 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { Badge, Button, ErrorState, Skeleton } from '@/components/ui';
+import { Badge, Button, ErrorState, Input, Skeleton, Spinner } from '@/components/ui';
 import { formatMoney } from '@/lib/format';
-import { getErrorMessage } from '@/lib/errors';
-import { failRvaPayment, fetchRvaPaymentSession, verifyRvaPayment } from '@/lib/services';
-import { RvaPaymentSession } from '@/lib/types';
+import { getCouponErrorMessage, getErrorMessage } from '@/lib/errors';
+import {
+  failRvaPayment,
+  fetchAvailableRvaCoupons,
+  fetchRvaPaymentSession,
+  purchaseRvaPlan,
+  validateRvaCoupon,
+  verifyRvaPayment,
+} from '@/lib/services';
+import { AvailableCoupon, RvaPaymentSession } from '@/lib/types';
 
 type Phase = 'form' | 'processing' | 'success' | 'failure';
 
@@ -61,6 +68,41 @@ function ArrowLeftIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
+function TagIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.8}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"
+      />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={2.2}
+      stroke="currentColor"
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+    </svg>
+  );
+}
+
 export default function RvaCheckoutPage() {
   const params = useParams<{ paymentId: string }>();
   const paymentId = String(params?.paymentId ?? '');
@@ -75,6 +117,20 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
   const [error, setError] = useState('');
   const [phase, setPhase] = useState<Phase>('form');
   const [phaseError, setPhaseError] = useState('');
+  const [retrying, setRetrying] = useState(false);
+
+  const [couponInput, setCouponInput] = useState('');
+  const [coupon, setCoupon] = useState<{
+    code: string;
+    originalAmount: number;
+    discountAmount: number;
+    finalAmount: number;
+  } | null>(null);
+  const [couponStatus, setCouponStatus] = useState<'idle' | 'applying' | 'error'>('idle');
+  const [couponError, setCouponError] = useState('');
+  const [availableCoupons, setAvailableCoupons] = useState<AvailableCoupon[]>([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [showCoupons, setShowCoupons] = useState(false);
 
   const loadSession = useCallback(() => {
     setLoading(true);
@@ -93,6 +149,75 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
   useEffect(() => {
     loadSession();
   }, [loadSession]);
+
+  // Reflect any RVA coupon already frozen on the server session.
+  useEffect(() => {
+    if (!session) return;
+    if (session.couponCode) {
+      setCoupon({
+        code: session.couponCode,
+        originalAmount: session.originalAmount,
+        discountAmount: session.discountAmount,
+        finalAmount: session.finalAmount,
+      });
+    } else {
+      setCoupon(null);
+    }
+  }, [session?.paymentId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load the RVA coupons this user can apply to the session's plan.
+  useEffect(() => {
+    const planId = session?.planId;
+    if (!planId) return;
+    let cancelled = false;
+    setCouponsLoading(true);
+    fetchAvailableRvaCoupons(planId)
+      .then((res) => {
+        if (!cancelled) setAvailableCoupons(res.coupons);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableCoupons([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCouponsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.planId]);
+
+  const applyCoupon = async (raw?: string) => {
+    const planId = session?.planId;
+    if (!planId) return;
+    const code = (raw ?? couponInput).trim();
+    if (!code) return;
+    setCouponStatus('applying');
+    setCouponError('');
+    try {
+      const res = await validateRvaCoupon(code, planId);
+      setCoupon({
+        code: res.coupon.code,
+        originalAmount: res.originalAmount,
+        discountAmount: res.discountAmount,
+        finalAmount: res.finalAmount,
+      });
+      setCouponInput(res.coupon.code);
+      setCouponStatus('idle');
+      setShowCoupons(false);
+    } catch (err) {
+      setCoupon(null);
+      setCouponStatus('error');
+      setCouponError(getCouponErrorMessage(err));
+    }
+  };
+
+  const removeCoupon = () => {
+    setCoupon(null);
+    setCouponInput('');
+    setCouponStatus('idle');
+    setCouponError('');
+    setShowCoupons(false);
+  };
 
   const loadRazorpayScript = () =>
     new Promise<void>((resolve, reject) => {
@@ -114,19 +239,58 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
     setPhaseError('');
     try {
       await loadRazorpayScript();
-      if (!(window as any).Razorpay || !session.orderId) {
+
+      const desiredCode = coupon?.code ?? '';
+      const currentCode = session.couponCode ?? '';
+
+      let orderId = session.orderId;
+      let keyId = session.keyId;
+      let amount = coupon ? coupon.finalAmount : session.finalAmount;
+      let currency = session.currency;
+      let payId = session.paymentId;
+
+      // The server froze this session's amount. If the user picked a different
+      // coupon on this page, start a new server-side RVA session so the order is
+      // always priced by the backend.
+      if (desiredCode !== currentCode && session.planId) {
+        const next = await purchaseRvaPlan(session.planId, desiredCode || undefined);
+        failRvaPayment(session.paymentId).catch(() => {});
+        orderId = next.orderId;
+        keyId = next.keyId;
+        amount = next.amount;
+        currency = next.currency;
+        payId = next.paymentId;
+        setSession((prev) =>
+          prev
+            ? {
+                ...prev,
+                paymentId: payId,
+                orderId,
+                keyId,
+                amount,
+                currency,
+                couponCode: desiredCode || null,
+                originalAmount: coupon?.originalAmount ?? prev.originalAmount,
+                discountAmount: coupon?.discountAmount ?? 0,
+                finalAmount: amount,
+              }
+            : prev,
+        );
+      }
+
+      if (!(window as any).Razorpay || !orderId) {
         throw new Error('Failed to load Razorpay checkout');
       }
 
       const rzp = new (window as any).Razorpay({
-        key: session.keyId,
-        amount: Math.round(session.amount * 100),
-        currency: session.currency,
+        key: keyId,
+        amount: Math.round(amount * 100),
+        currency,
         name: 'Gravitas Edge',
         description: `${session.planName ?? 'Recruitment Vendor Access'} - ${durationLabel(
           session.durationDays,
         )}`,
-        order_id: session.orderId,
+        order_id: orderId,
         handler: async (response: {
           razorpay_payment_id: string;
           razorpay_order_id: string;
@@ -137,10 +301,14 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
-              paymentId,
+              paymentId: payId,
             });
             setPhase('success');
-            loadSession();
+            if (payId !== session.paymentId) {
+              router.replace(`/recruitment-vendor/checkout/${payId}`);
+            } else {
+              loadSession();
+            }
           } catch (err) {
             setPhase('failure');
             setPhaseError(getErrorMessage(err));
@@ -156,6 +324,22 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
     } catch (err) {
       setPhase('form');
       setPhaseError(getErrorMessage(err));
+    }
+  };
+
+  const startOver = async () => {
+    if (!session || retrying) return;
+    setRetrying(true);
+    setPhaseError('');
+    try {
+      const next = await purchaseRvaPlan(
+        session.planId ?? '',
+        session.couponCode ?? undefined,
+      );
+      router.replace(`/recruitment-vendor/checkout/${next.paymentId}`);
+    } catch (err) {
+      setPhaseError(getErrorMessage(err));
+      setRetrying(false);
     }
   };
 
@@ -183,6 +367,10 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
   }
 
   const currency = session.currency;
+  const originalAmount = coupon ? coupon.originalAmount : session.originalAmount;
+  const discountAmount = coupon ? coupon.discountAmount : 0;
+  const finalAmount = coupon ? coupon.finalAmount : session.finalAmount;
+  const usesCoupon = discountAmount > 0;
 
   if (phase === 'success') {
     return (
@@ -210,9 +398,17 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
                     {durationLabel(session.durationDays)}
                   </p>
                 </div>
-                <p className="shrink-0 text-xl font-extrabold tracking-tight text-content">
-                  {formatMoney(session.amount, currency)}
-                </p>
+                <div className="shrink-0 text-right">
+                  <p className="text-xl font-extrabold tracking-tight text-content">
+                    {formatMoney(session.finalAmount, currency)}
+                  </p>
+                  {session.discountAmount > 0 && (
+                    <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      Saved {formatMoney(session.discountAmount, currency)}
+                      {session.couponCode ? ` · ${session.couponCode}` : ''}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
             <div className="mt-6 flex flex-col gap-3">
@@ -251,7 +447,7 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
               </p>
             )}
             <div className="flex flex-col gap-3">
-              <Button className="w-full !py-3.5 !text-base" onClick={loadSession}>
+              <Button className="w-full !py-3.5 !text-base" onClick={startOver} loading={retrying}>
                 Try again
               </Button>
               <Button variant="outline" className="w-full" onClick={() => router.push('/recruitment-vendor')}>
@@ -320,12 +516,164 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
               </dd>
             </div>
             <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
-              <dt className="font-semibold text-content">Total due today</dt>
-              <dd className="text-right text-2xl font-extrabold tracking-tight text-content">
-                {formatMoney(session.amount, currency)}
+              <dt className="text-content-muted">Subtotal</dt>
+              <dd className="text-right font-semibold text-content">
+                {formatMoney(originalAmount, currency)}
               </dd>
             </div>
           </dl>
+
+          {/* Coupon */}
+          <div className="mt-4 rounded-2xl border border-dashed border-line bg-surface-muted/70 p-3.5 dark:bg-surface">
+            <div className="flex items-center justify-between gap-3">
+              <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-content-muted">
+                <TagIcon className="h-3.5 w-3.5 text-brand-500 dark:text-brand-400" /> Coupon
+              </p>
+              {coupon && (
+                <button
+                  type="button"
+                  onClick={removeCoupon}
+                  className="text-xs font-semibold text-content-muted underline-offset-2 hover:text-content hover:underline"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+
+            {coupon ? (
+              <div className="mt-2.5 flex items-center justify-between gap-2 rounded-xl bg-emerald-50 px-3 py-2 dark:bg-emerald-500/10">
+                <span className="flex items-center gap-2">
+                  <Badge variant="success">{coupon.code}</Badge>
+                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    Applied
+                  </span>
+                </span>
+                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  −{formatMoney(coupon.discountAmount, currency)}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-2.5 flex gap-2">
+                <Input
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                  disabled={couponStatus === 'applying'}
+                  className="!py-2"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      applyCoupon();
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  className="shrink-0 !px-4"
+                  loading={couponStatus === 'applying'}
+                  disabled={!couponInput.trim() || couponStatus === 'applying'}
+                  onClick={() => applyCoupon()}
+                >
+                  Apply
+                </Button>
+              </div>
+            )}
+
+            {couponStatus === 'error' && couponError && (
+              <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">
+                {couponError}
+              </p>
+            )}
+
+            {availableCoupons.length > 0 && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCoupons((v) => !v)}
+                  aria-expanded={showCoupons}
+                  className="flex w-full items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-wider text-brand-600 transition-colors hover:text-brand-500 dark:text-brand-400"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <TagIcon className="h-3.5 w-3.5" /> See coupons ({availableCoupons.length})
+                  </span>
+                  <ChevronDownIcon
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                      showCoupons ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {showCoupons && (
+                  <div className="scrollbar-thin mt-2 max-h-56 space-y-2 overflow-y-auto pr-1">
+                    {availableCoupons.map(({ coupon: available, discountAmount: save }) => {
+                      const isApplied = coupon?.code === available.code;
+                      const label =
+                        available.discountType === 'PERCENTAGE'
+                          ? `${available.discountValue}% off`
+                          : `${formatMoney(available.discountValue, currency)} off`;
+                      return (
+                        <button
+                          key={available.id}
+                          type="button"
+                          onClick={() => applyCoupon(available.code)}
+                          disabled={isApplied || couponStatus === 'applying'}
+                          className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition-all disabled:cursor-default ${
+                            isApplied
+                              ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-500/10'
+                              : 'border-line bg-surface hover:-translate-y-0.5 hover:border-brand-400 hover:shadow-sm dark:bg-surface-elevated'
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-xs font-bold text-content">
+                              {available.code}
+                            </span>
+                            <span className="block truncate text-[11px] text-content-muted">
+                              {available.description || label}
+                            </span>
+                          </span>
+                          <span
+                            className={`shrink-0 text-[11px] font-bold ${
+                              isApplied
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-brand-600 dark:text-brand-400'
+                            }`}
+                          >
+                            {isApplied ? 'Applied' : `Save ${formatMoney(save, currency)}`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {couponsLoading && availableCoupons.length === 0 && (
+              <p className="mt-2 flex items-center gap-2 text-[11px] text-content-faint">
+                <Spinner className="h-3 w-3" /> Checking offers…
+              </p>
+            )}
+          </div>
+
+          {/* Totals */}
+          <div className="mt-4 space-y-2.5 border-t border-line pt-4">
+            {usesCoupon && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  Coupon {coupon?.code ?? session.couponCode ?? ''}
+                </span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  −{formatMoney(discountAmount, currency)}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-semibold text-content">Total due today</span>
+              <span className="text-right text-2xl font-extrabold tracking-tight text-content">
+                {formatMoney(finalAmount, currency)}
+              </span>
+            </div>
+          </div>
 
           <Button
             className="mt-6 w-full !py-4 !text-base font-bold"
@@ -333,7 +681,7 @@ function RvaCheckout({ paymentId }: { paymentId: string }) {
             disabled={phase === 'processing'}
             onClick={pay}
           >
-            {phase === 'processing' ? 'Opening Razorpay…' : `Pay ${formatMoney(session.amount, currency)}`}
+            {phase === 'processing' ? 'Opening Razorpay…' : `Pay ${formatMoney(finalAmount, currency)}`}
           </Button>
           <button
             type="button"

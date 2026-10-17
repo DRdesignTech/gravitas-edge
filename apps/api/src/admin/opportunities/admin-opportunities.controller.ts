@@ -24,6 +24,7 @@ import { AdminOpportunitiesService } from './admin-opportunities.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
 import { QueryOpportunitiesDto } from './dto/query-opportunities.dto';
+import { BulkDeleteOpportunitiesDto } from './dto/bulk-delete-opportunities.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -42,6 +43,19 @@ export class AdminOpportunitiesController {
   @ApiOperation({ summary: 'List opportunities (paginated, searchable, filterable)' })
   list(@Query() query: QueryOpportunitiesDto) {
     return this.opportunitiesService.list(query);
+  }
+
+  @Post('bulk-delete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Bulk archive or permanently delete opportunities (by IDs or filters/date range)',
+  })
+  bulkDelete(
+    @Body() dto: BulkDeleteOpportunitiesDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
+  ) {
+    return this.opportunitiesService.bulkDelete(dto, user.id, this.clientIp(req));
   }
 
   @Get(':id')

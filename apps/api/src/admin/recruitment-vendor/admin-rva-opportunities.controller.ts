@@ -22,6 +22,7 @@ import { AdminRvaOpportunitiesService } from './admin-rva-opportunities.service'
 import { CreateRvaOpportunityDto } from './dto/create-rva-opportunity.dto';
 import { UpdateRvaOpportunityDto } from './dto/update-rva-opportunity.dto';
 import { QueryRvaOpportunitiesDto } from './dto/query-rva-opportunities.dto';
+import { BulkDeleteRvaOpportunitiesDto } from './dto/bulk-delete-rva-opportunities.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -40,6 +41,17 @@ export class AdminRvaOpportunitiesController {
   @ApiOperation({ summary: 'List Recruitment Vendor Access opportunities (paginated)' })
   list(@Query() query: QueryRvaOpportunitiesDto) {
     return this.service.list(query);
+  }
+
+  @Post('bulk-delete')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Bulk archive or permanently delete RVA opportunities' })
+  bulkDelete(
+    @Body() dto: BulkDeleteRvaOpportunitiesDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
+  ) {
+    return this.service.bulkDelete(dto, user.id, this.clientIp(req));
   }
 
   @Get(':id')
@@ -80,7 +92,7 @@ export class AdminRvaOpportunitiesController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Permanently delete a Recruitment Vendor Access opportunity' })
   hardDelete(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
-    return this.service.hardDelete(id, user.id, this.clientIp(req));
+    return this.service.permanentDelete(id, user.id, this.clientIp(req));
   }
 
   @Post('import')

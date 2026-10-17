@@ -3,6 +3,8 @@ import {
   AdminSubscription,
   Coupon,
   CouponUsageRow,
+  RvaCoupon,
+  RvaCouponUsageRow,
   ImportPreviewResponse,
   Opportunity,
   PaginatedResult,
@@ -90,8 +92,34 @@ export interface OpportunityQuery {
   employmentType?: string;
   jobId?: string;
   vaultId?: string;
+  publishedAfter?: string;
+  publishedBefore?: string;
+  expiryAfter?: string;
+  expiryBefore?: string;
+  createdAfter?: string;
+  createdBefore?: string;
   sortBy?: string;
   sortOrder?: string;
+}
+
+export interface OpportunityBulkDelete {
+  ids?: string[];
+  mode: 'archive' | 'permanent';
+  confirmAll?: true;
+  search?: string;
+  status?: string;
+  category?: string;
+  country?: string;
+  location?: string;
+  industry?: string;
+  employmentType?: string;
+  vaultId?: string;
+  publishedAfter?: string;
+  publishedBefore?: string;
+  expiryAfter?: string;
+  expiryBefore?: string;
+  createdAfter?: string;
+  createdBefore?: string;
 }
 
 const qs = (params: Record<string, any>) => {
@@ -305,6 +333,13 @@ export function adminDeleteOpportunityPermanent(id: string) {
   return api.del(`/admin/opportunities/${id}/permanent`);
 }
 
+export function adminBulkDeleteOpportunities(body: OpportunityBulkDelete) {
+  return api.post<{ mode: 'archive' | 'permanent'; count: number }>(
+    '/admin/opportunities/bulk-delete',
+    body,
+  );
+}
+
 export function adminListReferrals(query: AdminReferralQuery = {}) {
   return api.get<PaginatedResult<Referral>>(`/admin/referrals${qs(query)}`);
 }
@@ -490,6 +525,43 @@ export function adminPreviewRvaImport(file: File, category?: string, defaultStat
       ...(category ? { category } : {}),
       ...(defaultStatus ? { defaultStatus } : {}),
     },
+  );
+}
+
+export function adminListRvaCoupons(query: CouponQuery = {}) {
+  return api.get<PaginatedResult<RvaCoupon>>(`/admin/recruitment-vendor/coupons${qs(query)}`);
+}
+
+export function adminGetRvaCoupon(id: string) {
+  return api.get<RvaCoupon>(`/admin/recruitment-vendor/coupons/${id}`);
+}
+
+export function adminCreateRvaCoupon(body: Record<string, unknown>) {
+  return api.post<RvaCoupon>('/admin/recruitment-vendor/coupons', body);
+}
+
+export function adminUpdateRvaCoupon(id: string, body: Record<string, unknown>) {
+  return api.patch<RvaCoupon>(`/admin/recruitment-vendor/coupons/${id}`, body);
+}
+
+export function adminDeleteRvaCoupon(id: string) {
+  return api.del(`/admin/recruitment-vendor/coupons/${id}`);
+}
+
+export function adminDeleteRvaCouponPermanent(id: string) {
+  return api.del(`/admin/recruitment-vendor/coupons/${id}/permanent`);
+}
+
+export function adminRestoreRvaCoupon(id: string) {
+  return api.post<RvaCoupon>(`/admin/recruitment-vendor/coupons/${id}/restore`);
+}
+
+export function adminListRvaCouponUsages(
+  id: string,
+  query: { page?: number; limit?: number } = {},
+) {
+  return api.get<PaginatedResult<RvaCouponUsageRow>>(
+    `/admin/recruitment-vendor/coupons/${id}/usages${qs(query)}`,
   );
 }
 

@@ -169,6 +169,8 @@ model User {
   couponAccess       CouponUser[]
   couponUsages       CouponUsage[]
   recruitmentVendorSubscriptions RecruitmentVendorSubscription[]
+  recruitmentVendorCouponAccess  RecruitmentVendorCouponUser[]
+  recruitmentVendorCouponUsages  RecruitmentVendorCouponUsage[]
   recruitmentVendorOpportunitiesOwned RecruitmentVendorOpportunity[]
   recruitmentVendorEnrollment RecruitmentVendorEnrollment?
   adminAuditLogs     AuditLog[]         @relation("AuditAdminUser")
@@ -827,6 +829,9 @@ enum RecruitmentVendorOpportunityStatus {
 
 model RecruitmentVendorOpportunity {
   id                 String                             @id @default(uuid())
+  // Excel "S. No." display serial supplied by the source workbook. Nullable so
+  // pre-existing rows (and rows without a serial) remain valid.
+  serialNo           Int?
   title              String
   description        String?
   role               String?
@@ -890,6 +895,8 @@ model RecruitmentVendorPlan {
   deletedAt           DateTime?
 
   subscriptions RecruitmentVendorSubscription[]
+  couponPlans   RecruitmentVendorCouponPlan[]
+  couponUsages  RecruitmentVendorCouponUsage[]
 
   @@index([isActive])
   @@index([deletedAt])
@@ -914,6 +921,7 @@ model RecruitmentVendorSubscription {
   plan        RecruitmentVendorPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
   payments    Payment[]
   couponUsages CouponUsage[]
+  rvaCouponUsages RecruitmentVendorCouponUsage[]
 
   @@index([userId])
   @@index([planId])
@@ -960,6 +968,97 @@ model RecruitmentVendorEnrollment {
   @@index([deletedAt])
 }
 
+// ==========================================================================
+// RECRUITMENT VENDOR ACCESS COUPONS
+// ==========================================================================
+//
+// Deliberately isolated from the Opportunity Vault `Coupon` tables: an RVA
+// coupon can only ever target `RecruitmentVendorPlan` rows and only ever
+// records `RecruitmentVendorCouponUsage`, so the two vaults can never leak
+// discounts or eligibility into each other. The discount math, status
+// derivation and error codes are shared with the vault helpers (they are
+// pure functions), but no coupon data is shared.
+
+model RecruitmentVendorCoupon {
+  id                String              @id @default(uuid())
+  code              String              @unique // stored trimmed + upper-cased; lookups are case-insensitive
+  description       String?
+  discountType      CouponDiscountType
+  discountValue     Decimal             @db.Decimal(10, 2)
+  validFrom         DateTime
+  validUntil        DateTime
+  usageLimit        Int? // null = unlimited redemptions
+  perUserUsageLimit Int                 @default(1)
+  appliesToAllUsers Boolean             @default(true)
+  isActive          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+
+  plans  RecruitmentVendorCouponPlan[]
+  users  RecruitmentVendorCouponUser[]
+  usages RecruitmentVendorCouponUsage[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+  @@index([validUntil])
+}
+
+// Applicable RVA plans. An empty set means the coupon applies to every RVA plan.
+model RecruitmentVendorCouponPlan {
+  id       String @id @default(uuid())
+  couponId String
+  planId   String
+
+  coupon RecruitmentVendorCoupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  plan   RecruitmentVendorPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, planId])
+  @@index([planId])
+}
+
+// Allow-list of users for `appliesToAllUsers = false` coupons.
+model RecruitmentVendorCouponUser {
+  id       String @id @default(uuid())
+  couponId String
+  userId   String
+
+  coupon RecruitmentVendorCoupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, userId])
+  @@index([userId])
+}
+
+// One row per redemption. Captures the full server-calculated price
+// breakdown plus the purchase/subscription references for auditing.
+model RecruitmentVendorCouponUsage {
+  id             String   @id @default(uuid())
+  couponId       String
+  userId         String
+  planId         String
+  paymentId      String   @unique // one usage per payment session (double-spend guard)
+  recruitmentVendorSubscriptionId String?
+  originalAmount Decimal  @db.Decimal(12, 2)
+  discountAmount Decimal  @db.Decimal(12, 2)
+  finalAmount    Decimal  @db.Decimal(12, 2)
+  currency       String   @default("INR")
+  usedAt         DateTime @default(now())
+
+  coupon       RecruitmentVendorCoupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         RecruitmentVendorPlan   @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payment      Payment                 @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  recruitmentVendorSubscription RecruitmentVendorSubscription? @relation(fields: [recruitmentVendorSubscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([couponId])
+  @@index([userId])
+  @@index([couponId, userId])
+  @@index([planId])
+  @@index([recruitmentVendorSubscriptionId])
+  @@index([usedAt])
+}
+
 // PAYMENTS (Razorpay foundation)
 // ==========================================================================
 
@@ -983,6 +1082,7 @@ model Payment {
   subscription                Subscription?              @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   recruitmentVendorSubscription RecruitmentVendorSubscription? @relation(fields: [recruitmentVendorSubscriptionId], references: [id], onDelete: SetNull)
   couponUsages                CouponUsage[]
+  recruitmentVendorCouponUsages RecruitmentVendorCouponUsage[]
 
   @@unique([razorpayOrderId, razorpayPaymentId])
   @@index([userId])

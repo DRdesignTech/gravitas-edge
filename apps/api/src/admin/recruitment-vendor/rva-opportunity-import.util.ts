@@ -16,6 +16,11 @@ export const RVA_HEADER_ALIASES: Record<string, string> = {
   role: 'role',
   designation: 'role',
   roleposition: 'role',
+  // In the canonical "Recruitment Vendor Access Vault" workbook the
+  // "Opportunity Type" column carries the human-facing opportunity title, so it
+  // maps to `title` (a row's category still comes from the selected default or
+  // an explicit "Category"/"Type" column).
+  opportunitytype: 'title',
   sector: 'sector',
   industry: 'sector',
   category: 'category',
@@ -25,6 +30,7 @@ export const RVA_HEADER_ALIASES: Record<string, string> = {
   client: 'company',
   organization: 'organization',
   organisation: 'organization',
+  organizationname: 'organization',
   org: 'organization',
   budget: 'budget',
   budgetrange: 'budget',
@@ -50,11 +56,18 @@ export const RVA_HEADER_ALIASES: Record<string, string> = {
   maxexperience: 'maxExperience',
   eligibility: 'eligibility',
   eligibilitycriteria: 'eligibility',
+  eligibilityvendorcriteria: 'eligibility',
+  eligibilityvendoreligibility: 'eligibility',
   qualification: 'qualification',
   qualifications: 'qualification',
   requirements: 'requirements',
   requirement: 'requirements',
   scope: 'requirements',
+  vendorrequirements: 'requirements',
+  vendorrequirement: 'requirements',
+  vendorrequirementscope: 'requirements',
+  scoperequirement: 'requirements',
+  requirementsscope: 'requirements',
   otherdetails: 'otherDetails',
   otherdetail: 'otherDetails',
   details: 'otherDetails',
@@ -67,6 +80,8 @@ export const RVA_HEADER_ALIASES: Record<string, string> = {
   applyurl: 'applicationUrl',
   link: 'applicationUrl',
   applicationcontact: 'applicationContact',
+  contactperson: 'applicationContact',
+  contactpersonname: 'applicationContact',
   contact: 'applicationContact',
   email: 'applicationContact',
   howtoapplyemail: 'applicationContact',
@@ -75,6 +90,9 @@ export const RVA_HEADER_ALIASES: Record<string, string> = {
   referenceid: 'referenceId',
   reference: 'referenceId',
   refid: 'referenceId',
+  sno: 'serialNo',
+  s: 'serialNo',
+  serialnumber: 'serialNo',
   jobid: 'jobId',
   opportunityid: 'jobId',
   rvaid: 'jobId',
@@ -85,6 +103,8 @@ export const RVA_HEADER_ALIASES: Record<string, string> = {
   expirydate: 'expiryDate',
   closingdate: 'expiryDate',
   deadline: 'expiryDate',
+  applicationdeadline: 'expiryDate',
+  lastdate: 'expiryDate',
   status: 'status',
 };
 
@@ -110,6 +130,29 @@ const MEANINGFUL_RVA_FIELDS = [
   'otherDetails',
   'publishedDate',
 ];
+
+/**
+ * Derive the required `title` for a row. The canonical "Recruitment Vendor
+ * Access Vault" workbook has no Title column, so we fall back to the most
+ * descriptive available field (Vendor Requirement / Scope, then Organisation,
+ * role, sector). Values are truncated to the 300-char column budget. Never
+ * fabricates content — an all-empty row still yields an empty string and stays
+ * invalid.
+ */
+export function deriveRvaTitle(fields: Record<string, string | null | undefined>): string {
+  const candidates = [
+    fields.title,
+    fields.requirements,
+    fields.organization,
+    fields.role,
+    fields.sector,
+  ];
+  for (const candidate of candidates) {
+    const value = candidate?.toString().trim();
+    if (value) return value.length > 300 ? `${value.slice(0, 297)}...` : value;
+  }
+  return '';
+}
 
 export function normalizeHeaderKey(value: unknown): string {
   if (value === null || value === undefined) return '';
@@ -159,7 +202,13 @@ export function findRvaHeaderRow(
         'experienceText',
       ].includes(f),
     );
-    if (hasTitle && hasMeta) {
+    // A canonical RVA "Recruitment Vendor Access Vault" sheet has no Title
+    // column, so also accept a row that exposes several RVA-specific columns
+    // (Job ID, Vendor Requirement / Scope, Organisation, Industry, Geography …).
+    const hasSheetCore = fields.some((f) =>
+      ['jobId', 'requirements', 'organization', 'sector', 'geography'].includes(f),
+    );
+    if ((hasTitle && hasMeta) || (hasSheetCore && fields.length >= 3)) {
       return { index: i, colMap };
     }
   }
