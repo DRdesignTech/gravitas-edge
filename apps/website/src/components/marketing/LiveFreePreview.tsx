@@ -432,22 +432,15 @@ export default function LiveFreePreview({
                           </span>
                         )}
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          {o.salary && (
+                            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] font-bold text-brand-700 dark:text-brand-300 dark:bg-surface">
+                              {o.salary}
+                            </span>
+                          )}
                           {o.location && (
                             <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
                               <PinIcon className="h-3 w-3 shrink-0 text-content-faint" />
                               <span className="truncate">{o.location.split(/[/,]/)[0].trim()}</span>
-                            </span>
-                          )}
-                          {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
-                            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
-                              <BarsIcon className="h-3 w-3 shrink-0 text-content-faint" />
-                              <span className="truncate">
-                                {displayExperience(
-                                  o.experienceText,
-                                  o.minExperience,
-                                  o.maxExperience,
-                                )}
-                              </span>
                             </span>
                           )}
                           {o.category && (

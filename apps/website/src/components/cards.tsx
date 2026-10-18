@@ -298,16 +298,12 @@ export function OpportunityCard({
           )}
         </div>
 
-        {isMeaningful(o.salary) ? (
-          <p
-            className="mt-2.5 truncate text-base font-bold text-brand-700 dark:text-brand-300"
-            title={o.salary}
-          >
-            {o.salary}
-          </p>
-        ) : null}
-
         <div className="mt-2 flex flex-wrap gap-1.5">
+          {o.salary && (
+            <MetaChip>
+              {o.salary}
+            </MetaChip>
+          )}
           {o.jobId && (
             <MetaChip icon={<IdIcon className="h-3.5 w-3.5" />}>
               {OPPORTUNITY_FIELD_LABELS.jobId}: {o.jobId}
@@ -330,11 +326,6 @@ export function OpportunityCard({
           {o.employmentType && (
             <MetaChip icon={<BriefcaseIcon className="h-3.5 w-3.5" />}>
               {titleCase(o.employmentType)}
-            </MetaChip>
-          )}
-          {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
-            <MetaChip icon={<BarsIcon className="h-3.5 w-3.5" />}>
-              {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
             </MetaChip>
           )}
         </div>
