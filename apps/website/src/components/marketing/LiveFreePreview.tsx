@@ -425,9 +425,6 @@ export default function LiveFreePreview({
                         <h3 className="truncate text-sm font-bold leading-snug text-content group-hover:text-brand-700 sm:text-[15px] dark:group-hover:text-brand-300">
                           {o.title}
                         </h3>
-                        <p className="mt-0.5 truncate text-xs text-content-muted">
-                          {o.company || '—'}
-                        </p>
                         {o.jobId && (
                           <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
                             <span className="text-[10px] font-mono text-brand-600 dark:text-brand-400">#</span>

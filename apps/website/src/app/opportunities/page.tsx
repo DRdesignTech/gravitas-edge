@@ -646,9 +646,6 @@ function OpportunityPageContent() {
                               <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
                                 {o.title}
                               </h3>
-                              <p className="mt-0.5 truncate text-sm font-medium text-content-muted">
-                                {o.company || '—'}
-                              </p>
                             </div>
                           </div>
                           <FunctionTag value={o.functionalArea} />
@@ -656,14 +653,14 @@ function OpportunityPageContent() {
 
                         {isMeaningful(o.salary) && (
                           <p
-                            className="mt-4 truncate text-base font-bold text-brand-700 dark:text-brand-300"
+                            className="mt-2.5 truncate text-base font-bold text-brand-700 dark:text-brand-300"
                             title={o.salary}
                           >
                             {o.salary}
                           </p>
                         )}
 
-                        <div className="mt-3">
+                        <div className="mt-2">
                           <OpportunityMeta o={o} />
                         </div>
 
@@ -705,25 +702,22 @@ function OpportunityPageContent() {
                       className="group relative flex cursor-pointer flex-col gap-4 overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:bg-surface-elevated dark:hover:border-brand-500/50 sm:p-6 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-6"
                     >
                       <span className="absolute inset-y-0 left-0 w-0.5 bg-gradient-to-b from-brand-600 to-brand-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:from-brand-400 dark:to-brand-300" />
-                      <div className="min-w-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
-                              {(o.company || o.title || '?')[0]?.toUpperCase()}
-                            </span>
-                            <div className="min-w-0">
-                              <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
-                                {o.title}
-                              </h3>
-                              <p className="mt-0.5 truncate text-sm font-medium text-content-muted">
-                                {o.company || '—'}
-                              </p>
+<div className="min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex min-w-0 items-center gap-3">
+                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
+                                  {(o.company || o.title || '?')[0]?.toUpperCase()}
+                                </span>
+                                <div className="min-w-0">
+                                  <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
+                                    {o.title}
+                                  </h3>
+                                </div>
+                              </div>
+                              <FunctionTag value={o.functionalArea} />
                             </div>
-                          </div>
-                          <FunctionTag value={o.functionalArea} />
-                        </div>
 
-                        {isMeaningful(o.salary) && (
+                            {isMeaningful(o.salary) && (
                           <p
                             className="mt-3 truncate text-base font-bold text-brand-700 dark:text-brand-300"
                             title={o.salary}

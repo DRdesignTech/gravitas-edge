@@ -835,18 +835,16 @@ function RvaChip({ icon, children }: { icon?: React.ReactNode; children: React.R
 
 /** The short source-workbook columns, rendered as space-saving chips. */
 function RvaChips({ opportunity }: { opportunity: RvaOpportunity }) {
-  const org = opportunity.organization || opportunity.company;
   const geography = opportunity.geography || opportunity.location;
   const published = formatDate(opportunity.publishedDate);
   return (
     <div className="flex flex-wrap gap-1.5">
-      <Badge variant="info" className="shrink-0">
-        {opportunity.categoryLabel}
-      </Badge>
       {opportunity.jobId && (
         <RvaChip icon={<IdIcon className="h-3.5 w-3.5" />}>#{opportunity.jobId}</RvaChip>
       )}
-      {org && <RvaChip icon={<BriefcaseIcon className="h-3.5 w-3.5" />}>{org}</RvaChip>}
+      <Badge variant="info" className="shrink-0">
+        {opportunity.categoryLabel}
+      </Badge>
       {opportunity.sector && (
         <RvaChip icon={<LayersIcon className="h-3.5 w-3.5" />}>{opportunity.sector}</RvaChip>
       )}

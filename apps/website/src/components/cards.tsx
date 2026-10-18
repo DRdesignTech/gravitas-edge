@@ -289,9 +289,6 @@ export function OpportunityCard({
               <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
                 {o.title}
               </h3>
-              {o.company && (
-                <p className="mt-0.5 truncate text-sm text-content-muted">{o.company}</p>
-              )}
             </div>
           </div>
           {o.isPremium ? (
@@ -303,14 +300,14 @@ export function OpportunityCard({
 
         {isMeaningful(o.salary) ? (
           <p
-            className="mt-4 truncate text-base font-bold text-brand-700 dark:text-brand-300"
+            className="mt-2.5 truncate text-base font-bold text-brand-700 dark:text-brand-300"
             title={o.salary}
           >
             {o.salary}
           </p>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {o.jobId && (
             <MetaChip icon={<IdIcon className="h-3.5 w-3.5" />}>
               {OPPORTUNITY_FIELD_LABELS.jobId}: {o.jobId}
