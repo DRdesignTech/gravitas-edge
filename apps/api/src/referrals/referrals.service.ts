@@ -38,7 +38,7 @@ export class ReferralsService {
   ) {}
 
   getReferralBaseUrl(): string {
-    return this.config.get<string>('REFERRAL_BASE_URL') ?? 'http://localhost:3000';
+    return this.config.get<string>('REFERRAL_BASE_URL') ?? 'https://gravitasedgeconsulting.com';
   }
 
   /**
