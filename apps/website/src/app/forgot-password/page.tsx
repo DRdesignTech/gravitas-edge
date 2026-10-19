@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
             </h1>
             <p className="mt-1.5 text-sm text-content-muted">
               {submitted
-                ? `We've sent a password reset link to <strong>${submittedEmail.toLowerCase()}</strong>. Please check your inbox.`
+                ? `We've sent a password reset link to ${submittedEmail.toLowerCase()}. Please check your inbox.`
                 : 'Enter your email and we\'ll send you a link to reset your password.'}
             </p>
           </div>
