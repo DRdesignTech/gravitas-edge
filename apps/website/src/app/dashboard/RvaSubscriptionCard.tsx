@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Badge, StatusBadge } from '@/components/ui';
 import { formatDate, formatMoney } from '@/lib/format';
 import { RvaSubscriptionSummary } from '@/lib/types';
@@ -17,10 +18,15 @@ export default function RvaSubscriptionCard({ sub }: { sub: RvaSubscriptionSumma
   const plan = sub.plan;
 
   return (
-    <div className="rounded-xl border border-line bg-surface p-4 dark:bg-surface-elevated">
+    <Link
+      href="/recruitment-vendor"
+      className="group block rounded-xl border border-line bg-surface p-4 transition-colors hover:border-brand-300 hover:bg-surface-muted dark:bg-surface-elevated dark:hover:border-brand-500/60"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold text-content">{plan?.name || 'Recruitment Vendor Access'}</p>
+          <p className="font-semibold text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
+            {plan?.name || 'Recruitment Vendor Access'}
+          </p>
           <p className="mt-0.5 text-xs text-content-muted">
             {formatDate(sub.startDate)} → {formatDate(sub.endDate)}
             {plan?.price !== undefined && (
@@ -50,8 +56,19 @@ export default function RvaSubscriptionCard({ sub }: { sub: RvaSubscriptionSumma
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
-        <Badge variant="info">Recruitment Vendor Access</Badge>
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 dark:text-brand-400">
+          <Badge variant="info">Recruitment Vendor Access</Badge>
+          <svg
+            className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }
