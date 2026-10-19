@@ -11,6 +11,15 @@ import {
   isMeaningful,
 } from '@/lib/format';
 import { OPPORTUNITY_FIELD_LABELS, extractEmail } from '@job-portal/shared';
+import { useAuth } from '@/lib/auth';
+import { LockNotice } from '@/components/LockNotice';
+import {
+  canRevealCompanyExperience,
+  companyExperienceLockMessage,
+  companyInitial,
+  isCompanyWithheld,
+  isExperienceWithheld,
+} from '@/lib/opportunity-access';
 
 export interface ProtectedField {
   label: string;
@@ -372,6 +381,9 @@ export function OpportunityCard({
 }
 
 export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity }) {
+  const { hasVaultAccess } = useAuth();
+  const canReveal = canRevealCompanyExperience(o, hasVaultAccess);
+  const lockMessage = companyExperienceLockMessage(o);
   return (
     <Link
       href={`/opportunities/${o.id}`}
@@ -379,7 +391,7 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
     >
       <div className="flex min-w-0 items-start gap-4">
         <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-base font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-          {(o.company || o.title || '?')[0]?.toUpperCase()}
+          {companyInitial(o, canReveal)}
         </span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -388,7 +400,13 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
             </h3>
             {o.isPremium && <Badge variant="premium">Premium</Badge>}
           </div>
-          {o.company && <p className="mt-0.5 text-sm text-content-muted">{o.company}</p>}
+          {isCompanyWithheld(o, canReveal) ? (
+            <p className="mt-0.5">
+              <LockNotice message={lockMessage} />
+            </p>
+          ) : (
+            o.company && <p className="mt-0.5 text-sm text-content-muted">{o.company}</p>
+          )}
           {isMeaningful(o.salary) && (
             <p
               className="mt-1.5 text-sm font-bold text-brand-700 dark:text-brand-300"
@@ -423,11 +441,15 @@ export function OpportunityRow({ opportunity: o }: { opportunity: Opportunity })
                 <BriefcaseIcon className="h-4 w-4" /> {titleCase(o.employmentType)}
               </span>
             )}
-            {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
-              <span className="inline-flex items-center gap-1.5">
-                <BarsIcon className="h-4 w-4" />{' '}
-                {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-              </span>
+            {isExperienceWithheld(o, canReveal) ? (
+              <LockNotice message={lockMessage} />
+            ) : (
+              hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+                <span className="inline-flex items-center gap-1.5">
+                  <BarsIcon className="h-4 w-4" />{' '}
+                  {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+                </span>
+              )
             )}
           </div>
         </div>

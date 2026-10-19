@@ -31,6 +31,13 @@ import {
   isMeaningful,
 } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
+import { LockNotice } from '@/components/LockNotice';
+import {
+  canRevealCompanyExperience,
+  companyExperienceLockMessage,
+  isCompanyWithheld,
+  isExperienceWithheld,
+} from '@/lib/opportunity-access';
 
 const RECENT_LIMIT = 5;
 
@@ -55,7 +62,7 @@ function formatFileSize(bytes: number): string {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, hasVaultAccess } = useAuth();
 
   // Profile (hydrates name/location right after login, before /auth/me refresh)
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -381,7 +388,7 @@ export default function Dashboard() {
             ) : (
               <ul className="divide-y divide-line">
                 {recent.items.map((o) => (
-                  <OpportunityMiniRow key={o.id} opportunity={o} />
+                  <OpportunityMiniRow key={o.id} opportunity={o} hasVaultAccess={hasVaultAccess} />
                 ))}
               </ul>
             )}
@@ -648,8 +655,16 @@ function SubscriptionCard({ sub }: { sub: Subscription }) {
 
 /* ── Opportunity mini row ──────────────────────────────────────────── */
 
-function OpportunityMiniRow({ opportunity: o }: { opportunity: Opportunity }) {
+function OpportunityMiniRow({
+  opportunity: o,
+  hasVaultAccess,
+}: {
+  opportunity: Opportunity;
+  hasVaultAccess: boolean | null;
+}) {
   const limited = o.isPremium && !o.isFullAccess;
+  const canReveal = canRevealCompanyExperience(o, hasVaultAccess);
+  const lockMessage = companyExperienceLockMessage(o);
   return (
     <li>
       <Link
@@ -661,7 +676,9 @@ function OpportunityMiniRow({ opportunity: o }: { opportunity: Opportunity }) {
             <p className="truncate font-semibold text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
               {o.title}
             </p>
-            <p className="mt-0.5 truncate text-xs text-content-muted">{o.company ?? '—'}</p>
+            <p className="mt-0.5 truncate text-xs text-content-muted">
+              {isCompanyWithheld(o, canReveal) ? <LockNotice message={lockMessage} /> : (o.company ?? '—')}
+            </p>
           </div>
           <span className="shrink-0">
             {limited ? (
@@ -678,11 +695,15 @@ function OpportunityMiniRow({ opportunity: o }: { opportunity: Opportunity }) {
               <PinIcon className="h-3.5 w-3.5" /> {o.location}
             </span>
           )}
-          {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
-            <span className="inline-flex items-center gap-1">
-              <BarsIcon className="h-3.5 w-3.5" />{' '}
-              {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-            </span>
+          {isExperienceWithheld(o, canReveal) ? (
+            <LockNotice message={lockMessage} />
+          ) : (
+            hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+              <span className="inline-flex items-center gap-1">
+                <BarsIcon className="h-3.5 w-3.5" />{' '}
+                {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+              </span>
+            )
           )}
           {isMeaningful(o.salary) && (
             <span className="font-semibold text-brand-700 dark:text-brand-300">{o.salary}</span>

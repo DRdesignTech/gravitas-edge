@@ -23,6 +23,14 @@ import {
 } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import { previousInternalRoute } from '@/lib/navigation';
+import { useAuth } from '@/lib/auth';
+import {
+  canRevealCompanyExperience,
+  companyExperienceLockMessage,
+  isCompanyWithheld,
+  isExperienceWithheld,
+} from '@/lib/opportunity-access';
+import { LockNotice } from '@/components/LockNotice';
 import { OPPORTUNITY_FIELD_LABELS, extractEmail, buildApplyMailto } from '@job-portal/shared';
 
 /* ------------------------------------------------------------------ */
@@ -404,6 +412,7 @@ function CopyEmailButton({ email, className = '' }: { email: string; className?:
 export default function OpportunityPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { hasVaultAccess } = useAuth();
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -508,6 +517,10 @@ export default function OpportunityPage() {
       ? o.source.trim()
       : null;
   const locked = o.isFullAccess === false;
+  const revealCompanyExperience = canRevealCompanyExperience(o, hasVaultAccess);
+  const lockMessage = companyExperienceLockMessage(o);
+  const companyWithheld = isCompanyWithheld(o, revealCompanyExperience);
+  const experienceWithheld = isExperienceWithheld(o, revealCompanyExperience);
   const experience = hasExperience(o.experienceText, o.minExperience, o.maxExperience)
     ? displayExperience(o.experienceText, o.minExperience, o.maxExperience)
     : null;
@@ -569,7 +582,9 @@ export default function OpportunityPage() {
           </h1>
 
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
-            {isMeaningful(o.company) ? (
+            {companyWithheld ? (
+              <LockNotice tone="gold" message={lockMessage} />
+            ) : isMeaningful(o.company) ? (
               <span className="inline-flex items-center gap-2 text-base text-slate-200 sm:text-lg">
                 <BuildingIcon className="h-5 w-5 text-[#C8943E]" />
                 {o.company}
@@ -590,7 +605,7 @@ export default function OpportunityPage() {
           <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/10 pt-5">
             {o.location && <HeroFact icon={<PinIcon className="h-4 w-4" />}>{o.location}</HeroFact>}
             {o.country && <HeroFact icon={<GlobeIcon className="h-4 w-4" />}>{o.country}</HeroFact>}
-            {experience && (
+            {experience && !experienceWithheld && (
               <HeroFact icon={<BarsIcon className="h-4 w-4" />}>{experience}</HeroFact>
             )}
             {isMeaningful(o.industry) && (
@@ -640,7 +655,7 @@ export default function OpportunityPage() {
                   <FactTile
                     icon={<BarsIcon className="h-4 w-4" />}
                     label={L.experience}
-                    value={experience}
+                    value={experienceWithheld ? <LockNotice message={lockMessage} /> : experience}
                   />
                 </dl>
               </SectionCard>
@@ -652,8 +667,8 @@ export default function OpportunityPage() {
                   title="Full details are locked"
                 >
                   <p className="text-sm leading-relaxed text-content-muted">
-                    Qualification, other details and how to apply are locked for this Vault. Unlock
-                    the relevant Vault to reveal the full details.
+                    Company, experience, qualification, other details and how to apply are locked
+                    for this Vault. Unlock the relevant Vault to reveal the full details.
                   </p>
                   <div className="mt-6 grid gap-5 border-t border-line pt-6 sm:grid-cols-2">
                     <MaskedBlock label={L.qualification} value={o.lockedPreview?.qualification} />
@@ -722,6 +737,7 @@ export default function OpportunityPage() {
                     </p>
                     <ul className="mt-4 space-y-2.5">
                       {[
+                        'Company & experience details',
                         'Full qualification & requirements',
                         'Complete other details',
                         'How to apply & direct contact',
@@ -760,7 +776,7 @@ export default function OpportunityPage() {
                         <Button
                           href={buildApplyMailto(applyEmail, {
                             title: o.title,
-                            company: o.company,
+                            company: revealCompanyExperience ? o.company : undefined,
                           })}
                           size="lg"
                           className="w-full"

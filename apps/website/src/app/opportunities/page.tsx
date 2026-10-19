@@ -36,6 +36,13 @@ import Eyebrow from '@/components/marketing/Eyebrow';
 import InfoBanner from '@/components/marketing/InfoBanner';
 import { useAuth } from '@/lib/auth';
 import { previousInternalRoute } from '@/lib/navigation';
+import { LockNotice } from '@/components/LockNotice';
+import {
+  canRevealCompanyExperience,
+  companyExperienceLockMessage,
+  companyInitial,
+  isExperienceWithheld,
+} from '@/lib/opportunity-access';
 import { extractEmail, buildApplyMailto } from '@job-portal/shared';
 
 const PAGE_SIZE = 10;
@@ -143,7 +150,7 @@ function MetaChip({ icon, children }: { icon?: React.ReactNode; children: React.
   );
 }
 
-function OpportunityMeta({ o }: { o: Opportunity }) {
+function OpportunityMeta({ o, canReveal }: { o: Opportunity; canReveal: boolean }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {o.location && <MetaChip icon={<PinIcon className="h-3.5 w-3.5" />}>{o.location}</MetaChip>}
@@ -156,10 +163,14 @@ function OpportunityMeta({ o }: { o: Opportunity }) {
       {o.industry && (
         <MetaChip icon={<LayersIcon className="h-3.5 w-3.5" />}>{o.industry}</MetaChip>
       )}
-      {hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
-        <MetaChip icon={<BarsIcon className="h-3.5 w-3.5" />}>
-          {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
-        </MetaChip>
+      {isExperienceWithheld(o, canReveal) ? (
+        <LockNotice message={companyExperienceLockMessage(o)} />
+      ) : (
+        hasExperience(o.experienceText, o.minExperience, o.maxExperience) && (
+          <MetaChip icon={<BarsIcon className="h-3.5 w-3.5" />}>
+            {displayExperience(o.experienceText, o.minExperience, o.maxExperience)}
+          </MetaChip>
+        )
       )}
     </div>
   );
@@ -188,13 +199,16 @@ function PremiumLockedBox({ o }: { o: Opportunity }) {
   );
 }
 
-function OpportunityAction({ o }: { o: Opportunity }) {
+function OpportunityAction({ o, canReveal }: { o: Opportunity; canReveal: boolean }) {
   if (o.isFullAccess) {
     const email = extractEmail(o.applicationContact, o.applicationUrl);
     if (email) {
       return (
         <a
-          href={buildApplyMailto(email, { title: o.title, company: o.company })}
+          href={buildApplyMailto(email, {
+            title: o.title,
+            company: canReveal ? o.company : undefined,
+          })}
           onClick={(e) => e.stopPropagation()}
           className="inline-flex shrink-0 items-center gap-1 truncate rounded-full bg-brand-50 px-3.5 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
         >
@@ -224,7 +238,7 @@ function OpportunityPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const vaultId = searchParams.get('vaultId') || '';
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, hasVaultAccess } = useAuth();
 
   const openOpportunity = useCallback(
     (id: string) => {
@@ -490,10 +504,10 @@ function OpportunityPageContent() {
           </h1>
           <p className="mt-6 max-w-3xl text-base leading-relaxed text-slate-300 sm:text-lg">
             {vaultId
-              ? 'Every opportunity below belongs to this Vault. Full company, source, contact and application details are unlocked by your active subscription, while remaining fields stay visible.'
+              ? 'Every opportunity below belongs to this Vault. Full company, experience, source, contact and application details are unlocked by your active subscription, while remaining fields stay visible.'
               : isSubscriber
-                ? 'You are viewing the live opportunity database with full subscriber access. Company names, sources, contacts and application links are visible for opportunities in your unlocked vaults.'
-                : 'These are the same opportunities used across the platform. You can browse them and see the visible details without subscribing. Company, source, contact and detailed application information become available only with the relevant active subscription.'}
+                ? 'You are viewing the live opportunity database with full subscriber access. Company names, experience values, sources, contacts and application links are visible for opportunities in your unlocked vaults.'
+                : 'These are the same opportunities used across the platform. You can browse them and see the visible details without subscribing. Company, experience, source, contact and detailed application information become available only with the relevant active subscription.'}
           </p>
         </div>
       </section>
@@ -525,7 +539,7 @@ function OpportunityPageContent() {
             <form onSubmit={handleSearch} className="grid gap-4 p-5 md:grid-cols-2 lg:grid-cols-5">
               <Input
                 label="Search"
-                placeholder="Title, company…"
+                placeholder="Title, keyword…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label="Search opportunities"
@@ -640,7 +654,7 @@ function OpportunityPageContent() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
-                              {(o.company || o.title || '?')[0]?.toUpperCase()}
+                              {companyInitial(o, canRevealCompanyExperience(o, hasVaultAccess))}
                             </span>
                             <div className="min-w-0">
                               <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
@@ -661,7 +675,10 @@ function OpportunityPageContent() {
                         )}
 
                         <div className="mt-2">
-                          <OpportunityMeta o={o} />
+                          <OpportunityMeta
+                            o={o}
+                            canReveal={canRevealCompanyExperience(o, hasVaultAccess)}
+                          />
                         </div>
 
                         {o.isPremium && (
@@ -671,7 +688,7 @@ function OpportunityPageContent() {
                         )}
 
                         <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-4">
-                          <OpportunityAction o={o} />
+                          <OpportunityAction o={o} canReveal={canRevealCompanyExperience(o, hasVaultAccess)} />
                           <span className="flex items-center gap-2">
                             <Badge variant="info">{titleOption(o.category)}</Badge>
                             {o.publishedDate && (
@@ -706,7 +723,7 @@ function OpportunityPageContent() {
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex min-w-0 items-center gap-3">
                                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-base font-bold text-[#E3B968] shadow-sm">
-                                  {(o.company || o.title || '?')[0]?.toUpperCase()}
+                                  {companyInitial(o, canRevealCompanyExperience(o, hasVaultAccess))}
                                 </span>
                                 <div className="min-w-0">
                                   <h3 className="truncate text-[15px] font-bold leading-snug text-content group-hover:text-brand-700 dark:group-hover:text-brand-300">
@@ -727,7 +744,10 @@ function OpportunityPageContent() {
                         )}
 
                         <div className="mt-3">
-                          <OpportunityMeta o={o} />
+                          <OpportunityMeta
+                            o={o}
+                            canReveal={canRevealCompanyExperience(o, hasVaultAccess)}
+                          />
                         </div>
                       </div>
 
@@ -735,7 +755,7 @@ function OpportunityPageContent() {
                         {o.isPremium && <PremiumLockedBox o={o} />}
 
                         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-                          <OpportunityAction o={o} />
+                          <OpportunityAction o={o} canReveal={canRevealCompanyExperience(o, hasVaultAccess)} />
                           <span className="flex items-center gap-2">
                             <Badge variant="info">{titleOption(o.category)}</Badge>
                             {o.publishedDate && (
@@ -775,9 +795,9 @@ function OpportunityPageContent() {
             </h2>
             <p className="mt-4 text-base leading-relaxed text-content-muted">
               {vaultId
-                ? `You are viewing the opportunities inside ${vault?.name ?? 'this vault'}. Full company, source, contact and application details unlock with an active subscription for this Vault.`
+                ? `You are viewing the opportunities inside ${vault?.name ?? 'this vault'}. Full company, experience, source, contact and application details unlock with an active subscription for this Vault.`
                 : isSubscriber
-                  ? 'Your active subscription gives you access to full opportunity details for unlocked vaults. Company names, sources, contacts and application links are visible where your subscription applies.'
+                  ? 'Your active subscription gives you access to full opportunity details for unlocked vaults. Company names, experience values, sources, contacts and application links are visible where your subscription applies.'
                   : 'Continue to Vaults & Plans to find the access level that matches your location and experience. If the preview is not useful to you right now, there is no need to subscribe.'}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">

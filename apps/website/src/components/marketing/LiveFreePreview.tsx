@@ -18,6 +18,8 @@ import HomeAnchor from '@/components/marketing/HomeAnchor';
 import { displayExperience, hasExperience, titleCase } from '@/lib/format';
 import { extractEmail, buildApplyMailto } from '@job-portal/shared';
 import { fetchOpportunities, fetchVaultOpportunityCounts } from '@/lib/services';
+import { useAuth } from '@/lib/auth';
+import { canRevealCompanyExperience } from '@/lib/opportunity-access';
 
 const PAGE_SIZE = 12;
 const VIEW_KEY = 'free-preview-view';
@@ -272,11 +274,11 @@ export default function LiveFreePreview({
                             <input
                               id="free-preview-search"
                               type="text"
-                              placeholder="Search by role, company, location, salary, experience..."
+                              placeholder="Search by role, location, salary, experience..."
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
                               className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-4 text-base text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                              aria-label="Search opportunities by keywords (role, company, location, salary, experience, etc.)"
+                              aria-label="Search opportunities by keywords (role, location, salary, experience, etc.)"
                             />
                             {searchQuery && (
                               <button
@@ -299,7 +301,7 @@ export default function LiveFreePreview({
                             )}
                           </div>
                           <p className="text-center text-xs text-content-muted">
-                            You can search anything — try multiple keywords like company, role, location, or salary
+                            You can search anything — try multiple keywords like role, location, or salary
                           </p>
                           <button
                             type="submit"
@@ -491,8 +493,8 @@ export default function LiveFreePreview({
 
               <div className="mt-10 flex flex-col items-start gap-2 rounded-2xl border border-line bg-surface-muted px-5 py-4 text-sm text-content-muted dark:bg-surface/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <p>
-                  Full company, source, contact and application details for premium opportunities
-                  become available with the relevant Opportunity Vault access.
+                  Full company, experience, source, contact and application details become
+                  available with the relevant Opportunity Vault access.
                 </p>
                 <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1">
                   <HomeAnchor
@@ -518,12 +520,16 @@ export default function LiveFreePreview({
 }
 
 function BrowseLink({ o }: { o: Opportunity }) {
+  const { hasVaultAccess } = useAuth();
   if (o.isFullAccess) {
     const email = extractEmail(o.applicationContact, o.applicationUrl);
     if (email) {
       return (
         <a
-          href={buildApplyMailto(email, { title: o.title, company: o.company })}
+          href={buildApplyMailto(email, {
+            title: o.title,
+            company: canRevealCompanyExperience(o, hasVaultAccess) ? o.company : undefined,
+          })}
           className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
         >
           Apply <span aria-hidden="true">→</span>
