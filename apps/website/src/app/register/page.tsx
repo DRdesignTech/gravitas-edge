@@ -19,13 +19,23 @@ interface FieldErrors {
   password?: string;
   confirm?: string;
   terms?: string;
+  referralCode?: string;
 }
 
 function RegisterForm() {
   const searchParams = useSearchParams();
   const refParam = searchParams.get('ref');
-  const referralCode = refParam && REFERRAL_CODE_RE.test(refParam) ? refParam : null;
-  const invalidReferralCode = refParam && !referralCode;
+  const urlReferralCode = refParam && REFERRAL_CODE_RE.test(refParam) ? refParam : null;
+  const invalidReferralCode = refParam && !urlReferralCode;
+
+  // Persist referral code in localStorage for cross-page navigation
+  const storedReferralCode = typeof window !== 'undefined' ? localStorage.getItem('referralCode') : null;
+  const initialReferralCode = urlReferralCode ?? storedReferralCode ?? '';
+
+  // Save to localStorage if we got a valid code from URL
+  if (urlReferralCode && typeof window !== 'undefined') {
+    localStorage.setItem('referralCode', urlReferralCode);
+  }
 
   const { register } = useAuth();
   const { guestToken, guestResume, clearGuestResume } = useGuestResume();
@@ -35,6 +45,7 @@ function RegisterForm() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [agreedTerms, setAgreedTerms] = useState(false);
+  const [referralCode, setReferralCode] = useState(initialReferralCode);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
@@ -57,12 +68,21 @@ function RegisterForm() {
     if (confirm !== password) next.confirm = 'Passwords do not match.';
     if (!agreedTerms)
       next.terms = 'Please accept the Privacy Policy and Terms & Conditions to continue.';
+    // Validate referral code format if provided
+    if (referralCode.trim() && !REFERRAL_CODE_RE.test(referralCode.trim())) {
+      next.referralCode = 'Invalid referral code format.';
+    }
     setFieldErrors(next);
     if (Object.keys(next).length) return;
 
     setLoading(true);
     try {
-      await register(fullName.trim(), email.trim(), password, referralCode ?? undefined);
+      await register(fullName.trim(), email.trim(), password, referralCode?.trim() || undefined);
+
+      // Clear referral code from localStorage after successful registration
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('referralCode');
+      }
 
       if (guestToken) {
         try {
@@ -243,6 +263,23 @@ function RegisterForm() {
                 <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fieldErrors.terms}</p>
               )}
             </div>
+
+            {/* Referral Code (optional) */}
+            <Input
+              label="Referral code (optional)"
+              type="text"
+              autoComplete="off"
+              value={referralCode ?? ''}
+              onChange={(e) => {
+                const val = e.target.value.toUpperCase();
+                setReferralCode(val);
+                clearField('referralCode');
+              }}
+              placeholder="REF-XXXXXXXXXX"
+              error={fieldErrors.referralCode}
+              maxLength={14}
+            />
+
             <Button type="submit" className="w-full" loading={loading} disabled={loading}>
               {loading ? 'Creating account…' : 'Create account'}
             </Button>
