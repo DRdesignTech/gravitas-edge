@@ -795,3 +795,96 @@ export interface ResumeAnalytics {
   byUploadStatus: ResumeStatusBreakdown[];
   timeline: TrendPoint[];
 }
+
+export enum AdminResumeSource {
+  ALL = 'ALL',
+  AUTHENTICATED = 'AUTHENTICATED',
+  GUEST = 'GUEST',
+}
+
+export enum AdminResumeSortBy {
+  UPLOADED_AT = 'uploadedAt',
+  FILE_NAME = 'originalName',
+  FILE_SIZE = 'fileSize',
+  FILE_TYPE = 'fileType',
+  UPLOAD_STATUS = 'uploadStatus',
+}
+
+export interface AdminResumeCandidateProfile {
+  fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  totalExperienceMonths?: number | null;
+  currentJobTitle?: string | null;
+  currentCompany?: string | null;
+  skills?: string[];
+  workExperience?: Array<{
+    company: string;
+    jobTitle?: string;
+    startDate?: string;
+    endDate?: string;
+    isCurrent: boolean;
+  }>;
+  education?: Array<{
+    qualification: string;
+    institution?: string;
+    startYear?: number | null;
+    endYear?: number | null;
+  }>;
+  certifications?: Array<{
+    name: string;
+    issuer?: string;
+    issueYear?: number | null;
+  }>;
+  industries?: string[];
+  functionalAreas?: string[];
+}
+
+export interface AdminResume {
+  id: string;
+  originalName: string;
+  fileType: string;
+  fileSize: number;
+  storageProvider: string;
+  uploadStatus: string;
+  uploadedAt: string;
+  processedAt?: string | null;
+  source: 'AUTHENTICATED' | 'GUEST';
+  fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  user?: {
+    id: string;
+    email: string;
+    fullName?: string | null;
+  };
+  candidateProfile?: AdminResumeCandidateProfile;
+  fileExists: boolean;
+  extractionError?: string;
+}
+
+export interface AdminResumeQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  source?: AdminResumeSource;
+  fileType?: string;
+  uploadStatus?: string;
+  processingStatus?: string;
+  uploadedAfter?: string;
+  uploadedBefore?: string;
+  sortBy?: AdminResumeSortBy;
+  sortOrder?: 'asc' | 'desc';
+  includeProfile?: boolean;
+}
+
+export interface AdminResumePaginatedResponse {
+  data: AdminResume[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

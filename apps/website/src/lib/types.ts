@@ -458,6 +458,40 @@ export interface RvaLockedPreview {
   budget: string | null;
 }
 
+/** Plan summary embedded in an RVA subscription / entitlement response. */
+export interface RvaSubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+  regularPrice: number;
+  discountedPrice: number;
+  discountPercentage: number;
+  currency: string;
+  durationDays: number;
+  durationLabel: string;
+}
+
+/** The signed-in user's own RVA subscription (scoped to RVA tables only). */
+export interface RvaSubscriptionSummary {
+  id: string;
+  status: string;
+  effectiveStatus: string;
+  paymentReference?: string | null;
+  startDate: string;
+  endDate: string;
+  cancelledAt?: string | null;
+  createdAt: string;
+  vault: string;
+  plan: RvaSubscriptionPlan | null;
+}
+
+/** `GET /recruitment-vendor/access/me` — lightweight RVA entitlement summary. */
+export interface RvaAccessInfo {
+  hasAccess: boolean;
+  vault: string;
+  subscription: RvaSubscriptionSummary | null;
+}
+
 export interface RvaOpportunity {
   id: string;
   serialNo: number | null;

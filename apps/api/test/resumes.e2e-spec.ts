@@ -52,8 +52,12 @@ describe('Resumes e2e (security)', () => {
   });
 
   afterAll(async () => {
-    await prisma.guestResume.deleteMany({
-      where: { email: { in: [ownerEmail, 'guest-jane@example.com'] } },
+    await prisma.resume.deleteMany({
+      where: {
+        email: {
+          in: [ownerEmail, 'guest-jane@example.com', `unified-guest-${unique}@example.com`],
+        },
+      },
     });
     const users = await prisma.user.findMany({
       where: { email: { in: [ownerEmail, otherEmail] } },
@@ -66,9 +70,26 @@ describe('Resumes e2e (security)', () => {
     await app.close();
   });
 
-  it('rejects unauthenticated resume access', async () => {
+  it('rejects unauthenticated resume listing', async () => {
     await request(app.getHttpServer()).get('/api/resumes').expect(401);
-    await request(app.getHttpServer()).post('/api/resumes').expect(401);
+  });
+
+  it('allows a logged-out visitor to upload via the unified endpoint and get a token', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/resumes')
+      .field('fullName', 'Unified Guest')
+      .field('email', `unified-guest-${unique}@example.com`)
+      .field('phone', '+911234567890')
+      .attach('resume', attachPdf('unified-guest.pdf', '%PDF-1.4 unified guest'), {
+        filename: 'unified-guest.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201);
+
+    expect(res.body.data.token).toMatch(/^[a-f0-9]{64}$/);
+    expect(res.body.data.resume.originalName).toBe('unified-guest.pdf');
+    expect(res.body.data.resume.linked).toBe(false);
+    expect(res.body.data.resume.storagePath).toBeUndefined();
   });
 
   it('uploads a valid PDF via multipart and does not leak storage paths', async () => {
@@ -342,6 +363,13 @@ describe('Resumes e2e (security)', () => {
         .expect(200);
       const names = list.body.data.data.map((r: any) => r.originalName);
       expect(names).toContain('guest-cv-v2.pdf');
+
+      // Linking must not create a duplicate row — the same resume is claimed.
+      const owner = await prisma.user.findFirst({ where: { email: ownerEmail } });
+      const linkedRows = await prisma.resume.findMany({
+        where: { originalName: 'guest-cv-v2.pdf', userId: owner?.id },
+      });
+      expect(linkedRows).toHaveLength(1);
     });
 
     it('forbids linking a guest resume already claimed by another user', async () => {

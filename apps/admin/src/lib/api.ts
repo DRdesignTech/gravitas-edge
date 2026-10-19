@@ -23,6 +23,33 @@ async function toApiError(res: Response): Promise<ApiError> {
   return new ApiError(message, res.status);
 }
 
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+
+  const res = await fetch(`${API_BASE}${path}`, { headers });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    let message = `Error ${res.status}`;
+    if (text) {
+      try {
+        const json = JSON.parse(text);
+        const raw = json?.message;
+        if (Array.isArray(raw)) message = raw.join(' ');
+        else if (typeof raw === 'string' && raw.trim()) message = raw.trim();
+      } catch {
+        // not JSON; ignore
+      }
+    }
+    throw new ApiError(message, res.status);
+  }
+
+  return res.blob();
+}
+
 export async function apiFetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {

@@ -1,4 +1,4 @@
-import { api, uploadFile } from './api';
+import { api, uploadFile, apiFetchBlob } from './api';
 import {
   AdminSubscription,
   Coupon,
@@ -41,6 +41,9 @@ import {
   RvaSubscriptionQuery,
   RvaRevenueData,
   RvaAnalyticsOverview,
+  AdminResume,
+  AdminResumeQuery,
+  AdminResumePaginatedResponse,
 } from './types';
 
 export interface UserQuery {
@@ -641,4 +644,25 @@ export function adminRvaAnalyticsSubscriptions(
   return api.get<RvaSubscriptionAnalytics>(
     `/admin/recruitment-vendor/analytics/subscriptions${analyticsQs(range, startDate, endDate)}`,
   );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Admin Resumes                                                      */
+/* ------------------------------------------------------------------ */
+
+export function adminListResumes(query: AdminResumeQuery = {}) {
+  return api.get<AdminResumePaginatedResponse>(`/admin/resumes${qs(query)}`);
+}
+
+export function adminGetResume(id: string, includeProfile = false) {
+  const params = includeProfile ? '?includeProfile=true' : '';
+  return api.get<AdminResume>(`/admin/resumes/${id}${params}`);
+}
+
+export function adminDownloadResume(id: string) {
+  return apiFetchBlob(`/admin/resumes/${id}/download`);
+}
+
+export function adminExtractResume(id: string) {
+  return api.post<{ success: boolean; data: any }>(`/admin/resumes/${id}/extract`);
 }

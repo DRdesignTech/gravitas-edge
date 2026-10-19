@@ -34,13 +34,15 @@ type NavItem = {
     | 'commission'
     | 'slab'
     | 'coupon'
-    | 'testimonial';
+    | 'testimonial'
+    | 'resume';
 };
 
 const nav: NavItem[] = [
   { href: '/', label: 'Dashboard', exact: true, icon: 'dashboard' },
   { href: '/analytics', label: 'Analytics', icon: 'chart' },
   { href: '/users', label: 'Users', icon: 'users' },
+  { href: '/resumes', label: 'Resumes', icon: 'resume' },
   { href: '/vaults', label: 'Vaults', icon: 'vault' },
   { href: '/experience-levels', label: 'Experience Levels', icon: 'tag' },
   { href: '/plans', label: 'Plans', icon: 'plan' },
@@ -85,6 +87,8 @@ const iconPaths: Record<NavItem['icon'], string> = {
     'M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-4.5h12m0 0c0-1.657 1.007-3.75 2.25-3.75M7.5 13.5c0 1.657-1.007 3.75-2.25 3.75M21 3.75c0 1.657-1.007 3.75-2.25 3.75m0 0h-1.5m1.5 0h-1.5M7.5 3.75c0 1.657-1.007 3.75-2.25 3.75H5.25m1.5 0H5.25m0 0a2.25 2.25 0 000 4.5h3A2.25 2.25 0 0010.5 9.75V6.75A2.25 2.25 0 008.25 4.5h-3a2.25 2.25 0 000 4.5m0 12a2.25 2.25 0 000 4.5h3a2.25 2.25 0 002.25-2.25v-3a2.25 2.25 0 00-2.25-2.25h-3a2.25 2.25 0 000 4.5z',
   testimonial:
     'M2.25 15.75a3.75 3.75 0 013.75-3.75h.75a.75.75 0 01.75.75v6a.75.75 0 01-.75.75H6a3.75 3.75 0 01-3.75-3.75zm11.25 6a3.75 3.75 0 003.75-3.75v-6a.75.75 0 01.75-.75h.75a3.75 3.75 0 013.75 3.75V18a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75zM8.625 6a.75.75 0 00-.75.75v6a.75.75 0 00.75.75h6a.75.75 0 00.75-.75v-6a.75.75 0 00-.75-.75h-6z',
+  resume:
+    'M14.25 3.75H6.75A1.5 1.5 0 005.25 5.25v13.5a1.5 1.5 0 001.5 1.5h10.5a1.5 1.5 0 001.5-1.5V7.5l-3.75-3.75zM14.25 3.75V7.5h3.75M8.25 12.75h7.5M8.25 16.5h4.5',
 };
 
 function NavIcon({ name }: { name: NavItem['icon'] }) {

@@ -21,11 +21,13 @@ import { AdminCouponsController } from './coupons/admin-coupons.controller';
 import { AdminCouponsService } from './coupons/admin-coupons.service';
 import { AdminTestimonialsController } from './testimonials/admin-testimonials.controller';
 import { AdminTestimonialsService } from './testimonials/admin-testimonials.service';
+import { AdminResumesModule } from './resumes/admin-resumes.module';
 import { AuditModule } from '../audit/audit.module';
 import { AccessModule } from '../access/access.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AdminRecruitmentVendorModule } from './recruitment-vendor/admin-recruitment-vendor.module';
 import { ReferralsModule } from '../referrals/referrals.module';
+import { ResumesModule } from '../resumes/resumes.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { ReferralsModule } from '../referrals/referrals.module';
     AnalyticsModule,
     ReferralsModule,
     AdminRecruitmentVendorModule,
+    ResumesModule,
+    AdminResumesModule,
   ],
   controllers: [
     AdminUsersController,

@@ -19,6 +19,7 @@ import {
   ReferralQuery,
   ReferralSummary,
   Resume,
+  RvaAccessInfo,
   RvaConfirmResult,
   RvaFaq,
   RvaOpportunity,
@@ -90,17 +91,19 @@ export function uploadProfileImage(file: File) {
   return uploadFile<User>('/users/me/profile-image', file);
 }
 
-export function uploadResume(file: File) {
-  return uploadFile<Resume>('/resumes', file, 'resume');
+export function uploadResume(file: File, guestDetails?: GuestResumeDetails) {
+  const formData = new FormData();
+  formData.append('resume', file);
+  if (guestDetails) {
+    formData.append('fullName', guestDetails.fullName);
+    formData.append('email', guestDetails.email);
+    if (guestDetails.phone) formData.append('phone', guestDetails.phone);
+  }
+  return apiFetch<Resume | GuestResumeResult>('/resumes', { method: 'POST', body: formData });
 }
 
 export function uploadGuestResume(file: File, details: GuestResumeDetails) {
-  const formData = new FormData();
-  formData.append('resume', file);
-  formData.append('fullName', details.fullName);
-  formData.append('email', details.email);
-  if (details.phone) formData.append('phone', details.phone);
-  return postFormData<GuestResumeResult>('/resumes/guest', formData);
+  return uploadResume(file, details) as Promise<GuestResumeResult>;
 }
 
 export function getGuestResume(token: string) {
@@ -131,10 +134,6 @@ export interface GuestResumeDetails {
 export interface GuestResumeResult {
   token: string;
   resume: GuestResumeInfo;
-}
-
-function postFormData<T = any>(path: string, formData: FormData): Promise<T> {
-  return apiFetch<T>(path, { method: 'POST', body: formData });
 }
 
 export function removeProfileImage() {
@@ -244,7 +243,16 @@ export function fetchRvaFaqs() {
   return api.get<RvaFaq[]>('/recruitment-vendor/faqs');
 }
 
-export function fetchRvaOpportunities(query: { page?: number; limit?: number; search?: string } = {}) {
+export function fetchRvaOpportunities(
+  query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  } = {},
+) {
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
@@ -259,6 +267,11 @@ export function fetchRvaOpportunities(query: { page?: number; limit?: number; se
 
 export function fetchRvaOpportunity(id: string) {
   return api.get<RvaOpportunity>(`/recruitment-vendor/opportunities/${id}`);
+}
+
+/** The signed-in user's RVA entitlement summary (never mixed with Vault subs). */
+export function fetchRvaAccess() {
+  return api.get<RvaAccessInfo>('/recruitment-vendor/access/me');
 }
 
 export function purchaseRvaPlan(planId: string, couponCode?: string) {

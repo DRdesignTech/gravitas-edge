@@ -9,9 +9,10 @@ import OpportunityVaultCard from '@/components/plans/OpportunityVaultCard';
 import PlansIntro from '@/components/plans/PlansIntro';
 import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
+import { shouldShowVaultPlanBanner } from '@/lib/access-routing';
 
 export default function PlansPage() {
-  const { user, hasVaultAccess } = useAuth();
+  const { user, hasVaultAccess, hasRvaAccess } = useAuth();
   const [groups, setGroups] = useState<PricingGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,10 +36,14 @@ export default function PlansPage() {
       <div className="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 lg:px-8 lg:pb-20 lg:pt-16">
         <PlansIntro as="h1" />
 
-        {user && hasVaultAccess === false && (
+        {shouldShowVaultPlanBanner({
+          signedIn: !!user,
+          hasVaultAccess,
+          hasRvaAccess,
+        }) && (
           <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-[#C8943E]/30 bg-[#FFF3D9] px-4 py-3 text-center text-sm leading-relaxed text-[#7A5A1E] dark:border-[#C8943E]/30 dark:bg-brand-950 dark:text-brand-200">
-            You don&apos;t have Vault access yet. Purchase any Vault plan below to unlock your
-            dashboard and start accessing full opportunity details.
+            You don&apos;t have Vault access yet. Purchase any Vault plan below to unlock full
+            opportunity details.
           </div>
         )}
 

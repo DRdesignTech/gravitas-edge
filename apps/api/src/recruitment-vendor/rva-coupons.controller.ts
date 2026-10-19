@@ -22,7 +22,8 @@ export class RvaCouponsController {
 
   @Get('available')
   @ApiOperation({
-    summary: 'List RVA coupons the current user can apply to an RVA plan, with the calculated discount',
+    summary:
+      'List RVA coupons the current user can apply to an RVA plan, with the calculated discount',
   })
   listAvailable(@CurrentUser() user: AuthenticatedUser, @Query('planId') planId?: string) {
     if (!planId) {

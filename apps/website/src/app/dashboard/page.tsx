@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
+import RvaSubscriptionCard from './RvaSubscriptionCard';
 import {
   fetchMyActiveSubscriptions,
   fetchMyProfile,
   fetchMyResumes,
   fetchOpportunities,
   fetchReferralSummary,
+  fetchRvaAccess,
   fetchVaults,
 } from '@/lib/services';
 import {
@@ -16,6 +18,8 @@ import {
   PaginatedResult,
   ReferralSummary,
   Resume,
+  RvaAccessInfo,
+  RvaSubscriptionSummary,
   Subscription,
   UserProfile,
   Vault,
@@ -67,9 +71,10 @@ export default function Dashboard() {
   // Profile (hydrates name/location right after login, before /auth/me refresh)
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  // Core access data (subscriptions + vaults)
+  // Core access data (subscriptions + vaults + RVA entitlement)
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [vaults, setVaults] = useState<Vault[]>([]);
+  const [rvaAccess, setRvaAccess] = useState<RvaAccessInfo | null>(null);
   const [accessLoading, setAccessLoading] = useState(true);
   const [accessError, setAccessError] = useState('');
 
@@ -97,10 +102,11 @@ export default function Dashboard() {
   const loadAccess = useCallback(() => {
     setAccessLoading(true);
     setAccessError('');
-    Promise.all([fetchMyActiveSubscriptions(), fetchVaults()])
-      .then(([s, v]) => {
+    Promise.all([fetchMyActiveSubscriptions(), fetchVaults(), fetchRvaAccess()])
+      .then(([s, v, rva]) => {
         setSubs(s || []);
         setVaults(v || []);
+        setRvaAccess(rva ?? null);
       })
       .catch((e) => setAccessError(getErrorMessage(e)))
       .finally(() => setAccessLoading(false));
@@ -156,10 +162,18 @@ export default function Dashboard() {
 
   const unlockedVaults = vaults.filter((v) => !v.locked);
   const lockedVaults = vaults.filter((v) => v.locked);
-  const hasAccess = subs.length > 0;
+  const hasVaultSubs = subs.length > 0;
+  const rvaSub: RvaSubscriptionSummary | null = rvaAccess?.subscription ?? null;
+  const hasRvaSub = rvaAccess?.hasAccess === true && rvaSub !== null;
+  const activePlanCount = subs.length + (hasRvaSub ? 1 : 0);
+  const hasAccess = activePlanCount > 0;
   const publishedCount = recent?.meta.totalItems ?? 0;
-  const nearestExpiryEnd = subs.length
-    ? subs.reduce((nearest, s) => (s.endDate < nearest ? s.endDate : nearest), subs[0].endDate)
+  const expiryEnds = [
+    ...subs.map((s) => s.endDate),
+    ...(hasRvaSub && rvaSub ? [rvaSub.endDate] : []),
+  ];
+  const nearestExpiryEnd = expiryEnds.length
+    ? expiryEnds.reduce((nearest, end) => (end < nearest ? end : nearest), expiryEnds[0])
     : null;
   const referralBalance = referral?.commissionTotalAmount
     ? Number(referral.commissionTotalAmount)
@@ -206,7 +220,7 @@ export default function Dashboard() {
       <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="Active subscriptions"
-          value={accessLoading ? '…' : subs.length}
+          value={accessLoading ? '…' : activePlanCount}
           sub={
             hasAccess && nearestExpiryEnd
               ? `Next renewal ${formatDate(nearestExpiryEnd)}`
@@ -254,7 +268,7 @@ export default function Dashboard() {
           <SectionCard
             title="My Vaults & Active Access"
             action={
-              hasAccess && lockedVaults.length > 0 ? (
+              hasVaultSubs && lockedVaults.length > 0 ? (
                 <Link href="/plans">
                   <Button variant="ghost" size="sm">
                     Unlock more
@@ -272,54 +286,66 @@ export default function Dashboard() {
               <ErrorState message={accessError} onRetry={loadAccess} />
             ) : hasAccess ? (
               <>
-                <div className="space-y-4">
-                  {subs.map((s) => (
-                    <SubscriptionCard key={s.id} sub={s} />
-                  ))}
-                </div>
-
-                <div className="mt-5 border-t border-line pt-5">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-content-faint">
-                      Your active vaults
-                    </h4>
-                    <Link
-                      href="/dashboard/vaults"
-                      className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                    >
-                      View all →
-                    </Link>
+                {hasVaultSubs && (
+                  <div className="space-y-4">
+                    {subs.map((s) => (
+                      <SubscriptionCard key={s.id} sub={s} />
+                    ))}
                   </div>
-                  {unlockedVaults.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {unlockedVaults.map((v) => (
+                )}
+
+                {hasRvaSub && rvaSub && (
+                  <div className={hasVaultSubs ? 'mt-4' : undefined}>
+                    <RvaSubscriptionCard sub={rvaSub} />
+                  </div>
+                )}
+
+                {hasVaultSubs && (
+                  <>
+                    <div className="mt-5 border-t border-line pt-5">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-content-faint">
+                          Your active vaults
+                        </h4>
                         <Link
-                          key={v.id}
-                          href={`/opportunities?vaultId=${encodeURIComponent(v.id)}`}
-                          className="group flex items-start justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50/40 p-4 transition-colors hover:border-brand-300 hover:bg-brand-50 dark:border-brand-500/30 dark:bg-brand-950/20 dark:hover:border-brand-500/60"
+                          href="/dashboard/vaults"
+                          className="text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
                         >
-                          <div className="min-w-0">
-                            <p className="flex items-center gap-2 font-semibold text-content">
-                              <VaultIcon className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-300" />
-                              <span className="truncate">{v.name}</span>
-                            </p>
-                            <p className="mt-1 text-xs text-content-muted">
-                              {titleCase(v.type)} vault · unlocked
-                            </p>
-                          </div>
-                          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-brand-600 dark:text-brand-300">
-                            Open jobs
-                            <ArrowRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                          </span>
+                          View all →
                         </Link>
-                      ))}
+                      </div>
+                      {unlockedVaults.length > 0 ? (
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {unlockedVaults.map((v) => (
+                            <Link
+                              key={v.id}
+                              href={`/opportunities?vaultId=${encodeURIComponent(v.id)}`}
+                              className="group flex items-start justify-between gap-3 rounded-xl border border-brand-200 bg-brand-50/40 p-4 transition-colors hover:border-brand-300 hover:bg-brand-50 dark:border-brand-500/30 dark:bg-brand-950/20 dark:hover:border-brand-500/60"
+                            >
+                              <div className="min-w-0">
+                                <p className="flex items-center gap-2 font-semibold text-content">
+                                  <VaultIcon className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-300" />
+                                  <span className="truncate">{v.name}</span>
+                                </p>
+                                <p className="mt-1 text-xs text-content-muted">
+                                  {titleCase(v.type)} vault · unlocked
+                                </p>
+                              </div>
+                              <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-brand-600 dark:text-brand-300">
+                                Open jobs
+                                <ArrowRightIcon className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-content-muted">
+                          Vaults you unlock will appear here.
+                        </p>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-sm text-content-muted">
-                      Vaults you unlock will appear here.
-                    </p>
-                  )}
-                </div>
+                  </>
+                )}
               </>
             ) : (
               <div className="rounded-xl border border-dashed border-line p-6 text-center sm:p-8">

@@ -68,6 +68,11 @@ export interface RvaOpportunityDto {
   expiryDate: Date | null;
   createdAt: Date;
   status: string;
+  /**
+   * True only on detail responses when the caller holds an active RVA
+   * entitlement (protected fields are present). Always `false` in listing
+   * responses — the listing never exposes full details to anyone.
+   */
   isFullAccess: boolean;
   /** Field 8 — Vendor Requirement / Scope (always visible). */
   requirements: string | null;
@@ -96,14 +101,17 @@ export class RvaOpportunitiesService {
     private readonly access: RvaAccessService,
   ) {}
 
-  async listForUser(
-    userId: string | undefined,
-    query: RvaOpportunityQuery,
-  ): Promise<PaginatedResult<RvaOpportunityDto>> {
+  /**
+   * Directory listing of published opportunities.
+   *
+   * The listing NEVER returns protected fields — not even for callers with an
+   * active RVA entitlement. It is a concise browse/search surface; full
+   * commercial and contact details are only available from `findOneForUser`.
+   * No entitlement lookup is performed here at all.
+   */
+  async listForUser(query: RvaOpportunityQuery): Promise<PaginatedResult<RvaOpportunityDto>> {
     const params = buildPaginationParams(query.page, query.limit);
     const where = this.buildWhere(query);
-
-    const authorized = (await this.access.requireAccess(userId)).authorized;
 
     const validSortFields = new Set(['createdAt', 'publishedDate', 'expiryDate', 'title']);
     const sortField = validSortFields.has(query.sortBy ?? '') ? query.sortBy! : 'publishedDate';
@@ -119,7 +127,7 @@ export class RvaOpportunitiesService {
       this.prisma.recruitmentVendorOpportunity.count({ where }),
     ]);
 
-    const normalized = items.map((o) => this.serialize(o, authorized));
+    const normalized = items.map((o) => this.serialize(o, false));
     return buildPaginationMeta(normalized, totalItems, params);
   }
 

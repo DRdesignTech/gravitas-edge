@@ -137,10 +137,42 @@ describe('RvaOpportunitiesService', () => {
       .spyOn(access, 'requireAccess')
       .mockResolvedValue({ authorized: false, reason: 'UNAUTHENTICATED' });
 
-    const result = await service.listForUser(undefined, { page: 1, limit: 20 });
+    const result = await service.listForUser({ page: 1, limit: 20 });
     const item = result.items[0];
     expect(item.isFullAccess).toBe(false);
     expect(item.applicationContact).toBeUndefined();
     expect(JSON.stringify(item)).not.toContain('procurement@acme.com');
+  });
+
+  it('never returns protected fields from the listing even for an entitled RVA subscriber', async () => {
+    prisma.recruitmentVendorOpportunity.findMany.mockResolvedValue([baseOpp]);
+    prisma.recruitmentVendorOpportunity.count.mockResolvedValue(1);
+    const requireAccess = jest
+      .spyOn(access, 'requireAccess')
+      .mockResolvedValue({ authorized: true, subscriptionId: 'sub-1' });
+
+    const result = await service.listForUser({ page: 1, limit: 20 });
+    const item = result.items[0];
+
+    expect(item.isFullAccess).toBe(false);
+    expect(item.applicationContact).toBeUndefined();
+    expect(item.otherDetails).toBeUndefined();
+    expect(item.howToApply).toBeUndefined();
+    expect(item.qualification).toBeUndefined();
+    expect(item.description).toBeUndefined();
+    expect(item.applicationUrl).toBeUndefined();
+    expect(item.source).toBeUndefined();
+    expect(item.lockedPreview).toBeDefined();
+    const serialized = JSON.stringify(item);
+    expect(serialized).not.toContain('procurement@acme.com');
+    expect(serialized).not.toContain('Deadline 30 Nov');
+    expect(serialized).not.toContain('Email procurement@acme.com');
+    expect(serialized).not.toContain('https://acme.com/apply');
+    // The listing is a pure directory: no entitlement lookup happens at all.
+    expect(requireAccess).not.toHaveBeenCalled();
+    // The always-visible directory columns are still present.
+    expect(item.jobId).toBe('RVA-1');
+    expect(item.requirements).toBe('UAE labour law compliance');
+    expect(item.eligibility).toBe('Registered staffing firm');
   });
 });

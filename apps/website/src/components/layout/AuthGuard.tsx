@@ -5,29 +5,22 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { LoadingSpinner } from '@/components/ui';
 
-export default function AuthGuard({
-  children,
-  requireAccess = false,
-}: {
-  children: React.ReactNode;
-  /** When true, users without an active Vault subscription are sent to /plans. */
-  requireAccess?: boolean;
-}) {
-  const { user, loading, hasVaultAccess } = useAuth();
+/**
+ * Login-only route guard. Dashboard access is intentionally NOT gated on
+ * holding a plan: Vault subscribers, RVA subscribers, both, and neither can all
+ * reach the dashboard — paid content stays locked in place according to its
+ * own entitlement rules.
+ */
+export default function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
   const router = useRouter();
-
-  const needsPlan = requireAccess && hasVaultAccess === false;
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
       router.replace('/login');
-      return;
     }
-    if (needsPlan) {
-      router.replace('/plans');
-    }
-  }, [loading, user, needsPlan, router]);
+  }, [loading, user, router]);
 
   if (loading) {
     return (
@@ -38,14 +31,6 @@ export default function AuthGuard({
   }
 
   if (!user) return null;
-
-  if (needsPlan) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <LoadingSpinner label="Redirecting you to plans…" />
-      </div>
-    );
-  }
 
   return <>{children}</>;
 }

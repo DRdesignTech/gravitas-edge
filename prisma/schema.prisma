@@ -163,7 +163,6 @@ model User {
   receivedReferrals  Referral[]         @relation("ReferralReferred")
   opportunitiesOwned Opportunity[]
   resumes            Resume[]
-  guestResumes       GuestResume[]
   candidateProfiles  CandidateProfile[]
   payments           Payment[]
   couponAccess       CouponUser[]
@@ -620,9 +619,18 @@ model ReferralSlab {
 // RESUMES & PROCESSING
 // ==========================================================================
 
+// Single resume store for both authenticated users and guest uploads.
+// - userId set  → uploaded by a logged-in user
+// - userId null → guest upload; `guestTokenHash` (sha256 of an opaque token
+//   handed to the visitor once) is the only guest handle. On signup the same
+//   row is linked by setting userId — no duplicate row is created.
 model Resume {
   id              String             @id @default(uuid())
-  userId          String
+  userId          String?
+  fullName        String?
+  email           String?
+  phone           String?
+  guestTokenHash  String?            @unique
   originalName    String
   storageName     String
   fileType        String
@@ -637,40 +645,13 @@ model Resume {
   updatedAt       DateTime           @updatedAt
   deletedAt       DateTime?
 
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
   processing       ResumeProcessing?
   candidateProfile CandidateProfile?
 
   @@index([userId])
-  @@index([uploadStatus])
-  @@index([deletedAt])
-}
-
-// Guest resume submissions let logged-out visitors upload their resume.
-// The opaque `token` (hashed in DB) is the only handle the visitor holds;
-// it can later be linked to a registered user without re-uploading.
-model GuestResume {
-  id              String   @id @default(uuid())
-  tokenHash       String   @unique
-  fullName        String
-  email           String
-  phone           String?
-  originalName    String
-  storageName     String
-  fileType        String
-  fileSize        Int
-  storageProvider String   @default("local")
-  storagePath     String
-  uploadedAt      DateTime @default(now())
-  linkedUserId    String?
-  deletedAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  linkedUser User? @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
-
   @@index([email])
-  @@index([linkedUserId])
+  @@index([uploadStatus])
   @@index([deletedAt])
 }
 

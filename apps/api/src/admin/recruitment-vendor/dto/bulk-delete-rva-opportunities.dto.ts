@@ -13,7 +13,10 @@ export class BulkDeleteRvaOpportunitiesDto {
   @IsString({ each: true })
   ids?: string[];
 
-  @ApiProperty({ enum: ['archive', 'permanent'], description: 'archive = soft delete, permanent = hard delete' })
+  @ApiProperty({
+    enum: ['archive', 'permanent'],
+    description: 'archive = soft delete, permanent = hard delete',
+  })
   @IsIn(['archive', 'permanent'])
   mode!: 'archive' | 'permanent';
 
@@ -36,10 +39,19 @@ export class BulkDeleteRvaOpportunitiesDto {
   @ApiPropertyOptional() @IsOptional() @IsString() country?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() location?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() sector?: string;
-  @ApiPropertyOptional({ description: 'ISO 8601' }) @IsOptional() @IsString() publishedAfter?: string;
-  @ApiPropertyOptional({ description: 'ISO 8601' }) @IsOptional() @IsString() publishedBefore?: string;
+  @ApiPropertyOptional({ description: 'ISO 8601' })
+  @IsOptional()
+  @IsString()
+  publishedAfter?: string;
+  @ApiPropertyOptional({ description: 'ISO 8601' })
+  @IsOptional()
+  @IsString()
+  publishedBefore?: string;
   @ApiPropertyOptional({ description: 'ISO 8601' }) @IsOptional() @IsString() expiryAfter?: string;
   @ApiPropertyOptional({ description: 'ISO 8601' }) @IsOptional() @IsString() expiryBefore?: string;
   @ApiPropertyOptional({ description: 'ISO 8601' }) @IsOptional() @IsString() createdAfter?: string;
-  @ApiPropertyOptional({ description: 'ISO 8601' }) @IsOptional() @IsString() createdBefore?: string;
+  @ApiPropertyOptional({ description: 'ISO 8601' })
+  @IsOptional()
+  @IsString()
+  createdBefore?: string;
 }

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { GuestResumeInfo } from './types';
 import { getGuestResume } from './services';
+import { ApiError } from './api';
 
 const TOKEN_KEY = 'guest-resume-token';
 const INFO_KEY = 'guest-resume-info';
@@ -37,12 +38,6 @@ export function GuestResumeProvider({ children }: { children: React.ReactNode })
   const [guestToken, setToken] = useState<string | null>(null);
   const [guestResume, setResume] = useState<GuestResumeInfo | null>(null);
   const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    setToken(readStoredToken());
-    setResume(readStoredInfo());
-    setHydrated(true);
-  }, []);
 
   const persist = useCallback((token: string, resume: GuestResumeInfo) => {
     try {
@@ -80,10 +75,23 @@ export function GuestResumeProvider({ children }: { children: React.ReactNode })
       const { resume } = await getGuestResume(stored);
       setResume(resume);
       persist(stored, resume);
-    } catch {
-      // Token may have expired or been revoked on the server. Leave state as-is.
+    } catch (e) {
+      // Token no longer exists server-side (old session, cleared data, etc).
+      // Drop the stale state so the user is never offered an "existing
+      // resume" that can no longer be used.
+      const status = e instanceof ApiError ? e.status : undefined;
+      if (status === 404 || status === 410) {
+        clearGuestResume();
+      }
     }
-  }, [persist]);
+  }, [persist, clearGuestResume]);
+
+  useEffect(() => {
+    setToken(readStoredToken());
+    setResume(readStoredInfo());
+    setHydrated(true);
+    void refreshGuestResume();
+  }, [refreshGuestResume]);
 
   return (
     <GuestResumeContext.Provider

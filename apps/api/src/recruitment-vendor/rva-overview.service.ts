@@ -20,14 +20,14 @@ export class RvaOverviewService {
     private readonly opportunities: RvaOpportunitiesService,
   ) {}
 
-  async getOverview(userId?: string, previewLimit = 6) {
+  async getOverview(previewLimit = 6) {
     const [publishedCount, plans, faqs, preview] = await Promise.all([
       this.prisma.recruitmentVendorOpportunity.count({
         where: { deletedAt: null, status: 'PUBLISHED' },
       }),
       this.plans.listPublicPlans(),
       this.faqs.listPublicFaqs(),
-      this.opportunities.listForUser(userId, {
+      this.opportunities.listForUser({
         page: 1,
         limit: previewLimit,
         sortBy: 'publishedDate',

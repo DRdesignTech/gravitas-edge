@@ -1,10 +1,13 @@
 import {
+  BadRequestException,
+  ForbiddenException,
   Injectable,
   UnprocessableEntityException,
   NotFoundException,
   InternalServerErrorException,
   StreamableFile,
 } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../resumes/storage/storage.service';
 import { QueryResumesDto } from '../resumes/dto/resumes.dto';
@@ -18,6 +21,28 @@ const MIME_BY_TYPE: Record<string, string> = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 };
 
+export interface ResumeFileInput {
+  originalName: string;
+  mimeType: string;
+  fileSize: number;
+  buffer: Buffer;
+}
+
+export interface GuestResumeDetails {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+}
+
+const PUBLIC_SELECT = {
+  id: true,
+  originalName: true,
+  fileType: true,
+  fileSize: true,
+  uploadedAt: true,
+  userId: true,
+} as const;
+
 @Injectable()
 export class ResumesService {
   constructor(
@@ -25,61 +50,120 @@ export class ResumesService {
     private readonly storage: StorageService,
   ) {}
 
-  async create(
-    userId: string,
-    originalName: string,
-    mimeType: string,
-    fileSize: number,
-    buffer: Buffer,
-  ): Promise<ResumeResponseDto> {
-    const validation = isValidResumeFile(originalName, fileSize, buffer);
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  private validateFile(file: Pick<ResumeFileInput, 'originalName' | 'fileSize' | 'buffer'>) {
+    const validation = isValidResumeFile(file.originalName, file.fileSize, file.buffer);
     if (!validation.valid) {
       throw new UnprocessableEntityException(validation.error);
     }
+  }
 
-    const extension = getExtension(originalName);
+  private toGuestDto(record: {
+    originalName: string;
+    fileType: string;
+    fileSize: number;
+    uploadedAt: Date;
+    userId: string | null;
+  }) {
+    return {
+      originalName: record.originalName,
+      fileType: record.fileType,
+      fileSize: record.fileSize,
+      uploadedAt: record.uploadedAt,
+      linked: Boolean(record.userId),
+    };
+  }
 
-    const { storageName, storagePath: storagePathValue } = this.storage.saveFile(
-      buffer,
-      originalName,
-      userId,
-    );
+  /**
+   * Unified upload: works for authenticated users and guests alike.
+   * Both land in the same `Resume` table — guests simply have `userId = null`
+   * plus an opaque handle token (`guestTokenHash`) for later get/replace/link.
+   */
+  async create(
+    user: { id: string; email: string } | null,
+    file: ResumeFileInput,
+    guestDetails: GuestResumeDetails = {},
+  ): Promise<
+    ResumeResponseDto | { token: string; resume: ReturnType<ResumesService['toGuestDto']> }
+  > {
+    this.validateFile(file);
+    const extension = getExtension(file.originalName);
 
-    const resume = await this.prisma.resume.create({
+    if (user) {
+      const { storageName, storagePath } = this.storage.saveFile(
+        file.buffer,
+        file.originalName,
+        user.id,
+      );
+
+      const resume = await this.prisma.resume.create({
+        data: {
+          userId: user.id,
+          email: user.email,
+          originalName: file.originalName,
+          storageName,
+          fileType: extension,
+          fileSize: file.fileSize,
+          storageProvider: 'local',
+          storagePath,
+          uploadStatus: 'UPLOADED',
+        },
+        select: {
+          id: true,
+          originalName: true,
+          fileType: true,
+          fileSize: true,
+          storageProvider: true,
+          uploadStatus: true,
+          uploadedAt: true,
+          processedAt: true,
+        },
+      });
+
+      return {
+        id: resume.id,
+        originalName: resume.originalName,
+        mimeType: file.mimeType,
+        fileSize: resume.fileSize,
+        storageProvider: resume.storageProvider,
+        uploadStatus: resume.uploadStatus,
+        uploadedAt: resume.uploadedAt,
+        processedAt: resume.processedAt as Date | undefined,
+        isDeleted: false,
+      };
+    }
+
+    const fullName = guestDetails.fullName?.trim();
+    const email = guestDetails.email?.trim();
+    if (!fullName || !email) {
+      throw new BadRequestException('Full name and email are required for guest uploads');
+    }
+
+    const { storageName, storagePath } = this.storage.saveGuestFile(file.buffer, file.originalName);
+    const token = crypto.randomBytes(32).toString('hex');
+
+    const record = await this.prisma.resume.create({
       data: {
-        userId,
-        originalName,
+        userId: null,
+        guestTokenHash: this.hashToken(token),
+        fullName,
+        email,
+        phone: guestDetails.phone?.trim() || null,
+        originalName: file.originalName,
         storageName,
         fileType: extension,
-        fileSize,
+        fileSize: file.fileSize,
         storageProvider: 'local',
-        storagePath: storagePathValue,
+        storagePath,
         uploadStatus: 'UPLOADED',
       },
-      select: {
-        id: true,
-        originalName: true,
-        fileType: true,
-        fileSize: true,
-        storageProvider: true,
-        uploadStatus: true,
-        uploadedAt: true,
-        processedAt: true,
-        createdAt: true,
-      },
+      select: PUBLIC_SELECT,
     });
 
-    return {
-      id: resume.id,
-      originalName: resume.originalName,
-      mimeType,
-      fileSize: resume.fileSize,
-      storageProvider: resume.storageProvider,
-      uploadStatus: resume.uploadStatus,
-      uploadedAt: resume.uploadedAt,
-      processedAt: resume.processedAt as Date | undefined,
-      isDeleted: false,
-    };
+    return { token, resume: this.toGuestDto(record) };
   }
 
   async findByUser(userId: string, query: QueryResumesDto) {
@@ -171,6 +255,15 @@ export class ResumesService {
       throw new NotFoundException('Resume not found or access denied');
     }
 
+    return this.streamFile(resume);
+  }
+
+  private streamFile(resume: {
+    storagePath: string;
+    originalName: string;
+    fileType: string;
+    fileSize: number;
+  }): StreamableFile {
     const filePath = this.storage.getFullPath(resume.storagePath);
 
     if (!existsSync(filePath)) {
@@ -194,11 +287,7 @@ export class ResumesService {
     fileSize: number,
     buffer: Buffer,
   ): Promise<ResumeResponseDto> {
-    const validation = isValidResumeFile(originalName, fileSize, buffer);
-    if (!validation.valid) {
-      throw new UnprocessableEntityException(validation.error);
-    }
-
+    this.validateFile({ originalName, fileSize, buffer });
     const extension = getExtension(originalName);
 
     const existing = await this.prisma.resume.findFirst({
@@ -279,5 +368,90 @@ export class ResumesService {
 
   async getMeResumes(userId: string, query: QueryResumesDto) {
     return this.findByUser(userId, query);
+  }
+
+  // ── Guest token operations (same Resume rows) ─────────────────────
+
+  async getGuestResume(token: string) {
+    const record = await this.prisma.resume.findFirst({
+      where: { guestTokenHash: this.hashToken(token), deletedAt: null },
+      select: PUBLIC_SELECT,
+    });
+
+    if (!record) {
+      throw new NotFoundException('Guest resume not found or no longer available');
+    }
+
+    return { resume: this.toGuestDto(record) };
+  }
+
+  async replaceGuestResume(
+    token: string,
+    file: Pick<ResumeFileInput, 'originalName' | 'fileSize' | 'buffer'>,
+  ) {
+    this.validateFile(file);
+
+    const existing = await this.prisma.resume.findFirst({
+      where: { guestTokenHash: this.hashToken(token), deletedAt: null },
+      select: { id: true, storagePath: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Guest resume not found or no longer available');
+    }
+
+    const extension = getExtension(file.originalName);
+    const { storageName, storagePath } = this.storage.saveGuestFile(file.buffer, file.originalName);
+
+    const record = await this.prisma.resume.update({
+      where: { id: existing.id },
+      data: {
+        originalName: file.originalName,
+        storageName,
+        storagePath,
+        fileType: extension,
+        fileSize: file.fileSize,
+        uploadStatus: 'UPLOADED',
+        uploadedAt: new Date(),
+      },
+      select: PUBLIC_SELECT,
+    });
+
+    try {
+      if (existing.storagePath) {
+        this.storage.deleteFile(existing.storagePath);
+      }
+    } catch {
+      // Log but don't block — the new file is already saved.
+    }
+
+    return { resume: this.toGuestDto(record) };
+  }
+
+  async linkGuestResume(token: string, userId: string) {
+    const record = await this.prisma.resume.findFirst({
+      where: { guestTokenHash: this.hashToken(token), deletedAt: null },
+      select: { id: true, userId: true },
+    });
+
+    if (!record) {
+      throw new NotFoundException('Guest resume not found or no longer available');
+    }
+
+    if (record.userId && record.userId !== userId) {
+      throw new ForbiddenException('This resume has already been linked to another account');
+    }
+
+    if (record.userId === userId) {
+      return { message: 'Resume is already linked to your account', resumeId: record.id };
+    }
+
+    const linked = await this.prisma.resume.update({
+      where: { id: record.id },
+      data: { userId },
+      select: { id: true },
+    });
+
+    return { message: 'Resume linked to your account', resumeId: linked.id };
   }
 }

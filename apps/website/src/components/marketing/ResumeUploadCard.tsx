@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useGuestResume } from '@/lib/guest-resume';
-import { uploadGuestResume, replaceGuestResume, uploadResume } from '@/lib/services';
+import { replaceGuestResume, uploadResume, GuestResumeResult } from '@/lib/services';
 import { ApiError } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import { Alert, Button, Input, useToast } from '@/components/ui';
@@ -123,20 +123,20 @@ export default function ResumeUploadCard({
   description = 'Make your profile ready for the right opportunities.',
 }: ResumeUploadCardProps) {
   const { user } = useAuth();
-  const { guestToken, guestResume, setGuestResume, hydrated } = useGuestResume();
+  const { guestToken, guestResume, setGuestResume, clearGuestResume, hydrated } = useGuestResume();
   const { showToast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [file, setFile] = useState<File | null>(null);
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState('');
   const [replacing, setReplacing] = useState(false);
   const [resumeConsent, setResumeConsent] = useState(false);
+  const [guestFullName, setGuestFullName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
 
   const resetForm = () => {
     setFile(null);
@@ -160,14 +160,6 @@ export default function ResumeUploadCard({
     setSuccessMessage('');
   };
 
-  const validateGuestDetails = () => {
-    if (!fullName.trim()) return 'Please enter your full name.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return 'Please enter a valid email address.';
-    }
-    return '';
-  };
-
   const submitGuestUpload = async (f: File, tokenOverride?: string) => {
     setSubmitting(true);
     setError('');
@@ -179,11 +171,11 @@ export default function ResumeUploadCard({
         setSuccessMessage('Resume replaced successfully. Your updated resume has been saved.');
         showToast('Resume replaced', 'success');
       } else {
-        const { token, resume } = await uploadGuestResume(f, {
-          fullName: fullName.trim(),
-          email: email.trim(),
-          phone: phone.trim() || undefined,
-        });
+        const { token, resume } = (await uploadResume(f, {
+          fullName: guestFullName.trim(),
+          email: guestEmail.trim(),
+          phone: guestPhone.trim() || undefined,
+        })) as GuestResumeResult;
         setGuestResume(token, resume);
         setSuccessMessage(
           'Resume uploaded successfully. Your resume has been saved. You can continue browsing Gravitas Edge.',
@@ -193,7 +185,18 @@ export default function ResumeUploadCard({
       setFile(null);
       setReplacing(false);
     } catch (e) {
-      setError(friendlyError(e));
+      const status = e instanceof ApiError ? e.status : undefined;
+      if (tokenOverride && (status === 404 || status === 410)) {
+        // Stored guest token no longer exists server-side — drop it and let
+        // the visitor upload fresh (no account/auth required).
+        clearGuestResume();
+        setReplacing(false);
+        setError(
+          'Your earlier upload session is no longer available. Please upload your resume again — no account needed.',
+        );
+      } else {
+        setError(friendlyError(e));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -233,10 +236,15 @@ export default function ResumeUploadCard({
       return;
     }
 
-    const detailError = validateGuestDetails();
-    if (detailError) {
-      setError(detailError);
-      return;
+    if (!(replacing && guestToken)) {
+      if (!guestFullName.trim() || !guestEmail.trim()) {
+        setError('Please enter your full name and email so we can save your resume.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.trim())) {
+        setError('Please enter a valid email address.');
+        return;
+      }
     }
 
     if (replacing && guestToken) {
@@ -366,38 +374,37 @@ export default function ResumeUploadCard({
             </Alert>
           )}
 
-          {!user && !replacing && (
+          {!user && !(replacing && guestToken) && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
                 label="Full name"
-                required
-                placeholder="Jane Smith"
                 autoComplete="name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                value={guestFullName}
+                onChange={(e) => setGuestFullName(e.target.value)}
+                placeholder="Jane Doe"
+                required
                 disabled={submitting}
               />
               <Input
                 label="Email"
-                required
                 type="email"
                 autoComplete="email"
-                placeholder="jane@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={guestEmail}
+                onChange={(e) => setGuestEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
                 disabled={submitting}
               />
-              <div className="sm:col-span-2">
-                <Input
-                  label="Phone (optional)"
-                  type="tel"
-                  autoComplete="tel"
-                  placeholder="+91 98765 43210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={submitting}
-                />
-              </div>
+              <Input
+                label="Phone (optional)"
+                type="tel"
+                autoComplete="tel"
+                value={guestPhone}
+                onChange={(e) => setGuestPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                disabled={submitting}
+                className="sm:col-span-2"
+              />
             </div>
           )}
 

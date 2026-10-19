@@ -16,14 +16,12 @@ export class RvaOpportunitiesController {
   @ApiOperation({
     summary: 'List published Recruitment Vendor Access opportunities',
     description:
-      'Public visitors receive only permitted preview data (protected commercial/contact fields are masked server-side). ' +
-      'Authenticated users with an active RVA subscription receive full details.',
+      'Concise directory of published opportunities with search/pagination/sort. ' +
+      'Protected commercial/contact fields are NEVER included in listing responses — ' +
+      'even for authenticated RVA subscribers. Fetch a single opportunity for full details.',
   })
-  list(
-    @CurrentUser() user: AuthenticatedUser | undefined,
-    @Query() query: Record<string, string | undefined>,
-  ) {
-    return this.opportunitiesService.listForUser(user?.id, {
+  list(@Query() query: Record<string, string | undefined>) {
+    return this.opportunitiesService.listForUser({
       page: query.page ? Number(query.page) : undefined,
       limit: query.limit ? Number(query.limit) : undefined,
       search: query.search,
@@ -41,7 +39,9 @@ export class RvaOpportunitiesController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get a published Recruitment Vendor Access opportunity by ID',
-    description: 'Full commercial/contact details require an active RVA entitlement.',
+    description:
+      'Full commercial/contact details require an active RVA entitlement; ' +
+      'unauthorized callers receive server-side masked values.',
   })
   findOne(@CurrentUser() user: AuthenticatedUser | undefined, @Param('id') id: string) {
     return this.opportunitiesService.findOneForUser(id, user?.id);

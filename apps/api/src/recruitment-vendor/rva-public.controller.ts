@@ -30,12 +30,9 @@ export class RvaPublicController {
   @Public()
   @Get('overview')
   @ApiOperation({ summary: 'Recruitment Vendor Access landing-page data' })
-  getOverview(
-    @CurrentUser() user: AuthenticatedUser | undefined,
-    @Query('previewLimit') previewLimit?: string,
-  ) {
+  getOverview(@Query('previewLimit') previewLimit?: string) {
     const limit = previewLimit ? Number(previewLimit) : undefined;
-    return this.overview.getOverview(user?.id, limit);
+    return this.overview.getOverview(limit);
   }
 
   @Public()

@@ -62,7 +62,10 @@ export class RvaCouponsService {
    * Validate an RVA coupon for a user + RVA plan and return the server-
    * calculated price breakdown. Never trusts client prices.
    */
-  async validateForUser(userId: string, dto: RvaValidateCouponDto): Promise<RvaCouponValidationResult> {
+  async validateForUser(
+    userId: string,
+    dto: RvaValidateCouponDto,
+  ): Promise<RvaCouponValidationResult> {
     const plan = await this.prisma.recruitmentVendorPlan.findFirst({
       where: { id: dto.planId, deletedAt: null, isActive: true },
       select: { id: true, name: true, price: true, currency: true },
@@ -177,7 +180,12 @@ export class RvaCouponsService {
   }
 
   /** Status/eligibility rules that do not depend on usage counts. */
-  assertEligible(coupon: RvaCouponWithRules, userId: string, planId: string, now: Date = new Date()) {
+  assertEligible(
+    coupon: RvaCouponWithRules,
+    userId: string,
+    planId: string,
+    now: Date = new Date(),
+  ) {
     if (!coupon.isActive) {
       throw couponError('COUPON_DISABLED');
     }

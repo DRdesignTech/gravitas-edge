@@ -16,16 +16,21 @@ import { memoryStorage } from 'multer';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../common/types/auth.types';
-import { GuestResumesService } from './guest-resumes.service';
+import { ResumesService } from './resumes.service';
 import { CreateGuestResumeDto } from './dto/guest-resume.dto';
 import { resumeFileFilter } from './middleware/file-upload.util';
 
 const RESUME_MAX_SIZE = 5 * 1024 * 1024;
 
+/**
+ * Guest resume endpoints. These operate on the same `Resume` rows as the
+ * authenticated flow (guest rows simply have `userId = null`) and are kept
+ * for the token-based guest UX (get/replace/link after upload).
+ */
 @Controller('resumes/guest')
 @ApiTags('resumes')
 export class GuestResumesController {
-  constructor(private readonly guestResumesService: GuestResumesService) {}
+  constructor(private readonly resumesService: ResumesService) {}
 
   @Post()
   @Public()
@@ -61,18 +66,23 @@ export class GuestResumesController {
     )
     file: Express.Multer.File,
   ) {
-    return this.guestResumesService.create(dto, {
-      originalName: file.originalname,
-      fileSize: file.size,
-      buffer: file.buffer,
-    });
+    return this.resumesService.create(
+      null,
+      {
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+        buffer: file.buffer,
+      },
+      dto,
+    );
   }
 
   @Get(':token')
   @Public()
   @ApiOperation({ summary: 'Get a guest resume by its secure reference token' })
   get(@Param('token') token: string) {
-    return this.guestResumesService.get(token);
+    return this.resumesService.getGuestResume(token);
   }
 
   @Put(':token')
@@ -106,7 +116,7 @@ export class GuestResumesController {
     )
     file: Express.Multer.File,
   ) {
-    return this.guestResumesService.replace(token, {
+    return this.resumesService.replaceGuestResume(token, {
       originalName: file.originalname,
       fileSize: file.size,
       buffer: file.buffer,
@@ -117,6 +127,6 @@ export class GuestResumesController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Link a guest resume to the authenticated user' })
   link(@CurrentUser() user: AuthenticatedUser, @Param('token') token: string) {
-    return this.guestResumesService.link(token, user.id);
+    return this.resumesService.linkGuestResume(token, user.id);
   }
 }

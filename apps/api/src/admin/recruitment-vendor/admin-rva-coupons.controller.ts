@@ -63,7 +63,8 @@ export class AdminRvaCouponsController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Update an RVA coupon, including enabling/disabling it (isActive) and its plan/user scope',
+    summary:
+      'Update an RVA coupon, including enabling/disabling it (isActive) and its plan/user scope',
   })
   update(
     @Param('id') id: string,
@@ -89,7 +90,9 @@ export class AdminRvaCouponsController {
 
   @Delete(':id/permanent')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Permanently delete an RVA coupon (refused while redemptions reference it)' })
+  @ApiOperation({
+    summary: 'Permanently delete an RVA coupon (refused while redemptions reference it)',
+  })
   hardDelete(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser, @Req() req: Request) {
     return this.adminRvaCouponsService.hardDelete(id, user.id, this.clientIp(req));
   }

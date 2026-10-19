@@ -1,5 +1,29 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsInt, Length, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsInt, IsEmail, Length, Min, Max, MaxLength } from 'class-validator';
+
+export class UploadResumeDto {
+  @ApiPropertyOptional({
+    description: 'Full name — required for guest (not-logged-in) uploads',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(2, 200)
+  fullName?: string;
+
+  @ApiPropertyOptional({
+    description: 'Contact email — required for guest (not-logged-in) uploads',
+  })
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(254)
+  email?: string;
+
+  @ApiPropertyOptional({ description: 'Optional contact phone number' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  phone?: string;
+}
 
 export class CreateResumeDto {
   @ApiProperty({ description: 'Original filename of the resume' })

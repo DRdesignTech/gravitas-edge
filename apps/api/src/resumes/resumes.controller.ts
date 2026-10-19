@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Post,
@@ -16,9 +17,10 @@ import { ApiBearerAuth, ApiOperation, ApiTags, ApiConsumes, ApiBody } from '@nes
 import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { AuthenticatedUser } from '../common/types/auth.types';
 import { ResumesService } from './resumes.service';
-import { QueryResumesDto } from './dto/resumes.dto';
+import { QueryResumesDto, UploadResumeDto } from './dto/resumes.dto';
 import { resumeFileFilter } from '../resumes/middleware/file-upload.util';
 
 const RESUME_MAX_SIZE = 5 * 1024 * 1024;
@@ -29,18 +31,32 @@ export class ResumesController {
   constructor(private readonly resumesService: ResumesService) {}
 
   @Post()
+  @Public()
   @ApiBearerAuth()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @ApiOperation({ summary: 'Upload a resume file' })
+  @ApiOperation({
+    summary: 'Upload a resume (authenticated or guest — same store)',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
+      required: ['resume'],
       properties: {
         resume: {
           type: 'string',
           format: 'binary',
         },
+        fullName: {
+          type: 'string',
+          description: 'Required when uploading as a guest',
+        },
+        email: {
+          type: 'string',
+          format: 'email',
+          description: 'Required when uploading as a guest',
+        },
+        phone: { type: 'string' },
       },
     },
   })
@@ -52,7 +68,8 @@ export class ResumesController {
     }),
   )
   upload(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser | null,
+    @Body() dto: UploadResumeDto,
     @UploadedFile(
       new ParseFilePipe({
         validators: [new MaxFileSizeValidator({ maxSize: RESUME_MAX_SIZE })],
@@ -62,7 +79,11 @@ export class ResumesController {
     file: Express.Multer.File,
   ) {
     const buffer = file.buffer;
-    return this.resumesService.create(user.id, file.originalname, file.mimetype, file.size, buffer);
+    return this.resumesService.create(
+      user ? { id: user.id, email: user.email } : null,
+      { originalName: file.originalname, mimeType: file.mimetype, fileSize: file.size, buffer },
+      dto,
+    );
   }
 
   @Get()
