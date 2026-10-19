@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { useRouter } from 'next/navigation';
 import { api } from './api';
 import { fetchMyActiveSubscriptions, fetchRvaAccess } from './services';
-import { AccessFlags, combineAccess, resolvePostLoginRoute } from './access-routing';
+import { AccessFlags, combineAccess, resolvePostLoginRoute, hasActiveSubscription } from './access-routing';
 import { User } from './types';
 
 interface AuthContextType {
@@ -12,12 +12,12 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   /** Whether the signed-in user has at least one active Opportunity Vault
-   *  subscription. `null` means it has not been resolved yet (still loading). */
+   *  subscription. `null` means it has not been resolved yet (still loading or errored). */
   hasVaultAccess: boolean | null;
   /** Whether the signed-in user has an active Recruitment Vendor Access
    *  subscription. `null` means it has not been resolved yet. */
   hasRvaAccess: boolean | null;
-  /** Vault OR RVA — any active plan. `null` while either side resolves. */
+  /** Vault OR RVA — any active plan. `null` while either side resolves or errored. */
   hasAnyAccess: boolean | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, referralCode?: string) => Promise<void>;
@@ -42,16 +42,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * Resolve both entitlements in one pass. Vault and RVA are independent
    * products backed by separate tables, so each side is fetched on its own and
-   * a failure on either side degrades to "no access for that product" instead
-   * of hiding the other one.
+   * a failure on either side degrades to "unknown (null)" instead of "no access"
+   * to avoid incorrectly redirecting users to /plans on transient API failures.
    */
   const loadAccess = useCallback(async (): Promise<AccessFlags> => {
-    const [vaultSubs, rva] = await Promise.all([
-      fetchMyActiveSubscriptions().catch(() => null),
-      fetchRvaAccess().catch(() => null),
-    ]);
-    const hasVaultAccess = Array.isArray(vaultSubs) && vaultSubs.length > 0;
-    const hasRvaAccess = rva?.hasAccess === true;
+    let vaultSubs: unknown = null;
+    let rva: unknown = null;
+    let vaultError = false;
+    let rvaError = false;
+
+    try {
+      vaultSubs = await fetchMyActiveSubscriptions();
+    } catch {
+      vaultError = true;
+    }
+
+    try {
+      rva = await fetchRvaAccess();
+    } catch {
+      rvaError = true;
+    }
+
+    // If either fetch errored, keep that side as null (unknown) rather than false
+    // This prevents redirecting to /plans on transient API failures
+    const hasVaultAccess: boolean | null = vaultError
+      ? null
+      : Array.isArray(vaultSubs) && vaultSubs.length > 0;
+    const hasRvaAccess: boolean | null = rvaError
+      ? null
+      : Boolean(rva && typeof rva === 'object' && 'hasAccess' in rva && (rva as { hasAccess: boolean }).hasAccess === true);
+
     const flags: AccessFlags = { hasVaultAccess, hasRvaAccess };
     setAccessFlags(flags);
     return flags;
