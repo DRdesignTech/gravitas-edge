@@ -86,6 +86,37 @@ export class ResumesController {
     );
   }
 
+  @Post('extract-contact')
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @ApiOperation({ summary: 'Extract candidate name/email/phone from a resume file' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['resume'],
+      properties: { resume: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('resume', {
+      storage: memoryStorage(),
+      limits: { fileSize: RESUME_MAX_SIZE },
+      fileFilter: resumeFileFilter,
+    }),
+  )
+  extractContact(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: RESUME_MAX_SIZE })],
+        fileIsRequired: true,
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.resumesService.extractContactPreview(file.buffer, file.originalname);
+  }
+
   @Get()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List resumes for authenticated user' })

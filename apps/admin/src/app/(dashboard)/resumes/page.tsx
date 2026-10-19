@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   adminListResumes,
   adminDownloadResume,
-  adminExtractResume,
+  adminDeleteResume,
   adminGetResume,
 } from '@/lib/services';
 import { AdminResume, AdminResumeQuery, AdminResumeSource, AdminResumeSortBy } from '@/lib/types';
@@ -25,9 +25,7 @@ import {
   SearchIcon,
   DownloadIcon,
   EyeIcon,
-  RefreshCwIcon,
-  AlertTriangleIcon,
-  FileTextIcon,
+  TrashIcon,
 } from '@/components/ui';
 import { formatDate, formatFileSize } from '@/lib/format';
 
@@ -71,7 +69,8 @@ export default function ResumesPage() {
   const [viewDetailId, setViewDetailId] = useState<string | null>(null);
   const [viewDetail, setViewDetail] = useState<AdminResume | null>(null);
   const [viewDetailLoading, setViewDetailLoading] = useState(false);
-  const [extractId, setExtractId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminResume | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadResumes = async () => {
     setLoading(true);
@@ -151,17 +150,18 @@ export default function ResumesPage() {
     }
   };
 
-  const handleExtract = async (id: string) => {
-    setExtractId(id);
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      const result = await adminExtractResume(id);
-      showToast('Extraction completed', 'success');
-      setViewDetail(result.data);
+      await adminDeleteResume(deleteTarget.id);
+      showToast('Resume deleted', 'success');
+      setDeleteTarget(null);
       loadResumes();
     } catch (err: any) {
-      showToast(err?.message || 'Extraction failed', 'error');
+      showToast(err?.message || 'Delete failed', 'error');
     } finally {
-      setExtractId(null);
+      setDeleting(false);
     }
   };
 
@@ -262,22 +262,19 @@ export default function ResumesPage() {
             >
               <EyeIcon className="h-4 w-4" />
             </Button>
-            {item.source === 'AUTHENTICATED' && !item.candidateProfile && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => handleExtract(item.id)}
-                disabled={extractId === item.id}
-                title="Extract Profile"
-              >
-                <FileTextIcon className="h-4 w-4" />
-              </Button>
-            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setDeleteTarget(item)}
+              title="Delete resume"
+            >
+              <TrashIcon className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </Button>
           </div>
         ),
       },
     ],
-    [viewDetailLoading, extractId],
+    [viewDetailLoading],
   );
 
   return (
@@ -710,6 +707,21 @@ export default function ResumesPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete resume"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete "${deleteTarget.originalName}"? This action cannot be undone.`
+            : ''
+        }
+        confirmText="Delete"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }

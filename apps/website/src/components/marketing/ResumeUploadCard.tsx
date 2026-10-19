@@ -4,7 +4,12 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useGuestResume } from '@/lib/guest-resume';
-import { replaceGuestResume, uploadResume, GuestResumeResult } from '@/lib/services';
+import {
+  replaceGuestResume,
+  uploadResume,
+  extractResumeContact,
+  GuestResumeResult,
+} from '@/lib/services';
 import { ApiError } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import { Alert, Button, Input, useToast } from '@/components/ui';
@@ -137,6 +142,8 @@ export default function ResumeUploadCard({
   const [guestFullName, setGuestFullName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
+  const [extractingContact, setExtractingContact] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
 
   const resetForm = () => {
     setFile(null);
@@ -144,6 +151,32 @@ export default function ResumeUploadCard({
     setSuccessMessage('');
     setReplacing(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const autoFillFromResume = async (f: File) => {
+    setExtractingContact(true);
+    setAutoFilled(false);
+    try {
+      const contact = await extractResumeContact(f);
+      let filled = false;
+      if (contact.fullName) {
+        setGuestFullName(contact.fullName);
+        filled = true;
+      }
+      if (contact.email) {
+        setGuestEmail(contact.email);
+        filled = true;
+      }
+      if (contact.phone) {
+        setGuestPhone(contact.phone);
+        filled = true;
+      }
+      setAutoFilled(filled);
+    } catch {
+      // Extraction is best-effort — the visitor can still type details manually.
+    } finally {
+      setExtractingContact(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,6 +191,7 @@ export default function ResumeUploadCard({
     setFile(f);
     setError('');
     setSuccessMessage('');
+    void autoFillFromResume(f);
   };
 
   const submitGuestUpload = async (f: File, tokenOverride?: string) => {
@@ -375,36 +409,45 @@ export default function ResumeUploadCard({
           )}
 
           {!user && !(replacing && guestToken) && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input
-                label="Full name"
-                autoComplete="name"
-                value={guestFullName}
-                onChange={(e) => setGuestFullName(e.target.value)}
-                placeholder="Jane Doe"
-                required
-                disabled={submitting}
-              />
-              <Input
-                label="Email"
-                type="email"
-                autoComplete="email"
-                value={guestEmail}
-                onChange={(e) => setGuestEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                disabled={submitting}
-              />
-              <Input
-                label="Phone (optional)"
-                type="tel"
-                autoComplete="tel"
-                value={guestPhone}
-                onChange={(e) => setGuestPhone(e.target.value)}
-                placeholder="+91 98765 43210"
-                disabled={submitting}
-                className="sm:col-span-2"
-              />
+            <div className="space-y-2">
+              {(extractingContact || autoFilled) && (
+                <p className="text-xs text-content-muted">
+                  {extractingContact
+                    ? 'Reading your resume to fill these details…'
+                    : 'Details auto-filled from your resume. You can edit them if needed.'}
+                </p>
+              )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  label="Full name"
+                  autoComplete="name"
+                  value={guestFullName}
+                  onChange={(e) => setGuestFullName(e.target.value)}
+                  placeholder="Jane Doe"
+                  required
+                  disabled={submitting}
+                />
+                <Input
+                  label="Email"
+                  type="email"
+                  autoComplete="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  disabled={submitting}
+                />
+                <Input
+                  label="Phone (optional)"
+                  type="tel"
+                  autoComplete="tel"
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  disabled={submitting}
+                  className="sm:col-span-2"
+                />
+              </div>
             </div>
           )}
 

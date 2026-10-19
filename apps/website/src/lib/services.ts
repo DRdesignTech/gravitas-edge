@@ -106,6 +106,16 @@ export function uploadGuestResume(file: File, details: GuestResumeDetails) {
   return uploadResume(file, details) as Promise<GuestResumeResult>;
 }
 
+export interface ExtractedResumeContact {
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
+export function extractResumeContact(file: File) {
+  return uploadFile<ExtractedResumeContact>('/resumes/extract-contact', file, 'resume');
+}
+
 export function getGuestResume(token: string) {
   return api.get<{ resume: GuestResumeInfo }>(`/resumes/guest/${encodeURIComponent(token)}`);
 }

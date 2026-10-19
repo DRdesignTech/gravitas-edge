@@ -210,6 +210,30 @@ export class AdminResumesService {
     return this.mapResume(resume, includeProfile);
   }
 
+  async remove(id: string): Promise<{ message: string }> {
+    const resume = await this.prisma.resume.findUnique({
+      where: { id },
+      select: { storagePath: true, deletedAt: true },
+    });
+
+    if (!resume || resume.deletedAt) throw new NotFoundException('Resume not found');
+
+    try {
+      if (resume.storagePath) {
+        this.storage.deleteFile(String(resume.storagePath));
+      }
+    } catch {
+      // Don't block deletion if the file is already gone.
+    }
+
+    await this.prisma.resume.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+
+    return { message: 'Resume deleted' };
+  }
+
   async download(id: string): Promise<StreamableFile> {
     const resume = await this.prisma.resume.findUnique({
       where: { id },

@@ -666,3 +666,7 @@ export function adminDownloadResume(id: string) {
 export function adminExtractResume(id: string) {
   return api.post<{ success: boolean; data: any }>(`/admin/resumes/${id}/extract`);
 }
+
+export function adminDeleteResume(id: string) {
+  return api.del<{ message: string }>(`/admin/resumes/${id}`);
+}

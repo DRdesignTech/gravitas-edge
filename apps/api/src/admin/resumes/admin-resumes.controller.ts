@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -108,5 +108,11 @@ export class AdminResumesController {
   @ApiOperation({ summary: 'Extract and save candidate profile from resume (admin only)' })
   async extract(@Param('id') id: string) {
     return this.adminResumesService.extractAndSaveProfile(id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a resume (admin only)' })
+  async remove(@Param('id') id: string) {
+    return this.adminResumesService.remove(id);
   }
 }

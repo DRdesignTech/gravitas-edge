@@ -8,11 +8,13 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../resumes/storage/storage.service';
 import { QueryResumesDto } from '../resumes/dto/resumes.dto';
 import { ResumeResponseDto } from '../resumes/dto/resumes.dto';
 import { isValidResumeFile, getExtension } from '../resumes/validation/resume.validation';
+import { ResumeExtractionService } from '../admin/resumes/resume-extraction.service';
 import { existsSync, createReadStream } from 'fs';
 
 const MIME_BY_TYPE: Record<string, string> = {
@@ -45,13 +47,43 @@ const PUBLIC_SELECT = {
 
 @Injectable()
 export class ResumesService {
+  private readonly logger = new Logger(ResumesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly extraction: ResumeExtractionService,
   ) {}
 
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  async extractContactPreview(
+    buffer: Buffer,
+    originalName: string,
+  ): Promise<{ fullName: string | null; email: string | null; phone: string | null }> {
+    return this.extractContact(buffer, getExtension(originalName));
+  }
+
+  private async extractContact(
+    buffer: Buffer,
+    fileType: string,
+  ): Promise<{ fullName: string | null; email: string | null; phone: string | null }> {
+    try {
+      const text = await this.extraction.extractText(buffer, fileType);
+      const parsed = this.extraction.parseResumeText(text);
+      return {
+        fullName: parsed.fullName?.trim() || null,
+        email: parsed.email?.trim() || null,
+        phone: parsed.phone?.trim() || null,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Resume contact extraction failed for ${fileType}: ${(error as Error)?.message}`,
+      );
+      return { fullName: null, email: null, phone: null };
+    }
   }
 
   private validateFile(file: Pick<ResumeFileInput, 'originalName' | 'fileSize' | 'buffer'>) {
@@ -99,10 +131,14 @@ export class ResumesService {
         user.id,
       );
 
+      const extracted = await this.extractContact(file.buffer, extension);
+
       const resume = await this.prisma.resume.create({
         data: {
           userId: user.id,
-          email: user.email,
+          fullName: extracted.fullName,
+          email: extracted.email ?? user.email,
+          phone: extracted.phone,
           originalName: file.originalName,
           storageName,
           fileType: extension,
@@ -144,14 +180,15 @@ export class ResumesService {
 
     const { storageName, storagePath } = this.storage.saveGuestFile(file.buffer, file.originalName);
     const token = crypto.randomBytes(32).toString('hex');
+    const extracted = await this.extractContact(file.buffer, extension);
 
     const record = await this.prisma.resume.create({
       data: {
         userId: null,
         guestTokenHash: this.hashToken(token),
-        fullName,
-        email,
-        phone: guestDetails.phone?.trim() || null,
+        fullName: extracted.fullName ?? fullName,
+        email: extracted.email ?? email,
+        phone: extracted.phone ?? (guestDetails.phone?.trim() || null),
         originalName: file.originalName,
         storageName,
         fileType: extension,
@@ -300,6 +337,7 @@ export class ResumesService {
     }
 
     const { storageName: newStorageName } = this.storage.saveFile(buffer, originalName, userId);
+    const extracted = await this.extractContact(buffer, extension);
 
     const updated = await this.prisma.resume.update({
       where: { id },
@@ -309,6 +347,9 @@ export class ResumesService {
         fileType: extension,
         fileSize,
         uploadStatus: 'UPLOADED',
+        ...(extracted.fullName ? { fullName: extracted.fullName } : {}),
+        ...(extracted.email ? { email: extracted.email } : {}),
+        ...(extracted.phone ? { phone: extracted.phone } : {}),
       },
       select: {
         id: true,
@@ -402,6 +443,7 @@ export class ResumesService {
 
     const extension = getExtension(file.originalName);
     const { storageName, storagePath } = this.storage.saveGuestFile(file.buffer, file.originalName);
+    const extracted = await this.extractContact(file.buffer, extension);
 
     const record = await this.prisma.resume.update({
       where: { id: existing.id },
@@ -413,6 +455,9 @@ export class ResumesService {
         fileSize: file.fileSize,
         uploadStatus: 'UPLOADED',
         uploadedAt: new Date(),
+        ...(extracted.fullName ? { fullName: extracted.fullName } : {}),
+        ...(extracted.email ? { email: extracted.email } : {}),
+        ...(extracted.phone ? { phone: extracted.phone } : {}),
       },
       select: PUBLIC_SELECT,
     });
