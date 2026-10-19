@@ -19,7 +19,7 @@ export default function RvaSubscriptionCard({ sub }: { sub: RvaSubscriptionSumma
 
   return (
     <Link
-      href="/recruitment-vendor"
+      href="/recruitment-vendor/jobs"
       className="group block rounded-xl border border-line bg-surface p-4 transition-colors hover:border-brand-300 hover:bg-surface-muted dark:bg-surface-elevated dark:hover:border-brand-500/60"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
