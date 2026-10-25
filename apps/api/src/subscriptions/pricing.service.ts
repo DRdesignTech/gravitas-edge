@@ -302,7 +302,7 @@ export class PricingService {
     // Create Razorpay Subscription (total_count = 999 is max allowed, effectively infinite)
     const subscription = await this.razorpayService.createSubscription({
       planId: razorpayPlanId,
-      totalCount: 999, // max allowed by Razorpay; effectively infinite recurring
+      totalCount: Math.max(1, Math.floor(730 / plan.durationDays)), // max allowed by Razorpay; effectively infinite recurring
       customerNotify: true,
       notes: {
         userId,
