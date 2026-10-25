@@ -162,11 +162,12 @@ export function fetchPublicPricing() {
   return api.get<PricingGroup[]>('/subscriptions/pricing');
 }
 
-export function purchasePlan(planId: string, vaultId?: string, couponCode?: string) {
+export function purchasePlan(planId: string, vaultId?: string, couponCode?: string, recurring?: boolean) {
   return api.post<PurchaseResult>('/subscriptions/purchase', {
     planId,
     ...(vaultId ? { vaultId } : {}),
     ...(couponCode ? { couponCode } : {}),
+    ...(recurring ? { recurring: true } : {}),
   });
 }
 

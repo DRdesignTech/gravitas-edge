@@ -294,7 +294,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
       await loadRazorpayScript();
 
       const desiredCode = coupon?.code ?? '';
-      const currentCode = session.couponCode ?? '';
+      const currentCode = session.couponCode || '';
       const payable = coupon ? coupon.finalAmount : session.finalAmount;
 
       let orderId = session.orderId;
@@ -313,7 +313,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
           desiredCode || undefined,
         );
         failPayment(session.paymentId).catch(() => {});
-        orderId = next.orderId;
+        orderId = next.orderId || null;
         keyId = next.keyId;
         amount = next.amount;
         currency = next.currency;
@@ -336,29 +336,35 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
         );
       }
 
-      if (!(window as any).Razorpay || !orderId) {
+      if (!(window as any).Razorpay) {
         throw new Error('Failed to load Razorpay checkout');
       }
+      if (!orderId && !(session.razorpaySubscriptionId || (session as any).subscriptionId)) {
+        throw new Error('Missing payment details');
+      }
 
-      const rzp = new (window as any).Razorpay({
+      const rzpOptions: any = {
         key: keyId,
         amount: Math.round(amount * 100),
         currency,
         name: 'Gravitas Edge',
         description: `${session.planName ?? 'Plan'} - ${session.vaultName ?? ''}`,
-        order_id: orderId,
-        handler: async (response: {
-          razorpay_payment_id: string;
-          razorpay_order_id: string;
-          razorpay_signature: string;
-        }) => {
+        ...(orderId ? { order_id: orderId } : {}),
+        ...(session.razorpaySubscriptionId || (session as any).subscriptionId ? { subscription_id: session.razorpaySubscriptionId || (session as any).subscriptionId } : {}),
+        handler: async (response: any) => {
           try {
-            await verifyPayment({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              paymentId,
-            });
+            if (response.razorpay_order_id && response.razorpay_signature) {
+              await verifyPayment({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                paymentId,
+              });
+            } else if (session.recurring || session.razorpaySubscriptionId) {
+              // For subscription flows, authorization handled via webhooks
+            } else {
+              throw new Error('Invalid payment response');
+            }
             await refreshAccess();
             setPhase('success');
             if (paymentId !== session.paymentId) {
@@ -382,9 +388,9 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
         },
         theme: { color: '#5F43F2' },
         retry: { enabled: true },
-      });
-
-      rzp.open();
+      };
+      const rzp = new (window as any).Razorpay(rzpOptions);
+      (rzp as any).open();
     } catch (err: any) {
       setPhase('form');
       setPhaseError(getErrorMessage(err));
@@ -398,8 +404,8 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
     try {
       const next = await purchasePlan(
         session.planId ?? '',
-        session.vaultId ?? undefined,
-        session.couponCode ?? undefined,
+        session.vaultId || undefined,
+        session.couponCode || undefined,
       );
       router.replace(
         `/checkout/${next.paymentId}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`,

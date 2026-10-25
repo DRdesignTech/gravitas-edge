@@ -285,26 +285,28 @@ model VaultExperienceLevel {
 // ==========================================================================
 
 model SubscriptionPlan {
-  id           String    @id @default(uuid())
-  name         String    @unique
-  description  String?
-  price        Decimal   @db.Decimal(10, 2)
-  regularPrice Decimal   @default(0) @db.Decimal(10, 2)
-  discountPercentage Int  @default(0)
-  currency     String    @default("INR")
-  durationDays Int
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+  id              String    @id @default(uuid())
+  name            String    @unique
+  description     String?
+  price           Decimal   @db.Decimal(10, 2)
+  regularPrice    Decimal   @default(0) @db.Decimal(10, 2)
+  discountPercentage Int    @default(0)
+  currency        String    @default("INR")
+  durationDays    Int
+  isActive        Boolean   @default(true)
+  razorpayPlanId  String?   @unique
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
 
-  vaults        PlanVault[]
-  subscriptions Subscription[]
-  couponPlans   CouponPlan[]
-  couponUsages  CouponUsage[]
+  vaults              PlanVault[]
+  subscriptions       Subscription[]
+  couponPlans         CouponPlan[]
+  couponUsages        CouponUsage[]
 
   @@index([isActive])
   @@index([deletedAt])
+  @@index([razorpayPlanId])
 }
 
 model PlanVault {
@@ -331,9 +333,11 @@ model Subscription {
   endDate                DateTime
   status                 SubscriptionStatus @default(PENDING)
   paymentReference       String?
-  razorpaySubscriptionId String?
+  razorpaySubscriptionId String?            @unique
   cancelledAt            DateTime?
   cancellationReason     String?
+  autoRenew              Boolean            @default(false)
+  nextBillingDate        DateTime?
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
 
@@ -351,6 +355,7 @@ model Subscription {
   @@index([endDate])
   @@index([razorpaySubscriptionId])
   @@index([userId, status, endDate])
+  @@index([nextBillingDate])
 }
 
 model SubscriptionVaultAccess {
@@ -871,6 +876,7 @@ model RecruitmentVendorPlan {
   durationDays        Int
   isActive            Boolean   @default(true)
   sortOrder           Int       @default(0)
+  razorpayPlanId      String?   @unique
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
   deletedAt           DateTime?
@@ -882,6 +888,7 @@ model RecruitmentVendorPlan {
   @@index([isActive])
   @@index([deletedAt])
   @@index([durationDays])
+  @@index([razorpayPlanId])
 }
 
 model RecruitmentVendorSubscription {
@@ -892,9 +899,11 @@ model RecruitmentVendorSubscription {
   endDate              DateTime
   status               SubscriptionStatus @default(PENDING)
   paymentReference     String?
-  razorpaySubscriptionId String?
+  razorpaySubscriptionId String?          @unique
   cancelledAt          DateTime?
   cancellationReason   String?
+  autoRenew            Boolean            @default(false)
+  nextBillingDate      DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
@@ -908,7 +917,9 @@ model RecruitmentVendorSubscription {
   @@index([planId])
   @@index([status])
   @@index([endDate])
+  @@index([razorpaySubscriptionId])
   @@index([userId, status, endDate])
+  @@index([nextBillingDate])
 }
 
 model RecruitmentVendorFaq {
@@ -1042,6 +1053,19 @@ model RecruitmentVendorCouponUsage {
 
 // PAYMENTS (Razorpay foundation)
 // ==========================================================================
+
+model WebhookEvent {
+  id        String   @id @default(uuid())
+  eventId   String   @unique // Razorpay event ID (e.g., evt_xxxxx)
+  eventType String   // e.g., subscription.charged, payment.failed
+  payload   Json     // Full webhook payload for debugging
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([eventType])
+  @@index([processed])
+  @@index([createdAt])
+}
 
 model Payment {
   id                     String        @id @default(uuid())

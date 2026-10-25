@@ -71,7 +71,7 @@ export class RvaPublicController {
   @Post('purchase')
   @ApiOperation({ summary: 'Start an RVA plan purchase (server-authoritative price)' })
   purchase(@CurrentUser() user: AuthenticatedUser, @Body() dto: RvaPurchasePlanDto) {
-    return this.pricing.purchase(user.id, dto.planId, dto.couponCode);
+    return this.pricing.purchase(user.id, dto.planId, dto.couponCode, dto.recurring);
   }
 
   @Post('purchase/verify')

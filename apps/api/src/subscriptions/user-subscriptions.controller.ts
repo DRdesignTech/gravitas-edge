@@ -84,4 +84,10 @@ export class UserSubscriptionsController {
   findMine(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.userSubscriptionsService.findMine(user.id, id);
   }
+
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Cancel AutoPay subscription (preserves paid access until end date)' })
+  async cancelSubscription(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.userSubscriptionsService.cancelSubscription(user.id, id);
+  }
 }

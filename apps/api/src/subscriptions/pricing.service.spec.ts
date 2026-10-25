@@ -1,17 +1,18 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { PricingService } from './pricing.service';
+import { PricingService, OneTimePurchaseResult, RecurringPurchaseResult } from './pricing.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
 import { CouponsService } from '../coupons/coupons.service';
 import { RazorpayService } from '../payments/razorpay.service';
+import { SubscriptionStatus } from '@prisma/client';
 
 function mockPrismaService() {
   return {
     vault: { findMany: jest.fn() },
     subscriptionPlan: { findFirst: jest.fn() },
     payment: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-    subscription: { findUnique: jest.fn() },
+    subscription: { findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn() },
     couponUsage: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
   } as any;
 }
@@ -189,7 +190,7 @@ describe('PricingService', () => {
         status: 'CREATED',
       });
 
-      const result = await service.purchase('user-1', { planId: 'plan-1', vaultId: 'v1' });
+      const result = await service.purchase('user-1', { planId: 'plan-1', vaultId: 'v1' }) as OneTimePurchaseResult;
       expect(prisma.payment.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -375,29 +376,31 @@ describe('PricingService', () => {
     };
 
     it('returns the server-side breakdown from the frozen payment metadata', async () => {
-      prisma.payment.findUnique.mockResolvedValue(payment);
+      prisma.payment.findUnique.mockResolvedValue({ ...payment, subscription: null });
       const result = await service.getPaymentSession('user-1', 'pay-1');
-      expect(result).toEqual({
-        paymentId: 'pay-1',
-        orderId: 'order_abc',
-        status: 'CREATED',
-        amount: 1199,
-        currency: 'INR',
-        planId: 'plan-1',
-        planName: 'Remote Access Vault · Monthly',
-        vaultId: 'v1',
-        vaultName: 'Remote Access Vault',
-        durationDays: 30,
-        couponCode: 'SAVE10',
-        originalAmount: 1499,
-        discountAmount: 300,
-        finalAmount: 1199,
-        keyId: 'key',
-      });
+      expect(result).toEqual(
+        expect.objectContaining({
+          paymentId: 'pay-1',
+          orderId: 'order_abc',
+          status: 'CREATED',
+          amount: 1199,
+          currency: 'INR',
+          planId: 'plan-1',
+          planName: 'Remote Access Vault · Monthly',
+          vaultId: 'v1',
+          vaultName: 'Remote Access Vault',
+          durationDays: 30,
+          couponCode: 'SAVE10',
+          originalAmount: 1499,
+          discountAmount: 300,
+          finalAmount: 1199,
+          keyId: 'key',
+        }),
+      );
     });
 
     it('derives zero discount when the session has no coupon', async () => {
-      prisma.payment.findUnique.mockResolvedValue({ ...payment, metadata: { planId: 'plan-1' } });
+      prisma.payment.findUnique.mockResolvedValue({ ...payment, metadata: { planId: 'plan-1' }, subscription: null });
       const result = await service.getPaymentSession('user-1', 'pay-1');
       expect(result.originalAmount).toBe(1199);
       expect(result.discountAmount).toBe(0);
@@ -452,6 +455,210 @@ describe('PricingService', () => {
     it('rejects failing a payment that has already succeeded', async () => {
       prisma.payment.findUnique.mockResolvedValue({ ...payment, status: 'SUCCESS' });
       await expect(service.failPayment('user-1', 'pay-1')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('purchaseRecurring (AutoPay)', () => {
+    const plan = {
+      id: 'plan-1',
+      name: 'Remote Access Vault · Monthly',
+      price: 1499,
+      regularPrice: 1999,
+      discountPercentage: 25,
+      currency: 'INR',
+      durationDays: 30,
+      razorpayPlanId: 'plan_TrprBHz0jjoi8n',
+      vaults: [{ vault: { id: 'v1', name: 'Remote Access Vault' } }],
+    };
+
+    const mockRazorpaySubscription = {
+      id: 'sub_razorpay_123',
+      short_url: 'https://rzp.io/i/test123',
+      charge_at: Math.floor(Date.now() / 1000) + 86400,
+    };
+
+    beforeEach(() => {
+      prisma.subscriptionPlan.findFirst.mockResolvedValue(plan);
+      prisma.subscription.findFirst.mockResolvedValue(null); // no existing active recurring
+      prisma.subscription.create.mockResolvedValue({
+        id: 'sub-local-1',
+        userId: 'user-1',
+        planId: plan.id,
+        status: SubscriptionStatus.PENDING,
+        razorpaySubscriptionId: mockRazorpaySubscription.id,
+        autoRenew: true,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
+      });
+      prisma.payment.create.mockResolvedValue({
+        id: 'pay-1',
+        razorpaySubscriptionId: mockRazorpaySubscription.id,
+        amount: plan.price,
+        currency: plan.currency,
+        status: 'CREATED',
+      });
+    });
+
+    it('creates a recurring purchase with valid Razorpay plan ID', async () => {
+      const razorpayService = {
+        createSubscription: jest.fn().mockResolvedValue(mockRazorpaySubscription),
+        validateRazorpayPlanId: jest.fn(),
+        getKeyId: jest.fn().mockReturnValue('key'),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const recurringService = moduleRef.get(PricingService);
+
+      const result = await recurringService.purchase('user-1', { planId: 'plan-1', recurring: true }) as RecurringPurchaseResult;
+
+      expect(razorpayService.validateRazorpayPlanId).toHaveBeenCalledWith('plan_TrprBHz0jjoi8n');
+      expect(razorpayService.createSubscription).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planId: 'plan_TrprBHz0jjoi8n',
+          totalCount: 999,
+          customerNotify: true,
+        }),
+      );
+      expect(result.recurring).toBe(true);
+      expect(result.razorpaySubscriptionId).toBe('sub_razorpay_123');
+      expect(result.shortUrl).toBe('https://rzp.io/i/test123');
+      expect(result.paymentId).toBe('pay-1');
+    });
+
+    it('rejects recurring purchase when plan has no razorpayPlanId', async () => {
+      const planWithoutRazorpay = { ...plan, razorpayPlanId: null };
+      prisma.subscriptionPlan.findFirst.mockResolvedValue(planWithoutRazorpay);
+
+      const razorpayService = {
+        createSubscription: jest.fn(),
+        validateRazorpayPlanId: jest.fn(),
+        getKeyId: jest.fn().mockReturnValue('key'),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const recurringService = moduleRef.get(PricingService);
+
+      await expect(recurringService.purchase('user-1', { planId: 'plan-1', recurring: true })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(razorpayService.validateRazorpayPlanId).not.toHaveBeenCalled();
+    });
+
+    it('rejects recurring purchase for explicitly excluded plan (plan_Trq9hv9Sx7SUb7)', async () => {
+      const excludedPlan = { ...plan, razorpayPlanId: 'plan_Trq9hv9Sx7SUb7' };
+      prisma.subscriptionPlan.findFirst.mockResolvedValue(excludedPlan);
+
+      const razorpayService = {
+        createSubscription: jest.fn(),
+        validateRazorpayPlanId: jest.fn(),
+        getKeyId: jest.fn().mockReturnValue('key'),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const recurringService = moduleRef.get(PricingService);
+
+      await expect(recurringService.purchase('user-1', { planId: 'plan-1', recurring: true })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects recurring purchase for blocked Remote 6-month plan (plan_Trq302lYgONage)', async () => {
+      const blockedPlan = { ...plan, razorpayPlanId: 'plan_Trq302lYgONage' };
+      prisma.subscriptionPlan.findFirst.mockResolvedValue(blockedPlan);
+
+      const razorpayService = {
+        createSubscription: jest.fn(),
+        validateRazorpayPlanId: jest.fn(),
+        getKeyId: jest.fn().mockReturnValue('key'),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const recurringService = moduleRef.get(PricingService);
+
+      await expect(recurringService.purchase('user-1', { planId: 'plan-1', recurring: true })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects recurring purchase when user already has active AutoPay for same plan', async () => {
+      prisma.subscription.findFirst.mockResolvedValueOnce(null) // existingActiveRecurring check
+        .mockResolvedValueOnce({ id: 'existing-sub', status: SubscriptionStatus.ACTIVE }); // existingActiveSub check
+
+      const razorpayService = {
+        createSubscription: jest.fn(),
+        validateRazorpayPlanId: jest.fn(),
+        getKeyId: jest.fn().mockReturnValue('key'),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const recurringService = moduleRef.get(PricingService);
+
+      await expect(recurringService.purchase('user-1', { planId: 'plan-1', recurring: true })).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('rejects coupon code for recurring purchase', async () => {
+      const razorpayService = {
+        createSubscription: jest.fn(),
+        validateRazorpayPlanId: jest.fn(),
+        getKeyId: jest.fn().mockReturnValue('key'),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const recurringService = moduleRef.get(PricingService);
+
+      await expect(
+        recurringService.purchase('user-1', { planId: 'plan-1', recurring: true, couponCode: 'SAVE10' }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

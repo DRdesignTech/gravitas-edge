@@ -10,6 +10,7 @@ import { RazorpayService } from '../payments/razorpay.service';
 import { durationLabel } from '../subscriptions/pricing-catalog';
 import { RvaCouponsService } from './rva-coupons.service';
 import { couponError, normalizeCouponCode, serializeCouponSummary } from '../coupons/coupon.util';
+import { SubscriptionStatus } from '@prisma/client';
 
 export const RVA_PAYMENT_METADATA_KIND = 'RECRUITMENT_VENDOR_ACCESS';
 
@@ -34,7 +35,17 @@ export class RvaPricingService {
     private readonly coupons: RvaCouponsService,
   ) {}
 
-  async purchase(userId: string, planId: string, couponCode?: string) {
+  async purchase(userId: string, planId: string, couponCode?: string, recurring?: boolean) {
+    if (recurring) {
+      return this.purchaseRecurring(userId, planId);
+    }
+    return this.purchaseOneTime(userId, planId, couponCode);
+  }
+
+  /**
+   * One-time purchase (existing behavior): creates a Razorpay Order.
+   */
+  private async purchaseOneTime(userId: string, planId: string, couponCode?: string) {
     const plan = await this.prisma.recruitmentVendorPlan.findFirst({
       where: { id: planId, deletedAt: null, isActive: true },
     });
@@ -72,6 +83,7 @@ export class RvaPricingService {
           planName: plan.name,
           durationDays: plan.durationDays,
           vault: 'recruitment-vendor-access',
+          recurring: false,
         },
       },
     });
@@ -86,7 +98,113 @@ export class RvaPricingService {
       durationDays: plan.durationDays,
       status: payment.status,
       keyId: this.razorpayService.getKeyId(),
+      recurring: false,
     };
+  }
+
+  /**
+   * Recurring purchase (AutoPay): creates a Razorpay Subscription.
+   * Requires a Razorpay Plan to exist (created on-demand if missing).
+   */
+  private async purchaseRecurring(userId: string, planId: string) {
+    const plan = await this.prisma.recruitmentVendorPlan.findFirst({
+      where: { id: planId, deletedAt: null, isActive: true },
+    });
+    if (!plan) {
+      throw new NotFoundException('Plan is not available for purchase');
+    }
+
+    // Coupons not supported for recurring subscriptions in this phase
+    // (couponCode parameter is ignored for recurring)
+
+    // Get or create Razorpay Plan
+    let razorpayPlanId = plan.razorpayPlanId;
+    if (!razorpayPlanId) {
+      const razorpayPlan = await this.razorpayService.createPlan({
+        name: plan.name,
+        amount: Number(plan.price),
+        currency: plan.currency,
+        interval: 1,
+        period: this.durationDaysToPeriod(plan.durationDays),
+        description: `Subscription for ${plan.name}`,
+      });
+      razorpayPlanId = razorpayPlan.id;
+      await this.prisma.recruitmentVendorPlan.update({
+        where: { id: plan.id },
+        data: { razorpayPlanId },
+      });
+    }
+
+    // Create Razorpay Subscription (total_count = 0 means infinite)
+    const subscription = await this.razorpayService.createSubscription({
+      planId: razorpayPlanId,
+      totalCount: 0, // infinite recurring
+      customerNotify: true,
+      notes: {
+        userId,
+        planId: plan.id,
+      },
+    });
+
+    // Create local subscription in PENDING state (will be activated on webhook)
+    const localSubscription = await this.prisma.recruitmentVendorSubscription.create({
+      data: {
+        userId,
+        planId: plan.id,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
+        status: SubscriptionStatus.PENDING,
+        razorpaySubscriptionId: subscription.id,
+        autoRenew: true,
+        nextBillingDate: subscription.charge_at ? new Date(subscription.charge_at * 1000) : null,
+        paymentReference: subscription.short_url,
+      },
+    });
+
+    // Create payment record for the authorization payment
+    const payment = await this.prisma.payment.create({
+      data: {
+        userId,
+        recruitmentVendorSubscriptionId: localSubscription.id,
+        razorpaySubscriptionId: subscription.id,
+        amount: plan.price,
+        currency: plan.currency,
+        status: 'CREATED',
+        metadata: {
+          kind: RVA_PAYMENT_METADATA_KIND,
+          recruitmentVendorPlanId: plan.id,
+          planId: plan.id,
+          planName: plan.name,
+          durationDays: plan.durationDays,
+          vault: 'recruitment-vendor-access',
+          recurring: true,
+          razorpaySubscriptionId: subscription.id,
+          shortUrl: subscription.short_url,
+        },
+      },
+    });
+
+    return {
+      paymentId: payment.id,
+      subscriptionId: localSubscription.id,
+      razorpaySubscriptionId: subscription.id,
+      shortUrl: subscription.short_url,
+      amount: Number(plan.price),
+      currency: plan.currency,
+      planId: plan.id,
+      planName: plan.name,
+      durationDays: plan.durationDays,
+      status: payment.status,
+      keyId: this.razorpayService.getKeyId(),
+      recurring: true,
+    };
+  }
+
+  private durationDaysToPeriod(days: number): 'daily' | 'weekly' | 'monthly' | 'yearly' {
+    if (days <= 7) return 'weekly';
+    if (days <= 31) return 'monthly';
+    if (days <= 366) return 'yearly';
+    return 'monthly';
   }
 
   /**

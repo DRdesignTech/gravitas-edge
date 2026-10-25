@@ -101,4 +101,37 @@ export class RvaAccessService {
     }
     return { authorized: true, subscriptionId: active[active.length - 1].id };
   }
+
+  /**
+   * Extend an existing RVA subscription by the plan's duration.
+   * Used when a recurring payment succeeds.
+   */
+  async extendSubscription(subscriptionId: string, planDurationDays: number): Promise<void> {
+    const sub = await this.prisma.recruitmentVendorSubscription.findUniqueOrThrow({
+      where: { id: subscriptionId },
+      select: { endDate: true },
+    });
+    const newEndDate = new Date(sub.endDate.getTime() + planDurationDays * 24 * 60 * 60 * 1000);
+    await this.prisma.recruitmentVendorSubscription.update({
+      where: { id: subscriptionId },
+      data: { endDate: newEndDate },
+    });
+  }
+
+  /**
+   * Cancel an RVA subscription.
+   * Sets status to CANCELLED, disables auto-renewal.
+   */
+  async cancelSubscription(subscriptionId: string, cancellationReason?: string): Promise<void> {
+    await this.prisma.recruitmentVendorSubscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status: SubscriptionStatus.CANCELLED,
+        cancelledAt: new Date(),
+        cancellationReason: cancellationReason ?? 'Cancelled by user',
+        autoRenew: false,
+        nextBillingDate: null,
+      },
+    });
+  }
 }

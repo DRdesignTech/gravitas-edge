@@ -14,6 +14,51 @@ import { PurchasePlanDto } from './dto/purchase-plan.dto';
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { RazorpayService } from '../payments/razorpay.service';
+import { PaymentStatus, SubscriptionStatus } from '@prisma/client';
+
+export interface OneTimePurchaseResult {
+  paymentId: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  planId: string;
+  planName: string;
+  vaultId: string;
+  vaultName: string;
+  durationDays: number;
+  status: PaymentStatus;
+  keyId: string;
+  recurring: false;
+  // Optional coupon fields (present when coupon is applied)
+  originalAmount?: number;
+  discountAmount?: number;
+  coupon?: {
+    id: string;
+    code: string;
+    description: string | null;
+    discountType: string;
+    discountValue: number;
+  };
+}
+
+export interface RecurringPurchaseResult {
+  paymentId: string;
+  subscriptionId: string;
+  razorpaySubscriptionId: string;
+  shortUrl: string;
+  amount: number;
+  currency: string;
+  planId: string;
+  planName: string;
+  vaultId: string;
+  vaultName: string;
+  durationDays: number;
+  status: PaymentStatus;
+  keyId: string;
+  recurring: true;
+}
+
+export type PurchaseResult = OneTimePurchaseResult | RecurringPurchaseResult;
 
 /**
  * Server-side pricing, purchase and (interim, gateway-agnostic) payment flow.
@@ -89,8 +134,19 @@ export class PricingService {
   /**
    * Start a purchase: validate plan availability and create a CREATED payment
    * session for the exact server-side plan price.
+   * Supports both one-time (default) and recurring (AutoPay) purchases.
    */
-  async purchase(userId: string, dto: PurchasePlanDto) {
+  async purchase(userId: string, dto: PurchasePlanDto): Promise<PurchaseResult> {
+    if (dto.recurring) {
+      return this.purchaseRecurring(userId, dto);
+    }
+    return this.purchaseOneTime(userId, dto);
+  }
+
+  /**
+   * One-time purchase (existing behavior): creates a Razorpay Order.
+   */
+  private async purchaseOneTime(userId: string, dto: PurchasePlanDto): Promise<OneTimePurchaseResult> {
     const plan = await this.prisma.subscriptionPlan.findFirst({
       where: { id: dto.planId, deletedAt: null, isActive: true },
       include: {
@@ -145,6 +201,7 @@ export class PricingService {
           vaultId: target.id,
           vaultName: target.name,
           durationDays: plan.durationDays,
+          recurring: false,
         },
       },
     });
@@ -161,8 +218,155 @@ export class PricingService {
       durationDays: plan.durationDays,
       status: payment.status,
       keyId: this.razorpayService.getKeyId(),
+      recurring: false,
     };
   }
+
+  /**
+   * Recurring purchase (AutoPay): creates a Razorpay Subscription.
+   * Requires a Razorpay Plan to exist (created on-demand if missing).
+   */
+  private async purchaseRecurring(userId: string, dto: PurchasePlanDto): Promise<RecurringPurchaseResult> {
+    const plan = await this.prisma.subscriptionPlan.findFirst({
+      where: { id: dto.planId, deletedAt: null, isActive: true },
+      include: {
+        vaults: {
+          where: { vault: { deletedAt: null, status: 'ACTIVE' } },
+          include: { vault: { select: { id: true, name: true } } },
+        },
+      },
+    });
+    if (!plan) {
+      throw new NotFoundException('Plan is not available for purchase');
+    }
+
+    const tokenVaults = plan.vaults.map((v) => v.vault);
+    const target =
+      tokenVaults.find((v) => v.id === dto.vaultId) ??
+      (tokenVaults.length === 1 ? tokenVaults[0] : undefined);
+    if (!target) {
+      throw new BadRequestException(
+        tokenVaults.length === 0
+          ? 'This plan grants no vault access'
+          : 'A vaultId belonging to this plan is required',
+      );
+    }
+
+    // Coupons not supported for recurring subscriptions in this phase
+    if (dto.couponCode !== undefined && normalizeCouponCode(dto.couponCode) !== '') {
+      throw new BadRequestException('Coupons are not supported for recurring subscriptions');
+    }
+
+    // Prevent duplicate active AutoPay subscriptions for same user/plan
+    const existingActiveRecurring = await this.prisma.subscription.findFirst({
+      where: {
+        userId,
+        planId: plan.id,
+        autoRenew: true,
+        status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING] },
+        razorpaySubscriptionId: { not: null },
+      },
+    });
+    if (existingActiveRecurring) {
+      throw new ConflictException('You already have an active AutoPay subscription for this plan');
+    }
+    
+    // Also check for any existing active subscription (one-time or recurring) to avoid conflicts
+    const existingActiveSub = await this.prisma.subscription.findFirst({
+      where: {
+        userId,
+        planId: plan.id,
+        status: SubscriptionStatus.ACTIVE,
+        endDate: { gt: new Date() },
+      },
+    });
+    if (existingActiveSub && !existingActiveSub.razorpaySubscriptionId) {
+      throw new ConflictException('You already have an active subscription for this plan');
+    }
+
+    // Get or create Razorpay Plan
+    let razorpayPlanId = plan.razorpayPlanId;
+    if (!razorpayPlanId) {
+      throw new BadRequestException('This plan is not configured for recurring billing');
+    }
+    // Enforce allowlist - explicitly reject excluded plans
+    if (razorpayPlanId === 'plan_Trq9hv9Sx7SUb7') {
+      throw new BadRequestException('This plan is not available for purchase');
+    }
+    // Block Remote 6-month plan with billing interval mismatch until resolved
+    if (razorpayPlanId === 'plan_Trq302lYgONage') {
+      throw new BadRequestException('This plan is not available for recurring billing');
+    }
+    this.razorpayService.validateRazorpayPlanId(razorpayPlanId);
+
+    // Create Razorpay Subscription (total_count = 999 is max allowed, effectively infinite)
+    const subscription = await this.razorpayService.createSubscription({
+      planId: razorpayPlanId,
+      totalCount: 999, // max allowed by Razorpay; effectively infinite recurring
+      customerNotify: true,
+      notes: {
+        userId,
+        planId: plan.id,
+        vaultId: target.id,
+      },
+    });
+
+    // Create local subscription in PENDING state (will be activated on webhook)
+    const localSubscription = await this.prisma.subscription.create({
+      data: {
+        userId,
+        planId: plan.id,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
+        status: SubscriptionStatus.PENDING,
+        razorpaySubscriptionId: subscription.id,
+        autoRenew: true,
+        nextBillingDate: subscription.charge_at ? new Date(subscription.charge_at * 1000) : null,
+        paymentReference: subscription.short_url,
+      },
+    });
+
+    // Create payment record for the authorization payment
+    const payment = await this.prisma.payment.create({
+      data: {
+        userId,
+        subscriptionId: localSubscription.id,
+        razorpaySubscriptionId: subscription.id,
+        amount: plan.price,
+        currency: plan.currency,
+        status: 'CREATED',
+        metadata: {
+          planId: plan.id,
+          planName: plan.name,
+          vaultId: target.id,
+          vaultName: target.name,
+          durationDays: plan.durationDays,
+          recurring: true,
+          razorpaySubscriptionId: subscription.id,
+          shortUrl: subscription.short_url,
+        },
+      },
+    });
+
+    return {
+      paymentId: payment.id,
+      subscriptionId: localSubscription.id,
+      razorpaySubscriptionId: subscription.id,
+      shortUrl: subscription.short_url,
+      amount: Number(plan.price),
+      currency: plan.currency,
+      planId: plan.id,
+      planName: plan.name,
+      vaultId: target.id,
+      vaultName: target.name,
+      durationDays: plan.durationDays,
+      status: payment.status,
+      keyId: this.razorpayService.getKeyId(),
+      recurring: true,
+    };
+  }
+
+  // period conversion removed - using pre-configured Razorpay plans
 
   /**
    * Coupon purchase path: eligibility, limits and discount math all re-checked
@@ -176,7 +380,7 @@ export class PricingService {
     rawCode: string,
     plan: { id: string; name: string; price: unknown; currency: string; durationDays: number },
     target: { id: string; name: string },
-  ) {
+  ): Promise<OneTimePurchaseResult> {
     return this.prisma.$transaction(async (tx) => {
       const found = await this.coupons.resolve(tx, rawCode);
       await this.coupons.lock(tx, found.id);
@@ -246,7 +450,7 @@ export class PricingService {
 
       return {
         paymentId: payment.id,
-        orderId: payment.razorpayOrderId,
+        orderId: payment.razorpayOrderId!,
         amount: Number(payment.amount),
         originalAmount,
         discountAmount,
@@ -259,6 +463,7 @@ export class PricingService {
         durationDays: plan.durationDays,
         status: payment.status,
         keyId: this.razorpayService.getKeyId(),
+        recurring: false,
       };
     });
   }
@@ -272,6 +477,7 @@ export class PricingService {
   async getPaymentSession(userId: string, paymentId: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
+      include: { subscription: true },
     });
     if (!payment || payment.userId !== userId) {
       throw new NotFoundException('Payment not found');
@@ -286,11 +492,22 @@ export class PricingService {
       couponCode?: string;
       originalAmount?: number;
       discountAmount?: number;
+      recurring?: boolean;
+      razorpaySubscriptionId?: string;
+      shortUrl?: string;
     };
+
+    const razorpaySubscriptionId =
+      payment.razorpaySubscriptionId || meta.razorpaySubscriptionId || null;
+    const subscriptionId = payment.subscriptionId || null;
+    const recurring = meta.recurring === true || !!razorpaySubscriptionId;
 
     return {
       paymentId: payment.id,
       orderId: payment.razorpayOrderId,
+      subscriptionId,
+      razorpaySubscriptionId,
+      shortUrl: meta.shortUrl || null,
       status: payment.status,
       amount: Number(payment.amount),
       currency: payment.currency,
@@ -304,6 +521,7 @@ export class PricingService {
       discountAmount: Number(meta.discountAmount ?? 0),
       finalAmount: Number(payment.amount),
       keyId: this.razorpayService.getKeyId(),
+      recurring,
     };
   }
 

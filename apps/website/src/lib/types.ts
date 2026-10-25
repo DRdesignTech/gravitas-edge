@@ -129,6 +129,9 @@ export interface PurchaseCouponInfo {
 export interface PaymentSession {
   paymentId: string;
   orderId: string | null;
+  subscriptionId?: string | null;
+  razorpaySubscriptionId?: string | null;
+  shortUrl?: string | null;
   status: string;
   amount: number;
   currency: string;
@@ -142,11 +145,15 @@ export interface PaymentSession {
   discountAmount: number;
   finalAmount: number;
   keyId?: string;
+  recurring?: boolean;
 }
 
 export interface PurchaseResult {
   paymentId: string;
-  orderId: string;
+  orderId?: string;
+  subscriptionId?: string;
+  razorpaySubscriptionId?: string;
+  shortUrl?: string;
   amount: number;
   currency: string;
   planId: string;
@@ -157,6 +164,7 @@ export interface PurchaseResult {
   status: string;
   coupon?: PurchaseCouponInfo;
   keyId?: string;
+  recurring?: boolean;
 }
 
 export interface CouponSummary {

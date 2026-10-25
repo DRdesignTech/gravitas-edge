@@ -50,6 +50,13 @@ describe('UserSubscriptionsService', () => {
         UserSubscriptionsService,
         { provide: PrismaService, useValue: prisma },
         { provide: SubscriptionAccessService, useValue: access },
+        {
+          provide: require('../payments/razorpay.service').RazorpayService,
+          useValue: {
+            cancelSubscription: jest.fn(),
+            getKeyId: jest.fn(),
+          },
+        },
       ],
     }).compile();
     service = moduleRef.get(UserSubscriptionsService);

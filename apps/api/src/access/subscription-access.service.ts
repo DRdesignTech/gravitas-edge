@@ -225,4 +225,37 @@ export class SubscriptionAccessService {
 
     return subscription;
   }
+
+  /**
+   * Extend an existing subscription by the plan's duration.
+   * Used when a recurring payment succeeds.
+   */
+  async extendSubscription(subscriptionId: string, planDurationDays: number): Promise<void> {
+    const sub = await this.prisma.subscription.findUniqueOrThrow({
+      where: { id: subscriptionId },
+      select: { endDate: true },
+    });
+    const newEndDate = new Date(sub.endDate.getTime() + planDurationDays * 24 * 60 * 60 * 1000);
+    await this.prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: { endDate: newEndDate },
+    });
+  }
+
+  /**
+   * Cancel a subscription (both local and optionally via Razorpay).
+   * Sets status to CANCELLED, disables auto-renewal.
+   */
+  async cancelSubscription(subscriptionId: string, cancellationReason?: string): Promise<void> {
+    await this.prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        status: SubscriptionStatus.CANCELLED,
+        cancelledAt: new Date(),
+        cancellationReason: cancellationReason ?? 'Cancelled by user',
+        autoRenew: false,
+        nextBillingDate: null,
+      },
+    });
+  }
 }

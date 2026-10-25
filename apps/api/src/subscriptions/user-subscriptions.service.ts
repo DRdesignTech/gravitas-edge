@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
+import { RazorpayService } from '../payments/razorpay.service';
 
 /**
  * Serializes a subscription for the owning user - never leaks internal/security
@@ -36,6 +37,7 @@ export class UserSubscriptionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: SubscriptionAccessService,
+    private readonly razorpayService: RazorpayService,
   ) {}
 
   private baseInclude() {
@@ -129,5 +131,23 @@ export class UserSubscriptionsService {
         isActive: this.access.effectiveStatus(s) === 'ACTIVE',
       }))
       .filter((s) => s.isActive && s.startDate <= now && s.endDate >= now);
+  }
+
+  async cancelSubscription(userId: string, subscriptionId: string) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+    });
+    if (!sub) {
+      throw new NotFoundException('Subscription not found');
+    }
+    if (sub.razorpaySubscriptionId) {
+      try {
+        await this.razorpayService.cancelSubscription(sub.razorpaySubscriptionId, true);
+      } catch (e) {
+        // Continue with local cancellation even if Razorpay call fails
+      }
+    }
+    await this.access.cancelSubscription(sub.id, 'Cancelled by user');
+    return { success: true, message: 'Subscription cancelled. Access remains until end date.' };
   }
 }
