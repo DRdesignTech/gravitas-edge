@@ -1,0 +1,23 @@
+-- CreateTable
+CREATE TABLE "WebhookEvent" (
+    "id" TEXT NOT NULL,
+    "eventId" TEXT NOT NULL,
+    "eventType" TEXT NOT NULL,
+    "payload" JSONB NOT NULL,
+    "processed" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "WebhookEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WebhookEvent_eventId_key" ON "WebhookEvent"("eventId");
+
+-- CreateIndex
+CREATE INDEX "WebhookEvent_eventType_idx" ON "WebhookEvent"("eventType");
+
+-- CreateIndex
+CREATE INDEX "WebhookEvent_processed_idx" ON "WebhookEvent"("processed");
+
+-- CreateIndex
+CREATE INDEX "WebhookEvent_createdAt_idx" ON "WebhookEvent"("createdAt");
