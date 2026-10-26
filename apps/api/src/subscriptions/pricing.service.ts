@@ -1,4 +1,12 @@
 import {
+  assertLocalPaymentEvidence,
+  assertSubscriptionEvidence,
+  isCapturedPayment,
+  PaymentEvidence,
+  SubscriptionEvidence,
+} from '../payments/autopay-evidence';
+import {
+  CANCELLED_AWAITING_CAPTURE,
   CLEANUP_PENDING,
   cleanupUnpaidAutoPay,
   confirmUnpaidCancellation,
@@ -746,13 +754,27 @@ export class PricingService {
     }
 
     // 3. Verify payment belongs to this subscription
-    if (rzpPayment.subscription_id !== dto.razorpay_subscription_id) {
+    if (
+      rzpPayment.id !== dto.razorpay_payment_id ||
+      (rzpPayment.subscription_id != null &&
+        rzpPayment.subscription_id !== dto.razorpay_subscription_id)
+    ) {
       throw new BadRequestException('Payment does not match this subscription');
     }
 
+    if (!payment.subscription || payment.subscription.userId !== userId) {
+      throw new BadRequestException('Local subscription does not belong to this checkout user');
+    }
+    // Checkout HMAC binds payment_id|subscription_id even when the fetched
+    // payment omits subscription_id. Fetch the subscription to verify its plan
+    // and any ownership notes instead of demanding an undocumented field.
+    const rzpSubscription = await this.razorpayService.fetchSubscription(expectedSubId);
+    assertSubscriptionEvidence(payment.subscription, rzpSubscription, rzpPayment);
+    assertLocalPaymentEvidence(payment, payment.subscription, rzpPayment);
+
     // 4. Verify amount and currency
     const expectedAmountPaise = Math.round(Number(payment.amount) * 100);
-    if (rzpPayment.amount !== expectedAmountPaise) {
+    if (Number(rzpPayment.amount) !== expectedAmountPaise) {
       throw new BadRequestException('Payment amount does not match plan price');
     }
     if (rzpPayment.currency !== payment.currency) {
@@ -760,7 +782,7 @@ export class PricingService {
     }
 
     // 5. Verify captured status
-    if (rzpPayment.status !== 'captured' || rzpPayment.captured !== true) {
+    if (!isCapturedPayment(rzpPayment)) {
       if (rzpPayment.status === 'authorized' || rzpPayment.status === 'created') {
         // Persist the gateway-confirmed pending state so a page refresh cannot
         // reopen the checkout form and imply that a new attempt is required.
@@ -790,6 +812,8 @@ export class PricingService {
       payment,
       dto.razorpay_payment_id,
       'subscription.verified',
+      rzpSubscription,
+      rzpPayment,
     );
   }
 
@@ -798,6 +822,8 @@ export class PricingService {
     payment: any,
     razorpayPaymentId: string,
     webhookEvent: string,
+    verifiedSubscription: SubscriptionEvidence,
+    verifiedPayment: PaymentEvidence,
   ) {
     const meta = (payment.metadata ?? {}) as {
       planId?: string;
@@ -835,8 +861,14 @@ export class PricingService {
 
     const updated = await this.prisma.$transaction(async (tx) => {
       await lockSubscription(tx, subId);
-      const current = await tx.subscription.findUniqueOrThrow({ where: { id: subId } });
+      const current = await tx.subscription.findUniqueOrThrow({
+        where: { id: subId },
+        include: { plan: true },
+      });
       const currentPayment = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
+      assertSubscriptionEvidence(current, verifiedSubscription, verifiedPayment);
+      assertLocalPaymentEvidence(currentPayment, current, verifiedPayment);
+
       if (currentPayment.status === 'SUCCESS') {
         if (currentPayment.razorpayPaymentId !== razorpayPaymentId) {
           throw new ConflictException(
@@ -861,7 +893,15 @@ export class PricingService {
         where: { id: subId },
         data: {
           status: SubscriptionStatus.ACTIVE,
-          autoRenew: current.autoRenew,
+          autoRenew:
+            current.autoRenew &&
+            current.cancellationReason !== CANCELLED_AWAITING_CAPTURE &&
+            !['cancelled', 'completed', 'expired'].includes(verifiedSubscription.status ?? ''),
+          nextBillingDate: ['cancelled', 'completed', 'expired'].includes(
+            verifiedSubscription.status ?? '',
+          )
+            ? null
+            : current.nextBillingDate,
           paymentReference: razorpayPaymentId,
         },
       });

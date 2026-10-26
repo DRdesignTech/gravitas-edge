@@ -780,12 +780,15 @@ describe('PricingService', () => {
       metadata: { planId: 'plan-1', vaultId: 'v1' },
       subscription: {
         id: 'sub-local-1',
+        userId: 'user-1',
+        razorpaySubscriptionId: 'sub_rzp_123',
         planId: 'plan-1',
         status: 'PENDING',
         startDate: new Date(),
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         plan: {
           id: 'plan-1',
+          razorpayPlanId: 'plan_rzp_1',
           name: 'Remote Access Vault',
           price: 499,
           currency: 'INR',
@@ -828,6 +831,9 @@ describe('PricingService', () => {
       });
 
       const razorpayService = {
+        fetchSubscription: jest
+          .fn()
+          .mockResolvedValue({ id: 'sub_rzp_123', plan_id: 'plan_rzp_1' }),
         verifySubscriptionSignature: jest.fn().mockReturnValue(true),
         fetchPayment: jest.fn().mockResolvedValue({
           id: 'pay_rzp_123',
@@ -873,6 +879,9 @@ describe('PricingService', () => {
       prisma.payment.findUniqueOrThrow.mockResolvedValue({ ...mockPayment, status: 'PENDING' });
 
       const razorpayService = {
+        fetchSubscription: jest
+          .fn()
+          .mockResolvedValue({ id: 'sub_rzp_123', plan_id: 'plan_rzp_1' }),
         verifySubscriptionSignature: jest.fn().mockReturnValue(true),
         fetchPayment: jest.fn().mockResolvedValue({
           id: 'pay_rzp_123',
@@ -935,6 +944,9 @@ describe('PricingService', () => {
       prisma.payment.findUnique.mockResolvedValue(mockPayment);
 
       const razorpayService = {
+        fetchSubscription: jest
+          .fn()
+          .mockResolvedValue({ id: 'sub_rzp_123', plan_id: 'plan_rzp_1' }),
         verifySubscriptionSignature: jest.fn().mockReturnValue(true),
         fetchPayment: jest.fn().mockResolvedValue({
           id: 'pay_rzp_123',

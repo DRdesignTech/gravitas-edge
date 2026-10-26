@@ -135,6 +135,10 @@ export class RazorpayService implements OnModuleInit {
     return this.razorpay.payments.fetch(paymentId);
   }
 
+  async fetchInvoice(invoiceId: string) {
+    return this.razorpay.invoices.fetch(invoiceId);
+  }
+
   async cancelSubscription(subscriptionId: string, cancelAtCycleEnd = false) {
     return this.razorpay.subscriptions.cancel(subscriptionId, cancelAtCycleEnd);
   }

@@ -1,11 +1,21 @@
+import {
+  assertLocalPaymentEvidence,
+  assertSubscriptionEvidence,
+  isCapturedPayment,
+} from './autopay-evidence';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
-import { cleanupUnpaidAutoPay, lockSubscription } from './autopay-cleanup';
+import {
+  CANCELLED_AWAITING_CAPTURE,
+  cleanupUnpaidAutoPay,
+  lockSubscription,
+} from './autopay-cleanup';
 import { RazorpayService } from './razorpay.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentStatus, SubscriptionStatus, Prisma } from '@prisma/client';
 
 interface RazorpayWebhookEvent {
+  id?: string;
   entity: string;
   account_id: string;
   event: string;
@@ -64,7 +74,7 @@ interface RazorpayPayment {
   method: string | null;
   amount_refunded: number;
   refund_status: string | null;
-  captured: boolean;
+  captured: boolean | number | string;
   description: string | null;
   card_id: string | null;
   bank: string | null;
@@ -78,7 +88,8 @@ interface RazorpayPayment {
   error_code: string | null;
   error_description: string | null;
   created_at: number;
-  subscription_id: string | null;
+  subscription_id?: string | null;
+  customer_id?: string | null;
 }
 
 @Injectable()
@@ -91,7 +102,10 @@ export class WebhookService {
     private readonly subscriptionAccess: SubscriptionAccessService,
   ) {}
 
-  async handleWebhook(event: RazorpayWebhookEvent): Promise<void> {
+  async handleWebhook(
+    event: RazorpayWebhookEvent,
+    expectedCheckoutPaymentId?: string,
+  ): Promise<void> {
     // Deterministic event ID for safe idempotency
     const rzpEventId = (event as any).id;
     const subscriptionId = event.payload.subscription?.entity?.id;
@@ -139,7 +153,7 @@ export class WebhookService {
           break;
         case 'subscription.charged':
         case 'invoice.paid': // sometimes used
-          await this.handleSubscriptionCharged(event);
+          await this.handleSubscriptionCharged(event, expectedCheckoutPaymentId);
           break;
         case 'subscription.payment_failed':
         case 'payment.failed':
@@ -170,6 +184,9 @@ export class WebhookService {
           this.logger.warn(`Unhandled webhook event type: ${event.event}`);
       }
 
+      // This means dispatch completed without error, not that every event
+      // granted access (authenticated/pending are informational). Charged and
+      // activated-with-capture handlers must commit or throw before this flag.
       // Mark as processed
       await this.prisma.webhookEvent.update({
         where: { eventId },
@@ -184,6 +201,102 @@ export class WebhookService {
       this.logger.error(`Failed to process webhook event ${event.event}:`, error);
       throw error;
     }
+  }
+
+  /** Operator-only recovery. Dry-run by default; never trusts a processed receipt as proof of payment. */
+  async reconcileCapturedPayment(localPaymentId: string, gatewayPaymentId: string, apply = false) {
+    const local = await this.prisma.payment.findUniqueOrThrow({
+      where: { id: localPaymentId },
+      include: { subscription: { include: { plan: true } } },
+    });
+    if (
+      !local.subscription?.razorpaySubscriptionId ||
+      (local.razorpayPaymentId && local.razorpayPaymentId !== gatewayPaymentId)
+    ) {
+      throw new Error('Reconciliation requires the original AutoPay checkout session');
+    }
+    const payment = await this.razorpayService.fetchPayment(gatewayPaymentId);
+    const subscription = await this.razorpayService.fetchSubscription(
+      local.subscription.razorpaySubscriptionId,
+    );
+    if (
+      payment.id !== gatewayPaymentId ||
+      !isCapturedPayment(payment) ||
+      Number(payment.amount_refunded ?? 0) !== 0
+    ) {
+      throw new Error('Gateway record is not an unrefunded captured payment');
+    }
+    assertSubscriptionEvidence(local.subscription, subscription, payment);
+    assertLocalPaymentEvidence(local, local.subscription, payment);
+    // No Checkout HMAC or signed envelope exists in this operator path: prove
+    // the gateway association from the invoice when payment omits the field.
+    if (payment.subscription_id == null) {
+      if (!payment.invoice_id)
+        throw new Error('Gateway invoice required to prove subscription binding');
+      const invoice = (await this.razorpayService.fetchInvoice(payment.invoice_id)) as {
+        id: string;
+        payment_id?: string;
+        subscription_id?: string;
+        order_id?: string | null;
+      };
+      if (
+        invoice.id !== payment.invoice_id ||
+        invoice.payment_id !== payment.id ||
+        invoice.subscription_id !== subscription.id ||
+        (invoice.order_id && invoice.order_id !== payment.order_id)
+      ) {
+        throw new Error('Gateway invoice does not bind this payment to this subscription');
+      }
+    }
+    if (
+      !['PENDING', 'ACTIVE'].includes(local.subscription.status) ||
+      !['CREATED', 'PENDING', 'SUCCESS'].includes(local.status)
+    ) {
+      throw new Error('Terminal checkout requires deliberate operator review');
+    }
+    const result = {
+      localPaymentId: local.id,
+      localSubscriptionId: local.subscription.id,
+      gatewayPaymentId: payment.id,
+      gatewaySubscriptionId: subscription.id,
+      amount: Number(local.amount),
+      currency: local.currency,
+      applied: apply,
+    };
+    if (apply) {
+      // A separate recovery receipt avoids deleting or bypassing old processed
+      // events. Payment-ID idempotency and the same row-locked transaction apply.
+      await this.handleWebhook(
+        {
+          id: `autopay_reconciliation_${payment.id}`,
+          entity: 'event',
+          account_id: 'internal-gateway-verified-reconciliation',
+          event: 'subscription.charged',
+          contains: ['subscription', 'payment'],
+          payload: {
+            subscription: { entity: subscription as unknown as RazorpaySubscription },
+            payment: {
+              entity: { ...payment, amount: Number(payment.amount) } as unknown as RazorpayPayment,
+            },
+          },
+        },
+        local.id,
+      );
+      const repaired = await this.prisma.payment.findUniqueOrThrow({
+        where: { id: local.id },
+        include: { subscription: true },
+      });
+      if (
+        repaired.status !== 'SUCCESS' ||
+        repaired.razorpayPaymentId !== payment.id ||
+        repaired.subscription?.status !== 'ACTIVE'
+      ) {
+        throw new Error(
+          'Reconciliation receipt exists but capture is not committed; operator review required',
+        );
+      }
+    }
+    return result;
   }
 
   private async ensureVaultAccess(
@@ -252,6 +365,11 @@ export class WebhookService {
       return;
     }
 
+    if (event.payload.payment?.entity.status === 'captured') {
+      await this.handleSubscriptionCharged(event);
+      return;
+    }
+
     this.logger.log(`Subscription activated: ${subscription.id}`);
 
     const localSub = await this.prisma.subscription.findFirst({
@@ -271,21 +389,21 @@ export class WebhookService {
     );
   }
 
-  private async handleSubscriptionCharged(event: RazorpayWebhookEvent): Promise<void> {
+  private async handleSubscriptionCharged(
+    event: RazorpayWebhookEvent,
+    expectedCheckoutPaymentId?: string,
+  ): Promise<void> {
     const subscription = event.payload.subscription?.entity;
     const payment = event.payload.payment?.entity;
 
     if (!subscription || !payment) {
-      this.logger.warn('Missing subscription or payment in charged event');
-      return;
+      throw new Error('Missing subscription or payment in charged event');
     }
     if (
-      payment.status !== 'captured' ||
-      payment.captured !== true ||
-      payment.subscription_id !== subscription.id
+      !isCapturedPayment(payment) ||
+      (payment.subscription_id != null && payment.subscription_id !== subscription.id)
     ) {
-      this.logger.warn(`Ignoring non-captured or mismatched charge for ${subscription.id}`);
-      return;
+      throw new Error(`Non-captured or mismatched charge for ${subscription.id}`);
     }
     if (subscription.plan_id === 'plan_Trq9hv9Sx7SUb7') {
       this.logger.warn(
@@ -317,10 +435,7 @@ export class WebhookService {
       });
 
       if (!localSub) {
-        this.logger.warn(
-          `No local subscription found for Razorpay subscription: ${subscription.id}`,
-        );
-        return;
+        throw new Error(`Local subscription disappeared before charge commit: ${subscription.id}`);
       }
 
       // Do not resurrect explicitly cancelled or completed subscriptions
@@ -334,18 +449,21 @@ export class WebhookService {
         );
       }
 
-      if (
-        localSub.plan &&
-        (payment.currency !== localSub.plan.currency ||
-          payment.amount !== Math.round(Number(localSub.plan.price) * 100))
-      ) {
-        throw new Error('Captured payment amount or currency mismatch; reconciliation required');
-      }
+      assertSubscriptionEvidence(localSub, subscription, payment);
 
       // Check if payment already recorded (idempotency)
       const existingPayment = await tx.payment.findUnique({
         where: { razorpayPaymentId: payment.id },
       });
+
+      if (existingPayment) assertLocalPaymentEvidence(existingPayment, localSub, payment);
+      if (
+        expectedCheckoutPaymentId &&
+        existingPayment &&
+        existingPayment.id !== expectedCheckoutPaymentId
+      ) {
+        throw new Error('Captured payment is already attached to another checkout history');
+      }
 
       if (
         existingPayment &&
@@ -355,13 +473,18 @@ export class WebhookService {
         return;
       }
 
+      const autoRenew =
+        localSub.autoRenew &&
+        localSub.cancellationReason !== CANCELLED_AWAITING_CAPTURE &&
+        !['cancelled', 'completed', 'expired'].includes(subscription.status);
+
       const isInitialCharge =
         localSub.status === SubscriptionStatus.PENDING || subscription.paid_count <= 1;
 
       if (isInitialCharge) {
         // FIRST CHARGE: endDate was already initialized to (startDate + durationDays) when created.
         // Do NOT extend endDate by another cycle!
-        const nextBillingDate = localSub.autoRenew
+        const nextBillingDate = autoRenew
           ? new Date(
               Math.max(
                 localSub.nextBillingDate?.getTime() ?? 0,
@@ -372,9 +495,27 @@ export class WebhookService {
 
         await this.ensureVaultAccess(localSub.id, localSub.planId, tx);
         // Look for the initial pending payment session created during checkout
-        const initialPayment = await tx.payment.findFirst({
+        const initialPayments = await tx.payment.findMany({
           where: { subscriptionId: localSub.id, status: { in: ['CREATED', 'PENDING'] } },
+          take: 2,
         });
+        if (initialPayments.length > 1)
+          throw new Error('Multiple initial checkout sessions require reconciliation');
+        const initialPayment = initialPayments[0];
+        if (initialPayment) assertLocalPaymentEvidence(initialPayment, localSub, payment);
+        if (initialPayment && existingPayment && initialPayment.id !== existingPayment.id) {
+          throw new Error('Multiple initial checkout histories require reconciliation');
+        }
+
+        if (
+          expectedCheckoutPaymentId &&
+          (existingPayment || initialPayment)?.id !== expectedCheckoutPaymentId
+        ) {
+          throw new Error('Reconciliation does not target the original checkout payment');
+        }
+        if (!initialPayment && !existingPayment) {
+          throw new Error('Initial checkout payment missing; reconciliation required');
+        }
 
         if (initialPayment || existingPayment) {
           await tx.payment.update({
@@ -399,27 +540,6 @@ export class WebhookService {
               },
             },
           });
-        } else {
-          // If no initial pending record found, create new SUCCESS payment
-          await tx.payment.create({
-            data: {
-              userId: localSub.userId,
-              subscriptionId: localSub.id,
-              razorpayPaymentId: payment.id,
-              razorpayOrderId: payment.order_id,
-              razorpaySubscriptionId: subscription.id,
-              amount: payment.amount / 100,
-              currency: payment.currency,
-              status: PaymentStatus.SUCCESS,
-              webhookEvent: event.event,
-              metadata: {
-                subscriptionId: subscription.id,
-                paymentId: payment.id,
-                paidCount: subscription.paid_count,
-                chargeAt: subscription.charge_at,
-              },
-            },
-          });
         }
 
         // Activate subscription with base duration
@@ -431,7 +551,7 @@ export class WebhookService {
               ? new Date(Math.max(localSub.endDate.getTime(), subscription.current_end * 1000))
               : localSub.endDate,
             status: SubscriptionStatus.ACTIVE,
-            autoRenew: localSub.autoRenew,
+            autoRenew,
             paymentReference: payment.id,
           },
         });
@@ -440,13 +560,19 @@ export class WebhookService {
           `Initial charge processed for subscription ${localSub.id}, status ACTIVE, endDate: ${localSub.endDate}`,
         );
       } else {
+        if (
+          payment.amount !== Math.round(Number(localSub.plan.price) * 100) ||
+          payment.currency !== localSub.plan.currency
+        ) {
+          throw new Error('Renewal amount or currency mismatch');
+        }
         // RENEWAL CHARGE: Extend subscription endDate by plan duration
         if (!subscription.current_end)
           throw new Error('Renewal period missing; reconciliation required');
         const newEndDate = new Date(
           Math.max(localSub.endDate.getTime(), subscription.current_end * 1000),
         );
-        const nextBillingDate = localSub.autoRenew
+        const nextBillingDate = autoRenew
           ? new Date(
               Math.max(
                 localSub.nextBillingDate?.getTime() ?? 0,
@@ -486,7 +612,7 @@ export class WebhookService {
             endDate: newEndDate,
             nextBillingDate,
             status: SubscriptionStatus.ACTIVE,
-            autoRenew: localSub.autoRenew,
+            autoRenew,
           },
         });
 
@@ -576,20 +702,63 @@ export class WebhookService {
     if (!id) return;
     const sub = await this.prisma.subscription.findFirst({ where: { razorpaySubscriptionId: id } });
     if (!sub) throw new Error('Subscription not persisted yet; retry webhook');
-    await this.prisma.$transaction(async (tx) => {
+    const unpaid = await this.prisma.$transaction(async (tx) => {
       await lockSubscription(tx, sub.id);
-      // Remote lifecycle events describe the mandate, not paid entitlement.
-      // Keep unpaid reservations until cleanup verifies no captured charges.
-      await tx.subscription.updateMany({
-        where: { id: sub.id, status: 'ACTIVE' },
-        data: { autoRenew: false, nextBillingDate: null },
+      const current = await tx.subscription.findUniqueOrThrow({ where: { id: sub.id } });
+      const paid = await tx.payment.findFirst({
+        where: { subscriptionId: sub.id, status: 'SUCCESS' },
       });
+      if (current.status === 'ACTIVE' || paid) {
+        await tx.subscription.updateMany({
+          where: { id: sub.id, status: 'ACTIVE' },
+          data: { autoRenew: false, nextBillingDate: null },
+        });
+        return false;
+      }
+      const remote = event.payload.subscription!.entity;
+      if (
+        remote.paid_count > 0 ||
+        (event.payload.payment?.entity && isCapturedPayment(event.payload.payment.entity))
+      ) {
+        // A cancelled mandate is not evidence that its captured charge was
+        // unpaid. Acknowledge the event, retain the checkout reservation, and
+        // let verified capture processing/reconciliation grant entitlement.
+        if (current.status === 'PENDING') {
+          await tx.subscription.update({
+            where: { id: sub.id },
+            data: {
+              cancellationReason: CANCELLED_AWAITING_CAPTURE,
+              nextBillingDate: null,
+            },
+          });
+        }
+        return false;
+      }
+      return current.status === 'PENDING';
     });
-    if (sub.status !== SubscriptionStatus.ACTIVE) {
-      await this.handleSubscriptionPaymentFailed({
-        ...event,
-        payload: { subscription: event.payload.subscription },
-      });
+    if (unpaid) {
+      try {
+        await this.handleSubscriptionPaymentFailed({
+          ...event,
+          payload: { subscription: event.payload.subscription },
+        });
+      } catch (error) {
+        // Gateway may know about a capture before its webhook arrives. This
+        // lifecycle event cannot cancel it; do not retry a permanent conflict.
+        if (!(error instanceof ConflictException)) throw error;
+        await this.prisma.$transaction(async (tx) => {
+          await lockSubscription(tx, sub.id);
+          await tx.subscription.updateMany({
+            where: { id: sub.id, status: 'PENDING' },
+            data: { cancellationReason: CANCELLED_AWAITING_CAPTURE, nextBillingDate: null },
+          });
+          await tx.subscription.updateMany({
+            where: { id: sub.id, status: 'ACTIVE' },
+            data: { autoRenew: false, nextBillingDate: null },
+          });
+        });
+        this.logger.warn(`Cancelled mandate ${id} awaits captured-payment reconciliation`);
+      }
     }
   }
 }

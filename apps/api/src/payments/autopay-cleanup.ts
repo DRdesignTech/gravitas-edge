@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RazorpayService } from './razorpay.service';
 
+export const CANCELLED_AWAITING_CAPTURE =
+  'AutoPay cancelled; captured charge awaiting reconciliation';
 export const CLEANUP_PENDING = 'AutoPay cleanup pending';
 export const CLEANUP_CONFIRMED = 'AutoPay cleanup confirmed';
 

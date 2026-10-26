@@ -58,6 +58,7 @@ function createMockPrismaService(): MockPrismaService {
     payment: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
       create: jest.fn(),
       upsert: jest.fn(),
       updateMany: jest.fn(),
@@ -289,15 +290,30 @@ describe('WebhookService', () => {
       prisma.subscription.findFirst.mockResolvedValue({
         id: 'sub_local_1',
         userId: 'user_1',
-        plan: { durationDays: 30, price: 1499, currency: 'INR' },
+        planId: 'plan_1',
+        razorpaySubscriptionId: 'sub_rzp_123',
+        status: 'PENDING',
+        autoRenew: true,
+        plan: { razorpayPlanId: 'plan_rzp_1', durationDays: 30, price: 1499, currency: 'INR' },
         endDate: new Date(Date.now() + 86400000),
       });
       prisma.payment.findUnique.mockResolvedValue(null);
+      (prisma.payment as any).findMany.mockResolvedValue([
+        {
+          id: 'checkout_1',
+          userId: 'user_1',
+          subscriptionId: 'sub_local_1',
+          razorpaySubscriptionId: 'sub_rzp_123',
+          amount: 1499,
+          currency: 'INR',
+          metadata: { planId: 'plan_1' },
+        },
+      ]);
 
       await service.handleWebhook(createBaseEvent());
 
       expect((prisma.webhookEvent as any).create).toHaveBeenCalled();
-      expect(prisma.payment.create).toHaveBeenCalled();
+      expect((prisma.payment as any).update).toHaveBeenCalled();
       expect(prisma.subscription.update).toHaveBeenCalled();
       expect(prisma.webhookEvent.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -346,6 +362,10 @@ describe('WebhookService', () => {
       'subscription.halted',
     ])('preserves paid-through access on %s', async (event) => {
       prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_local_1', status: 'ACTIVE' });
+      prisma.subscription.findUniqueOrThrow.mockResolvedValue({
+        id: 'sub_local_1',
+        status: 'ACTIVE',
+      });
       await service.handleWebhook({ ...createBaseEvent(), event });
       expect((prisma.subscription as any).updateMany).toHaveBeenCalledWith({
         where: { id: 'sub_local_1', status: 'ACTIVE' },
@@ -412,7 +432,7 @@ describe('WebhookService', () => {
       (prisma.webhookEvent as any).create = jest.fn().mockResolvedValue({});
       prisma.webhookEvent.update.mockResolvedValue({});
 
-      await service.handleWebhook(event);
+      await expect(service.handleWebhook(event)).rejects.toThrow('Non-captured');
 
       expect(prisma.subscription.findFirst).not.toHaveBeenCalled();
       expect(prisma.subscription.update).not.toHaveBeenCalled();

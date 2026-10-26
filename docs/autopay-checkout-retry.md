@@ -18,7 +18,9 @@ cleanup keeps the reservation and requires capture reconciliation. A capture tha
 arrives after confirmed terminal cleanup is rejected for operator reconciliation;
 it cannot silently activate a second subscription.
 
-Authenticated/activated/pending events do not grant paid access. Failure and mandate
+Authenticated and pending events do not grant paid access. Activated events
+only grant access when they include a captured payment that passes the same
+binding, amount, and transaction checks as a charged event. Failure and mandate
 lifecycle events do not revoke a paid-through ACTIVE entitlement. Charged events
 require a captured payment, matching subscription, amount, and currency. Charge
 idempotency uses the unique gateway payment ID under the subscription lock. Renewal

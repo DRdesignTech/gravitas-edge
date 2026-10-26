@@ -1,3 +1,4 @@
+import { subscriptionContractEvent } from './fixtures/razorpay-subscription-contract';
 import { UserSubscriptionsService } from '../subscriptions/user-subscriptions.service';
 import { PrismaClient } from '@prisma/client';
 import { Logger } from '@nestjs/common';
@@ -64,10 +65,12 @@ suite('AutoPay with real PostgreSQL transactions', () => {
     gatewayPayments = new Map();
     gateway = {
       createOrder: jest.fn(async () => ({ id: `order_${randomUUID()}` })),
-      createSubscription: jest.fn(async () => {
+      createSubscription: jest.fn(async (options) => {
         const remote = {
           id: `sub_${randomUUID()}`,
           status: 'created',
+          plan_id: options.planId,
+          notes: options.notes,
           paid_count: 0,
           short_url: 'https://example.test/checkout',
         };
@@ -109,7 +112,8 @@ suite('AutoPay with real PostgreSQL transactions', () => {
         subscription: {
           entity: {
             id: purchase.razorpaySubscriptionId,
-            plan_id: 'plan_test',
+            plan_id: remotes.get(purchase.razorpaySubscriptionId).plan_id,
+            notes: { userId, planId },
             paid_count: paidCount,
             auth_attempts: 3,
             charge_at: 0,
@@ -236,10 +240,11 @@ suite('AutoPay with real PostgreSQL transactions', () => {
     const first = await buy();
     const entered = deferred();
     const release = deferred();
-    gateway.fetchPayment.mockImplementationOnce(async () => {
+    gateway.fetchPayment.mockImplementationOnce(async (paymentId: string) => {
       entered.resolve();
       await release.promise;
       return {
+        id: paymentId,
         subscription_id: first.razorpaySubscriptionId,
         amount: 49900,
         currency: 'INR',
@@ -266,10 +271,11 @@ suite('AutoPay with real PostgreSQL transactions', () => {
     const first = await buy();
     const entered = deferred();
     const release = deferred();
-    gateway.fetchPayment.mockImplementationOnce(async () => {
+    gateway.fetchPayment.mockImplementationOnce(async (paymentId: string) => {
       entered.resolve();
       await release.promise;
       return {
+        id: paymentId,
         subscription_id: first.razorpaySubscriptionId,
         amount: 49900,
         currency: 'INR',
@@ -355,10 +361,12 @@ suite('AutoPay with real PostgreSQL transactions', () => {
     expect((await buy()).recurring).toBe(true);
   });
 
-  it('never grants access from authenticated, activated, or client-only confirmation', async () => {
+  it('never grants access from authenticated, activated without capture, or client-only confirmation', async () => {
     const first = await buy();
     await webhooks.handleWebhook(event(first, 'subscription.authenticated'));
-    await webhooks.handleWebhook(event(first, 'subscription.activated'));
+    const activation = event(first, 'subscription.activated');
+    delete activation.payload.payment;
+    await webhooks.handleWebhook(activation);
     await expect(pricing.confirmPurchase(userId, { paymentId: first.paymentId })).rejects.toThrow(
       'captured',
     );
@@ -388,10 +396,10 @@ suite('AutoPay with real PostgreSQL transactions', () => {
     const bothEntered = deferred();
     let count = 0;
     const original = gateway.createSubscription.getMockImplementation();
-    gateway.createSubscription.mockImplementation(async () => {
+    gateway.createSubscription.mockImplementation(async (options: any) => {
       if (++count === 2) bothEntered.resolve();
       await bothEntered.promise;
-      return original();
+      return original(options);
     });
     const results = await Promise.allSettled([buy(), buy()]);
     find.mockRestore();
@@ -634,5 +642,322 @@ suite('AutoPay with real PostgreSQL transactions', () => {
     gatewayPayments.get(dto.razorpay_payment_id).amount = 1;
     await expect(pricing.verifyPayment(userId, dto)).rejects.toThrow('matching captured payment');
     expect(await access.hasActiveSubscription(userId)).toBe(false);
+  });
+  async function contractPurchase(exactLocalIds = false) {
+    await db.subscriptionPlan.update({ where: { id: planId }, data: { price: 299 } });
+    const first = await buy();
+    const previousId = first.razorpaySubscriptionId;
+    // Only the incident reproduction uses exact IDs; other cases keep unique
+    // gateway IDs so test cases do not share records in this real database.
+    if (exactLocalIds) {
+      const localSub = await db.subscription.update({
+        where: { id: first.subscriptionId },
+        data: {
+          id: 'c995fb7c-9270-48ed-9589-9f1f7f5afdd8',
+          razorpaySubscriptionId: 'sub_TsRCS4prgPP799',
+        },
+      });
+      const localPayment = await db.payment.update({
+        where: { id: first.paymentId },
+        data: {
+          id: 'eac11fec-804f-4304-8611-e09ce43ae825',
+          razorpaySubscriptionId: 'sub_TsRCS4prgPP799',
+        },
+      });
+      first.subscriptionId = localSub.id;
+      first.paymentId = localPayment.id;
+      first.razorpaySubscriptionId = localSub.razorpaySubscriptionId;
+      remotes.set(first.razorpaySubscriptionId, {
+        ...remotes.get(previousId),
+        id: first.razorpaySubscriptionId,
+      });
+    }
+    const charge = subscriptionContractEvent(
+      'subscription.charged',
+      remotes.get(first.razorpaySubscriptionId).plan_id,
+      userId,
+      planId,
+    ) as any;
+    charge.payload.subscription.entity.id = first.razorpaySubscriptionId;
+    if (!exactLocalIds) {
+      charge.payload.payment.entity.id = `pay_${randomUUID()}`;
+      charge.payload.payment.entity.order_id = `order_${randomUUID()}`;
+      charge.payload.payment.entity.invoice_id = `inv_${randomUUID()}`;
+    }
+    return { first, charge };
+  }
+
+  it('reproduces the reported IDs/299 INR and processes charged + activated + stale cancelled atomically', async () => {
+    const { first, charge } = await contractPurchase(true);
+    expect(charge.payload.payment.entity).not.toHaveProperty('subscription_id');
+    expect((await db.payment.findUniqueOrThrow({ where: { id: first.paymentId } })).status).toBe(
+      'CREATED',
+    );
+    await webhooks.handleWebhook(charge);
+    const afterCharge = await db.payment.findUniqueOrThrow({ where: { id: first.paymentId } });
+    expect(afterCharge).toMatchObject({
+      status: 'SUCCESS',
+      razorpayPaymentId: 'pay_TsRCfsR92Wl5Wq',
+      webhookEvent: 'subscription.charged',
+    });
+    expect(Number(afterCharge.amount)).toBe(299);
+    await webhooks.handleWebhook({ ...charge, event: 'subscription.activated' });
+    const end = (await db.subscription.findUniqueOrThrow({ where: { id: first.subscriptionId } }))
+      .endDate;
+    const cancelled = {
+      ...charge,
+      event: 'subscription.cancelled',
+      payload: {
+        ...charge.payload,
+        subscription: { entity: { ...charge.payload.subscription.entity, status: 'cancelled' } },
+      },
+    };
+    await webhooks.handleWebhook(cancelled);
+    await webhooks.handleWebhook(cancelled);
+    expect(
+      await db.subscription.findUniqueOrThrow({ where: { id: first.subscriptionId } }),
+    ).toMatchObject({ status: 'ACTIVE', autoRenew: false, endDate: end });
+    expect(await access.hasActiveSubscription(userId)).toBe(true);
+    expect(await db.payment.count({ where: { subscriptionId: first.subscriptionId } })).toBe(1);
+    expect(
+      await db.webhookEvent.count({
+        where: {
+          eventType: {
+            in: ['subscription.charged', 'subscription.activated', 'subscription.cancelled'],
+          },
+          payload: { path: ['payload', 'payment', 'entity', 'id'], equals: 'pay_TsRCfsR92Wl5Wq' },
+          processed: true,
+        },
+      }),
+    ).toBe(3);
+    expect(gateway.cancelSubscription).not.toHaveBeenCalled();
+  });
+
+  it.each([true, 1, '1'])(
+    'processes activated with captured=%s without requiring payment.subscription_id',
+    async (captured) => {
+      const { first, charge } = await contractPurchase();
+      charge.event = 'subscription.activated';
+      charge.payload.payment.entity.captured = captured;
+      await webhooks.handleWebhook(charge);
+      expect((await pricing.getPaymentSession(userId, first.paymentId)).status).toBe('SUCCESS');
+      expect(await access.hasActiveSubscription(userId)).toBe(true);
+    },
+  );
+
+  it('acknowledges cancellation before capture reconciliation without granting or releasing an unpaid replacement', async () => {
+    const { first, charge } = await contractPurchase();
+    const cancelled = { ...charge, event: 'subscription.cancelled' };
+    await webhooks.handleWebhook(cancelled);
+    await webhooks.handleWebhook({ ...cancelled, id: randomUUID() });
+    expect((await pricing.getPaymentSession(userId, first.paymentId)).status).toBe('CREATED');
+    expect(await access.hasActiveSubscription(userId)).toBe(false);
+    await expect(buy()).rejects.toThrow('active AutoPay');
+    await webhooks.handleWebhook(charge);
+    expect(
+      await db.subscription.findUniqueOrThrow({ where: { id: first.subscriptionId } }),
+    ).toMatchObject({ status: 'ACTIVE', autoRenew: false });
+    expect(gateway.cancelSubscription).not.toHaveBeenCalled();
+  });
+
+  it('acknowledges cancellation when its payload says unpaid but the gateway already knows about capture', async () => {
+    const { first, charge } = await contractPurchase();
+    remotes.get(first.razorpaySubscriptionId).paid_count = 1;
+    remotes.get(first.razorpaySubscriptionId).status = 'cancelled';
+    const cancelled = {
+      ...charge,
+      event: 'subscription.cancelled',
+      payload: {
+        subscription: { entity: { ...charge.payload.subscription.entity, paid_count: 0 } },
+      },
+    };
+    await webhooks.handleWebhook(cancelled);
+    expect(await access.hasActiveSubscription(userId)).toBe(false);
+    await webhooks.handleWebhook(charge);
+    expect(
+      await db.subscription.findUniqueOrThrow({ where: { id: first.subscriptionId } }),
+    ).toMatchObject({ status: 'ACTIVE', autoRenew: false });
+  });
+
+  it.each([
+    'user',
+    'plan',
+    'amount',
+    'currency',
+    'subscription',
+    'local_user',
+    'local_plan',
+    'local_remote_id',
+    'customer',
+  ])(
+    'rejects captured evidence with mismatched %s and does not mark the event processed',
+    async (mismatch) => {
+      const { first, charge } = await contractPurchase();
+      if (mismatch === 'user') charge.payload.subscription.entity.notes.userId = 'another_user';
+      if (mismatch === 'plan') charge.payload.subscription.entity.plan_id = 'another_plan';
+      if (mismatch === 'amount') charge.payload.payment.entity.amount = 1;
+      if (mismatch === 'currency') charge.payload.payment.entity.currency = 'USD';
+      if (mismatch === 'subscription') charge.payload.payment.entity.subscription_id = 'sub_other';
+      if (mismatch === 'customer') charge.payload.payment.entity.customer_id = 'cust_other';
+      if (mismatch === 'local_user') {
+        const other = await db.user.create({ data: { email: `${randomUUID()}@autopay.test` } });
+        await db.payment.update({ where: { id: first.paymentId }, data: { userId: other.id } });
+      }
+      if (mismatch === 'local_plan')
+        await db.payment.update({
+          where: { id: first.paymentId },
+          data: { metadata: { planId: 'wrong' } },
+        });
+      if (mismatch === 'local_remote_id')
+        await db.payment.update({
+          where: { id: first.paymentId },
+          data: { razorpaySubscriptionId: 'sub_wrong' },
+        });
+      await expect(webhooks.handleWebhook(charge)).rejects.toThrow();
+      expect(await access.hasActiveSubscription(userId)).toBe(false);
+      expect((await db.payment.findUniqueOrThrow({ where: { id: first.paymentId } })).status).toBe(
+        'CREATED',
+      );
+      expect(
+        await db.webhookEvent.count({
+          where: {
+            payload: {
+              path: ['payload', 'payment', 'entity', 'id'],
+              equals: charge.payload.payment.entity.id,
+            },
+            processed: true,
+          },
+        }),
+      ).toBe(0);
+    },
+  );
+
+  it('rolls back capture and releases its receipt when entitlement activation fails', async () => {
+    const { first, charge } = await contractPurchase();
+    await db.subscription.update({
+      where: { id: first.subscriptionId },
+      data: { cancellationReason: 'autopay_test_fail_activation' },
+    });
+    await db.$executeRawUnsafe(`CREATE FUNCTION autopay_test_fail_activation() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN RAISE EXCEPTION 'activation database failure'; END $$`);
+    await db.$executeRawUnsafe(`CREATE TRIGGER autopay_test_fail_activation BEFORE UPDATE ON "Subscription"
+      FOR EACH ROW WHEN (OLD."cancellationReason" = 'autopay_test_fail_activation' AND NEW."status" = 'ACTIVE')
+      EXECUTE FUNCTION autopay_test_fail_activation()`);
+    try {
+      await expect(webhooks.handleWebhook(charge)).rejects.toThrow('activation database failure');
+    } finally {
+      await db.$executeRawUnsafe('DROP TRIGGER autopay_test_fail_activation ON "Subscription"');
+      await db.$executeRawUnsafe('DROP FUNCTION autopay_test_fail_activation()');
+    }
+    expect((await db.payment.findUniqueOrThrow({ where: { id: first.paymentId } })).status).toBe(
+      'CREATED',
+    );
+    expect(
+      (await db.subscription.findUniqueOrThrow({ where: { id: first.subscriptionId } })).status,
+    ).toBe('PENDING');
+    await webhooks.handleWebhook(charge);
+    expect((await pricing.getPaymentSession(userId, first.paymentId)).status).toBe('SUCCESS');
+  });
+
+  it('checkout HMAC verification accepts the documented fetched-payment shape without subscription_id', async () => {
+    const { first, charge } = await contractPurchase();
+    gatewayPayments.set(charge.payload.payment.entity.id, charge.payload.payment.entity);
+    const result = await pricing.verifySubscriptionPayment(userId, {
+      paymentId: first.paymentId,
+      razorpay_payment_id: charge.payload.payment.entity.id,
+      razorpay_subscription_id: first.razorpaySubscriptionId,
+      razorpay_signature: 'test',
+    });
+    expect(result).toMatchObject({ status: 'SUCCESS' });
+    expect(await access.hasActiveSubscription(userId)).toBe(true);
+  });
+
+  it('gateway-verified reconciliation dry-runs, then repairs old processed=true receipts idempotently', async () => {
+    const { first, charge } = await contractPurchase();
+    const payment = charge.payload.payment.entity;
+    for (const eventType of ['subscription.charged', 'subscription.activated']) {
+      await db.webhookEvent.create({
+        data: {
+          eventId: `old_${eventType}_${payment.id}`,
+          eventType,
+          payload: { ...charge, event: eventType },
+          processed: true,
+        },
+      });
+    }
+    gatewayPayments.set(payment.id, payment);
+    remotes.set(first.razorpaySubscriptionId, {
+      ...charge.payload.subscription.entity,
+      status: 'cancelled',
+    });
+    gateway.fetchInvoice = jest.fn().mockResolvedValue({
+      id: payment.invoice_id,
+      payment_id: payment.id,
+      subscription_id: first.razorpaySubscriptionId,
+      order_id: payment.order_id,
+    });
+    expect(await webhooks.reconcileCapturedPayment(first.paymentId, payment.id)).toMatchObject({
+      applied: false,
+    });
+    expect((await pricing.getPaymentSession(userId, first.paymentId)).status).toBe('CREATED');
+    gateway.fetchInvoice.mockResolvedValueOnce({
+      id: payment.invoice_id,
+      payment_id: 'pay_wrong',
+      subscription_id: first.razorpaySubscriptionId,
+    });
+    await expect(
+      webhooks.reconcileCapturedPayment(first.paymentId, payment.id, true),
+    ).rejects.toThrow('invoice');
+    expect((await pricing.getPaymentSession(userId, first.paymentId)).status).toBe('CREATED');
+    await webhooks.reconcileCapturedPayment(first.paymentId, payment.id, true);
+    await webhooks.reconcileCapturedPayment(first.paymentId, payment.id, true);
+    expect(
+      (await db.subscription.findUniqueOrThrow({ where: { id: first.subscriptionId } })).autoRenew,
+    ).toBe(false);
+    expect((await pricing.getPaymentSession(userId, first.paymentId)).status).toBe('SUCCESS');
+    expect(await db.payment.count({ where: { subscriptionId: first.subscriptionId } })).toBe(1);
+    expect(await access.hasActiveSubscription(userId)).toBe(true);
+    expect(
+      await db.webhookEvent.count({
+        where: { eventId: { startsWith: 'old_', endsWith: payment.id }, processed: true },
+      }),
+    ).toBe(2);
+  });
+  it.each([false, 0, '0', 'false', 'true'])(
+    'does not treat captured=%s as captured evidence',
+    async (captured) => {
+      const { first, charge } = await contractPurchase();
+      charge.payload.payment.entity.captured = captured;
+      await expect(webhooks.handleWebhook(charge)).rejects.toThrow('Non-captured');
+      expect((await pricing.getPaymentSession(userId, first.paymentId)).status).toBe('CREATED');
+      expect(await access.hasActiveSubscription(userId)).toBe(false);
+    },
+  );
+
+  it('refuses multiple initial checkout sessions instead of marking an arbitrary one successful', async () => {
+    const { first, charge } = await contractPurchase();
+    await db.payment.create({
+      data: {
+        userId,
+        subscriptionId: first.subscriptionId,
+        razorpaySubscriptionId: first.razorpaySubscriptionId,
+        amount: 299,
+        currency: 'INR',
+        status: 'CREATED',
+        metadata: { planId },
+      },
+    });
+    await expect(webhooks.handleWebhook(charge)).rejects.toThrow('Multiple initial checkout');
+    expect(
+      await db.payment.count({
+        where: { subscriptionId: first.subscriptionId, status: 'SUCCESS' },
+      }),
+    ).toBe(0);
+  });
+  it('does not acknowledge a captured event lacking a gateway payment ID', async () => {
+    const { first, charge } = await contractPurchase();
+    delete charge.payload.payment.entity.id;
+    await expect(webhooks.handleWebhook(charge)).rejects.toThrow('Non-captured');
+    expect((await pricing.getPaymentSession(userId, first.paymentId)).status).toBe('CREATED');
   });
 });
