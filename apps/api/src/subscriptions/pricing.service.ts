@@ -1,7 +1,14 @@
 import {
+  CLEANUP_PENDING,
+  cleanupUnpaidAutoPay,
+  confirmUnpaidCancellation,
+  lockSubscription,
+} from '../payments/autopay-cleanup';
+import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
@@ -62,15 +69,8 @@ export interface RecurringPurchaseResult {
 export type PurchaseResult = OneTimePurchaseResult | RecurringPurchaseResult;
 
 /**
- * Server-side pricing, purchase and (interim, gateway-agnostic) payment flow.
- *
- * The price shown to a client is ALWAYS the server-controlled plan price from
- * the database - the client can only send a planId (+ optional vaultId, + an
- * optional coupon code whose discount is recomputed server-side). Never trusts
- * client-supplied prices. A payment session (status CREATED) must be confirmed
- * through /purchase/confirm before any subscription is activated, so
- * activation is a deliberate, server-side step (the Razorpay webhook can later
- * replace the confirm call without changing the data model).
+ * Server-side pricing and purchase flow. Activation requires verified captured
+ * payment evidence; client-only confirmation never grants access.
  */
 @Injectable()
 export class PricingService {
@@ -271,7 +271,6 @@ export class PricingService {
         planId: plan.id,
         autoRenew: true,
         status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING] },
-        razorpaySubscriptionId: { not: null },
       },
     });
     if (existingActiveRecurring) {
@@ -306,7 +305,29 @@ export class PricingService {
     }
     this.razorpayService.validateRazorpayPlanId(razorpayPlanId);
 
-    // Create Razorpay Subscription (total_count = 999 is max allowed, effectively infinite)
+    const unresolvedCreation = await this.prisma.webhookEvent.findFirst({
+      where: {
+        eventType: 'autopay.creation',
+        processed: false,
+        AND: [
+          { payload: { path: ['userId'], equals: userId } },
+          { payload: { path: ['planId'], equals: plan.id } },
+        ],
+      },
+    });
+    if (unresolvedCreation) {
+      throw new ConflictException('An earlier AutoPay creation requires cleanup before retrying');
+    }
+    // Durable intent survives a process crash or an ambiguous gateway timeout.
+    const creationId = `autopay_creation_${randomUUID()}`;
+    await this.prisma.webhookEvent.create({
+      data: {
+        eventId: creationId,
+        eventType: 'autopay.creation',
+        processed: false,
+        payload: { userId, planId: plan.id },
+      },
+    });
     const subscription = await this.razorpayService.createSubscription({
       planId: razorpayPlanId,
       totalCount: Math.max(1, Math.floor(730 / plan.durationDays)), // max allowed by Razorpay; effectively infinite recurring
@@ -318,60 +339,100 @@ export class PricingService {
       },
     });
 
-    // Create local subscription in PENDING state (will be activated on verified payment or webhook)
-    const localSubscription = await this.prisma.$transaction(async (tx) => {
-      const sub = await tx.subscription.create({
-        data: {
-          userId,
-          planId: plan.id,
-          startDate: new Date(),
-          endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
-          status: SubscriptionStatus.PENDING,
-          razorpaySubscriptionId: subscription.id,
-          autoRenew: true,
-          nextBillingDate: subscription.charge_at ? new Date(subscription.charge_at * 1000) : null,
-          paymentReference: subscription.short_url,
-        },
-      });
-
-      if (plan.vaults.length > 0) {
-        await tx.subscriptionVaultAccess.createMany({
-          data: plan.vaults.map((v) => ({
-            subscriptionId: sub.id,
-            vaultId: v.vault.id,
-          })),
-          skipDuplicates: true,
-        });
-      }
-
-      return sub;
-    });
-
-    // Create payment record for the authorization payment
-    const payment = await this.prisma.payment.create({
+    await this.prisma.webhookEvent.update({
+      where: { eventId: creationId },
       data: {
-        userId,
-        subscriptionId: localSubscription.id,
-        razorpaySubscriptionId: subscription.id,
-        amount: plan.price,
-        currency: plan.currency,
-        status: 'CREATED',
-        metadata: {
-          planId: plan.id,
-          planName: plan.name,
-          vaultId: target.id,
-          vaultName: target.name,
-          durationDays: plan.durationDays,
-          recurring: true,
-          razorpaySubscriptionId: subscription.id,
-          shortUrl: subscription.short_url,
-        },
+        payload: { userId, planId: plan.id, razorpaySubscriptionId: subscription.id },
       },
     });
 
+    // The database index backing this transaction permits only one pending or
+    // active AutoPay attempt per user/plan. If a concurrent request loses the
+    // race, its newly-created Razorpay subscription is cancelled below.
+    let purchase: { localSubscription: { id: string }; payment: any };
+    try {
+      purchase = await this.prisma.$transaction(async (tx) => {
+        const localSubscription = await tx.subscription.create({
+          data: {
+            userId,
+            planId: plan.id,
+            startDate: new Date(),
+            endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
+            status: SubscriptionStatus.PENDING,
+            razorpaySubscriptionId: subscription.id,
+            autoRenew: true,
+            nextBillingDate: subscription.charge_at
+              ? new Date(subscription.charge_at * 1000)
+              : null,
+            paymentReference: subscription.short_url,
+          },
+        });
+
+        if (plan.vaults.length > 0) {
+          await tx.subscriptionVaultAccess.createMany({
+            data: plan.vaults.map((v) => ({
+              subscriptionId: localSubscription.id,
+              vaultId: v.vault.id,
+            })),
+            skipDuplicates: true,
+          });
+        }
+
+        const payment = await tx.payment.create({
+          data: {
+            userId,
+            subscriptionId: localSubscription.id,
+            razorpaySubscriptionId: subscription.id,
+            amount: plan.price,
+            currency: plan.currency,
+            status: 'CREATED',
+            metadata: {
+              planId: plan.id,
+              planName: plan.name,
+              vaultId: target.id,
+              vaultName: target.name,
+              durationDays: plan.durationDays,
+              recurring: true,
+              razorpaySubscriptionId: subscription.id,
+              shortUrl: subscription.short_url,
+            },
+          },
+        });
+
+        await tx.webhookEvent.update({ where: { eventId: creationId }, data: { processed: true } });
+        return { localSubscription, payment };
+      });
+    } catch (error: any) {
+      try {
+        const cleanup = await confirmUnpaidCancellation(this.razorpayService, subscription.id);
+        if (cleanup.paid || !cleanup.cancelled)
+          throw new Error('Orphan capture requires reconciliation');
+        await this.prisma.webhookEvent.update({
+          where: { eventId: creationId },
+          data: { processed: true },
+        });
+      } catch {
+        // The remote ID is essential for operator reconciliation if local
+        // persistence failed. Never silently discard this cleanup failure.
+        Logger.error(
+          `AutoPay orphan requires reconciliation: ${subscription.id}`,
+          'PricingService',
+        );
+        throw new ConflictException(
+          'Purchase persistence and gateway cleanup failed; contact support before retrying',
+        );
+      }
+      if (error?.code === 'P2002') {
+        throw new ConflictException(
+          'You already have an active AutoPay subscription for this plan',
+        );
+      }
+      throw error;
+    }
+
     return {
-      paymentId: payment.id,
-      subscriptionId: localSubscription.id,
+      paymentId: purchase.payment.id,
+      subscriptionId: purchase.localSubscription.id,
       razorpaySubscriptionId: subscription.id,
       shortUrl: subscription.short_url,
       amount: Number(plan.price),
@@ -381,7 +442,7 @@ export class PricingService {
       vaultId: target.id,
       vaultName: target.name,
       durationDays: plan.durationDays,
-      status: payment.status,
+      status: purchase.payment.status,
       keyId: this.razorpayService.getKeyId(),
       recurring: true,
     };
@@ -543,11 +604,12 @@ export class PricingService {
       finalAmount: Number(payment.amount),
       keyId: this.razorpayService.getKeyId(),
       recurring,
+      cleanupPending: payment.subscription?.cancellationReason === CLEANUP_PENDING,
     };
   }
 
   /**
-   * Mark an owned CREATED payment session as FAILED. This is what a real
+   * Mark an owned abandoned payment session as FAILED. This is what a real
    * gateway would report back to the server on a declined payment (and what
    * the test gateway calls for its failure path); a later Razorpay webhook can
    * re-use it unchanged. Failed payments are excluded from coupon usage
@@ -556,20 +618,27 @@ export class PricingService {
   async failPayment(userId: string, paymentId: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
+      include: { subscription: true },
     });
     if (!payment || payment.userId !== userId) {
       throw new NotFoundException('Payment not found');
     }
-    if (payment.status === 'FAILED') {
-      return { paymentId: payment.id, status: 'FAILED' };
-    }
-    if (payment.status !== 'CREATED') {
+    if (['SUCCESS', 'REFUNDED', 'CANCELLED'].includes(payment.status)) {
       throw new BadRequestException('Payment cannot be failed in its current state');
     }
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: 'FAILED', webhookEvent: 'payment.failed' },
-    });
+    if (payment.status === 'FAILED' && !payment.subscription?.razorpaySubscriptionId) {
+      return { paymentId: payment.id, status: 'FAILED' };
+    }
+    if (payment.subscription?.razorpaySubscriptionId) {
+      await cleanupUnpaidAutoPay(this.prisma, this.razorpayService, payment.subscription.id);
+    } else {
+      const changed = await this.prisma.payment.updateMany({
+        where: { id: payment.id, status: { in: ['CREATED', 'PENDING', 'FAILED'] } },
+        data: { status: 'FAILED', webhookEvent: 'payment.failed' },
+      });
+      if (!changed.count)
+        throw new ConflictException('Payment cannot be cancelled; refresh its status');
+    }
     return { paymentId: payment.id, status: 'FAILED' };
   }
 
@@ -600,13 +669,19 @@ export class PricingService {
     });
 
     if (!isValid) {
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: 'FAILED', webhookEvent: 'payment.signature_failed' },
-      });
       throw new BadRequestException('Invalid payment signature');
     }
 
+    const captured = await this.razorpayService.fetchPayment(dto.razorpay_payment_id);
+    if (
+      captured.status !== 'captured' ||
+      captured.captured !== true ||
+      captured.order_id !== payment.razorpayOrderId ||
+      captured.amount !== Math.round(Number(payment.amount) * 100) ||
+      captured.currency !== payment.currency
+    ) {
+      throw new BadRequestException('A matching captured payment is required');
+    }
     return this.activateAfterPayment(userId, payment, dto.razorpay_payment_id, 'payment.verified');
   }
 
@@ -653,10 +728,6 @@ export class PricingService {
     });
 
     if (!isValid) {
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: 'FAILED', webhookEvent: 'subscription.signature_failed' },
-      });
       throw new BadRequestException('Invalid payment signature');
     }
 
@@ -693,10 +764,16 @@ export class PricingService {
       if (rzpPayment.status === 'authorized' || rzpPayment.status === 'created') {
         // Persist the gateway-confirmed pending state so a page refresh cannot
         // reopen the checkout form and imply that a new attempt is required.
-        const pendingPayment = await this.prisma.payment.update({
-          where: { id: payment.id },
+        await this.prisma.payment.updateMany({
+          where: { id: payment.id, status: { in: ['CREATED', 'PENDING'] } },
           data: { status: 'PENDING', webhookEvent: 'subscription.pending' },
         });
+        const pendingPayment = await this.prisma.payment.findUniqueOrThrow({
+          where: { id: payment.id },
+        });
+        if (pendingPayment.status === 'SUCCESS') return this.successResponse(pendingPayment);
+        if (pendingPayment.status !== 'PENDING')
+          throw new ConflictException('Checkout is no longer pending');
         return {
           status: 'PENDING' as const,
           message:
@@ -734,9 +811,11 @@ export class PricingService {
     }
     if (
       payment.subscription &&
-      [SubscriptionStatus.CANCELLED, SubscriptionStatus.EXPIRED, SubscriptionStatus.FAILED].includes(
-        payment.subscription.status,
-      )
+      [
+        SubscriptionStatus.CANCELLED,
+        SubscriptionStatus.EXPIRED,
+        SubscriptionStatus.FAILED,
+      ].includes(payment.subscription.status)
     ) {
       throw new ConflictException('Subscription is no longer eligible for activation');
     }
@@ -755,12 +834,34 @@ export class PricingService {
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
+      await lockSubscription(tx, subId);
+      const current = await tx.subscription.findUniqueOrThrow({ where: { id: subId } });
+      const currentPayment = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
+      if (currentPayment.status === 'SUCCESS') {
+        if (currentPayment.razorpayPaymentId !== razorpayPaymentId) {
+          throw new ConflictException(
+            'Checkout already captured with another payment; reconciliation required',
+          );
+        }
+        return tx.subscription.findUniqueOrThrow({
+          where: { id: subId },
+          include: { plan: true, vaultAccess: { include: { vault: true } } },
+        });
+      }
+      if (
+        !['PENDING', 'ACTIVE'].includes(current.status) ||
+        !['CREATED', 'PENDING', 'SUCCESS'].includes(currentPayment.status)
+      ) {
+        throw new ConflictException(
+          'Checkout was cancelled; captured payment requires reconciliation',
+        );
+      }
       // Activate subscription
       const sub = await tx.subscription.update({
         where: { id: subId },
         data: {
           status: SubscriptionStatus.ACTIVE,
-          autoRenew: true,
+          autoRenew: current.autoRenew,
           paymentReference: razorpayPaymentId,
         },
       });
@@ -864,37 +965,48 @@ export class PricingService {
       throw new BadRequestException('Purchase session is missing required metadata');
     }
 
-    let subscription;
-    try {
-      subscription = await this.access.createSubscriptionWithSnapshot(userId, meta.planId, {
-        status: 'ACTIVE',
-        paymentReference: razorpayPaymentId,
+    const subscription = await this.prisma
+      .$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "Payment" WHERE "id" = ${payment.id} FOR UPDATE`;
+        const current = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
+        if (current.status === 'SUCCESS' && current.subscriptionId) {
+          return tx.subscription.findUniqueOrThrow({
+            where: { id: current.subscriptionId },
+            include: { plan: true, vaultAccess: { include: { vault: true } } },
+          });
+        }
+        if (!['CREATED', 'PENDING'].includes(current.status)) {
+          throw new ConflictException('Checkout is no longer eligible for activation');
+        }
+        const created = await this.access.createSubscriptionWithSnapshot(
+          userId,
+          meta.planId!,
+          {
+            status: 'ACTIVE',
+            paymentReference: razorpayPaymentId,
+          },
+          tx,
+        );
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: { status: 'SUCCESS', subscriptionId: created.id, razorpayPaymentId, webhookEvent },
+        });
+        await tx.couponUsage.updateMany({
+          where: { paymentId: payment.id },
+          data: { subscriptionId: created.id },
+        });
+        return created;
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.message === 'PLAN_NOT_AVAILABLE') {
+          throw new ConflictException('The plan is no longer available for purchase');
+        }
+        throw error;
       });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'PLAN_NOT_AVAILABLE') {
-        throw new ConflictException('The plan is no longer available for purchase');
-      }
-      throw error;
-    }
-
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: 'SUCCESS',
-        subscriptionId: subscription.id,
-        razorpayPaymentId,
-        webhookEvent,
-      },
-    });
-
-    // Link the reserved redemption to the activated subscription (no-op for
-    // purchases without a coupon).
-    await this.prisma.couponUsage.updateMany({
-      where: { paymentId: payment.id },
-      data: { subscriptionId: subscription.id },
-    });
+    await this.access.handleSubscriptionActivated(subscription.id).catch(() => undefined);
 
     return {
+      status: 'SUCCESS' as const,
       subscription: {
         id: subscription.id,
         plan: {
@@ -917,7 +1029,7 @@ export class PricingService {
           name: va.vault?.name ?? '',
         })),
       },
-      payment: serializePayment(payment),
+      payment: serializePayment({ ...payment, status: 'SUCCESS' }),
     };
   }
 
@@ -940,121 +1052,14 @@ export class PricingService {
         vaultAccess: { include: { vault: { select: { id: true, name: true } } } },
       },
     });
-    return { subscription: sub, payment: serializePayment(payment) };
+    return { status: 'SUCCESS' as const, subscription: sub, payment: serializePayment(payment) };
   }
 
   async confirmPurchase(userId: string, dto: ConfirmPurchaseDto) {
-    const payment = await this.prisma.payment.findUnique({
-      where: { id: dto.paymentId },
-      include: { subscription: true },
-    });
-    if (!payment || payment.userId !== userId) {
-      throw new NotFoundException('Payment not found');
-    }
-
-    if (payment.status === 'SUCCESS') {
-      if (payment.subscriptionId) {
-        const sub = await this.prisma.subscription.findUnique({
-          where: { id: payment.subscriptionId },
-          include: {
-            plan: true,
-            vaultAccess: { include: { vault: { select: { id: true, name: true } } } },
-          },
-        });
-        return { subscription: sub, payment: serializePayment(payment) };
-      }
-      throw new ConflictException('Payment is already processed');
-    }
-    if (['FAILED', 'REFUNDED', 'CANCELLED'].includes(payment.status)) {
-      throw new BadRequestException('Payment cannot be confirmed in its current state');
-    }
-
-    const meta = (payment.metadata ?? {}) as {
-      planId?: string;
-      vaultId?: string;
-      planName?: string;
-      couponId?: string;
-      couponCode?: string;
-      originalAmount?: number;
-      discountAmount?: number;
-    };
-    if (!meta.planId || !meta.vaultId) {
-      throw new BadRequestException('Purchase session is missing required metadata');
-    }
-
-    let subscription;
-    try {
-      subscription = await this.access.createSubscriptionWithSnapshot(userId, meta.planId, {
-        status: 'ACTIVE',
-        paymentReference: payment.razorpayOrderId ?? undefined,
-      });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'PLAN_NOT_AVAILABLE') {
-        throw new ConflictException('The plan is no longer available for purchase');
-      }
-      throw error;
-    }
-
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: 'SUCCESS',
-        subscriptionId: subscription.id,
-        razorpayPaymentId: `pay_${randomUUID().replace(/-/g, '')}`,
-        webhookEvent: 'payment.confirmed',
-      },
-    });
-
-    // Link the reserved redemption to the activated subscription (no-op for
-    // purchases without a coupon).
-    await this.prisma.couponUsage.updateMany({
-      where: { paymentId: payment.id },
-      data: { subscriptionId: subscription.id },
-    });
-
-    return {
-      subscription: {
-        id: subscription.id,
-        plan: {
-          id: subscription.plan?.id,
-          name: subscription.plan?.name,
-          price: Number(subscription.plan?.price),
-          regularPrice: Number(subscription.plan?.regularPrice),
-          discountedPrice: Number(subscription.plan?.price),
-          discountPercentage: subscription.plan?.discountPercentage,
-          currency: subscription.plan?.currency,
-          durationDays: subscription.plan?.durationDays,
-          durationLabel: durationLabel(subscription.plan?.durationDays ?? 0),
-        },
-        status: subscription.status,
-        startDate: subscription.startDate,
-        endDate: subscription.endDate,
-        createdAt: subscription.createdAt,
-        cancelledAt: subscription.cancelledAt ?? null,
-        vaultAccess: (subscription.vaultAccess ?? []).map((va: any) => ({
-          vaultId: va.vaultId,
-          vaultName: va.vault?.name ?? null,
-        })),
-      },
-      payment: {
-        id: payment.id,
-        status: 'SUCCESS',
-        orderId: payment.razorpayOrderId,
-        amount: Number(payment.amount),
-        currency: payment.currency,
-      },
-      ...(meta.couponId
-        ? {
-            coupon: {
-              id: meta.couponId,
-              code: meta.couponCode ?? null,
-              originalAmount: Number(meta.originalAmount ?? 0),
-              discountAmount: Number(meta.discountAmount ?? 0),
-              finalAmount: Number(payment.amount),
-            },
-          }
-        : {}),
-    };
+    const payment = await this.prisma.payment.findUnique({ where: { id: dto.paymentId } });
+    if (!payment || payment.userId !== userId) throw new NotFoundException('Payment not found');
+    if (payment.status === 'SUCCESS') return this.successResponse(payment);
+    throw new BadRequestException('Gateway verification of a captured payment is required');
   }
 }
 

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -174,8 +175,10 @@ export class SubscriptionAccessService {
       endDate?: Date;
       paymentReference?: string;
     } = {},
+    transaction?: Prisma.TransactionClient,
   ) {
-    const plan = await this.prisma.subscriptionPlan.findUnique({
+    const db = transaction ?? this.prisma;
+    const plan = await db.subscriptionPlan.findUnique({
       where: { id: planId },
       include: { vaults: true },
     });
@@ -187,7 +190,7 @@ export class SubscriptionAccessService {
     const endDate =
       options.endDate ?? new Date(startDate.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
 
-    const subscription = await this.prisma.$transaction(async (tx) => {
+    const create = async (tx: Prisma.TransactionClient) => {
       const created = await tx.subscription.create({
         data: {
           userId,
@@ -215,11 +218,14 @@ export class SubscriptionAccessService {
           plan: true,
         },
       });
-    });
+    };
+    const subscription = transaction
+      ? await create(transaction)
+      : await this.prisma.$transaction(create);
 
     // Confirmed-success point: a newly activated (paid) subscription triggers
     // referral commission accrual for the referrer (best-effort, non-blocking).
-    if (this.effectiveStatus(subscription) === 'ACTIVE') {
+    if (!transaction && this.effectiveStatus(subscription) === 'ACTIVE') {
       await this.referrals.handleSubscriptionActivated(subscription.id);
     }
 

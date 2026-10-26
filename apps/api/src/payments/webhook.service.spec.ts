@@ -1,3 +1,4 @@
+import { RazorpayService } from './razorpay.service';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
@@ -34,22 +35,32 @@ interface MockSubscriptionAccessService {
 
 function createMockPrismaService(): MockPrismaService {
   const mockTx: any = {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     webhookEvent: {
       findUnique: jest.fn(),
       upsert: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      delete: jest.fn(),
+      delete: jest.fn().mockResolvedValue({}),
     },
     subscription: {
       findFirst: jest.fn(),
       update: jest.fn(),
-      findUniqueOrThrow: jest.fn(),
+      findUniqueOrThrow: jest.fn().mockResolvedValue({
+        id: 'sub_local_1',
+        userId: 'user_1',
+        status: 'PENDING',
+        autoRenew: true,
+        razorpaySubscriptionId: 'sub_rzp_123',
+      }),
+      updateMany: jest.fn(),
     },
     payment: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
+      upsert: jest.fn(),
+      updateMany: jest.fn(),
       update: jest.fn(),
     },
     subscriptionPlan: {
@@ -231,6 +242,13 @@ describe('WebhookService', () => {
     const module = await Test.createTestingModule({
       providers: [
         WebhookService,
+        {
+          provide: RazorpayService,
+          useValue: {
+            fetchSubscription: jest.fn().mockResolvedValue({ status: 'cancelled', paid_count: 0 }),
+            cancelSubscription: jest.fn().mockResolvedValue(undefined),
+          },
+        },
         { provide: PrismaService, useValue: prisma },
         { provide: SubscriptionAccessService, useValue: subscriptionAccess },
       ],
@@ -250,6 +268,20 @@ describe('WebhookService', () => {
       expect(prisma.subscription.update).not.toHaveBeenCalled();
     });
 
+    it('releases a failed webhook claim so Razorpay can retry the delivery', async () => {
+      (prisma.webhookEvent as any).create.mockResolvedValue({});
+      prisma.webhookEvent.delete.mockResolvedValue({});
+      prisma.subscription.findFirst.mockRejectedValue(new Error('temporary database failure'));
+
+      await expect(service.handleWebhook(createBaseEvent())).rejects.toThrow(
+        'temporary database failure',
+      );
+
+      expect(prisma.webhookEvent.delete).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.any(Object) }),
+      );
+    });
+
     it('stores webhook event and processes subscription.charged', async () => {
       prisma.webhookEvent.findUnique.mockResolvedValue(null);
       (prisma.webhookEvent as any).create = jest.fn().mockResolvedValue({});
@@ -257,7 +289,7 @@ describe('WebhookService', () => {
       prisma.subscription.findFirst.mockResolvedValue({
         id: 'sub_local_1',
         userId: 'user_1',
-        plan: { durationDays: 30 },
+        plan: { durationDays: 30, price: 1499, currency: 'INR' },
         endDate: new Date(Date.now() + 86400000),
       });
       prisma.payment.findUnique.mockResolvedValue(null);
@@ -274,122 +306,52 @@ describe('WebhookService', () => {
       );
     });
 
-    it('handles subscription.payment_failed and marks subscription as FAILED after max attempts', async () => {
-      const failedEvent = createBaseEvent({
-        event: 'subscription.payment_failed',
-        payload: {
-          subscription: {
-            entity: {
-              ...createBaseEvent().payload.subscription!.entity,
-              auth_attempts: 3,
-            },
-          },
-          payment: createBaseEvent().payload.payment,
-        },
-      });
-
-      prisma.webhookEvent.findUnique.mockResolvedValue(null);
-      (prisma.webhookEvent as any).create = jest.fn().mockResolvedValue({});
-      prisma.webhookEvent.update.mockResolvedValue({});
+    it.each([1, 3])('preserves paid entitlement on renewal failure attempt %s', async (attempt) => {
       prisma.subscription.findFirst.mockResolvedValue({
         id: 'sub_local_1',
         userId: 'user_1',
+        status: 'ACTIVE',
       });
-      prisma.payment.findUnique.mockResolvedValue(null);
-
-      await service.handleWebhook(failedEvent);
-
-      expect(prisma.subscription.update).toHaveBeenCalledWith({
-        where: { id: 'sub_local_1' },
-        data: {
-          status: SubscriptionStatus.FAILED,
-          autoRenew: false,
-          nextBillingDate: null,
-        },
-      });
+      const event = createBaseEvent();
+      event.event = 'subscription.payment_failed';
+      event.payload.payment!.entity.status = 'failed';
+      event.payload.payment!.entity.captured = false;
+      event.payload.subscription!.entity.auth_attempts = attempt;
+      await service.handleWebhook(event);
+      expect(prisma.subscription.update).not.toHaveBeenCalled();
     });
 
-    it('handles subscription.payment_failed and updates nextBillingDate for retry', async () => {
-      const now = Math.floor(Date.now() / 1000);
-      const failedEvent = createBaseEvent({
-        event: 'subscription.payment_failed',
-        payload: {
-          subscription: {
-            entity: {
-              ...createBaseEvent().payload.subscription!.entity,
-              auth_attempts: 1,
-              charge_at: now + 86400,
-            },
-          },
-          payment: createBaseEvent().payload.payment,
-        },
-      });
-
-      prisma.webhookEvent.findUnique.mockResolvedValue(null);
-      (prisma.webhookEvent as any).create = jest.fn().mockResolvedValue({});
-      prisma.webhookEvent.update.mockResolvedValue({});
+    it('cleans up an initial failure before making it retryable', async () => {
       prisma.subscription.findFirst.mockResolvedValue({
         id: 'sub_local_1',
         userId: 'user_1',
+        status: 'PENDING',
       });
-      prisma.payment.findUnique.mockResolvedValue(null);
-
-      await service.handleWebhook(failedEvent);
-
-      expect(prisma.subscription.update).toHaveBeenCalledWith({
-        where: { id: 'sub_local_1' },
-        data: {
-          nextBillingDate: expect.any(Date),
-        },
-      });
-    });
-
-    it('handles subscription.cancelled via subscriptionAccess.cancelSubscription', async () => {
-      const cancelledEvent = createBaseEvent({
-        event: 'subscription.cancelled',
-        payload: { subscription: { entity: createBaseEvent().payload.subscription!.entity } },
-      });
-
-      prisma.webhookEvent.findUnique.mockResolvedValue(null);
-      (prisma.webhookEvent as any).create = jest.fn().mockResolvedValue({});
-      prisma.webhookEvent.update.mockResolvedValue({});
-      prisma.subscription.findFirst.mockResolvedValue({
-        id: 'sub_local_1',
-        userId: 'user_1',
-      });
-
-      await service.handleWebhook(cancelledEvent);
-
-      expect(subscriptionAccess.cancelSubscription).toHaveBeenCalledWith(
-        'sub_local_1',
-        'Cancelled via Razorpay',
+      const failed = createBaseEvent();
+      failed.event = 'subscription.payment_failed';
+      failed.payload.payment!.entity.status = 'failed';
+      failed.payload.payment!.entity.captured = false;
+      await service.handleWebhook(failed);
+      expect(prisma.subscription.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'CANCELLED', autoRenew: false }),
+        }),
       );
     });
 
-    it('handles subscription.completed', async () => {
-      const completedEvent = createBaseEvent({
-        event: 'subscription.completed',
-        payload: { subscription: { entity: createBaseEvent().payload.subscription!.entity } },
+    it.each([
+      'subscription.cancelled',
+      'subscription.completed',
+      'subscription.expired',
+      'subscription.halted',
+    ])('preserves paid-through access on %s', async (event) => {
+      prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_local_1', status: 'ACTIVE' });
+      await service.handleWebhook({ ...createBaseEvent(), event });
+      expect((prisma.subscription as any).updateMany).toHaveBeenCalledWith({
+        where: { id: 'sub_local_1', status: 'ACTIVE' },
+        data: { autoRenew: false, nextBillingDate: null },
       });
-
-      prisma.webhookEvent.findUnique.mockResolvedValue(null);
-      (prisma.webhookEvent as any).create = jest.fn().mockResolvedValue({});
-      prisma.webhookEvent.update.mockResolvedValue({});
-      prisma.subscription.findFirst.mockResolvedValue({
-        id: 'sub_local_1',
-        userId: 'user_1',
-      });
-
-      await service.handleWebhook(completedEvent);
-
-      expect(prisma.subscription.update).toHaveBeenCalledWith({
-        where: { id: 'sub_local_1' },
-        data: {
-          status: SubscriptionStatus.EXPIRED,
-          autoRenew: false,
-          nextBillingDate: null,
-        },
-      });
+      expect(subscriptionAccess.cancelSubscription).not.toHaveBeenCalled();
     });
 
     it('does not grant access when a mandate is authenticated without a captured payment', async () => {
@@ -457,14 +419,13 @@ describe('WebhookService', () => {
       expect(prisma.subscriptionVaultAccess.createMany).not.toHaveBeenCalled();
     });
 
-    it('warns and returns early if no local subscription found', async () => {
+    it('requests retry if a charge arrives before local persistence', async () => {
       prisma.webhookEvent.findUnique.mockResolvedValue(null);
       (prisma.webhookEvent as any).create = jest.fn().mockResolvedValue({});
       prisma.webhookEvent.update.mockResolvedValue({});
       prisma.subscription.findFirst.mockResolvedValue(null);
 
-      await service.handleWebhook(createBaseEvent());
-
+      await expect(service.handleWebhook(createBaseEvent())).rejects.toThrow('not persisted');
       expect(prisma.subscription.update).not.toHaveBeenCalled();
     });
   });

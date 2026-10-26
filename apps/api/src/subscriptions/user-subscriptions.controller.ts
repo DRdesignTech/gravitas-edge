@@ -60,14 +60,16 @@ export class UserSubscriptionsController {
   }
 
   @Post('purchase/confirm')
-  @ApiOperation({ summary: 'Confirm a purchase and activate the subscription with vault access' })
+  @ApiOperation({
+    summary: 'Read an already verified purchase; unpaid sessions require gateway verification',
+  })
   confirmPurchase(@CurrentUser() user: AuthenticatedUser, @Body() dto: ConfirmPurchaseDto) {
     return this.pricingService.confirmPurchase(user.id, dto);
   }
 
   @Post('purchase/fail')
   @ApiOperation({
-    summary: 'Mark an owned CREATED payment session as FAILED (test gateway / abandoned checkout)',
+    summary: 'Cancel an owned unpaid checkout after confirming gateway cleanup',
   })
   failPurchase(@CurrentUser() user: AuthenticatedUser, @Body() dto: ConfirmPurchaseDto) {
     return this.pricingService.failPayment(user.id, dto.paymentId);

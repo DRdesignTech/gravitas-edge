@@ -1,3 +1,4 @@
+import { cleanupUnpaidAutoPay } from '../payments/autopay-cleanup';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionAccessService } from '../access/subscription-access.service';
@@ -141,13 +142,23 @@ export class UserSubscriptionsService {
       throw new NotFoundException('Subscription not found');
     }
     if (sub.razorpaySubscriptionId) {
-      try {
-        await this.razorpayService.cancelSubscription(sub.razorpaySubscriptionId, true);
-      } catch (e) {
-        // Continue with local cancellation even if Razorpay call fails
+      if (sub.status !== 'ACTIVE') {
+        await cleanupUnpaidAutoPay(this.prisma, this.razorpayService, sub.id);
+      } else if (sub.autoRenew) {
+        // Stop future billing without revoking the already-paid term. Gateway
+        // failure is surfaced so callers can retry instead of assuming success.
+        const remote = await this.razorpayService.fetchSubscription(sub.razorpaySubscriptionId);
+        if (!['cancelled', 'completed', 'expired'].includes(remote.status)) {
+          await this.razorpayService.cancelSubscription(sub.razorpaySubscriptionId, true);
+        }
+        await this.prisma.subscription.updateMany({
+          where: { id: sub.id, status: 'ACTIVE' },
+          data: { autoRenew: false, nextBillingDate: null },
+        });
       }
+    } else {
+      await this.access.cancelSubscription(sub.id, 'Cancelled by user');
     }
-    await this.access.cancelSubscription(sub.id, 'Cancelled by user');
     return { success: true, message: 'Subscription cancelled. Access remains until end date.' };
   }
 }

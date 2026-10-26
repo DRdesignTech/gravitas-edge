@@ -1,8 +1,10 @@
 'use client';
 
+import { cancelCheckout, retryCheckout } from '@/lib/checkout-retry';
+
 import Link from 'next/link';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   failPayment,
   fetchAvailableCoupons,
@@ -163,6 +165,12 @@ export default function CheckoutPage() {
 
 function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: string }) {
   const router = useRouter();
+  const successRedirected = useRef(false);
+  const redirectAfterSuccess = () => {
+    if (successRedirected.current) return;
+    successRedirected.current = true;
+    router.replace(returnTo || '/dashboard');
+  };
   const { refreshAccess } = useAuth();
   const [session, setSession] = useState<PaymentSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -190,9 +198,15 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
     fetchPaymentSession(paymentId)
       .then((s) => {
         setSession(s);
-        if (s.status === 'SUCCESS') setPhase('success');
-        else if (s.status === 'FAILED') setPhase('failure');
-        else if (s.status === 'PENDING') {
+        if (s.status === 'SUCCESS') {
+          setPhase('success');
+          redirectAfterSuccess();
+        } else if (s.status === 'FAILED' || s.cleanupPending) {
+          setPhase('failure');
+          if (s.cleanupPending) {
+            setPhaseError('AutoPay cleanup is pending. Retry to finish cleanup before starting a fresh checkout.');
+          }
+        } else if (s.status === 'PENDING') {
           setPhase('processing');
           setPhaseError(
             'Payment confirmation is still pending. Access will be activated only after the captured payment is confirmed.',
@@ -211,7 +225,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
       if (refreshed.status === 'SUCCESS') {
         await refreshAccess();
         setPhase('success');
-        router.replace(returnTo || '/dashboard');
+        redirectAfterSuccess();
         return;
       }
       if (refreshed.status === 'FAILED') {
@@ -338,12 +352,12 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
       // coupon on this page, start a new server-side session so the order is
       // always priced by the backend.
       if (desiredCode !== currentCode && session.planId) {
+        await failPayment(session.paymentId);
         const next = await purchasePlan(
           session.planId,
           session.vaultId ?? undefined,
           desiredCode || undefined,
         );
-        failPayment(session.paymentId).catch(() => {});
         orderId = next.orderId || null;
         keyId = next.keyId;
         amount = next.amount;
@@ -374,6 +388,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
         throw new Error('Missing payment details');
       }
 
+      let checkoutCompleted = false;
       const rzpOptions: any = {
         key: keyId,
         amount: Math.round(amount * 100),
@@ -383,8 +398,9 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
         ...(orderId ? { order_id: orderId } : {}),
         ...(session.razorpaySubscriptionId || (session as any).subscriptionId ? { subscription_id: session.razorpaySubscriptionId || (session as any).subscriptionId } : {}),
         handler: async (response: any) => {
+          checkoutCompleted = true;
           try {
-            if (response.razorpay_order_id && response.razorpay_signature) {
+            if (!session.recurring && !session.razorpaySubscriptionId && response.razorpay_order_id && response.razorpay_signature) {
               await verifyPayment({
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_order_id: response.razorpay_order_id,
@@ -393,7 +409,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
               });
               await refreshAccess();
               setPhase('success');
-              router.replace(returnTo || '/dashboard');
+              redirectAfterSuccess();
             } else if (
               (session.recurring || session.razorpaySubscriptionId) &&
               response.razorpay_subscription_id &&
@@ -409,7 +425,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
               if (res.status === 'SUCCESS') {
                 await refreshAccess();
                 setPhase('success');
-                router.replace(returnTo || '/dashboard');
+                redirectAfterSuccess();
               } else {
                 // Payment is authorized but capture is still in flight (e.g. UPI mandate settlement)
                 setPhase('processing');
@@ -422,7 +438,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
                       confirmed = true;
                       await refreshAccess();
                       setPhase('success');
-                      router.replace(returnTo || '/dashboard');
+                      redirectAfterSuccess();
                       break;
                     }
                   } catch {
@@ -444,8 +460,29 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
           }
         },
         modal: {
-          ondismiss: () => {
-            setPhase('form');
+          ondismiss: async () => {
+            if (checkoutCompleted) return;
+            setPhase('processing');
+            try {
+              await cancelCheckout(paymentId, failPayment);
+              setSession((prev) => prev ? { ...prev, status: 'FAILED' } : prev);
+              setPhase('failure');
+            } catch (err) {
+              try {
+                const refreshed = await fetchPaymentSession(paymentId);
+                setSession(refreshed);
+                if (refreshed.status === 'SUCCESS') {
+                  await refreshAccess();
+                  setPhase('success');
+                  redirectAfterSuccess();
+                  return;
+                }
+              } catch {
+                // Retry must still complete cleanup before purchase.
+              }
+              setPhaseError(getErrorMessage(err));
+              setPhase('failure');
+            }
           },
         },
         theme: { color: '#5F43F2' },
@@ -464,11 +501,7 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
     setRetrying(true);
     setPhaseError('');
     try {
-      const next = await purchasePlan(
-        session.planId ?? '',
-        session.vaultId || undefined,
-        session.couponCode || undefined,
-      );
+      const next = await retryCheckout(session, { failPayment, purchasePlan });
       router.replace(
         `/checkout/${next.paymentId}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`,
       );

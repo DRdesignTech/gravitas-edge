@@ -146,6 +146,7 @@ export interface PaymentSession {
   finalAmount: number;
   keyId?: string;
   recurring?: boolean;
+  cleanupPending?: boolean;
 }
 
 export interface PurchaseResult {
