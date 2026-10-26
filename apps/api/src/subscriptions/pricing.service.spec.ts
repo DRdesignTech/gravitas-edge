@@ -8,13 +8,22 @@ import { RazorpayService } from '../payments/razorpay.service';
 import { SubscriptionStatus } from '@prisma/client';
 
 function mockPrismaService() {
-  return {
+  const mock: any = {
     vault: { findMany: jest.fn() },
-    subscriptionPlan: { findFirst: jest.fn() },
+    subscriptionPlan: { findFirst: jest.fn(), findUnique: jest.fn(), findUniqueOrThrow: jest.fn() },
     payment: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-    subscription: { findUnique: jest.fn(), findFirst: jest.fn(), create: jest.fn() },
+    subscription: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
+    },
+    subscriptionVaultAccess: { createMany: jest.fn() },
     couponUsage: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
-  } as any;
+  };
+  mock.$transaction = jest.fn(async (cb: any) => cb(mock));
+  return mock;
 }
 
 function catalogRow(vault: any, plans: any[]) {
@@ -190,7 +199,10 @@ describe('PricingService', () => {
         status: 'CREATED',
       });
 
-      const result = await service.purchase('user-1', { planId: 'plan-1', vaultId: 'v1' }) as OneTimePurchaseResult;
+      const result = (await service.purchase('user-1', {
+        planId: 'plan-1',
+        vaultId: 'v1',
+      })) as OneTimePurchaseResult;
       expect(prisma.payment.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -400,7 +412,11 @@ describe('PricingService', () => {
     });
 
     it('derives zero discount when the session has no coupon', async () => {
-      prisma.payment.findUnique.mockResolvedValue({ ...payment, metadata: { planId: 'plan-1' }, subscription: null });
+      prisma.payment.findUnique.mockResolvedValue({
+        ...payment,
+        metadata: { planId: 'plan-1' },
+        subscription: null,
+      });
       const result = await service.getPaymentSession('user-1', 'pay-1');
       expect(result.originalAmount).toBe(1199);
       expect(result.discountAmount).toBe(0);
@@ -517,13 +533,16 @@ describe('PricingService', () => {
       }).compile();
       const recurringService = moduleRef.get(PricingService);
 
-      const result = await recurringService.purchase('user-1', { planId: 'plan-1', recurring: true }) as RecurringPurchaseResult;
+      const result = (await recurringService.purchase('user-1', {
+        planId: 'plan-1',
+        recurring: true,
+      })) as RecurringPurchaseResult;
 
       expect(razorpayService.validateRazorpayPlanId).toHaveBeenCalledWith('plan_TrprBHz0jjoi8n');
       expect(razorpayService.createSubscription).toHaveBeenCalledWith(
         expect.objectContaining({
           planId: 'plan_TrprBHz0jjoi8n',
-          totalCount: 999,
+          totalCount: 24,
           customerNotify: true,
         }),
       );
@@ -554,9 +573,9 @@ describe('PricingService', () => {
       }).compile();
       const recurringService = moduleRef.get(PricingService);
 
-      await expect(recurringService.purchase('user-1', { planId: 'plan-1', recurring: true })).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        recurringService.purchase('user-1', { planId: 'plan-1', recurring: true }),
+      ).rejects.toThrow(BadRequestException);
       expect(razorpayService.validateRazorpayPlanId).not.toHaveBeenCalled();
     });
 
@@ -581,9 +600,9 @@ describe('PricingService', () => {
       }).compile();
       const recurringService = moduleRef.get(PricingService);
 
-      await expect(recurringService.purchase('user-1', { planId: 'plan-1', recurring: true })).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        recurringService.purchase('user-1', { planId: 'plan-1', recurring: true }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('rejects recurring purchase for blocked Remote 6-month plan (plan_Trq302lYgONage)', async () => {
@@ -607,13 +626,14 @@ describe('PricingService', () => {
       }).compile();
       const recurringService = moduleRef.get(PricingService);
 
-      await expect(recurringService.purchase('user-1', { planId: 'plan-1', recurring: true })).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        recurringService.purchase('user-1', { planId: 'plan-1', recurring: true }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('rejects recurring purchase when user already has active AutoPay for same plan', async () => {
-      prisma.subscription.findFirst.mockResolvedValueOnce(null) // existingActiveRecurring check
+      prisma.subscription.findFirst
+        .mockResolvedValueOnce(null) // existingActiveRecurring check
         .mockResolvedValueOnce({ id: 'existing-sub', status: SubscriptionStatus.ACTIVE }); // existingActiveSub check
 
       const razorpayService = {
@@ -633,9 +653,9 @@ describe('PricingService', () => {
       }).compile();
       const recurringService = moduleRef.get(PricingService);
 
-      await expect(recurringService.purchase('user-1', { planId: 'plan-1', recurring: true })).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        recurringService.purchase('user-1', { planId: 'plan-1', recurring: true }),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('rejects coupon code for recurring purchase', async () => {
@@ -657,8 +677,229 @@ describe('PricingService', () => {
       const recurringService = moduleRef.get(PricingService);
 
       await expect(
-        recurringService.purchase('user-1', { planId: 'plan-1', recurring: true, couponCode: 'SAVE10' }),
+        recurringService.purchase('user-1', {
+          planId: 'plan-1',
+          recurring: true,
+          couponCode: 'SAVE10',
+        }),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('verifySubscriptionPayment', () => {
+    const mockPayment = {
+      id: 'pay-session-1',
+      userId: 'user-1',
+      subscriptionId: 'sub-local-1',
+      razorpaySubscriptionId: 'sub_rzp_123',
+      amount: 499,
+      currency: 'INR',
+      status: 'CREATED',
+      metadata: { planId: 'plan-1', vaultId: 'v1' },
+      subscription: {
+        id: 'sub-local-1',
+        planId: 'plan-1',
+        status: 'PENDING',
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        plan: {
+          id: 'plan-1',
+          name: 'Remote Access Vault',
+          price: 499,
+          currency: 'INR',
+          durationDays: 30,
+          vaults: [{ vault: { id: 'v1', name: 'Remote Access Vault' } }],
+        },
+      },
+    };
+
+    const mockDto = {
+      paymentId: 'pay-session-1',
+      razorpay_payment_id: 'pay_rzp_123',
+      razorpay_subscription_id: 'sub_rzp_123',
+      razorpay_signature: 'valid_sig',
+    };
+
+    it('activates subscription and grants vault access when payment is captured', async () => {
+      prisma.payment.findUnique.mockResolvedValue(mockPayment);
+      prisma.subscriptionPlan.findUnique.mockResolvedValue({
+        id: 'plan-1',
+        name: 'Remote Access Vault',
+        price: 499,
+        currency: 'INR',
+        durationDays: 30,
+        deletedAt: null,
+        isActive: true,
+        vaults: [{ vault: { id: 'v1', name: 'Remote Access Vault' } }],
+      });
+      prisma.subscription.update.mockResolvedValue({
+        ...mockPayment.subscription,
+        status: SubscriptionStatus.ACTIVE,
+      });
+      prisma.subscription.findUniqueOrThrow.mockResolvedValue({
+        ...mockPayment.subscription,
+        status: SubscriptionStatus.ACTIVE,
+        vaultAccess: [
+          { id: 'va-1', vaultId: 'v1', vault: { id: 'v1', name: 'Remote Access Vault' } },
+        ],
+        plan: mockPayment.subscription.plan,
+      });
+
+      const razorpayService = {
+        verifySubscriptionSignature: jest.fn().mockReturnValue(true),
+        fetchPayment: jest.fn().mockResolvedValue({
+          id: 'pay_rzp_123',
+          subscription_id: 'sub_rzp_123',
+          amount: 49900,
+          currency: 'INR',
+          status: 'captured',
+          captured: true,
+        }),
+      };
+
+      const accessService = {
+        effectiveStatus: jest.fn().mockReturnValue('ACTIVE'),
+        handleSubscriptionActivated: jest.fn().mockResolvedValue(undefined),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: accessService },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const pricingService = moduleRef.get(PricingService);
+
+      const res = (await pricingService.verifySubscriptionPayment('user-1', mockDto)) as any;
+
+      expect(res.status).toBe('SUCCESS');
+      expect(prisma.subscriptionVaultAccess.createMany).toHaveBeenCalledWith({
+        data: [{ subscriptionId: 'sub-local-1', vaultId: 'v1' }],
+        skipDuplicates: true,
+      });
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'pay-session-1' },
+        data: expect.objectContaining({ status: 'SUCCESS' }),
+      });
+    });
+
+    it('returns PENDING when payment authorization is in flight and does not grant access prematurely', async () => {
+      prisma.payment.findUnique.mockResolvedValue(mockPayment);
+      prisma.payment.update.mockResolvedValue({ ...mockPayment, status: 'PENDING' });
+
+      const razorpayService = {
+        verifySubscriptionSignature: jest.fn().mockReturnValue(true),
+        fetchPayment: jest.fn().mockResolvedValue({
+          id: 'pay_rzp_123',
+          subscription_id: 'sub_rzp_123',
+          amount: 49900,
+          currency: 'INR',
+          status: 'authorized',
+          captured: false,
+        }),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const pricingService = moduleRef.get(PricingService);
+
+      const res = (await pricingService.verifySubscriptionPayment('user-1', mockDto)) as any;
+
+      expect(res.status).toBe('PENDING');
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'pay-session-1' },
+        data: { status: 'PENDING', webhookEvent: 'subscription.pending' },
+      });
+      expect(prisma.subscriptionVaultAccess.createMany).not.toHaveBeenCalled();
+      expect(prisma.subscription.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects with BadRequestException when signature is invalid', async () => {
+      prisma.payment.findUnique.mockResolvedValue(mockPayment);
+
+      const razorpayService = {
+        verifySubscriptionSignature: jest.fn().mockReturnValue(false),
+        fetchPayment: jest.fn(),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const pricingService = moduleRef.get(PricingService);
+
+      await expect(pricingService.verifySubscriptionPayment('user-1', mockDto)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.payment.update).toHaveBeenCalledWith({
+        where: { id: 'pay-session-1' },
+        data: expect.objectContaining({ status: 'FAILED' }),
+      });
+    });
+
+    it('rejects when payment amount does not match plan price', async () => {
+      prisma.payment.findUnique.mockResolvedValue(mockPayment);
+
+      const razorpayService = {
+        verifySubscriptionSignature: jest.fn().mockReturnValue(true),
+        fetchPayment: jest.fn().mockResolvedValue({
+          id: 'pay_rzp_123',
+          subscription_id: 'sub_rzp_123',
+          amount: 100, // too low
+          currency: 'INR',
+          status: 'captured',
+          captured: true,
+        }),
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: razorpayService },
+        ],
+      }).compile();
+      const pricingService = moduleRef.get(PricingService);
+
+      await expect(pricingService.verifySubscriptionPayment('user-1', mockDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('throws NotFoundException when payment does not belong to user', async () => {
+      prisma.payment.findUnique.mockResolvedValue(null);
+
+      const moduleRef = await Test.createTestingModule({
+        providers: [
+          PricingService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: SubscriptionAccessService, useValue: access },
+          { provide: CouponsService, useValue: {} },
+          { provide: RazorpayService, useValue: {} },
+        ],
+      }).compile();
+      const pricingService = moduleRef.get(PricingService);
+
+      await expect(pricingService.verifySubscriptionPayment('other-user', mockDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

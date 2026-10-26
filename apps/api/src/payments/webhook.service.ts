@@ -22,7 +22,15 @@ interface RazorpaySubscription {
   id: string;
   entity: string;
   plan_id: string;
-  status: 'created' | 'authenticated' | 'active' | 'pending' | 'halted' | 'cancelled' | 'completed' | 'expired';
+  status:
+    | 'created'
+    | 'authenticated'
+    | 'active'
+    | 'pending'
+    | 'halted'
+    | 'cancelled'
+    | 'completed'
+    | 'expired';
   current_start: number | null;
   current_end: number | null;
   ended_at: number | null;
@@ -81,24 +89,23 @@ export class WebhookService {
   ) {}
 
   async handleWebhook(event: RazorpayWebhookEvent): Promise<void> {
-    // Use a more specific event ID for better idempotency
+    // Deterministic event ID for safe idempotency
+    const rzpEventId = (event as any).id;
     const subscriptionId = event.payload.subscription?.entity?.id;
     const paymentId = event.payload.payment?.entity?.id;
-    const eventId = event.event + '_' + (paymentId || subscriptionId || event.account_id || 'unknown') + '_' + (event.payload.payment?.entity?.created_at || event.payload.subscription?.entity?.created_at || Date.now());
-    
+    const eventTimestamp =
+      (event as any).created_at ||
+      event.payload.payment?.entity?.created_at ||
+      event.payload.subscription?.entity?.created_at ||
+      0;
+    const eventId =
+      rzpEventId ||
+      `${event.event}_${paymentId || subscriptionId || event.account_id || 'unknown'}_${eventTimestamp}`;
+
     this.logger.log(`Processing webhook event: ${event.event} for ${subscriptionId || paymentId}`);
 
-    // Check idempotency
-    const existingEvent = await this.prisma.webhookEvent.findUnique({
-      where: { eventId },
-    });
-
-    if (existingEvent?.processed) {
-      this.logger.log(`Webhook event ${eventId} already processed, skipping`);
-      return;
-    }
-
-    // Store webhook event for idempotency
+    // Creating the unique event row is the durable claim. A concurrent delivery
+    // that loses this race must not run a second set of payment side effects.
     try {
       await this.prisma.webhookEvent.create({
         data: {
@@ -109,13 +116,11 @@ export class WebhookService {
         },
       });
     } catch (err: any) {
-      // If duplicate, check if already processed
+      // The active delivery owns this event. If it fails it returns 500 and
+      // Razorpay can retry after the event row is released below.
       if (err.code === 'P2002') {
-        const dup = await this.prisma.webhookEvent.findUnique({ where: { eventId } });
-        if (dup?.processed) {
-          this.logger.log(`Webhook event ${eventId} already processed, skipping`);
-          return;
-        }
+        this.logger.log(`Webhook event ${eventId} is already claimed or processed, skipping`);
+        return;
       } else {
         throw err;
       }
@@ -170,8 +175,35 @@ export class WebhookService {
 
       this.logger.log(`Successfully processed webhook event: ${event.event}`);
     } catch (error) {
+      // Leave the event eligible for a later Razorpay retry. We intentionally
+      // do not mark it processed after a failed side effect.
+      await this.prisma.webhookEvent.delete({ where: { eventId } }).catch(() => undefined);
       this.logger.error(`Failed to process webhook event ${event.event}:`, error);
       throw error;
+    }
+  }
+
+  private async ensureVaultAccess(
+    subscriptionId: string,
+    planId: string,
+    db: Pick<PrismaService, 'subscriptionPlan' | 'subscriptionVaultAccess'> = this.prisma,
+  ): Promise<void> {
+    const plan = await db.subscriptionPlan.findUnique({
+      where: { id: planId },
+      include: {
+        vaults: {
+          where: { vault: { deletedAt: null, status: 'ACTIVE' } },
+        },
+      },
+    });
+    if (plan && plan.vaults.length > 0) {
+      await db.subscriptionVaultAccess.createMany({
+        data: plan.vaults.map((v) => ({
+          subscriptionId,
+          vaultId: v.vaultId,
+        })),
+        skipDuplicates: true,
+      });
     }
   }
 
@@ -181,15 +213,21 @@ export class WebhookService {
 
     // Reject excluded plans
     if (subscription.plan_id === 'plan_Trq9hv9Sx7SUb7') {
-      this.logger.warn(`Rejected webhook for excluded plan ${subscription.plan_id} on subscription ${subscription.id}`);
+      this.logger.warn(
+        `Rejected webhook for excluded plan ${subscription.plan_id} on subscription ${subscription.id}`,
+      );
       return;
     }
 
-    this.logger.log(`Subscription authenticated: ${subscription.id}, customer: ${subscription.customer_id}`);
+    this.logger.log(
+      `Subscription authenticated: ${subscription.id}, customer: ${subscription.customer_id}`,
+    );
 
-    // Find local subscription by razorpaySubscriptionId
+    // Mandate authentication is not a captured charge. It must never create
+    // vault access, activate a subscription, or mark a payment successful.
     const localSub = await this.prisma.subscription.findFirst({
       where: { razorpaySubscriptionId: subscription.id },
+      include: { plan: true },
     });
 
     if (!localSub) {
@@ -197,17 +235,7 @@ export class WebhookService {
       return;
     }
 
-    // Update local subscription status to ACTIVE and set autoRenew
-    await this.prisma.subscription.update({
-      where: { id: localSub.id },
-      data: {
-        status: SubscriptionStatus.ACTIVE,
-        autoRenew: true,
-        nextBillingDate: subscription.charge_at ? new Date(subscription.charge_at * 1000) : null,
-      },
-    });
-
-    this.logger.log(`Local subscription ${localSub.id} activated for auto-renewal`);
+    this.logger.log(`Mandate authenticated for ${localSub.id}; waiting for captured charge`);
   }
 
   private async handleSubscriptionActivated(event: RazorpayWebhookEvent): Promise<void> {
@@ -215,7 +243,9 @@ export class WebhookService {
     if (!subscription) return;
 
     if (subscription.plan_id === 'plan_Trq9hv9Sx7SUb7') {
-      this.logger.warn(`Rejected webhook for excluded plan ${subscription.plan_id} on subscription ${subscription.id}`);
+      this.logger.warn(
+        `Rejected webhook for excluded plan ${subscription.plan_id} on subscription ${subscription.id}`,
+      );
       return;
     }
 
@@ -223,6 +253,7 @@ export class WebhookService {
 
     const localSub = await this.prisma.subscription.findFirst({
       where: { razorpaySubscriptionId: subscription.id },
+      include: { plan: true },
     });
 
     if (!localSub) {
@@ -230,35 +261,46 @@ export class WebhookService {
       return;
     }
 
-    await this.prisma.subscription.update({
-      where: { id: localSub.id },
-      data: {
-        status: SubscriptionStatus.ACTIVE,
-        autoRenew: true,
-        nextBillingDate: subscription.charge_at ? new Date(subscription.charge_at * 1000) : null,
-      },
-    });
+    // Razorpay may emit this before the first charge. Captured payment events
+    // are the only webhook path allowed to grant a paid entitlement.
+    this.logger.log(
+      `Subscription ${localSub.id} activated at Razorpay; waiting for captured charge`,
+    );
   }
 
   private async handleSubscriptionCharged(event: RazorpayWebhookEvent): Promise<void> {
     const subscription = event.payload.subscription?.entity;
     const payment = event.payload.payment?.entity;
-    
+
     if (!subscription || !payment) {
       this.logger.warn('Missing subscription or payment in charged event');
       return;
     }
+    if (
+      payment.status !== 'captured' ||
+      payment.captured !== true ||
+      payment.subscription_id !== subscription.id
+    ) {
+      this.logger.warn(`Ignoring non-captured or mismatched charge for ${subscription.id}`);
+      return;
+    }
     if (subscription.plan_id === 'plan_Trq9hv9Sx7SUb7') {
-      this.logger.warn(`Rejected webhook for excluded plan ${subscription.plan_id} on subscription ${subscription.id}`);
+      this.logger.warn(
+        `Rejected webhook for excluded plan ${subscription.plan_id} on subscription ${subscription.id}`,
+      );
       return;
     }
     // Also check if local plan is mapped to excluded
     if (subscription.plan_id === 'plan_Trq302lYgONage') {
-      this.logger.warn(`Blocked webhook for mismatched Remote 6-month plan ${subscription.plan_id}`);
+      this.logger.warn(
+        `Blocked webhook for mismatched Remote 6-month plan ${subscription.plan_id}`,
+      );
       return;
     }
 
-    this.logger.log(`Subscription charged: ${subscription.id}, payment: ${payment.id}, amount: ${payment.amount}`);
+    this.logger.log(
+      `Subscription charged: ${subscription.id}, payment: ${payment.id}, amount: ${payment.amount}`,
+    );
 
     // Find local subscription
     const localSub = await this.prisma.subscription.findFirst({
@@ -268,6 +310,18 @@ export class WebhookService {
 
     if (!localSub) {
       this.logger.warn(`No local subscription found for Razorpay subscription: ${subscription.id}`);
+      return;
+    }
+
+    // Do not resurrect explicitly cancelled or completed subscriptions
+    if (
+      localSub.status === SubscriptionStatus.CANCELLED ||
+      localSub.status === SubscriptionStatus.EXPIRED ||
+      localSub.status === SubscriptionStatus.FAILED
+    ) {
+      this.logger.log(
+        `Subscription ${localSub.id} is ${localSub.status}, skipping reactivation on charged`,
+      );
       return;
     }
 
@@ -281,51 +335,140 @@ export class WebhookService {
       return;
     }
 
-    // Create payment record and extend subscription in transaction
-    const newEndDate = new Date(localSub.endDate.getTime() + localSub.plan.durationDays * 24 * 60 * 60 * 1000);
-    const nextBillingDate = subscription.charge_at ? new Date(subscription.charge_at * 1000) : newEndDate;
+    const isInitialCharge =
+      localSub.status === SubscriptionStatus.PENDING || subscription.paid_count <= 1;
 
-    await this.prisma.$transaction(async (tx) => {
-      // Create payment record
-      await tx.payment.create({
-        data: {
-          userId: localSub.userId,
-          subscriptionId: localSub.id,
-          razorpayPaymentId: payment.id,
-          razorpayOrderId: payment.order_id,
-          razorpaySubscriptionId: subscription.id,
-          amount: payment.amount / 100,
-          currency: payment.currency,
-          status: PaymentStatus.SUCCESS,
-          webhookEvent: event.event,
-          metadata: {
-            subscriptionId: subscription.id,
-            paymentId: payment.id,
-            paidCount: subscription.paid_count,
-            chargeAt: subscription.charge_at,
+    if (isInitialCharge) {
+      // FIRST CHARGE: endDate was already initialized to (startDate + durationDays) when created.
+      // Do NOT extend endDate by another cycle!
+      const nextBillingDate = subscription.charge_at
+        ? new Date(subscription.charge_at * 1000)
+        : localSub.endDate;
+
+      await this.prisma.$transaction(async (tx) => {
+        await this.ensureVaultAccess(localSub.id, localSub.planId, tx);
+        // Look for the initial pending payment session created during checkout
+        const initialPayment = await tx.payment.findFirst({
+          where: { subscriptionId: localSub.id, status: { in: ['CREATED', 'PENDING'] } },
+        });
+
+        if (initialPayment) {
+          await tx.payment.update({
+            where: { id: initialPayment.id },
+            data: {
+              razorpayPaymentId: payment.id,
+              razorpayOrderId: payment.order_id,
+              razorpaySubscriptionId: subscription.id,
+              amount: payment.amount / 100,
+              currency: payment.currency,
+              status: PaymentStatus.SUCCESS,
+              webhookEvent: event.event,
+              metadata: {
+                subscriptionId: subscription.id,
+                paymentId: payment.id,
+                paidCount: subscription.paid_count,
+                chargeAt: subscription.charge_at,
+              },
+            },
+          });
+        } else {
+          // If no initial pending record found, create new SUCCESS payment
+          await tx.payment.create({
+            data: {
+              userId: localSub.userId,
+              subscriptionId: localSub.id,
+              razorpayPaymentId: payment.id,
+              razorpayOrderId: payment.order_id,
+              razorpaySubscriptionId: subscription.id,
+              amount: payment.amount / 100,
+              currency: payment.currency,
+              status: PaymentStatus.SUCCESS,
+              webhookEvent: event.event,
+              metadata: {
+                subscriptionId: subscription.id,
+                paymentId: payment.id,
+                paidCount: subscription.paid_count,
+                chargeAt: subscription.charge_at,
+              },
+            },
+          });
+        }
+
+        // Activate subscription with base duration
+        await tx.subscription.update({
+          where: { id: localSub.id },
+          data: {
+            nextBillingDate,
+            status: SubscriptionStatus.ACTIVE,
+            autoRenew: true,
+            paymentReference: payment.id,
           },
-        },
+        });
       });
 
-      // Extend subscription endDate by plan duration
-      await tx.subscription.update({
-        where: { id: localSub.id },
-        data: {
-          endDate: newEndDate,
-          nextBillingDate,
-          status: SubscriptionStatus.ACTIVE,
-          autoRenew: true,
-        },
-      });
-    });
+      try {
+        await this.subscriptionAccess.handleSubscriptionActivated(localSub.id);
+      } catch {
+        // non-blocking
+      }
 
-    this.logger.log(`Extended subscription ${localSub.id} to ${newEndDate}, next billing: ${nextBillingDate}`);
+      this.logger.log(
+        `Initial charge processed for subscription ${localSub.id}, status ACTIVE, endDate: ${localSub.endDate}`,
+      );
+    } else {
+      // RENEWAL CHARGE: Extend subscription endDate by plan duration
+      const newEndDate = new Date(
+        localSub.endDate.getTime() + localSub.plan.durationDays * 24 * 60 * 60 * 1000,
+      );
+      const nextBillingDate = subscription.charge_at
+        ? new Date(subscription.charge_at * 1000)
+        : newEndDate;
+
+      await this.prisma.$transaction(async (tx) => {
+        await this.ensureVaultAccess(localSub.id, localSub.planId, tx);
+        // Create new renewal payment record
+        await tx.payment.create({
+          data: {
+            userId: localSub.userId,
+            subscriptionId: localSub.id,
+            razorpayPaymentId: payment.id,
+            razorpayOrderId: payment.order_id,
+            razorpaySubscriptionId: subscription.id,
+            amount: payment.amount / 100,
+            currency: payment.currency,
+            status: PaymentStatus.SUCCESS,
+            webhookEvent: event.event,
+            metadata: {
+              subscriptionId: subscription.id,
+              paymentId: payment.id,
+              paidCount: subscription.paid_count,
+              chargeAt: subscription.charge_at,
+            },
+          },
+        });
+
+        // Extend subscription endDate by plan duration
+        await tx.subscription.update({
+          where: { id: localSub.id },
+          data: {
+            endDate: newEndDate,
+            nextBillingDate,
+            status: SubscriptionStatus.ACTIVE,
+            autoRenew: true,
+          },
+        });
+      });
+
+      this.logger.log(
+        `Extended subscription ${localSub.id} to ${newEndDate}, next billing: ${nextBillingDate}`,
+      );
+    }
   }
 
   private async handleSubscriptionPaymentFailed(event: RazorpayWebhookEvent): Promise<void> {
     const subscription = event.payload.subscription?.entity;
     const payment = event.payload.payment?.entity;
-    
+
     if (!subscription) return;
 
     this.logger.log(`Subscription payment failed: ${subscription.id}`);
@@ -367,7 +510,7 @@ export class WebhookService {
               },
             },
           });
-        } catch (e) {
+        } catch {
           // Ignore duplicate
         }
       }
@@ -384,7 +527,9 @@ export class WebhookService {
           nextBillingDate: null,
         },
       });
-      this.logger.log(`Subscription ${localSub.id} marked as FAILED after ${subscription.auth_attempts} attempts`);
+      this.logger.log(
+        `Subscription ${localSub.id} marked as FAILED after ${subscription.auth_attempts} attempts`,
+      );
     } else {
       // Update next billing date for retry
       await this.prisma.subscription.update({
@@ -393,7 +538,9 @@ export class WebhookService {
           nextBillingDate: subscription.charge_at ? new Date(subscription.charge_at * 1000) : null,
         },
       });
-      this.logger.log(`Subscription ${localSub.id} payment failed, attempt ${subscription.auth_attempts}/${maxAuthAttempts}, will retry`);
+      this.logger.log(
+        `Subscription ${localSub.id} payment failed, attempt ${subscription.auth_attempts}/${maxAuthAttempts}, will retry`,
+      );
     }
   }
 
@@ -486,12 +633,13 @@ export class WebhookService {
       return;
     }
 
-    await this.prisma.subscription.update({
-      where: { id: localSub.id },
-      data: {
-        status: SubscriptionStatus.PENDING,
-      },
-    });
+    // A delayed pending event must never revoke a confirmed paid entitlement.
+    if (localSub.status === SubscriptionStatus.PENDING) {
+      await this.prisma.subscription.update({
+        where: { id: localSub.id },
+        data: { status: SubscriptionStatus.PENDING },
+      });
+    }
   }
 
   private async handleSubscriptionExpired(event: RazorpayWebhookEvent): Promise<void> {

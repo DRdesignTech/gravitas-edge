@@ -3,7 +3,9 @@ import { Response } from 'express';
 import { WebhookService } from './webhook.service';
 import { RazorpayService } from './razorpay.service';
 import { RawBodyRequest } from './webhook.middleware';
+import { Public } from '../common/decorators/public.decorator';
 
+@Public()
 @Controller('webhooks')
 export class WebhookController {
   private readonly logger = new Logger(WebhookController.name);
@@ -16,10 +18,7 @@ export class WebhookController {
   @Post('razorpay')
   @HttpCode(HttpStatus.OK)
   @Header('Content-Type', 'application/json')
-  async handleRazorpayWebhook(
-    @Req() req: RawBodyRequest,
-    @Res() res: Response,
-  ): Promise<void> {
+  async handleRazorpayWebhook(@Req() req: RawBodyRequest, @Res() res: Response): Promise<void> {
     const signature = req.headers['x-razorpay-signature'] as string;
     const rawBody = req.rawBody?.toString('utf8') || '';
 

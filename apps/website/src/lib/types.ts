@@ -212,6 +212,26 @@ export interface VerifyPaymentPayload {
   paymentId: string;
 }
 
+export interface VerifySubscriptionPayload {
+  razorpay_payment_id: string;
+  razorpay_subscription_id: string;
+  razorpay_signature: string;
+  paymentId: string;
+}
+
+export interface VerifySubscriptionResult {
+  status: 'SUCCESS' | 'PENDING';
+  message?: string;
+  subscription?: {
+    id: string;
+    status: string;
+    startDate: string;
+    endDate: string;
+    vaultAccess?: { id?: string; vaultId: string; name?: string }[];
+  };
+  payment?: { id: string; status: string; amount: number; currency: string };
+}
+
 export interface ConfirmPurchaseResult {
   subscription: {
     id: string;

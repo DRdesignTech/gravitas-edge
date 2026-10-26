@@ -5,15 +5,15 @@ import { AppModule } from './app.module';
 import { getCorsOrigins, corsOriginCallback } from './common/cors.util';
 import * as express from 'express';
 import * as path from 'path';
-import { rawBodyMiddleware } from './payments/webhook.middleware';
 
 async function bootstrap() {
   const isProduction = process.env.ENVIRONMENT === 'production';
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
-  // Raw body middleware for Razorpay webhook (must be before global prefix and body parsers)
-  app.use('/api/webhooks/razorpay', rawBodyMiddleware);
+  // Nest's rawBody option below captures the exact bytes used for Razorpay's
+  // signature. Do not add a second stream-consuming middleware here: Express
+  // body parsers may already have consumed the request before it runs.
 
   app.setGlobalPrefix('api');
 

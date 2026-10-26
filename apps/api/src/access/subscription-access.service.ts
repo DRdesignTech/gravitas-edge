@@ -226,6 +226,10 @@ export class SubscriptionAccessService {
     return subscription;
   }
 
+  async handleSubscriptionActivated(subscriptionId: string): Promise<void> {
+    await this.referrals.handleSubscriptionActivated(subscriptionId);
+  }
+
   /**
    * Extend an existing subscription by the plan's duration.
    * Used when a recurring payment succeeds.

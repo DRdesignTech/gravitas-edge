@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Razorpay from 'razorpay';
@@ -41,7 +41,9 @@ export class RazorpayService implements OnModuleInit {
     const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
 
     if (!keyId || !keySecret) {
-      console.warn('Razorpay keys not configured - one-time payments may fail; AutoPay requires keys');
+      console.warn(
+        'Razorpay keys not configured - one-time payments may fail; AutoPay requires keys',
+      );
     }
 
     this.razorpay = new Razorpay({
@@ -73,12 +75,7 @@ export class RazorpayService implements OnModuleInit {
     return Array.from(ALLOWED_RAZORPAY_PLAN_IDS);
   }
 
-  async createOrder(options: {
-    amount: number;
-    currency?: string;
-    receipt: string;
-    notes?: any;
-  }) {
+  async createOrder(options: { amount: number; currency?: string; receipt: string; notes?: any }) {
     const order = await this.razorpay.orders.create({
       amount: Math.round(options.amount * 100),
       currency: options.currency || 'INR',
@@ -134,6 +131,10 @@ export class RazorpayService implements OnModuleInit {
     return this.razorpay.subscriptions.fetch(subscriptionId);
   }
 
+  async fetchPayment(paymentId: string) {
+    return this.razorpay.payments.fetch(paymentId);
+  }
+
   async cancelSubscription(subscriptionId: string, cancelAtCycleEnd = false) {
     return this.razorpay.subscriptions.cancel(subscriptionId, cancelAtCycleEnd);
   }
@@ -144,6 +145,31 @@ export class RazorpayService implements OnModuleInit {
 
   async resumeSubscription(subscriptionId: string) {
     return this.razorpay.subscriptions.resume(subscriptionId, { resume_at: 'now' });
+  }
+
+  verifySubscriptionSignature({
+    paymentId,
+    subscriptionId,
+    signature,
+  }: {
+    paymentId: string;
+    subscriptionId: string;
+    signature: string;
+  }): boolean {
+    const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET') || '';
+    if (!keySecret || !paymentId || !subscriptionId || !signature) {
+      return false;
+    }
+    const body = `${paymentId}|${subscriptionId}`;
+    const expectedSignature = createHmac('sha256', keySecret).update(body).digest('hex');
+    try {
+      const a = Buffer.from(expectedSignature, 'utf8');
+      const b = Buffer.from(signature, 'utf8');
+      if (a.length !== b.length) return false;
+      return timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
   }
 
   verifySignature({

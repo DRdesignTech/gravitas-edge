@@ -33,6 +33,8 @@ import {
   UserProfile,
   Vault,
   VaultOpportunityCount,
+  VerifySubscriptionPayload,
+  VerifySubscriptionResult,
 } from './types';
 
 export function fetchOpportunities(query: OpportunityQuery = {}) {
@@ -186,6 +188,13 @@ export function verifyPayment(payload: {
   paymentId: string;
 }) {
   return api.post<ConfirmPurchaseResult>('/subscriptions/purchase/verify', payload);
+}
+
+export function verifySubscriptionPayment(payload: VerifySubscriptionPayload) {
+  return api.post<VerifySubscriptionResult>(
+    '/subscriptions/purchase/verify-subscription',
+    payload,
+  );
 }
 
 export function confirmPurchase(paymentId: string) {

@@ -16,6 +16,9 @@ const mockRazorpayInstance = {
     pause: jest.fn(),
     resume: jest.fn(),
   },
+  payments: {
+    fetch: jest.fn(),
+  },
 };
 
 jest.mock('razorpay', () => {
@@ -36,7 +39,7 @@ describe('RazorpayService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    
+
     mockConfigService.get.mockImplementation((key: string) => {
       if (key === 'RAZORPAY_KEY_ID') return 'rzp_test_key';
       if (key === 'RAZORPAY_KEY_SECRET') return 'test_secret';
@@ -45,16 +48,14 @@ describe('RazorpayService', () => {
     });
 
     const module = await Test.createTestingModule({
-      providers: [
-        RazorpayService,
-        { provide: ConfigService, useValue: mockConfigService },
-      ],
+      providers: [RazorpayService, { provide: ConfigService, useValue: mockConfigService }],
     }).compile();
 
     service = module.get(RazorpayService);
     // Initialize the Razorpay instance
     await service.onModuleInit();
-    mockValidateWebhookSignature = require('razorpay/dist/utils/razorpay-utils').validateWebhookSignature;
+    mockValidateWebhookSignature =
+      require('razorpay/dist/utils/razorpay-utils').validateWebhookSignature;
   });
 
   describe('verifySignature', () => {
@@ -62,7 +63,7 @@ describe('RazorpayService', () => {
       const orderId = 'order_123';
       const paymentId = 'pay_123';
       const secret = 'test_secret';
-      
+
       const crypto = require('crypto');
       const body = orderId + '|' + paymentId;
       const expectedSignature = crypto.createHmac('sha256', secret).update(body).digest('hex');
@@ -84,15 +85,19 @@ describe('RazorpayService', () => {
   describe('verifyWebhookSignature', () => {
     it('returns true when validateWebhookSignature returns true', () => {
       mockValidateWebhookSignature.mockReturnValue(true);
-      
+
       const result = service.verifyWebhookSignature('{"event":"test"}', 'valid_signature');
       expect(result).toBe(true);
-      expect(mockValidateWebhookSignature).toHaveBeenCalledWith('{"event":"test"}', 'valid_signature', 'whsec_test');
+      expect(mockValidateWebhookSignature).toHaveBeenCalledWith(
+        '{"event":"test"}',
+        'valid_signature',
+        'whsec_test',
+      );
     });
 
     it('returns false when validateWebhookSignature returns false', () => {
       mockValidateWebhookSignature.mockReturnValue(false);
-      
+
       const result = service.verifyWebhookSignature('{"event":"test"}', 'invalid_signature');
       expect(result).toBe(false);
     });
@@ -102,14 +107,11 @@ describe('RazorpayService', () => {
         if (key === 'RAZORPAY_WEBHOOK_SECRET') return '';
         return 'test_value';
       });
-      
+
       const module = await Test.createTestingModule({
-        providers: [
-          RazorpayService,
-          { provide: ConfigService, useValue: mockConfigService },
-        ],
+        providers: [RazorpayService, { provide: ConfigService, useValue: mockConfigService }],
       }).compile();
-      
+
       const newService = module.get(RazorpayService);
       const result = newService.verifyWebhookSignature('{"event":"test"}', 'signature');
       expect(result).toBe(false);
@@ -119,14 +121,14 @@ describe('RazorpayService', () => {
   describe('createOrder', () => {
     it('creates order with correct parameters', async () => {
       mockRazorpayInstance.orders.create.mockResolvedValue({ id: 'order_123' });
-      
+
       const result = await service.createOrder({
         amount: 1499,
         currency: 'INR',
         receipt: 'receipt_123',
         notes: { planId: 'plan_1' },
       });
-      
+
       expect(mockRazorpayInstance.orders.create).toHaveBeenCalledWith({
         amount: 149900,
         currency: 'INR',
@@ -140,7 +142,7 @@ describe('RazorpayService', () => {
   describe('createPlan', () => {
     it('creates plan with correct parameters', async () => {
       mockRazorpayInstance.plans.create.mockResolvedValue({ id: 'plan_123' });
-      
+
       const result = await service.createPlan({
         name: 'Test Plan',
         amount: 1499,
@@ -149,7 +151,7 @@ describe('RazorpayService', () => {
         period: 'monthly',
         description: 'Test description',
       });
-      
+
       expect(mockRazorpayInstance.plans.create).toHaveBeenCalledWith({
         item: {
           name: 'Test Plan',
@@ -166,19 +168,19 @@ describe('RazorpayService', () => {
 
   describe('createSubscription', () => {
     it('creates subscription with correct parameters', async () => {
-      mockRazorpayInstance.subscriptions.create.mockResolvedValue({ 
+      mockRazorpayInstance.subscriptions.create.mockResolvedValue({
         id: 'sub_123',
         short_url: 'https://rzp.io/i/test',
         charge_at: Math.floor(Date.now() / 1000) + 86400,
       });
-      
+
       const result = await service.createSubscription({
         planId: 'plan_123',
         totalCount: 0,
         customerNotify: true,
         notes: { userId: 'user_1' },
       });
-      
+
       expect(mockRazorpayInstance.subscriptions.create).toHaveBeenCalledWith({
         plan_id: 'plan_123',
         total_count: 0,
@@ -193,7 +195,7 @@ describe('RazorpayService', () => {
   describe('fetchSubscription', () => {
     it('fetches subscription by id', async () => {
       mockRazorpayInstance.subscriptions.fetch.mockResolvedValue({ id: 'sub_123' });
-      
+
       const result = await service.fetchSubscription('sub_123');
       expect(mockRazorpayInstance.subscriptions.fetch).toHaveBeenCalledWith('sub_123');
       expect(result.id).toBe('sub_123');
@@ -202,8 +204,11 @@ describe('RazorpayService', () => {
 
   describe('cancelSubscription', () => {
     it('cancels subscription', async () => {
-      mockRazorpayInstance.subscriptions.cancel.mockResolvedValue({ id: 'sub_123', status: 'cancelled' });
-      
+      mockRazorpayInstance.subscriptions.cancel.mockResolvedValue({
+        id: 'sub_123',
+        status: 'cancelled',
+      });
+
       const result = await service.cancelSubscription('sub_123', false);
       expect(mockRazorpayInstance.subscriptions.cancel).toHaveBeenCalledWith('sub_123', false);
       expect(result.status).toBe('cancelled');
@@ -212,20 +217,30 @@ describe('RazorpayService', () => {
 
   describe('pauseSubscription', () => {
     it('pauses subscription', async () => {
-      mockRazorpayInstance.subscriptions.pause.mockResolvedValue({ id: 'sub_123', status: 'halted' });
-      
+      mockRazorpayInstance.subscriptions.pause.mockResolvedValue({
+        id: 'sub_123',
+        status: 'halted',
+      });
+
       const result = await service.pauseSubscription('sub_123');
-      expect(mockRazorpayInstance.subscriptions.pause).toHaveBeenCalledWith('sub_123', { pause_at: 'now' });
+      expect(mockRazorpayInstance.subscriptions.pause).toHaveBeenCalledWith('sub_123', {
+        pause_at: 'now',
+      });
       expect(result.status).toBe('halted');
     });
   });
 
   describe('resumeSubscription', () => {
     it('resumes subscription', async () => {
-      mockRazorpayInstance.subscriptions.resume.mockResolvedValue({ id: 'sub_123', status: 'active' });
-      
+      mockRazorpayInstance.subscriptions.resume.mockResolvedValue({
+        id: 'sub_123',
+        status: 'active',
+      });
+
       const result = await service.resumeSubscription('sub_123');
-      expect(mockRazorpayInstance.subscriptions.resume).toHaveBeenCalledWith('sub_123', { resume_at: 'now' });
+      expect(mockRazorpayInstance.subscriptions.resume).toHaveBeenCalledWith('sub_123', {
+        resume_at: 'now',
+      });
       expect(result.status).toBe('active');
     });
   });
@@ -233,6 +248,59 @@ describe('RazorpayService', () => {
   describe('getKeyId', () => {
     it('returns key id from config', () => {
       expect(service.getKeyId()).toBe('rzp_test_key');
+    });
+  });
+
+  describe('verifySubscriptionSignature', () => {
+    it('returns true for a valid subscription signature', () => {
+      const crypto = require('crypto');
+      const paymentId = 'pay_123';
+      const subscriptionId = 'sub_123';
+      const signature = crypto
+        .createHmac('sha256', 'test_secret')
+        .update(`${paymentId}|${subscriptionId}`)
+        .digest('hex');
+
+      const isValid = service.verifySubscriptionSignature({
+        paymentId,
+        subscriptionId,
+        signature,
+      });
+
+      expect(isValid).toBe(true);
+    });
+
+    it('returns false for an invalid signature', () => {
+      const isValid = service.verifySubscriptionSignature({
+        paymentId: 'pay_123',
+        subscriptionId: 'sub_123',
+        signature: 'invalid_sig',
+      });
+
+      expect(isValid).toBe(false);
+    });
+
+    it('returns false if key secret is missing', () => {
+      mockConfigService.get.mockImplementation((k: string) => {
+        if (k === 'RAZORPAY_KEY_SECRET') return '';
+        return 'something';
+      });
+      const isValid = service.verifySubscriptionSignature({
+        paymentId: 'pay_123',
+        subscriptionId: 'sub_123',
+        signature: 'sig',
+      });
+
+      expect(isValid).toBe(false);
+    });
+  });
+
+  describe('fetchPayment', () => {
+    it('fetches payment by id', async () => {
+      mockRazorpayInstance.payments.fetch.mockResolvedValue({ id: 'pay_123', status: 'captured' });
+      const result = await service.fetchPayment('pay_123');
+      expect(mockRazorpayInstance.payments.fetch).toHaveBeenCalledWith('pay_123');
+      expect(result.id).toBe('pay_123');
     });
   });
 });

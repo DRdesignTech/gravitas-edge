@@ -24,7 +24,8 @@ export class PurchasePlanDto {
 
   @ApiPropertyOptional({
     example: false,
-    description: 'If true, create a recurring subscription (AutoPay). If false (default), create a one-time payment.',
+    description:
+      'If true, create a recurring subscription (AutoPay). If false (default), create a one-time payment.',
   })
   @IsOptional()
   @IsBoolean()

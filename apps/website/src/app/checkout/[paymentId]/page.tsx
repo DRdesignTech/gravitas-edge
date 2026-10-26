@@ -10,6 +10,7 @@ import {
   purchasePlan,
   validateCoupon,
   verifyPayment,
+  verifySubscriptionPayment,
 } from '@/lib/services';
 import { AvailableCoupon, PaymentSession } from '@/lib/types';
 import { Badge, Button, Card, ErrorState, Input, Skeleton, Spinner } from '@/components/ui';
@@ -191,10 +192,40 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
         setSession(s);
         if (s.status === 'SUCCESS') setPhase('success');
         else if (s.status === 'FAILED') setPhase('failure');
-        else setPhase('form');
+        else if (s.status === 'PENDING') {
+          setPhase('processing');
+          setPhaseError(
+            'Payment confirmation is still pending. Access will be activated only after the captured payment is confirmed.',
+          );
+        } else setPhase('form');
       })
       .catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoading(false));
+  };
+
+  const checkPendingStatus = async () => {
+    setPhaseError('');
+    try {
+      const refreshed = await fetchPaymentSession(paymentId);
+      setSession(refreshed);
+      if (refreshed.status === 'SUCCESS') {
+        await refreshAccess();
+        setPhase('success');
+        router.replace(returnTo || '/dashboard');
+        return;
+      }
+      if (refreshed.status === 'FAILED') {
+        setPhase('failure');
+        return;
+      }
+      setPhase('processing');
+      setPhaseError(
+        'Payment confirmation is still pending. You can check again shortly; access has not been activated yet.',
+      );
+    } catch (err) {
+      setPhase('processing');
+      setPhaseError(getErrorMessage(err));
+    }
   };
 
   useEffect(() => {
@@ -360,21 +391,52 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
                 razorpay_signature: response.razorpay_signature,
                 paymentId,
               });
-            } else if (session.recurring || session.razorpaySubscriptionId) {
-              // For subscription flows, authorization handled via webhooks
+              await refreshAccess();
+              setPhase('success');
+              router.replace(returnTo || '/dashboard');
+            } else if (
+              (session.recurring || session.razorpaySubscriptionId) &&
+              response.razorpay_subscription_id &&
+              response.razorpay_signature
+            ) {
+              const res = await verifySubscriptionPayment({
+                paymentId,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_subscription_id: response.razorpay_subscription_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+
+              if (res.status === 'SUCCESS') {
+                await refreshAccess();
+                setPhase('success');
+                router.replace(returnTo || '/dashboard');
+              } else {
+                // Payment is authorized but capture is still in flight (e.g. UPI mandate settlement)
+                setPhase('processing');
+                let confirmed = false;
+                for (let attempt = 0; attempt < 5; attempt++) {
+                  await new Promise((resolve) => setTimeout(resolve, 2000));
+                  try {
+                    const refreshed = await fetchPaymentSession(paymentId);
+                    if (refreshed.status === 'SUCCESS') {
+                      confirmed = true;
+                      await refreshAccess();
+                      setPhase('success');
+                      router.replace(returnTo || '/dashboard');
+                      break;
+                    }
+                  } catch {
+                    // continue polling
+                  }
+                }
+                if (!confirmed) {
+                  setPhaseError(
+                    'Your mandate was authorized, but Razorpay has not confirmed the payment yet. We will activate access after confirmation.',
+                  );
+                }
+              }
             } else {
               throw new Error('Invalid payment response');
-            }
-            await refreshAccess();
-            setPhase('success');
-            if (paymentId !== session.paymentId) {
-              router.replace(
-                `/checkout/${paymentId}${
-                  returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''
-                }`,
-              );
-            } else {
-              loadSession();
             }
           } catch (err: any) {
             setPhase('failure');
@@ -576,7 +638,30 @@ function GatewaySession({ paymentId, returnTo }: { paymentId: string; returnTo: 
     );
   }
 
-  const forbiddenStates = ['CANCELLED', 'REFUNDED', 'PENDING'];
+  if (phase === 'processing' && phaseError) {
+    return (
+      <Shell>
+        <div className="mx-auto max-w-xl rounded-3xl border border-line bg-surface p-6 text-center shadow-card dark:bg-surface-elevated">
+          <Spinner className="mx-auto h-8 w-8" />
+          <h1 className="mt-4 text-xl font-extrabold text-content">
+            Payment confirmation in progress
+          </h1>
+          <p className="mt-2 text-sm text-content-muted">
+            Your mandate may be authorized, but access is activated only after Razorpay confirms a
+            captured payment.
+          </p>
+          {phaseError && (
+            <p className="mt-4 text-sm text-amber-700 dark:text-amber-300">{phaseError}</p>
+          )}
+          <Button className="mt-6" onClick={checkPendingStatus}>
+            Check payment status
+          </Button>
+        </div>
+      </Shell>
+    );
+  }
+
+  const forbiddenStates = ['CANCELLED', 'REFUNDED'];
   if (forbiddenStates.includes(session.status)) {
     return (
       <Shell>

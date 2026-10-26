@@ -4,11 +4,7 @@ export interface RawBodyRequest extends Request {
   rawBody?: Buffer;
 }
 
-export function rawBodyMiddleware(
-  req: RawBodyRequest,
-  _res: Response,
-  next: NextFunction,
-) {
+export function rawBodyMiddleware(req: RawBodyRequest, _res: Response, next: NextFunction) {
   let data = '';
   req.setEncoding('utf8');
   req.on('data', (chunk) => {
