@@ -4,6 +4,8 @@ import { AdminSubscriptionsService } from './admin-subscriptions.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionAccessService } from '../../access/subscription-access.service';
 import { ReferralsService } from '../../referrals/referrals.service';
+import { RazorpayService } from '../../payments/razorpay.service';
+import { AuditService } from '../../audit/audit.service';
 
 function mockPrismaService() {
   return {
@@ -63,6 +65,15 @@ describe('AdminSubscriptionsService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: SubscriptionAccessService, useValue: access },
         { provide: ReferralsService, useValue: mockReferralsService() },
+        {
+          provide: RazorpayService,
+          useValue: {
+            fetchPayment: jest.fn(),
+            fetchSubscription: jest.fn(),
+            fetchInvoice: jest.fn(),
+          },
+        },
+        { provide: AuditService, useValue: { record: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
     service = moduleRef.get(AdminSubscriptionsService);

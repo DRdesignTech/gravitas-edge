@@ -1,8 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { adminListUsers, adminUpdateUser, adminCreateUser, adminDeleteUser } from '@/lib/services';
-import { User, PaginatedResult, USER_STATUSES, ROLES } from '@/lib/types';
+import {
+  adminListUsers,
+  adminUpdateUser,
+  adminCreateUser,
+  adminDeleteUser,
+  adminListSubscriptions,
+  adminListPlans,
+  adminListVaults,
+  adminGrantVaultAccess,
+  adminManualVaultGrant,
+} from '@/lib/services';
+import {
+  User,
+  PaginatedResult,
+  USER_STATUSES,
+  ROLES,
+  AdminSubscription,
+  SubscriptionPlan,
+  Vault,
+} from '@/lib/types';
 import {
   Button,
   Card,
@@ -42,8 +60,23 @@ export default function UsersPage() {
   const [createPassword, setCreatePassword] = useState('');
   const [createRole, setCreateRole] = useState<'USER' | 'ADMIN'>('USER');
   const [createStatus, setCreateStatus] = useState<'ACTIVE' | 'INACTIVE' | 'SUSPENDED'>('ACTIVE');
+  const [createPlanId, setCreatePlanId] = useState('');
+  const [createVaultId, setCreateVaultId] = useState('');
 
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [grantTarget, setGrantTarget] = useState<User | null>(null);
+  const [grantSubscriptions, setGrantSubscriptions] = useState<AdminSubscription[]>([]);
+  const [grantPlans, setGrantPlans] = useState<SubscriptionPlan[]>([]);
+  const [grantVaults, setGrantVaults] = useState<Vault[]>([]);
+  const [grantSubscriptionId, setGrantSubscriptionId] = useState('');
+  const [grantVaultId, setGrantVaultId] = useState('');
+  const [grantPaymentId, setGrantPaymentId] = useState('');
+  const [grantLoading, setGrantLoading] = useState(false);
+  const [manualGrantTarget, setManualGrantTarget] = useState<User | null>(null);
+  const [manualGrantPlanId, setManualGrantPlanId] = useState('');
+  const [manualGrantVaultId, setManualGrantVaultId] = useState('');
+  const [manualGrantReason, setManualGrantReason] = useState('');
+  const [manualGrantRequestId, setManualGrantRequestId] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -58,6 +91,19 @@ export default function UsersPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, status, role]);
+
+  useEffect(() => {
+    Promise.all([
+      adminListPlans({ isActive: true, page: 1, limit: 100 }),
+      adminListVaults({ status: 'ACTIVE', page: 1, limit: 100 }),
+    ])
+      .then(([plans, vaults]) => {
+        setGrantPlans(plans.items);
+        setGrantVaults(vaults.items);
+      })
+      .catch((err) => showToast(getErrorMessage(err), 'error'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +139,8 @@ export default function UsersPage() {
     setCreatePassword('');
     setCreateRole('USER');
     setCreateStatus('ACTIVE');
+    setCreatePlanId('');
+    setCreateVaultId('');
     setCreating(true);
   };
 
@@ -105,8 +153,12 @@ export default function UsersPage() {
         password: createPassword,
         role: createRole,
         status: createStatus,
+        ...(createPlanId && createVaultId ? { planId: createPlanId, vaultId: createVaultId } : {}),
       });
-      showToast('User created', 'success');
+      showToast(
+        createPlanId ? 'User created with initial vault access' : 'User created',
+        'success',
+      );
       setCreating(false);
       load();
     } catch (err) {
@@ -170,6 +222,12 @@ export default function UsersPage() {
           <Button maxWidth="max-w-md" variant="secondary" onClick={() => openEdit(u)}>
             Edit
           </Button>
+          <Button maxWidth="max-w-md" variant="secondary" onClick={() => void openGrant(u)}>
+            Grant access
+          </Button>
+          <Button maxWidth="max-w-md" variant="secondary" onClick={() => openManualGrant(u)}>
+            Manual grant
+          </Button>
           <Button maxWidth="max-w-md" variant="danger" onClick={() => setDeleteTarget(u)}>
             Delete
           </Button>
@@ -186,6 +244,101 @@ export default function UsersPage() {
       showToast('User permanently deleted', 'success');
       setDeleteTarget(null);
       load();
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openGrant = async (user: User) => {
+    setGrantTarget(user);
+    setGrantLoading(true);
+    setGrantSubscriptions([]);
+    setGrantPlans([]);
+    setGrantVaults([]);
+    setGrantSubscriptionId('');
+    setGrantVaultId('');
+    setGrantPaymentId('');
+    try {
+      const [subscriptions, plans, vaults] = await Promise.all([
+        adminListSubscriptions({ userId: user.id, status: 'PENDING', page: 1, limit: 100 }),
+        adminListPlans({ isActive: true, page: 1, limit: 100 }),
+        adminListVaults({ status: 'ACTIVE', page: 1, limit: 100 }),
+      ]);
+      setGrantSubscriptions(subscriptions.items);
+      setGrantPlans(plans.items);
+      setGrantVaults(vaults.items);
+      setGrantSubscriptionId(subscriptions.items[0]?.id ?? '');
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setGrantLoading(false);
+    }
+  };
+
+  const selectedGrantSubscription = grantSubscriptions.find((s) => s.id === grantSubscriptionId);
+  const selectedGrantPlan = grantPlans.find((p) => p.id === selectedGrantSubscription?.plan?.id);
+  const activeVaultIds = new Set(grantVaults.filter((v) => v.status === 'ACTIVE').map((v) => v.id));
+  const selectableVaults = (selectedGrantPlan?.vaults ?? []).filter((v) =>
+    activeVaultIds.has(v.id),
+  );
+  const selectedCreatePlan = grantPlans.find((p) => p.id === createPlanId);
+  const createVaultOptions = (selectedCreatePlan?.vaults ?? []).filter((v) =>
+    activeVaultIds.has(v.id),
+  );
+
+  const submitGrant = async () => {
+    if (!grantSubscriptionId || !grantVaultId || !grantPaymentId.trim()) return;
+    setSaving(true);
+    try {
+      await adminGrantVaultAccess({
+        subscriptionId: grantSubscriptionId,
+        vaultId: grantVaultId,
+        razorpayPaymentId: grantPaymentId.trim(),
+      });
+      showToast('Verified payment access granted for the selected vault', 'success');
+      setGrantTarget(null);
+    } catch (err) {
+      showToast(getErrorMessage(err), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openManualGrant = (user: User) => {
+    setManualGrantTarget(user);
+    setManualGrantPlanId('');
+    setManualGrantVaultId('');
+    setManualGrantReason('');
+    setManualGrantRequestId(crypto.randomUUID());
+  };
+
+  const selectedManualPlan = grantPlans.find((p) => p.id === manualGrantPlanId);
+  const manualVaultOptions = (selectedManualPlan?.vaults ?? []).filter((v) =>
+    activeVaultIds.has(v.id),
+  );
+
+  const submitManualGrant = async () => {
+    if (
+      !manualGrantTarget ||
+      !manualGrantPlanId ||
+      !manualGrantVaultId ||
+      manualGrantReason.trim().length < 8
+    ) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await adminManualVaultGrant({
+        userId: manualGrantTarget.id,
+        planId: manualGrantPlanId,
+        vaultId: manualGrantVaultId,
+        reason: manualGrantReason.trim(),
+        requestId: manualGrantRequestId,
+      });
+      showToast('Manual access granted for the selected vault', 'success');
+      setManualGrantTarget(null);
     } catch (err) {
       showToast(getErrorMessage(err), 'error');
     } finally {
@@ -272,12 +425,43 @@ export default function UsersPage() {
               { value: 'SUSPENDED', label: 'Suspended' },
             ]}
           />
+          <Select
+            label="Initial plan (optional)"
+            placeholder="Create user without access"
+            value={createPlanId}
+            onChange={(e) => {
+              setCreatePlanId(e.target.value);
+              setCreateVaultId('');
+            }}
+            options={grantPlans.map((plan) => ({
+              value: plan.id,
+              label: `${plan.name} · ${plan.durationDays} days`,
+            }))}
+          />
+          <Select
+            label="Single vault"
+            placeholder={createPlanId ? 'Select a linked vault' : 'Select a plan first'}
+            value={createVaultId}
+            onChange={(e) => setCreateVaultId(e.target.value)}
+            options={createVaultOptions.map((vault) => ({ value: vault.id, label: vault.name }))}
+          />
+          {createPlanId && (
+            <p className="text-sm text-content-muted md:col-span-2">
+              This is an admin-issued grant and does not collect payment. The selected plan and one
+              linked vault will be recorded for the new user.
+            </p>
+          )}
           <div className="flex items-end">
             <Button
               type="button"
               onClick={saveCreate}
               loading={creating}
-              disabled={!createEmail || !createPassword}
+              disabled={
+                !createEmail ||
+                !createPassword ||
+                Boolean(createPlanId) !== Boolean(createVaultId) ||
+                (Boolean(createPlanId) && createStatus !== 'ACTIVE')
+              }
             >
               Create User
             </Button>
@@ -305,6 +489,156 @@ export default function UsersPage() {
           <EmptyState title="No users found" description="Try adjusting your search or filters." />
         </Card>
       )}
+
+      <Modal
+        isOpen={!!grantTarget}
+        onClose={() => setGrantTarget(null)}
+        title="Grant access after payment"
+        maxWidth="max-w-lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setGrantTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submitGrant}
+              loading={saving}
+              disabled={
+                grantLoading ||
+                !grantSubscriptionId ||
+                !grantVaultId ||
+                !grantPaymentId.trim() ||
+                selectableVaults.length === 0
+              }
+            >
+              Verify payment and grant
+            </Button>
+          </>
+        }
+      >
+        {grantTarget && (
+          <div className="space-y-4">
+            <div>
+              <p className="font-medium text-content">
+                {grantTarget.profile?.fullName || grantTarget.email}
+              </p>
+              <p className="text-sm text-content-muted">{grantTarget.email}</p>
+            </div>
+            {grantLoading ? (
+              <Skeleton className="h-32 rounded-xl" />
+            ) : grantSubscriptions.length === 0 ? (
+              <p className="text-sm text-content-muted">
+                This user has no pending checkout to recover. Access grants are only available after
+                a matching captured payment is verified.
+              </p>
+            ) : (
+              <>
+                <Select
+                  label="Pending checkout / plan"
+                  value={grantSubscriptionId}
+                  onChange={(e) => {
+                    setGrantSubscriptionId(e.target.value);
+                    setGrantVaultId('');
+                  }}
+                  options={grantSubscriptions.map((s) => ({
+                    value: s.id,
+                    label: `${s.plan?.name ?? 'Plan'} · ${s.id.slice(0, 8)}`,
+                  }))}
+                />
+                <Select
+                  label="Single vault to grant"
+                  value={grantVaultId}
+                  onChange={(e) => setGrantVaultId(e.target.value)}
+                  options={selectableVaults.map((v) => ({ value: v.id, label: v.name }))}
+                />
+                <Input
+                  label="Razorpay captured payment ID"
+                  placeholder="pay_..."
+                  value={grantPaymentId}
+                  onChange={(e) => setGrantPaymentId(e.target.value)}
+                />
+                <p className="text-xs text-content-muted">
+                  The server verifies the captured amount, currency, and checkout association. The
+                  grant uses the original checkout validity dates and does not extend billing or
+                  alter payment history.
+                </p>
+                {selectableVaults.length === 0 && (
+                  <p className="text-sm text-amber-700">
+                    The selected plan has no active linked vault available for a single-vault grant.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!manualGrantTarget}
+        onClose={() => setManualGrantTarget(null)}
+        title="Manual vault access grant"
+        maxWidth="max-w-lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setManualGrantTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submitManualGrant}
+              loading={saving}
+              disabled={
+                !manualGrantPlanId ||
+                !manualGrantVaultId ||
+                manualGrantReason.trim().length < 8 ||
+                manualVaultOptions.length === 0
+              }
+            >
+              Grant selected vault
+            </Button>
+          </>
+        }
+      >
+        {manualGrantTarget && (
+          <div className="space-y-4">
+            <div>
+              <p className="font-medium text-content">
+                {manualGrantTarget.profile?.fullName || manualGrantTarget.email}
+              </p>
+              <p className="text-sm text-content-muted">{manualGrantTarget.email}</p>
+            </div>
+            <Select
+              label="Plan"
+              placeholder="Select an active plan"
+              value={manualGrantPlanId}
+              onChange={(e) => {
+                setManualGrantPlanId(e.target.value);
+                setManualGrantVaultId('');
+              }}
+              options={grantPlans.map((plan) => ({
+                value: plan.id,
+                label: `${plan.name} · ${plan.durationDays} days`,
+              }))}
+            />
+            <Select
+              label="Single vault"
+              placeholder={manualGrantPlanId ? 'Select a linked vault' : 'Select a plan first'}
+              value={manualGrantVaultId}
+              onChange={(e) => setManualGrantVaultId(e.target.value)}
+              options={manualVaultOptions.map((vault) => ({ value: vault.id, label: vault.name }))}
+            />
+            <Input
+              label="Reason (required for audit)"
+              placeholder="Why is this manual access being granted?"
+              value={manualGrantReason}
+              onChange={(e) => setManualGrantReason(e.target.value)}
+            />
+            <p className="text-xs text-content-muted">
+              This creates a non-renewing admin grant for the selected plan duration. It does not
+              charge the user or change payment history.
+            </p>
+          </div>
+        )}
+      </Modal>
 
       <Modal
         isOpen={!!editing}

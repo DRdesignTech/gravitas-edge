@@ -28,6 +28,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { AdminRecruitmentVendorModule } from './recruitment-vendor/admin-recruitment-vendor.module';
 import { ReferralsModule } from '../referrals/referrals.module';
 import { ResumesModule } from '../resumes/resumes.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ResumesModule } from '../resumes/resumes.module';
     AdminRecruitmentVendorModule,
     ResumesModule,
     AdminResumesModule,
+    PaymentsModule,
   ],
   controllers: [
     AdminUsersController,

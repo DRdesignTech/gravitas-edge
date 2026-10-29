@@ -21,6 +21,8 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../../common/types/auth.types';
+import { GrantVaultAccessDto } from './dto/grant-vault-access.dto';
+import { AdminManualVaultGrantDto } from './dto/admin-manual-vault-grant.dto';
 
 @ApiTags('admin-subscriptions')
 @ApiBearerAuth()
@@ -34,6 +36,30 @@ export class AdminSubscriptionsController {
   @ApiOperation({ summary: 'List all subscriptions (admin view, paginated)' })
   list(@Query() query: { page?: number; limit?: number; userId?: string; status?: string }) {
     return this.adminSubscriptionsService.list(query);
+  }
+
+  @Post('access-grant')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Grant one vault after verifying a captured payment for a pending checkout',
+  })
+  grantVaultAccess(
+    @Body() dto: GrantVaultAccessDto,
+    @CurrentUser() actor: AuthenticatedUser,
+    @Req() req: Request,
+  ) {
+    return this.adminSubscriptionsService.grantVaultAccess(dto, actor, this.clientIp(req));
+  }
+
+  @Post('admin-grant')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Issue an audited, manual grant for one vault to an existing user' })
+  manualVaultGrant(
+    @Body() dto: AdminManualVaultGrantDto,
+    @CurrentUser() actor: AuthenticatedUser,
+    @Req() req: Request,
+  ) {
+    return this.adminSubscriptionsService.manualVaultGrant(dto, actor, this.clientIp(req));
   }
 
   @Get(':id')

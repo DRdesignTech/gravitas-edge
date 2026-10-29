@@ -164,22 +164,100 @@ export class AdminUsersService {
   }
 
   async create(dto: CreateUserDto, actor: AuthenticatedUser, ipAddress?: string) {
-    const { email, password, role = 'USER', status = 'ACTIVE' } = dto;
+    const { password, role = 'USER', status = 'ACTIVE' } = dto;
+    const email = dto.email.trim().toLowerCase();
 
-    const existing = await this.prisma.user.findFirst({ where: { email, deletedAt: null } });
+    if (Boolean(dto.planId) !== Boolean(dto.vaultId)) {
+      throw new BadRequestException('Select both a plan and one vault, or leave both empty');
+    }
+    const planId = dto.planId;
+    const vaultId = dto.vaultId;
+    if (planId && status !== 'ACTIVE') {
+      throw new BadRequestException('Initial vault access requires an ACTIVE user account');
+    }
+
+    const existing = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' }, deletedAt: null },
+    });
     if (existing) {
       throw new BadRequestException('User with this email already exists');
     }
 
-    const newUser = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash: await bcrypt.hash(password, 12),
-        status,
-        roles: role ? { create: { role: { connect: { name: role } } } } : undefined,
-      },
-      select: USER_SELECT,
-    });
+    const passwordHash = await bcrypt.hash(password, 12);
+    let newUser;
+    let initialAccess: { subscriptionId: string; planId: string; vaultId: string } | undefined;
+
+    try {
+      if (planId && vaultId) {
+        const result = await this.prisma.$transaction(async (tx) => {
+          const plan = await tx.subscriptionPlan.findFirst({
+            where: { id: planId, isActive: true, deletedAt: null },
+            include: {
+              vaults: {
+                where: { vaultId, vault: { deletedAt: null, status: 'ACTIVE' } },
+              },
+            },
+          });
+          if (!plan || plan.vaults.length !== 1) {
+            throw new BadRequestException(
+              'Selected vault must be active and linked to the selected plan',
+            );
+          }
+
+          const user = await tx.user.create({
+            data: {
+              email,
+              passwordHash,
+              status,
+              roles: role ? { create: { role: { connect: { name: role } } } } : undefined,
+            },
+            select: USER_SELECT,
+          });
+          const startDate = new Date();
+          const endDate = new Date(startDate.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
+          const subscription = await tx.subscription.create({
+            data: {
+              userId: user.id,
+              planId: plan.id,
+              startDate,
+              endDate,
+              status: 'ACTIVE',
+              autoRenew: false,
+              paymentReference: `admin-create:${actor.id}:${user.id}`,
+              vaultAccess: { create: { vaultId } },
+            },
+            select: { id: true },
+          });
+          return { user, subscription };
+        });
+        newUser = result.user;
+        initialAccess = {
+          subscriptionId: result.subscription.id,
+          planId,
+          vaultId,
+        };
+      } else {
+        newUser = await this.prisma.user.create({
+          data: {
+            email,
+            passwordHash,
+            status,
+            roles: role ? { create: { role: { connect: { name: role } } } } : undefined,
+          },
+          select: USER_SELECT,
+        });
+      }
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const target = Array.isArray(error.meta?.target)
+          ? error.meta.target.join(',')
+          : String(error.meta?.target ?? '');
+        if (target.toLowerCase().includes('email')) {
+          throw new BadRequestException('User with this email already exists');
+        }
+      }
+      throw error;
+    }
 
     await this.audit.record({
       action: 'USER_CREATED',
@@ -187,8 +265,28 @@ export class AdminUsersService {
       entityId: newUser.id,
       adminUserId: actor.id,
       ipAddress,
-      details: { email, role, status },
+      details: {
+        email,
+        role,
+        status,
+        ...(initialAccess ? { initialAccess } : {}),
+      },
     });
+
+    if (initialAccess) {
+      await this.audit.record({
+        action: 'ADMIN_INITIAL_VAULT_ACCESS_GRANTED',
+        entityType: 'Subscription',
+        entityId: initialAccess.subscriptionId,
+        adminUserId: actor.id,
+        ipAddress,
+        details: {
+          userId: newUser.id,
+          planId: initialAccess.planId,
+          vaultId: initialAccess.vaultId,
+        },
+      });
+    }
 
     return {
       ...newUser,

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, Length } from 'class-validator';
+import { IsEmail, IsOptional, IsString, IsUUID, Length } from 'class-validator';
 
 export class CreateUserDto {
   @ApiProperty({ example: 'user@example.com' })
@@ -19,4 +19,14 @@ export class CreateUserDto {
   @ApiProperty({ enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED'], example: 'ACTIVE', default: 'ACTIVE' })
   @IsOptional()
   status?: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+
+  @ApiProperty({ required: false, description: 'Optional plan for an admin-issued initial grant' })
+  @IsOptional()
+  @IsUUID()
+  planId?: string;
+
+  @ApiProperty({ required: false, description: 'One vault from the selected plan' })
+  @IsOptional()
+  @IsUUID()
+  vaultId?: string;
 }

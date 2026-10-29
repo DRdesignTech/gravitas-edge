@@ -50,7 +50,9 @@ export class AuthService {
 
     // Only an account that is NOT soft-deleted occupies the email. A soft-deleted
     // (deletedAt IS NOT NULL) user no longer blocks re-registration.
-    const existing = await this.prisma.user.findFirst({ where: { email, deletedAt: null } });
+    const existing = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' }, deletedAt: null },
+    });
     if (existing) {
       await this.audit.record({
         action: 'AUTH_REGISTER_FAILED',
@@ -175,8 +177,8 @@ export class AuthService {
   async login(dto: LoginDto, ipAddress?: string) {
     const email = dto.email.trim().toLowerCase();
 
-    const user = await this.prisma.user.findFirst({
-      where: { email },
+    const exactUser = await this.prisma.user.findFirst({
+      where: { email, deletedAt: null },
       select: {
         id: true,
         email: true,
@@ -185,6 +187,18 @@ export class AuthService {
         deletedAt: true,
       },
     });
+    const user =
+      exactUser ??
+      (await this.prisma.user.findFirst({
+        where: { email: { equals: email, mode: 'insensitive' }, deletedAt: null },
+        select: {
+          id: true,
+          email: true,
+          passwordHash: true,
+          status: true,
+          deletedAt: true,
+        },
+      }));
 
     if (!user || user.deletedAt) {
       // The account does not exist (or was deleted). The UI uses this to offer

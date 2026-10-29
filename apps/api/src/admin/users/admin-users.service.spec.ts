@@ -100,7 +100,9 @@ describe('AdminUsersService (security)', () => {
 
       expect(prisma.user.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ email: 'reused@example.com' }),
+          where: expect.objectContaining({
+            email: { equals: 'reused@example.com', mode: 'insensitive' },
+          }),
         }),
       );
       expect(prisma.user.create).toHaveBeenCalled();

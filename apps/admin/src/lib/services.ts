@@ -151,6 +151,8 @@ export function adminCreateUser(body: {
   password: string;
   role?: string;
   status?: string;
+  planId?: string;
+  vaultId?: string;
 }) {
   return api.post<User>(`/admin/users`, body);
 }
@@ -305,6 +307,30 @@ export function adminListCouponUsages(id: string, query: { page?: number; limit?
 
 export function adminGetSubscription(id: string) {
   return api.get<AdminSubscription>(`/admin/subscriptions/${id}`);
+}
+
+export function adminGrantVaultAccess(body: {
+  subscriptionId: string;
+  vaultId: string;
+  razorpayPaymentId: string;
+}) {
+  return api.post<AdminSubscription & { vaultAccess: { vaultId: string }[] }>(
+    '/admin/subscriptions/access-grant',
+    body,
+  );
+}
+
+export function adminManualVaultGrant(body: {
+  userId: string;
+  planId: string;
+  vaultId: string;
+  reason: string;
+  requestId: string;
+}) {
+  return api.post<AdminSubscription & { vaultAccess: { vaultId: string }[] }>(
+    '/admin/subscriptions/admin-grant',
+    body,
+  );
 }
 
 export function adminListOpportunities(query: OpportunityQuery = {}) {
