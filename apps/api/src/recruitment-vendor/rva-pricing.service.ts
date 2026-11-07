@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { RazorpayService } from '../payments/razorpay.service';
+import { AUTOPAY_TERM_MONTHS, RazorpayService } from '../payments/razorpay.service';
 import { durationLabel } from '../subscriptions/pricing-catalog';
 import { RvaCouponsService } from './rva-coupons.service';
 import { couponError, normalizeCouponCode, serializeCouponSummary } from '../coupons/coupon.util';
@@ -184,7 +184,7 @@ export class RvaPricingService {
           }
           const subscription = await this.razorpayService.createSubscription({
             planId: billing.id,
-            totalCount: Math.max(1, Math.floor(730 / plan.durationDays)),
+            totalCount: Math.floor(AUTOPAY_TERM_MONTHS / billing.months),
             customerNotify: true,
             expireBy: Math.floor(Date.now() / 1000) + 86_400,
             notes: { userId, planId: plan.id, product: 'rva' },

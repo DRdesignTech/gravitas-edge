@@ -526,7 +526,7 @@ describe('PricingService', () => {
       expect(razorpayService.createSubscription).toHaveBeenCalledWith(
         expect.objectContaining({
           planId: 'plan_TrprBHz0jjoi8n',
-          totalCount: 24,
+          totalCount: 60,
           customerNotify: true,
         }),
       );

@@ -280,7 +280,7 @@ export default function RecruitmentVendorPage() {
     setPage(1);
   };
 
-  const handleChoosePlan = async (plan: RvaPlan, recurring: boolean) => {
+  const handleChoosePlan = async (plan: RvaPlan) => {
     if (!user) {
       router.push('/register');
       return;
@@ -288,7 +288,7 @@ export default function RecruitmentVendorPage() {
     if (buyingPlanId) return;
     setBuyingPlanId(plan.id);
     try {
-      const started = await purchaseRvaPlan(plan.id, undefined, recurring);
+      const started = await purchaseRvaPlan(plan.id, undefined, true);
       router.push(`/recruitment-vendor/checkout/${started.paymentId}`);
     } catch (e) {
       setBuyingPlanId(null);
@@ -299,7 +299,9 @@ export default function RecruitmentVendorPage() {
   const categories = (overview?.categories ?? []).filter((c) =>
     PRIMARY_CATEGORIES.includes(c.value),
   );
-  const plans = overview?.plans ?? [];
+  const plans = (overview?.plans ?? []).filter(
+    (plan): plan is RvaPlan & { autoPayAmount: number } => plan.autoPayAmount != null,
+  );
   const faqs = overview?.faqs ?? [];
   const publishedCount = overview?.publishedOpportunityCount ?? 0;
   const hasSearch = searchQuery.trim().length > 0;
@@ -731,7 +733,7 @@ export default function RecruitmentVendorPage() {
                     popular={plan.durationDays === 90}
                     loading={buyingPlanId === plan.id}
                     disabled={buyingPlanId !== null}
-                    onChoose={(recurring) => handleChoosePlan(plan, recurring)}
+                    onChoose={() => handleChoosePlan(plan)}
                   />
                 ))}
               </div>
@@ -999,15 +1001,12 @@ function PlanCard({
   disabled,
   onChoose,
 }: {
-  plan: RvaPlan;
+  plan: RvaPlan & { autoPayAmount: number };
   popular: boolean;
   loading: boolean;
   disabled: boolean;
-  onChoose: (recurring: boolean) => void;
+  onChoose: () => void;
 }) {
-  const hasDiscount = (plan.discountPercentage ?? 0) > 0 && plan.regularPrice > plan.price;
-  const savings = hasDiscount ? plan.regularPrice - plan.price : 0;
-
   return (
     <article
       className={`relative flex flex-col rounded-2xl border p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover ${
@@ -1024,26 +1023,10 @@ function PlanCard({
       <p className="text-sm font-bold uppercase tracking-wide text-content-muted">
         {plan.durationLabel}
       </p>
-      <div className="mt-3 flex items-end gap-2">
-        <span className="text-3xl font-extrabold tracking-tight text-content">
-          {formatMoney(plan.price, plan.currency)}
-        </span>
-        {hasDiscount && (
-          <span className="pb-1 text-sm text-content-faint line-through">
-            {formatMoney(plan.regularPrice, plan.currency)}
-          </span>
-        )}
-      </div>
-      {hasDiscount && (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
-            {plan.discountPercentage}% OFF
-          </span>
-          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-            Save {formatMoney(savings, plan.currency)}
-          </span>
-        </div>
-      )}
+      <p className="mt-3 text-3xl font-extrabold tracking-tight text-content">
+        {formatMoney(plan.autoPayAmount, plan.currency)}
+      </p>
+      <p className="mt-2 text-xs text-content-muted">Renews automatically with AutoPay</p>
 
       {plan.description && (
         <p className="mt-4 text-sm leading-relaxed text-content-muted">{plan.description}</p>
@@ -1067,20 +1050,10 @@ function PlanCard({
         className="mt-6 w-full !py-3"
         loading={loading}
         disabled={disabled}
-        onClick={() => onChoose(false)}
+        onClick={onChoose}
       >
-        {loading ? 'Starting…' : 'Pay once'}
+        {loading ? 'Starting…' : 'Buy Now'}
       </Button>
-      {plan.autoPayAmount != null && (
-        <Button
-          variant="outline"
-          className="mt-2 w-full"
-          disabled={disabled}
-          onClick={() => onChoose(true)}
-        >
-          AutoPay · {formatMoney(plan.autoPayAmount, plan.currency)} / {plan.durationLabel}
-        </Button>
-      )}
     </article>
   );
 }

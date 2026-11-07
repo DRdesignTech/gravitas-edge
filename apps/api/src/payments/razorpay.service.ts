@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import Razorpay from 'razorpay';
 import { validateWebhookSignature } from 'razorpay/dist/utils/razorpay-utils';
 
+export const AUTOPAY_TERM_MONTHS = 60;
+
 // Verified LIVE allowed plan IDs (18 plans). Exclude plan_Trq9hv9Sx7SUb7.
 const ALLOWED_RAZORPAY_PLAN_IDS = new Set([
   'plan_TrprBHz0jjoi8n', // Remote 1 month

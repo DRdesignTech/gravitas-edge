@@ -29,7 +29,7 @@ import { PurchasePlanDto } from './dto/purchase-plan.dto';
 import { ConfirmPurchaseDto } from './dto/confirm-purchase.dto';
 import { VerifyPaymentDto } from './dto/verify-payment.dto';
 import { VerifySubscriptionDto } from './dto/verify-subscription.dto';
-import { RazorpayService } from '../payments/razorpay.service';
+import { AUTOPAY_TERM_MONTHS, RazorpayService } from '../payments/razorpay.service';
 import { PaymentStatus, SubscriptionStatus } from '@prisma/client';
 
 export interface OneTimePurchaseResult {
@@ -338,7 +338,7 @@ export class PricingService {
     });
     const subscription = await this.razorpayService.createSubscription({
       planId: razorpayPlanId,
-      totalCount: Math.max(1, Math.floor(730 / plan.durationDays)), // max allowed by Razorpay; effectively infinite recurring
+      totalCount: Math.max(1, Math.floor(AUTOPAY_TERM_MONTHS / (plan.durationDays / 30))),
       customerNotify: true,
       notes: {
         userId,

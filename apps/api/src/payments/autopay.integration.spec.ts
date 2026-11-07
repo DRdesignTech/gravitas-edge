@@ -181,6 +181,7 @@ suite('AutoPay with real PostgreSQL transactions', () => {
     const retry = await rva.purchase(userId, plan.id, undefined, true);
     expect(retry.paymentId).toBe(checkout.paymentId);
     expect(gateway.createSubscription).toHaveBeenCalledTimes(1);
+    expect(gateway.createSubscription).toHaveBeenCalledWith(expect.objectContaining({ totalCount: 20 }));
     expect(await rvaAccess.hasActiveSubscription(userId)).toBe(false);
     await expect(rva.confirmPurchase(userId, checkout.paymentId)).rejects.toThrow('verified');
 
