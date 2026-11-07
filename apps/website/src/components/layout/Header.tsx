@@ -186,7 +186,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full items-center justify-between gap-1 px-4 sm:gap-3 sm:px-6 xl:px-[15rem]">
+      <div className="mx-auto flex h-16 w-full max-w-[100rem] items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <Link
             href="/#home"
@@ -195,11 +195,11 @@ export default function Header() {
             aria-label="Gravitas Edge Consulting home"
           >
             <BrandLogo
-              className="h-10 w-auto sm:h-12"
-              nameClassName="hidden text-base font-bold tracking-tight text-content lg:inline lg:text-lg"
+              className="h-8 w-auto sm:h-10 lg:h-12"
+              nameClassName="hidden text-base font-bold tracking-tight text-content sm:inline lg:text-lg"
             />
           </Link>
-          <nav className="hidden items-center gap-x-0 xl:flex" aria-label="Primary">
+          <nav className="hidden items-center gap-x-0 2xl:flex" aria-label="Primary">
             {navLinks.map((link) =>
               link.href.startsWith('#') ? (
                 <Link
@@ -219,7 +219,7 @@ export default function Header() {
           </nav>
         </div>
 
-        <div className="hidden shrink-0 items-center gap-3 xl:flex xl:pl-6">
+        <div className="hidden shrink-0 items-center gap-3 2xl:flex 2xl:pl-4">
           <ThemeToggle />
           {user ? (
             <div className="relative" ref={menuRef}>
@@ -285,12 +285,12 @@ export default function Header() {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 xl:hidden">
+        <div className="flex shrink-0 items-center gap-1.5 2xl:hidden">
           {/* Compact mobile: Free Preview → Sign In → Menu */}
           <Link
             href="/#free-preview"
             onClick={(e) => handleSectionNav(e, '#free-preview')}
-            className="free-preview-border whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-semibold text-[#061B36] transition-colors hover:bg-[#FFF3D9] dark:text-brand-200 dark:hover:bg-brand-950"
+            className="free-preview-border hidden min-[384px]:inline-flex whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-semibold text-[#061B36] transition-colors hover:bg-[#FFF3D9] dark:text-brand-200 dark:hover:bg-brand-950"
           >
             Free Preview
           </Link>
@@ -339,7 +339,7 @@ export default function Header() {
       </div>
 
       {mobileOpen && (
-        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-line bg-surface px-4 pb-6 pt-3 xl:hidden">
+        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-line bg-surface px-4 pb-6 pt-3 2xl:hidden">
           <nav
             className="space-y-1"
             aria-label="Primary mobile"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -84,7 +84,10 @@ export default function AnalyticsPage() {
   const [resumeData, setResumeData] = useState<ResumeAnalytics | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const latestRequest = useRef(0);
+
   const load = useCallback(async (f: Filter, isRefresh = false) => {
+    const request = ++latestRequest.current;
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
@@ -100,6 +103,7 @@ export default function AnalyticsPage() {
         adminAnalyticsCommissions(f.range, f.startDate, f.endDate),
         adminAnalyticsResumes(f.range, f.startDate, f.endDate),
       ]);
+      if (request !== latestRequest.current) return;
       setOverview(o);
       setRevenue(r);
       setVaults(v);
@@ -110,10 +114,12 @@ export default function AnalyticsPage() {
       setCommissionData(com);
       setResumeData(res);
     } catch (e) {
-      setError(getErrorMessage(e));
+      if (request === latestRequest.current) setError(getErrorMessage(e));
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (request === latestRequest.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
@@ -207,13 +213,13 @@ export default function AnalyticsPage() {
     },
     {
       label: 'Referral Registrations',
-      value: overview?.referralRegistrations.toLocaleString() ?? '—',
+      value: overview?.periodReferralRegistrations.toLocaleString() ?? '—',
     },
     {
       label: 'Referral Commissions',
-      value: overview ? formatMoney(overview.totalCommissions, 'INR') : '—',
+      value: overview ? formatMoney(overview.periodCommissions, 'INR') : '—',
     },
-    { label: 'Resume Uploads', value: overview?.totalResumes.toLocaleString() ?? '—' },
+    { label: 'Resume Uploads', value: overview?.periodResumes.toLocaleString() ?? '—' },
   ];
 
   const tooltipStyle = {
@@ -287,7 +293,7 @@ export default function AnalyticsPage() {
     <div>
       <PageHeader
         title="Analytics"
-        subtitle="Platform performance overview."
+        subtitle="Date filters use IST. Total and current-status metrics are shown separately from period activity."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex flex-wrap rounded-lg border border-line bg-surface p-1 dark:bg-surface-elevated">

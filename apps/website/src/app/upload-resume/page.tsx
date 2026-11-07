@@ -25,8 +25,8 @@ export default function UploadResumePage() {
 
       <section className="bg-surface-muted">
         <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <p className="text-sm text-content-muted">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <p className="text-sm text-content-muted [overflow-wrap:anywhere]">
               {user
                 ? `Uploading as ${user.email}`
                 : 'No account is needed to begin. Add your details below.'}

@@ -3,63 +3,62 @@ import { CommissionStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AnalyticsQueryDto, DateRange } from './dto/analytics-query.dto';
 
+const IST_OFFSET_MS = 330 * 60 * 1000;
+
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
   private getDateFilter(dto: AnalyticsQueryDto): { start: Date; end: Date } {
-    const now = new Date();
+    const end = new Date();
+    // Shift to the IST calendar and use UTC accessors to avoid the server timezone.
+    const start = new Date(end.getTime() + IST_OFFSET_MS);
+    start.setUTCHours(0, 0, 0, 0);
 
     switch (dto.range) {
-      case DateRange.TODAY: {
-        const start = new Date(now);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(now);
-        end.setHours(23, 59, 59, 999);
-        return { start, end };
-      }
-      case DateRange.SEVEN_DAYS: {
-        const start = new Date(now);
-        start.setDate(start.getDate() - 7);
-        return { start, end: now };
-      }
-      case DateRange.NINETY_DAYS: {
-        const start = new Date(now);
-        start.setDate(start.getDate() - 90);
-        return { start, end: now };
-      }
+      case DateRange.TODAY:
+        break;
+      case DateRange.SEVEN_DAYS:
+        start.setUTCDate(start.getUTCDate() - 6);
+        break;
+      case DateRange.NINETY_DAYS:
+        return { start: new Date(end.getTime() - 90 * 86_400_000), end };
       case DateRange.ONE_YEAR: {
-        const start = new Date(now);
-        start.setFullYear(start.getFullYear() - 1);
-        return { start, end: now };
+        const yearStart = new Date(end);
+        yearStart.setUTCFullYear(yearStart.getUTCFullYear() - 1);
+        return { start: yearStart, end };
       }
       case DateRange.THIS_MONTH: {
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        return { start, end };
+        start.setUTCDate(1);
+        const nextMonth = new Date(start);
+        nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+        return {
+          start: new Date(start.getTime() - IST_OFFSET_MS),
+          end: new Date(nextMonth.getTime() - IST_OFFSET_MS - 1),
+        };
       }
       case DateRange.CUSTOM: {
-        const start = dto.startDate ? new Date(dto.startDate) : new Date(now);
-        const customEnd = dto.endDate ? new Date(dto.endDate) : now;
-        start.setHours(0, 0, 0, 0);
-        customEnd.setHours(23, 59, 59, 999);
-        return { start, end: customEnd };
+        const startDay = dto.startDate?.slice(0, 10) ?? start.toISOString().slice(0, 10);
+        const endDay = dto.endDate?.slice(0, 10) ?? start.toISOString().slice(0, 10);
+        return {
+          start: new Date(`${startDay}T00:00:00.000+05:30`),
+          end: new Date(`${endDay}T23:59:59.999+05:30`),
+        };
       }
-      case DateRange.THIRTY_DAYS:
-      default: {
-        const start = new Date(now);
-        start.setDate(start.getDate() - 30);
-        return { start, end: now };
-      }
+      default:
+        start.setUTCDate(start.getUTCDate() - 29);
     }
+
+    return { start: new Date(start.getTime() - IST_OFFSET_MS), end };
   }
 
-  /** Bump the interval of the monthly timeline bucket to match a short range. */
   private timelineGranularity(dto: AnalyticsQueryDto): 'day' | 'month' {
-    if (dto.range === DateRange.TODAY || dto.range === DateRange.SEVEN_DAYS) {
-      return 'day';
-    }
-    return 'month';
+    return dto.range === DateRange.TODAY ||
+      dto.range === DateRange.SEVEN_DAYS ||
+      dto.range === DateRange.THIRTY_DAYS ||
+      !dto.range
+      ? 'day'
+      : 'month';
   }
 
   async overview(dto: AnalyticsQueryDto) {
@@ -198,10 +197,7 @@ export class AnalyticsService {
 
     const bucketMap = new Map<string, { revenue: number; count: number }>();
     for (const p of payments) {
-      const key =
-        granularity === 'day'
-          ? `${p.createdAt.getFullYear()}-${String(p.createdAt.getMonth() + 1).padStart(2, '0')}-${String(p.createdAt.getDate()).padStart(2, '0')}`
-          : `${p.createdAt.getFullYear()}-${String(p.createdAt.getMonth() + 1).padStart(2, '0')}`;
+      const key = this.toBucketKey(p.createdAt, granularity);
       const entry = bucketMap.get(key) ?? { revenue: 0, count: 0 };
       entry.revenue += Number(p.amount);
       entry.count += 1;
@@ -272,9 +268,7 @@ export class AnalyticsService {
       this.prisma.payment.findMany({
         where: {
           status: 'SUCCESS',
-          subscription: {
-            createdAt: { gte: start, lte: end },
-          },
+          createdAt: { gte: start, lte: end },
         },
         select: {
           amount: true,
@@ -517,19 +511,18 @@ export class AnalyticsService {
       while (cur <= end) {
         const key = this.toBucketKey(cur, 'day');
         daily.set(key, 0);
-        cur.setDate(cur.getDate() + 1);
+        cur.setUTCDate(cur.getUTCDate() + 1);
       }
       for (const r of rows) {
         const key = this.toBucketKey(r.createdAt, 'day');
         daily.set(key, (daily.get(key) ?? 0) + r._count._all);
       }
     } else {
-      const cur = new Date(start.getFullYear(), start.getMonth(), 1);
-      const last = new Date(end.getFullYear(), end.getMonth(), 1);
-      while (cur <= last) {
-        const key = this.toBucketKey(cur, 'month');
+      const cur = new Date(this.toBucketKey(start, 'month') + '-01T00:00:00Z');
+      while (cur.getTime() <= end.getTime() + IST_OFFSET_MS) {
+        const key = cur.toISOString().slice(0, 7);
         monthlyRegistrations.set(key, 0);
-        cur.setMonth(cur.getMonth() + 1);
+        cur.setUTCMonth(cur.getUTCMonth() + 1);
       }
       for (const r of rows) {
         const key = this.toBucketKey(r.createdAt, 'month');
@@ -680,14 +673,13 @@ export class AnalyticsService {
       const cur = new Date(start);
       while (cur <= end) {
         daily.set(this.toBucketKey(cur, 'day'), 0);
-        cur.setDate(cur.getDate() + 1);
+        cur.setUTCDate(cur.getUTCDate() + 1);
       }
     } else {
-      const cur = new Date(start.getFullYear(), start.getMonth(), 1);
-      const last = new Date(end.getFullYear(), end.getMonth(), 1);
-      while (cur <= last) {
-        daily.set(this.toBucketKey(cur, 'month'), 0);
-        cur.setMonth(cur.getMonth() + 1);
+      const cur = new Date(this.toBucketKey(start, 'month') + '-01T00:00:00Z');
+      while (cur.getTime() <= end.getTime() + IST_OFFSET_MS) {
+        daily.set(cur.toISOString().slice(0, 7), 0);
+        cur.setUTCMonth(cur.getUTCMonth() + 1);
       }
     }
     for (const r of rows) {
@@ -707,11 +699,8 @@ export class AnalyticsService {
   }
 
   private toBucketKey(date: Date, granularity: 'day' | 'month'): string {
-    if (granularity === 'day') {
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
-        date.getDate(),
-      ).padStart(2, '0')}`;
-    }
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    return new Date(date.getTime() + IST_OFFSET_MS)
+      .toISOString()
+      .slice(0, granularity === 'day' ? 10 : 7);
   }
 }

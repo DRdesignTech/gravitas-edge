@@ -84,6 +84,11 @@
     color-scheme: dark;
   }
 
+  a[href^="mailto:"],
+  a[href^="https://wa.me/"] {
+    overflow-wrap: anywhere;
+  }
+
   body {
     background-color: rgb(var(--color-surface-muted));
     color: rgb(var(--color-content));

@@ -122,7 +122,7 @@ export default function WhatsAppChannel({
   note,
 }: WhatsAppChannelProps) {
   return (
-    <div className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/70 to-emerald-100/40 p-6 shadow-[0_28px_90px_-40px_rgba(16,185,129,0.55)] sm:p-10 lg:rounded-[2.5rem] lg:p-12 dark:border-emerald-500/25 dark:from-[#0B1A14] dark:via-emerald-950/40 dark:to-[#0B1A14] dark:shadow-[0_28px_90px_-40px_rgba(6,27,54,0.7)]">
+    <div className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/70 to-emerald-100/40 p-4 shadow-[0_28px_90px_-40px_rgba(16,185,129,0.55)] sm:p-10 lg:rounded-[2.5rem] lg:p-12 dark:border-emerald-500/25 dark:from-[#0B1A14] dark:via-emerald-950/40 dark:to-[#0B1A14] dark:shadow-[0_28px_90px_-40px_rgba(6,27,54,0.7)]">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-emerald-100/80 blur-3xl dark:bg-emerald-700/15"
@@ -136,9 +136,9 @@ export default function WhatsAppChannel({
         className="pointer-events-none absolute right-1/3 top-1/2 h-44 w-44 rounded-full bg-emerald-300/25 blur-2xl dark:bg-emerald-500/10"
       />
 
-      <div className="relative grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
+      <div className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12">
         {/* Phone image on a soft, professional background */}
-        <div className="order-1 relative mx-auto flex w-full max-w-md items-center justify-center rounded-[2rem] bg-gradient-to-br from-emerald-50 to-emerald-100/70 p-6 sm:p-10 dark:from-emerald-950/40 dark:to-emerald-900/20">
+        <div className="order-1 relative mx-auto flex w-full max-w-md items-center justify-center rounded-[2rem] bg-gradient-to-br from-emerald-50 to-emerald-100/70 p-3 sm:p-10 dark:from-emerald-950/40 dark:to-emerald-900/20">
           <div className="relative w-full max-w-[240px] lg:max-w-[262px]">
             <div
               aria-hidden="true"
@@ -217,7 +217,7 @@ export default function WhatsAppChannel({
         </div>
 
         {/* Content */}
-        <div className="order-2 flex flex-col items-center text-center">
+        <div className="order-2 flex min-w-0 flex-col items-center text-center [overflow-wrap:anywhere]">
           <h2 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-content sm:text-4xl dark:text-white">
             {title}
           </h2>
@@ -253,9 +253,9 @@ export default function WhatsAppChannel({
               href={WHATSAPP_CHANNEL_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="group inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#1DA851] hover:shadow-xl hover:shadow-emerald-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 sm:w-auto sm:px-7 sm:text-base dark:shadow-emerald-500/20"
+              className="group inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-[#25D366] px-3 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#1DA851] hover:shadow-xl hover:shadow-emerald-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 sm:w-auto sm:px-7 sm:text-base dark:shadow-emerald-500/20"
             >
-              <WhatsAppIcon className="h-5 w-5" />
+              <WhatsAppIcon className="h-5 w-5 shrink-0" />
               {actionLabel}
               <span
                 aria-hidden="true"
