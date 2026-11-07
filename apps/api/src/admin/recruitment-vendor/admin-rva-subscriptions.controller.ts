@@ -1,4 +1,6 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { GrantRvaAccessDto } from './dto/grant-rva-access.dto';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdminRvaSubscriptionsService } from './admin-rva-subscriptions.service';
 import { QueryRvaSubscriptionsDto } from './dto/query-rva-subscriptions.dto';
@@ -18,6 +20,11 @@ export class AdminRvaSubscriptionsController {
   @ApiOperation({ summary: 'List Recruitment Vendor Access subscriptions (paginated)' })
   list(@Query() query: QueryRvaSubscriptionsDto) {
     return this.service.list(query);
+  }
+
+  @Post('grant')
+  grant(@Body() dto: GrantRvaAccessDto, @CurrentUser() actor: { id: string }) {
+    return this.service.grant(dto, actor.id);
   }
 
   @Get(':id')

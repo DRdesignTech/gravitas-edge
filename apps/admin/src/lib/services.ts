@@ -630,6 +630,13 @@ export function adminArchiveRvaFaq(id: string) {
   return api.del(`/admin/recruitment-vendor/faqs/${id}`);
 }
 
+export function adminGrantRvaAccess(input: { email: string; planId: string; reason: string }) {
+  return api.post<{ id: string; created: boolean }>(
+    '/admin/recruitment-vendor/subscriptions/grant',
+    input,
+  );
+}
+
 export function adminListRvaSubscriptions(query: RvaSubscriptionQuery = {}) {
   return api.get<PaginatedResult<RvaSubscription>>(
     `/admin/recruitment-vendor/subscriptions${qs(query)}`,

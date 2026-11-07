@@ -1,3 +1,4 @@
+import { RazorpayService } from '../payments/razorpay.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RvaAccessService } from './rva-access.service';
@@ -13,6 +14,7 @@ export class RvaSubscriptionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: RvaAccessService,
+    private readonly razorpay: RazorpayService,
   ) {}
 
   async listMine(userId: string) {
@@ -46,6 +48,25 @@ export class RvaSubscriptionsService {
     return this.serialize(sub);
   }
 
+  async stopAutoPay(userId: string, id: string) {
+    const sub = await this.prisma.recruitmentVendorSubscription.findFirst({
+      where: { id, userId, status: 'ACTIVE' },
+    });
+    if (!sub?.razorpaySubscriptionId)
+      throw new NotFoundException('RVA AutoPay subscription not found');
+    if (sub.autoRenew) {
+      const remote = await this.razorpay.fetchSubscription(sub.razorpaySubscriptionId);
+      if (!['cancelled', 'completed', 'expired'].includes(remote.status)) {
+        await this.razorpay.cancelSubscription(sub.razorpaySubscriptionId, true);
+      }
+      await this.prisma.recruitmentVendorSubscription.update({
+        where: { id: sub.id },
+        data: { autoRenew: false, nextBillingDate: null },
+      });
+    }
+    return { success: true };
+  }
+
   /** Lightweight entitlement summary for the current user. */
   async getMyAccess(userId: string) {
     const entitlement = await this.access.getActiveEntitlement(userId);
@@ -69,6 +90,9 @@ export class RvaSubscriptionsService {
       startDate: s.startDate,
       endDate: s.endDate,
       cancelledAt: s.cancelledAt,
+      autoRenew: s.autoRenew,
+      recurring: Boolean(s.razorpaySubscriptionId),
+      nextBillingDate: s.nextBillingDate,
       createdAt: s.createdAt,
       vault: 'recruitment-vendor-access',
       plan: s.plan

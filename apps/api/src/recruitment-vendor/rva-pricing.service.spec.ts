@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { RvaPricingService, RVA_PAYMENT_METADATA_KIND } from './rva-pricing.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RazorpayService } from '../payments/razorpay.service';
@@ -227,7 +227,12 @@ describe('RvaPricingService', () => {
       txPrisma.payment.update.mockResolvedValue({});
       prisma.$transaction.mockImplementation(async (cb: any) => cb(txPrisma));
 
-      const result = await service.confirmPurchase('user-1', 'pay-1');
+      const result = await service.verifyPayment('user-1', {
+        paymentId: payment.id,
+        razorpay_order_id: payment.razorpayOrderId,
+        razorpay_payment_id: 'gateway-pay-1',
+        razorpay_signature: 'signature',
+      });
 
       expect(txPrisma.recruitmentVendorSubscription.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -287,7 +292,12 @@ describe('RvaPricingService', () => {
       txPrisma.recruitmentVendorCouponUsage.updateMany.mockResolvedValue({ count: 1 });
       prisma.$transaction.mockImplementation(async (cb: any) => cb(txPrisma));
 
-      const result = await service.confirmPurchase('user-1', 'pay-coupon');
+      const result = await service.verifyPayment('user-1', {
+        paymentId: payment.id,
+        razorpay_order_id: payment.razorpayOrderId,
+        razorpay_payment_id: 'gateway-pay-coupon',
+        razorpay_signature: 'signature',
+      });
 
       expect(txPrisma.recruitmentVendorCouponUsage.updateMany).toHaveBeenCalledWith({
         where: { paymentId: 'pay-coupon' },
@@ -380,7 +390,7 @@ describe('RvaPricingService', () => {
       await expect(service.confirmPurchase('user-1', 'pay-1')).rejects.toThrow(NotFoundException);
     });
 
-    it('maps a discontinued plan to ConflictException', async () => {
+    it('rejects confirmation of an unverified paid purchase', async () => {
       prisma.payment.findUnique.mockResolvedValue({
         id: 'pay-1',
         userId: 'user-1',
@@ -391,8 +401,8 @@ describe('RvaPricingService', () => {
         razorpayPaymentId: null,
         metadata: { kind: RVA_PAYMENT_METADATA_KIND, planId: 'rva-plan-1' },
       });
-      prisma.recruitmentVendorPlan.findFirst.mockResolvedValue(null);
-      await expect(service.confirmPurchase('user-1', 'pay-1')).rejects.toThrow(ConflictException);
+      await expect(service.confirmPurchase('user-1', 'pay-1')).rejects.toThrow(BadRequestException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
     });
   });
 

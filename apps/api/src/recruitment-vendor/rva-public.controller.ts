@@ -1,3 +1,4 @@
+import { VerifySubscriptionDto } from '../subscriptions/dto/verify-subscription.dto';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RvaPlansService } from './rva-plans.service';
@@ -80,6 +81,11 @@ export class RvaPublicController {
     return this.pricing.verifyPayment(user.id, dto);
   }
 
+  @Post('purchase/verify-subscription')
+  verifySubscription(@CurrentUser() user: AuthenticatedUser, @Body() dto: VerifySubscriptionDto) {
+    return this.pricing.verifyRecurring(user.id, dto);
+  }
+
   @Post('purchase/confirm')
   @ApiOperation({ summary: 'Confirm an RVA purchase and activate the subscription' })
   confirm(@CurrentUser() user: AuthenticatedUser, @Body() dto: RvaConfirmPurchaseDto) {
@@ -96,6 +102,11 @@ export class RvaPublicController {
   @ApiOperation({ summary: 'Fetch an owned RVA payment session for checkout rendering' })
   paymentSession(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.pricing.getPaymentSession(user.id, id);
+  }
+
+  @Post('subscriptions/:id/stop-autopay')
+  stopAutoPay(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.subscriptions.stopAutoPay(user.id, id);
   }
 
   @Get('subscriptions/me')

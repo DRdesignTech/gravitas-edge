@@ -1,3 +1,6 @@
+import { VerifySubscriptionDto } from '../subscriptions/dto/verify-subscription.dto';
+import { recordRvaCharge, RVA_AUTOPAY_PLANS } from '../payments/rva-autopay';
+import { isCapturedPayment } from '../payments/autopay-evidence';
 import {
   BadRequestException,
   ConflictException,
@@ -10,7 +13,7 @@ import { RazorpayService } from '../payments/razorpay.service';
 import { durationLabel } from '../subscriptions/pricing-catalog';
 import { RvaCouponsService } from './rva-coupons.service';
 import { couponError, normalizeCouponCode, serializeCouponSummary } from '../coupons/coupon.util';
-import { SubscriptionStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 export const RVA_PAYMENT_METADATA_KIND = 'RECRUITMENT_VENDOR_ACCESS';
 
@@ -37,6 +40,8 @@ export class RvaPricingService {
 
   async purchase(userId: string, planId: string, couponCode?: string, recurring?: boolean) {
     if (recurring) {
+      if (couponCode?.trim())
+        throw new BadRequestException('Coupons apply to one-time purchases only');
       return this.purchaseRecurring(userId, planId);
     }
     return this.purchaseOneTime(userId, planId, couponCode);
@@ -114,97 +119,171 @@ export class RvaPricingService {
       throw new NotFoundException('Plan is not available for purchase');
     }
 
-    // Coupons not supported for recurring subscriptions in this phase
-    // (couponCode parameter is ignored for recurring)
-
-    // Get or create Razorpay Plan
-    let razorpayPlanId = plan.razorpayPlanId;
-    if (!razorpayPlanId) {
-      const razorpayPlan = await this.razorpayService.createPlan({
-        name: plan.name,
-        amount: Number(plan.price),
-        currency: plan.currency,
-        interval: 1,
-        period: this.durationDaysToPeriod(plan.durationDays),
-        description: `Subscription for ${plan.name}`,
-      });
-      razorpayPlanId = razorpayPlan.id;
-      await this.prisma.recruitmentVendorPlan.update({
-        where: { id: plan.id },
-        data: { razorpayPlanId },
-      });
+    const billing = RVA_AUTOPAY_PLANS[plan.durationDays];
+    if (!billing || plan.currency !== 'INR') {
+      throw new BadRequestException('AutoPay is unavailable for this plan');
+    }
+    const gatewayPlan = await this.razorpayService.fetchPlan(billing.id);
+    if (
+      gatewayPlan.id !== billing.id ||
+      gatewayPlan.period !== 'monthly' ||
+      Number(gatewayPlan.interval) !== billing.months ||
+      Number(gatewayPlan.item.amount) !== billing.amount * 100 ||
+      gatewayPlan.item.currency !== plan.currency
+    ) {
+      throw new ConflictException('RVA AutoPay plan does not match the configured billing terms');
     }
 
-    // Create Razorpay Subscription (total_count = 0 means infinite)
-    const subscription = await this.razorpayService.createSubscription({
-      planId: razorpayPlanId,
-      totalCount: 0, // infinite recurring
-      customerNotify: true,
-      notes: {
-        userId,
-        planId: plan.id,
-      },
-    });
-
-    // Create local subscription in PENDING state (will be activated on webhook)
-    const localSubscription = await this.prisma.recruitmentVendorSubscription.create({
-      data: {
-        userId,
-        planId: plan.id,
-        startDate: new Date(),
-        endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000),
-        status: SubscriptionStatus.PENDING,
-        razorpaySubscriptionId: subscription.id,
-        autoRenew: true,
-        nextBillingDate: subscription.charge_at ? new Date(subscription.charge_at * 1000) : null,
-        paymentReference: subscription.short_url,
-      },
-    });
-
-    // Create payment record for the authorization payment
-    const payment = await this.prisma.payment.create({
-      data: {
-        userId,
-        recruitmentVendorSubscriptionId: localSubscription.id,
-        razorpaySubscriptionId: subscription.id,
-        amount: plan.price,
-        currency: plan.currency,
-        status: 'CREATED',
-        metadata: {
-          kind: RVA_PAYMENT_METADATA_KIND,
-          recruitmentVendorPlanId: plan.id,
-          planId: plan.id,
-          planName: plan.name,
-          durationDays: plan.durationDays,
-          vault: 'recruitment-vendor-access',
-          recurring: true,
-          razorpaySubscriptionId: subscription.id,
-          shortUrl: subscription.short_url,
+    let createdRemoteId: string | undefined;
+    let payment;
+    try {
+      payment = await this.prisma.$transaction(
+        async (tx) => {
+          await tx.$queryRaw(Prisma.sql`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`);
+          const existing = await tx.recruitmentVendorSubscription.findFirst({
+            where: {
+              userId,
+              razorpaySubscriptionId: { not: null },
+              autoRenew: true,
+              status: { in: ['PENDING', 'ACTIVE'] },
+            },
+            include: { payments: { orderBy: { createdAt: 'asc' }, take: 1 } },
+          });
+          if (existing?.status === 'ACTIVE') {
+            throw new ConflictException('AutoPay is already active for this account');
+          }
+          if (existing?.razorpaySubscriptionId) {
+            const remote = await this.razorpayService.fetchSubscription(
+              existing.razorpaySubscriptionId,
+            );
+            if (['cancelled', 'expired'].includes(remote.status)) {
+              const closed = await tx.recruitmentVendorSubscription.updateMany({
+                where: { id: existing.id, status: 'PENDING' },
+                data: { status: 'CANCELLED', autoRenew: false, nextBillingDate: null },
+              });
+              if (closed.count !== 1) {
+                throw new ConflictException(
+                  'RVA AutoPay checkout state changed. Please try again.',
+                );
+              }
+              await tx.payment.updateMany({
+                where: {
+                  recruitmentVendorSubscriptionId: existing.id,
+                  status: { in: ['CREATED', 'PENDING'] },
+                },
+                data: { status: 'CANCELLED' },
+              });
+            } else {
+              if (existing.planId !== plan.id || !existing.payments[0]) {
+                throw new ConflictException(
+                  'Finish or cancel the pending RVA AutoPay checkout first',
+                );
+              }
+              return existing.payments[0];
+            }
+          }
+          const subscription = await this.razorpayService.createSubscription({
+            planId: billing.id,
+            totalCount: Math.max(1, Math.floor(730 / plan.durationDays)),
+            customerNotify: true,
+            expireBy: Math.floor(Date.now() / 1000) + 86_400,
+            notes: { userId, planId: plan.id, product: 'rva' },
+          });
+          createdRemoteId = subscription.id;
+          const now = new Date();
+          const local = await tx.recruitmentVendorSubscription.create({
+            data: {
+              userId,
+              planId: plan.id,
+              startDate: now,
+              endDate: now,
+              status: 'PENDING',
+              razorpaySubscriptionId: subscription.id,
+              autoRenew: true,
+            },
+          });
+          return tx.payment.create({
+            data: {
+              userId,
+              recruitmentVendorSubscriptionId: local.id,
+              razorpaySubscriptionId: subscription.id,
+              amount: billing.amount,
+              currency: plan.currency,
+              status: 'CREATED',
+              metadata: {
+                kind: RVA_PAYMENT_METADATA_KIND,
+                planId: plan.id,
+                planName: plan.name,
+                durationDays: plan.durationDays,
+                recurring: true,
+                gatewayPlanId: billing.id,
+              },
+            },
+          });
         },
-      },
-    });
-
+        { timeout: 30_000 },
+      );
+    } catch (error) {
+      if (createdRemoteId)
+        await this.razorpayService.cancelSubscription(createdRemoteId).catch(() => undefined);
+      throw error;
+    }
     return {
       paymentId: payment.id,
-      subscriptionId: localSubscription.id,
-      razorpaySubscriptionId: subscription.id,
-      shortUrl: subscription.short_url,
-      amount: Number(plan.price),
+      orderId: null,
+      razorpaySubscriptionId: payment.razorpaySubscriptionId,
+      amount: Number(payment.amount),
       currency: plan.currency,
       planId: plan.id,
       planName: plan.name,
       durationDays: plan.durationDays,
       status: payment.status,
       keyId: this.razorpayService.getKeyId(),
-      recurring: true,
     };
   }
 
-  private durationDaysToPeriod(days: number): 'daily' | 'weekly' | 'monthly' | 'yearly' {
-    if (days <= 7) return 'weekly';
-    if (days <= 31) return 'monthly';
-    if (days <= 366) return 'yearly';
-    return 'monthly';
+  async verifyRecurring(userId: string, dto: VerifySubscriptionDto) {
+    const local = await this.assertOwnedRvaPayment(userId, dto.paymentId);
+    const remoteId = local.razorpaySubscriptionId;
+    if (
+      !remoteId ||
+      remoteId !== dto.razorpay_subscription_id ||
+      !this.razorpayService.verifySubscriptionSignature({
+        subscriptionId: remoteId,
+        paymentId: dto.razorpay_payment_id,
+        signature: dto.razorpay_signature,
+      })
+    ) {
+      throw new BadRequestException('Invalid RVA AutoPay payment signature');
+    }
+    if (local.status === 'SUCCESS') return { status: 'SUCCESS' as const };
+    const [payment, subscription] = await Promise.all([
+      this.razorpayService.fetchPayment(dto.razorpay_payment_id),
+      this.razorpayService.fetchSubscription(remoteId),
+    ]);
+    const metadata = local.metadata as { gatewayPlanId?: string } | null;
+    if (
+      payment.id !== dto.razorpay_payment_id ||
+      subscription.id !== remoteId ||
+      subscription.plan_id !== metadata?.gatewayPlanId ||
+      Number(payment.amount) !== Math.round(Number(local.amount) * 100) ||
+      payment.currency !== local.currency
+    ) {
+      throw new BadRequestException('Payment gateway returned mismatched RVA payment details');
+    }
+    const captured = isCapturedPayment(payment);
+    if (!captured || !subscription.current_end) {
+      if (!captured && payment.status !== 'created' && payment.status !== 'authorized') {
+        throw new BadRequestException('RVA AutoPay payment was not captured');
+      }
+      await this.prisma.payment.updateMany({
+        where: { id: local.id, status: 'CREATED' },
+        data: { status: 'PENDING' },
+      });
+      return { status: 'PENDING' as const };
+    }
+    await recordRvaCharge(this.prisma, subscription, payment, 'subscription.verified', local.id);
+    return { status: 'SUCCESS' as const };
   }
 
   /**
@@ -324,6 +403,7 @@ export class RvaPricingService {
     return {
       paymentId: payment.id,
       orderId: payment.razorpayOrderId,
+      razorpaySubscriptionId: payment.razorpaySubscriptionId,
       status: payment.status,
       amount: Number(payment.amount),
       currency: payment.currency,
@@ -340,6 +420,26 @@ export class RvaPricingService {
 
   async failPayment(userId: string, paymentId: string) {
     const payment = await this.assertOwnedRvaPayment(userId, paymentId);
+    if (payment.razorpaySubscriptionId) {
+      if (payment.status !== 'CREATED') return { paymentId: payment.id, status: payment.status };
+      const remote = await this.razorpayService.fetchSubscription(payment.razorpaySubscriptionId);
+      if (remote.status === 'created') {
+        await this.razorpayService.cancelSubscription(remote.id);
+      } else if (!['cancelled', 'expired'].includes(remote.status)) {
+        throw new ConflictException('RVA AutoPay authorization has already started');
+      }
+      await this.prisma.$transaction(async (tx) => {
+        await tx.recruitmentVendorSubscription.updateMany({
+          where: { id: payment.recruitmentVendorSubscriptionId!, status: 'PENDING' },
+          data: { status: 'CANCELLED', autoRenew: false, nextBillingDate: null },
+        });
+        await tx.payment.updateMany({
+          where: { id: payment.id, status: 'CREATED' },
+          data: { status: 'CANCELLED' },
+        });
+      });
+      return { paymentId: payment.id, status: 'CANCELLED' };
+    }
     if (payment.status === 'FAILED') {
       return { paymentId: payment.id, status: 'FAILED' };
     }
@@ -403,6 +503,9 @@ export class RvaPricingService {
       throw new BadRequestException('Payment cannot be confirmed in its current state');
     }
 
+    if (Number(payment.amount) !== 0 || payment.razorpaySubscriptionId) {
+      throw new BadRequestException('Payment must be verified before confirming this purchase');
+    }
     return this.activateAfterPayment(userId, payment, null, 'purchase.confirmed');
   }
 

@@ -280,7 +280,7 @@ export default function RecruitmentVendorPage() {
     setPage(1);
   };
 
-  const handleChoosePlan = async (plan: RvaPlan) => {
+  const handleChoosePlan = async (plan: RvaPlan, recurring: boolean) => {
     if (!user) {
       router.push('/register');
       return;
@@ -288,7 +288,7 @@ export default function RecruitmentVendorPage() {
     if (buyingPlanId) return;
     setBuyingPlanId(plan.id);
     try {
-      const started = await purchaseRvaPlan(plan.id);
+      const started = await purchaseRvaPlan(plan.id, undefined, recurring);
       router.push(`/recruitment-vendor/checkout/${started.paymentId}`);
     } catch (e) {
       setBuyingPlanId(null);
@@ -731,7 +731,7 @@ export default function RecruitmentVendorPage() {
                     popular={plan.durationDays === 90}
                     loading={buyingPlanId === plan.id}
                     disabled={buyingPlanId !== null}
-                    onChoose={() => handleChoosePlan(plan)}
+                    onChoose={(recurring) => handleChoosePlan(plan, recurring)}
                   />
                 ))}
               </div>
@@ -1003,7 +1003,7 @@ function PlanCard({
   popular: boolean;
   loading: boolean;
   disabled: boolean;
-  onChoose: () => void;
+  onChoose: (recurring: boolean) => void;
 }) {
   const hasDiscount = (plan.discountPercentage ?? 0) > 0 && plan.regularPrice > plan.price;
   const savings = hasDiscount ? plan.regularPrice - plan.price : 0;
@@ -1067,10 +1067,20 @@ function PlanCard({
         className="mt-6 w-full !py-3"
         loading={loading}
         disabled={disabled}
-        onClick={onChoose}
+        onClick={() => onChoose(false)}
       >
-        {loading ? 'Starting…' : 'Choose Plan'}
+        {loading ? 'Starting…' : 'Pay once'}
       </Button>
+      {plan.autoPayAmount != null && (
+        <Button
+          variant="outline"
+          className="mt-2 w-full"
+          disabled={disabled}
+          onClick={() => onChoose(true)}
+        >
+          AutoPay · {formatMoney(plan.autoPayAmount, plan.currency)} / {plan.durationLabel}
+        </Button>
+      )}
     </article>
   );
 }

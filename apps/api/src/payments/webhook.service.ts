@@ -1,3 +1,4 @@
+import { recordRvaCharge, RVA_AUTOPAY_PLANS } from './rva-autopay';
 import {
   assertLocalPaymentEvidence,
   assertSubscriptionEvidence,
@@ -144,44 +145,46 @@ export class WebhookService {
     }
 
     try {
-      switch (event.event) {
-        case 'subscription.authenticated':
-          await this.handleSubscriptionAuthenticated(event);
-          break;
-        case 'subscription.activated':
-          await this.handleSubscriptionActivated(event);
-          break;
-        case 'subscription.charged':
-        case 'invoice.paid': // sometimes used
-          await this.handleSubscriptionCharged(event, expectedCheckoutPaymentId);
-          break;
-        case 'subscription.payment_failed':
-        case 'payment.failed':
-          await this.handleSubscriptionPaymentFailed(event);
-          break;
-        case 'subscription.cancelled':
-          await this.handleSubscriptionCancelled(event);
-          break;
-        case 'subscription.completed':
-          await this.handleSubscriptionCompleted(event);
-          break;
-        case 'subscription.halted':
-          await this.handleSubscriptionHalted(event);
-          break;
-        case 'subscription.pending':
-          await this.handleSubscriptionPending(event);
-          break;
-        case 'subscription.expired':
-          await this.handleSubscriptionExpired(event);
-          break;
-        case 'subscription.paused':
-          await this.handleSubscriptionHalted(event); // treat as similar
-          break;
-        case 'subscription.resumed':
-          await this.handleSubscriptionActivated(event);
-          break;
-        default:
-          this.logger.warn(`Unhandled webhook event type: ${event.event}`);
+      if (!(await this.handleRvaSubscriptionEvent(event))) {
+        switch (event.event) {
+          case 'subscription.authenticated':
+            await this.handleSubscriptionAuthenticated(event);
+            break;
+          case 'subscription.activated':
+            await this.handleSubscriptionActivated(event);
+            break;
+          case 'subscription.charged':
+          case 'invoice.paid': // sometimes used
+            await this.handleSubscriptionCharged(event, expectedCheckoutPaymentId);
+            break;
+          case 'subscription.payment_failed':
+          case 'payment.failed':
+            await this.handleSubscriptionPaymentFailed(event);
+            break;
+          case 'subscription.cancelled':
+            await this.handleSubscriptionCancelled(event);
+            break;
+          case 'subscription.completed':
+            await this.handleSubscriptionCompleted(event);
+            break;
+          case 'subscription.halted':
+            await this.handleSubscriptionHalted(event);
+            break;
+          case 'subscription.pending':
+            await this.handleSubscriptionPending(event);
+            break;
+          case 'subscription.expired':
+            await this.handleSubscriptionExpired(event);
+            break;
+          case 'subscription.paused':
+            await this.handleSubscriptionHalted(event); // treat as similar
+            break;
+          case 'subscription.resumed':
+            await this.handleSubscriptionActivated(event);
+            break;
+          default:
+            this.logger.warn(`Unhandled webhook event type: ${event.event}`);
+        }
       }
 
       // This means dispatch completed without error, not that every event
@@ -387,6 +390,71 @@ export class WebhookService {
     this.logger.log(
       `Subscription ${localSub.id} activated at Razorpay; waiting for captured charge`,
     );
+  }
+
+  private async handleRvaSubscriptionEvent(event: RazorpayWebhookEvent): Promise<boolean> {
+    const subscription = event.payload.subscription?.entity;
+    const payment = event.payload.payment?.entity;
+    const remoteId = subscription?.id ?? payment?.subscription_id;
+    if (!remoteId) return false;
+    if (
+      subscription &&
+      !Object.values(RVA_AUTOPAY_PLANS).some((plan) => plan?.id === subscription.plan_id)
+    ) {
+      return false;
+    }
+    // Payment-only events can belong to either product.
+    const local = await this.prisma.recruitmentVendorSubscription.findUnique({
+      where: { razorpaySubscriptionId: remoteId },
+    });
+    if (!local) {
+      if (subscription) throw new Error('RVA subscription not persisted yet; retry webhook');
+      return false;
+    }
+
+    if (['subscription.charged', 'invoice.paid'].includes(event.event)) {
+      if (!payment) throw new Error('Missing payment in RVA charge event');
+      const chargedSubscription =
+        subscription ?? (await this.razorpayService.fetchSubscription(remoteId));
+      await recordRvaCharge(this.prisma, chargedSubscription, payment, event.event);
+    } else if (
+      ['subscription.cancelled', 'subscription.completed', 'subscription.expired'].includes(
+        event.event,
+      )
+    ) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.recruitmentVendorSubscription.update({
+          where: { id: local.id },
+          data: { autoRenew: false, nextBillingDate: null },
+        });
+        await tx.recruitmentVendorSubscription.updateMany({
+          where: { id: local.id, status: 'PENDING' },
+          data: { status: 'CANCELLED' },
+        });
+        await tx.payment.updateMany({
+          where: {
+            recruitmentVendorSubscriptionId: local.id,
+            status: { in: ['CREATED', 'PENDING'] },
+          },
+          data: { status: 'CANCELLED', webhookEvent: event.event },
+        });
+      });
+    } else if (['subscription.halted', 'subscription.paused'].includes(event.event)) {
+      await this.prisma.recruitmentVendorSubscription.update({
+        where: { id: local.id },
+        data: { nextBillingDate: null },
+      });
+    } else if (
+      payment?.status === 'failed' &&
+      ['payment.failed', 'subscription.payment_failed'].includes(event.event)
+    ) {
+      // The mandate can retry. Keep the checkout recoverable and preserve any paid term.
+      await this.prisma.payment.updateMany({
+        where: { recruitmentVendorSubscriptionId: local.id, status: 'CREATED' },
+        data: { webhookEvent: event.event },
+      });
+    }
+    return true;
   }
 
   private async handleSubscriptionCharged(

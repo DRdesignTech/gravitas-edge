@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import {
   adminListRvaSubscriptions,
+  adminGrantRvaAccess,
   adminGetRvaSubscription,
   adminListRvaPlans,
 } from '@/lib/services';
@@ -45,6 +46,40 @@ export default function RvaSubscriptionsPage() {
   const [detail, setDetail] = useState<RvaSubscriptionDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+
+  const [grantOpen, setGrantOpen] = useState(false);
+  const [grantEmail, setGrantEmail] = useState('');
+  const [grantPlan, setGrantPlan] = useState('');
+  const [grantReason, setGrantReason] = useState('');
+  const [grantBusy, setGrantBusy] = useState(false);
+  const [grantMessage, setGrantMessage] = useState('');
+  const [grantError, setGrantError] = useState('');
+
+  const grantAccess = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (grantBusy) return;
+    setGrantBusy(true);
+    setGrantError('');
+    try {
+      const result = await adminGrantRvaAccess({
+        email: grantEmail.trim(),
+        planId: grantPlan,
+        reason: grantReason.trim(),
+      });
+      setGrantMessage(
+        result.created ? 'RVA access granted.' : 'This user already has active RVA access.',
+      );
+      setGrantOpen(false);
+      setGrantEmail('');
+      setGrantPlan('');
+      setGrantReason('');
+      load();
+    } catch (e) {
+      setGrantError(getErrorMessage(e));
+    } finally {
+      setGrantBusy(false);
+    }
+  };
 
   const load = () => {
     setLoading(true);
@@ -140,12 +175,78 @@ export default function RvaSubscriptionsPage() {
     <div>
       <PageHeader
         title="RVA Subscriptions"
+        actions={
+          <Button
+            onClick={() => {
+              setGrantError('');
+              setGrantOpen(true);
+            }}
+          >
+            Grant RVA access
+          </Button>
+        }
         subtitle={
           data
             ? `${data.meta.totalItems.toLocaleString()} Recruitment Vendor Access subscriptions`
             : 'Vendor subscriptions and access'
         }
       />
+
+      {grantMessage && (
+        <p role="status" className="mb-4 text-sm text-content">
+          {grantMessage}
+        </p>
+      )}
+      <Modal
+        isOpen={grantOpen}
+        onClose={() => {
+          if (!grantBusy) setGrantOpen(false);
+        }}
+        title="Grant RVA access"
+      >
+        <form onSubmit={grantAccess} className="space-y-4">
+          <p className="text-sm text-content-muted">
+            Grants access for the selected plan term without billing the user.
+          </p>
+          <Input
+            label="User email"
+            type="email"
+            required
+            value={grantEmail}
+            onChange={(e) => setGrantEmail(e.target.value)}
+          />
+          <Select
+            label="RVA plan"
+            required
+            value={grantPlan}
+            onChange={(e) => setGrantPlan(e.target.value)}
+            placeholder="Choose an active plan"
+            options={plans
+              .filter((plan) => plan.isActive)
+              .map((plan) => ({ value: plan.id, label: plan.name }))}
+          />
+          <Input
+            label="Reason"
+            required
+            minLength={5}
+            maxLength={500}
+            value={grantReason}
+            onChange={(e) => setGrantReason(e.target.value)}
+          />
+          {grantError && (
+            <p role="alert" className="text-sm text-red-600">
+              {grantError}
+            </p>
+          )}
+          <Button
+            type="submit"
+            loading={grantBusy}
+            disabled={!grantPlan || grantReason.trim().length < 5}
+          >
+            Grant access
+          </Button>
+        </form>
+      </Modal>
 
       <Card className="mb-6" padding={false}>
         <form onSubmit={handleSearch} className="grid gap-4 p-5 md:grid-cols-4">

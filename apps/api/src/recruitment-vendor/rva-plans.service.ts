@@ -1,10 +1,10 @@
+import { RVA_AUTOPAY_PLANS } from '../payments/rva-autopay';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { durationLabel } from '../subscriptions/pricing-catalog';
 
 /**
- * Public Recruitment Vendor Access plan catalog. Plans and prices are entirely
- * database-driven (admin-managed); nothing is hardcoded here.
+ * Public RVA catalog with separate one-time and Razorpay AutoPay prices.
  */
 @Injectable()
 export class RvaPlansService {
@@ -42,6 +42,8 @@ export class RvaPlansService {
       name: plan.name,
       description: plan.description,
       price: Number(plan.price),
+      autoPayAmount:
+        plan.currency === 'INR' ? (RVA_AUTOPAY_PLANS[plan.durationDays]?.amount ?? null) : null,
       regularPrice: Number(plan.regularPrice),
       discountedPrice: Number(plan.price),
       discountPercentage: plan.discountPercentage,

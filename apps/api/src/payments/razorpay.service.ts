@@ -127,6 +127,10 @@ export class RazorpayService implements OnModuleInit {
     return subscription;
   }
 
+  async fetchPlan(planId: string) {
+    return this.razorpay.plans.fetch(planId);
+  }
+
   async fetchSubscription(subscriptionId: string) {
     return this.razorpay.subscriptions.fetch(subscriptionId);
   }

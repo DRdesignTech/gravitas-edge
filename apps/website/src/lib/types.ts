@@ -469,6 +469,7 @@ export interface RvaPlan {
   name: string;
   description?: string | null;
   price: number;
+  autoPayAmount?: number | null;
   regularPrice: number;
   discountedPrice: number;
   discountPercentage: number;
@@ -509,6 +510,9 @@ export interface RvaSubscriptionSummary {
   startDate: string;
   endDate: string;
   cancelledAt?: string | null;
+  autoRenew?: boolean;
+  recurring?: boolean;
+  nextBillingDate?: string | null;
   createdAt: string;
   vault: string;
   plan: RvaSubscriptionPlan | null;
@@ -597,6 +601,7 @@ export interface RvaPurchaseResult {
 export interface RvaPaymentSession {
   paymentId: string;
   orderId: string | null;
+  razorpaySubscriptionId?: string | null;
   status: string;
   amount: number;
   currency: string;

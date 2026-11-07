@@ -294,9 +294,17 @@ export function fetchRvaAccess() {
   return api.get<RvaAccessInfo>('/recruitment-vendor/access/me');
 }
 
-export function purchaseRvaPlan(planId: string, couponCode?: string) {
+export function stopRvaAutoPay(subscriptionId: string) {
+  return api.post<{ success: boolean }>(
+    `/recruitment-vendor/subscriptions/${subscriptionId}/stop-autopay`,
+    {},
+  );
+}
+
+export function purchaseRvaPlan(planId: string, couponCode?: string, recurring = false) {
   return api.post<RvaPurchaseResult>('/recruitment-vendor/purchase', {
     planId,
+    ...(recurring ? { recurring: true } : {}),
     ...(couponCode ? { couponCode } : {}),
   });
 }
@@ -325,6 +333,18 @@ export function verifyRvaPayment(payload: {
   paymentId: string;
 }) {
   return api.post<RvaConfirmResult>('/recruitment-vendor/purchase/verify', payload);
+}
+
+export function verifyRvaSubscription(payload: {
+  razorpay_payment_id: string;
+  razorpay_subscription_id: string;
+  razorpay_signature: string;
+  paymentId: string;
+}) {
+  return api.post<{ status: 'PENDING' | 'SUCCESS' }>(
+    '/recruitment-vendor/purchase/verify-subscription',
+    payload,
+  );
 }
 
 export function failRvaPayment(paymentId: string) {

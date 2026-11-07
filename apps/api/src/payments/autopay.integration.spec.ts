@@ -1,3 +1,8 @@
+import { AdminRvaSubscriptionsService } from '../admin/recruitment-vendor/admin-rva-subscriptions.service';
+import { RvaAccessService } from '../recruitment-vendor/rva-access.service';
+import { RvaPricingService } from '../recruitment-vendor/rva-pricing.service';
+import { RvaSubscriptionsService } from '../recruitment-vendor/rva-subscriptions.service';
+import { RVA_AUTOPAY_PLANS } from './rva-autopay';
 import { subscriptionContractEvent } from './fixtures/razorpay-subscription-contract';
 import { UserSubscriptionsService } from '../subscriptions/user-subscriptions.service';
 import { PrismaClient } from '@prisma/client';
@@ -151,6 +156,113 @@ suite('AutoPay with real PostgreSQL transactions', () => {
       razorpay_signature: 'test',
     });
   }
+
+  it('verifies RVA checkout, renews once per captured charge, and keeps paid access after stopping AutoPay', async () => {
+    const plan = await db.recruitmentVendorPlan.create({
+      data: {
+        name: randomUUID(),
+        price: 10999,
+        regularPrice: 10999,
+        durationDays: 90,
+        currency: 'INR',
+      },
+    });
+    const billing = RVA_AUTOPAY_PLANS[90]!;
+    gateway.fetchPlan = jest.fn(async () => ({
+      id: billing.id,
+      period: 'monthly',
+      interval: billing.months,
+      item: { amount: billing.amount * 100, currency: 'INR' },
+    }));
+    const rva = new RvaPricingService(db as any, gateway, {} as any);
+    const rvaAccess = new RvaAccessService(db as any);
+    const rvaSubscriptions = new RvaSubscriptionsService(db as any, rvaAccess, gateway);
+    const checkout = await rva.purchase(userId, plan.id, undefined, true);
+    const retry = await rva.purchase(userId, plan.id, undefined, true);
+    expect(retry.paymentId).toBe(checkout.paymentId);
+    expect(gateway.createSubscription).toHaveBeenCalledTimes(1);
+    expect(await rvaAccess.hasActiveSubscription(userId)).toBe(false);
+    await expect(rva.confirmPurchase(userId, checkout.paymentId)).rejects.toThrow('verified');
+
+    const first = event(checkout, 'subscription.charged');
+    const remote = first.payload.subscription.entity;
+    remote.status = 'active';
+    remote.current_start = Math.floor(Date.now() / 1000) - 1;
+    remote.charge_at = remote.current_end;
+    remotes.set(remote.id, remote);
+    const charge = first.payload.payment.entity;
+    const verification = {
+      paymentId: checkout.paymentId,
+      razorpay_payment_id: charge.id,
+      razorpay_subscription_id: remote.id,
+      razorpay_signature: 'test',
+    };
+    gatewayPayments.set(charge.id, { ...charge, amount: 1 });
+    await expect(rva.verifyRecurring(userId, verification)).rejects.toThrow('mismatched');
+    expect(await rvaAccess.hasActiveSubscription(userId)).toBe(false);
+    charge.amount = billing.amount * 100;
+    gatewayPayments.set(charge.id, { ...charge, status: 'authorized', captured: false });
+    await expect(rva.verifyRecurring(userId, verification)).resolves.toEqual({ status: 'PENDING' });
+    expect(await rvaAccess.hasActiveSubscription(userId)).toBe(false);
+    gatewayPayments.set(charge.id, charge);
+    await Promise.all([rva.verifyRecurring(userId, verification), webhooks.handleWebhook(first)]);
+
+    const paid = await rvaSubscriptions.getMyAccess(userId);
+    expect(paid.hasAccess).toBe(true);
+    expect(await rvaAccess.requireAccess(userId)).toEqual({
+      authorized: true,
+      subscriptionId: paid.subscription?.id,
+    });
+    expect(paid.subscription?.autoRenew).toBe(true);
+    expect(await db.payment.count({ where: { razorpaySubscriptionId: remote.id } })).toBe(1);
+    expect(await access.hasActiveSubscription(userId)).toBe(false);
+
+    const renewal = event(checkout, 'subscription.charged', undefined, 2);
+    renewal.payload.subscription.entity.status = 'active';
+    renewal.payload.payment.entity.amount = billing.amount * 100;
+    await webhooks.handleWebhook(renewal);
+    await webhooks.handleWebhook({ ...renewal, id: randomUUID() });
+    expect(await db.payment.count({ where: { razorpaySubscriptionId: remote.id } })).toBe(2);
+    const renewed = await rvaSubscriptions.getMyAccess(userId);
+    expect(renewed.subscription?.endDate.getTime()).toBeGreaterThan(
+      paid.subscription!.endDate.getTime(),
+    );
+
+    await rvaSubscriptions.stopAutoPay(userId, renewed.subscription!.id);
+    expect(gateway.cancelSubscription).toHaveBeenCalledWith(remote.id, true);
+    const stopped = await rvaSubscriptions.getMyAccess(userId);
+    expect(stopped.hasAccess).toBe(true);
+    expect(stopped.subscription?.autoRenew).toBe(false);
+    expect(stopped.subscription?.endDate).toEqual(renewed.subscription?.endDate);
+  });
+
+  it('grants audited RVA access without creating a payment or mandate', async () => {
+    const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+    const plan = await db.recruitmentVendorPlan.create({
+      data: {
+        name: randomUUID(),
+        price: 3999,
+        regularPrice: 3999,
+        durationDays: 30,
+        currency: 'INR',
+      },
+    });
+    const admin = new AdminRvaSubscriptionsService(db as any);
+    const input = { email: user.email!.toUpperCase(), planId: plan.id, reason: 'Support access' };
+    const grant = await admin.grant(input, userId);
+    expect(grant.created).toBe(true);
+    expect(await admin.grant(input, userId)).toEqual({ id: grant.id, created: false });
+    const rvaAccess = new RvaAccessService(db as any);
+    expect(await rvaAccess.hasActiveSubscription(userId)).toBe(true);
+    expect(await db.payment.count({ where: { recruitmentVendorSubscriptionId: grant.id } })).toBe(
+      0,
+    );
+    expect(
+      await db.auditLog.count({
+        where: { entityId: grant.id, action: 'ADMIN_MANUAL_RVA_ACCESS_GRANTED' },
+      }),
+    ).toBe(1);
+  });
 
   it('cancels checkout idempotently and creates a fresh AutoPay purchase', async () => {
     const first = await buy();

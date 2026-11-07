@@ -74,6 +74,7 @@ function createMockPrismaService(): MockPrismaService {
 
   return {
     webhookEvent: mockTx.webhookEvent as any,
+    recruitmentVendorSubscription: { findUnique: jest.fn().mockResolvedValue(null) },
     subscription: mockTx.subscription,
     payment: mockTx.payment,
     subscriptionPlan: mockTx.subscriptionPlan,
