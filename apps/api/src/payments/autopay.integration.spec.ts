@@ -77,6 +77,7 @@ suite('AutoPay with real PostgreSQL transactions', () => {
           plan_id: options.planId,
           notes: options.notes,
           paid_count: 0,
+          total_count: options.totalCount,
           short_url: 'https://example.test/checkout',
         };
         remotes.set(remote.id, remote);
@@ -177,11 +178,23 @@ suite('AutoPay with real PostgreSQL transactions', () => {
     const rva = new RvaPricingService(db as any, gateway, {} as any);
     const rvaAccess = new RvaAccessService(db as any);
     const rvaSubscriptions = new RvaSubscriptionsService(db as any, rvaAccess, gateway);
+    const stale = await rva.purchase(userId, plan.id, undefined, true);
+    if (!('razorpaySubscriptionId' in stale) || !stale.razorpaySubscriptionId)
+      throw new Error('Expected RVA AutoPay checkout');
+    const staleRemote = remotes.get(stale.razorpaySubscriptionId);
+    staleRemote.total_count = 8;
     const checkout = await rva.purchase(userId, plan.id, undefined, true);
+    expect(checkout.paymentId).not.toBe(stale.paymentId);
+    expect(staleRemote.status).toBe('cancelled');
+    expect(await db.payment.findUnique({ where: { id: stale.paymentId } })).toMatchObject({
+      status: 'CANCELLED',
+    });
     const retry = await rva.purchase(userId, plan.id, undefined, true);
     expect(retry.paymentId).toBe(checkout.paymentId);
-    expect(gateway.createSubscription).toHaveBeenCalledTimes(1);
-    expect(gateway.createSubscription).toHaveBeenCalledWith(expect.objectContaining({ totalCount: 20 }));
+    expect(gateway.createSubscription).toHaveBeenCalledTimes(2);
+    expect(gateway.createSubscription).toHaveBeenCalledWith(
+      expect.objectContaining({ totalCount: 20 }),
+    );
     expect(await rvaAccess.hasActiveSubscription(userId)).toBe(false);
     await expect(rva.confirmPurchase(userId, checkout.paymentId)).rejects.toThrow('verified');
 

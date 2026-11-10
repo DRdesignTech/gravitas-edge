@@ -134,6 +134,7 @@ export class RvaPricingService {
       throw new ConflictException('RVA AutoPay plan does not match the configured billing terms');
     }
 
+    const totalCount = Math.floor(AUTOPAY_TERM_MONTHS / billing.months);
     let createdRemoteId: string | undefined;
     let payment;
     try {
@@ -156,7 +157,23 @@ export class RvaPricingService {
             const remote = await this.razorpayService.fetchSubscription(
               existing.razorpaySubscriptionId,
             );
-            if (['cancelled', 'expired'].includes(remote.status)) {
+            let closedRemotely = ['cancelled', 'expired'].includes(remote.status);
+            if (
+              existing.planId === plan.id &&
+              remote.status === 'created' &&
+              remote.paid_count === 0 &&
+              remote.total_count < totalCount
+            ) {
+              // Razorpay Checkout displays the term of the stored subscription ID.
+              const cancelled = await this.razorpayService.cancelSubscription(remote.id);
+              if (cancelled.status !== 'cancelled' || cancelled.paid_count !== 0) {
+                throw new ConflictException(
+                  'RVA AutoPay checkout state changed. Please try again.',
+                );
+              }
+              closedRemotely = true;
+            }
+            if (closedRemotely) {
               const closed = await tx.recruitmentVendorSubscription.updateMany({
                 where: { id: existing.id, status: 'PENDING' },
                 data: { status: 'CANCELLED', autoRenew: false, nextBillingDate: null },
@@ -184,7 +201,7 @@ export class RvaPricingService {
           }
           const subscription = await this.razorpayService.createSubscription({
             planId: billing.id,
-            totalCount: Math.floor(AUTOPAY_TERM_MONTHS / billing.months),
+            totalCount,
             customerNotify: true,
             expireBy: Math.floor(Date.now() / 1000) + 86_400,
             notes: { userId, planId: plan.id, product: 'rva' },
