@@ -6,14 +6,17 @@ import { validateWebhookSignature } from 'razorpay/dist/utils/razorpay-utils';
 
 export const AUTOPAY_TERM_MONTHS = 60;
 
-// Verified LIVE allowed plan IDs (18 plans). Exclude plan_Trq9hv9Sx7SUb7.
+// Verified LIVE allowed plan IDs (21 plans). Exclude plan_Trq9hv9Sx7SUb7.
 const ALLOWED_RAZORPAY_PLAN_IDS = new Set([
   'plan_TrprBHz0jjoi8n', // Remote 1 month
   'plan_Trq1SyQAXY41Dk', // Remote 3 months
   'plan_Trq302lYgONage', // Remote 6 months (interval=1, needs review)
-  'plan_Trq640n9rlsErZ', // UAE 1 month
-  'plan_Trq6zC40Sdm347', // UAE 3 months
-  'plan_Trq7XS96ViOi3g', // UAE 6 months
+  'plan_Trq640n9rlsErZ', // UAE 1 month (legacy, kept for existing AutoPay)
+  'plan_Trq6zC40Sdm347', // UAE 3 months (legacy, kept for existing AutoPay)
+  'plan_Trq7XS96ViOi3g', // UAE 6 months (legacy, kept for existing AutoPay)
+  'plan_TzxMOPz61AEuiq', // New UAE & Global - Monthly
+  'plan_TzxNF2wp9VKXFA', // New UAE & Global - 3 Months
+  'plan_TzxOFZdgI95Ptm', // New UAE & Global - 6 Months
   'plan_Trq8lO4T22Txyw', // Executive 1 month
   'plan_Trq9Fqut0YQe1C', // Executive 3 months
   'plan_TrqEsP3C3DHM8t', // Executive 6 months

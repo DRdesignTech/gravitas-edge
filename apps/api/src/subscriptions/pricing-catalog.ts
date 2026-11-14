@@ -83,9 +83,9 @@ export const PRICING_CATALOG: BusinessVaultDefinition[] = [
     type: VaultType.MIDDLE_EAST,
     sortOrder: 2,
     plans: [
-      { ...MONTHLY, regularPrice: 2499, price: 1999, discountPercentage: 20 },
-      { ...THREE_MONTHS, regularPrice: 7499, price: 5999, discountPercentage: 20 },
-      { ...SIX_MONTHS, regularPrice: 14999, price: 11999, discountPercentage: 20 },
+      { ...MONTHLY, regularPrice: 2499, price: 2499, discountPercentage: 0 },
+      { ...THREE_MONTHS, regularPrice: 7499, price: 7499, discountPercentage: 0 },
+      { ...SIX_MONTHS, regularPrice: 14999, price: 14999, discountPercentage: 0 },
     ],
   },
   {

@@ -13,16 +13,43 @@
  */
 import { PrismaClient } from '@prisma/client';
 
-const RAZORPAY_PLAN_MAPPING = [
+interface PlanMapping {
+  vaultName: string;
+  durationDays: number;
+  razorpayPlanId: string;
+  /** When set, the local plan price is synced to this amount as well. */
+  price?: number;
+  regularPrice?: number;
+}
+
+const RAZORPAY_PLAN_MAPPING: PlanMapping[] = [
   // Remote Access Vault
   { vaultName: 'Remote Access Vault', durationDays: 30, razorpayPlanId: 'plan_TrprBHz0jjoi8n' }, // 1 month
   { vaultName: 'Remote Access Vault', durationDays: 90, razorpayPlanId: 'plan_Trq1SyQAXY41Dk' }, // 3 months
   // { vaultName: 'Remote Access Vault', durationDays: 180, razorpayPlanId: 'plan_Trq302lYgONage' }, // 6 months - BLOCKED pending confirmation
   
-  // UAE & Global Access Vault
-  { vaultName: 'UAE & Global Access Vault', durationDays: 30, razorpayPlanId: 'plan_Trq640n9rlsErZ' },
-  { vaultName: 'UAE & Global Access Vault', durationDays: 90, razorpayPlanId: 'plan_Trq6zC40Sdm347' },
-  { vaultName: 'UAE & Global Access Vault', durationDays: 180, razorpayPlanId: 'plan_Trq7XS96ViOi3g' },
+  // UAE & Global Access Vault (New UAE & Global plans, full price, 0% discount)
+  {
+    vaultName: 'UAE & Global Access Vault',
+    durationDays: 30,
+    razorpayPlanId: 'plan_TzxMOPz61AEuiq',
+    price: 2499,
+    regularPrice: 2499,
+  },
+  {
+    vaultName: 'UAE & Global Access Vault',
+    durationDays: 90,
+    razorpayPlanId: 'plan_TzxNF2wp9VKXFA',
+    price: 7499,
+    regularPrice: 7499,
+  },
+  {
+    vaultName: 'UAE & Global Access Vault',
+    durationDays: 180,
+    razorpayPlanId: 'plan_TzxOFZdgI95Ptm',
+    price: 14999,
+    regularPrice: 14999,
+  },
   
   // Executive Access Vault
   { vaultName: 'Executive Access Vault', durationDays: 30, razorpayPlanId: 'plan_Trq8lO4T22Txyw' },
@@ -113,21 +140,43 @@ async function main() {
           continue;
         }
         
+        // A mapping with pricing is only complete when the stored prices match
+        // too, otherwise the UI would show a price different from the charge.
+        const priceMismatch =
+          mapping.price !== undefined &&
+          (Number(plan.price) !== mapping.price ||
+            Number(plan.regularPrice) !== (mapping.regularPrice ?? mapping.price) ||
+            plan.discountPercentage !== 0);
+
         // Check if already mapped correctly
-        if (plan.razorpayPlanId === mapping.razorpayPlanId) {
+        if (plan.razorpayPlanId === mapping.razorpayPlanId && !priceMismatch) {
           console.log(`✅ ALREADY MAPPED: ${plan.name} -> ${mapping.razorpayPlanId}`);
           successCount++;
           continue;
         }
-        
+
+        const data = {
+          razorpayPlanId: mapping.razorpayPlanId,
+          ...(mapping.price !== undefined
+            ? {
+                price: mapping.price,
+                regularPrice: mapping.regularPrice ?? mapping.price,
+                discountPercentage: 0,
+              }
+            : {}),
+        };
+
+        const priceNote =
+          mapping.price !== undefined ? ` -> price ${mapping.price} ${plan.currency}` : '';
+
         if (!isDryRun) {
           await prisma.subscriptionPlan.update({
             where: { id: plan.id },
-            data: { razorpayPlanId: mapping.razorpayPlanId },
+            data,
           });
-          console.log(`✅ MAPPED: ${plan.name} (${plan.id}) -> ${mapping.razorpayPlanId} [price: ${plan.price} ${plan.currency}, ${plan.durationDays} days]`);
+          console.log(`✅ MAPPED: ${plan.name} (${plan.id}) -> ${mapping.razorpayPlanId}${priceNote} [${plan.durationDays} days]`);
         } else {
-          console.log(`🔍 WOULD MAP: ${plan.name} (${plan.id}) -> ${mapping.razorpayPlanId} [price: ${plan.price} ${plan.currency}, ${plan.durationDays} days]`);
+          console.log(`🔍 WOULD MAP: ${plan.name} (${plan.id}) -> ${mapping.razorpayPlanId}${priceNote} [${plan.durationDays} days]`);
         }
         successCount++;
       } catch (error) {
