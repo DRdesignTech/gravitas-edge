@@ -249,18 +249,22 @@ async function main() {
     const email = `demo.user${i + 1}@example.com`;
     const registeredAt = daysAgo(12 + i * 19 + Math.floor(rnd() * 8), 9 + Math.floor(rnd() * 4));
 
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: { status: 'ACTIVE', emailVerified: true },
-      create: {
-        email,
-        phone: `9${String(100000000 + i * 137).padStart(9, '0')}`,
-        passwordHash: await bcrypt.hash(DEMO_PASSWORD, DEMO_HASH_ROUNDS),
-        status: 'ACTIVE',
-        emailVerified: true,
-        createdAt: registeredAt,
-      },
-    });
+        const existingUser = await prisma.user.findFirst({ where: { email } });
+    const user = existingUser
+      ? await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { status: 'ACTIVE', emailVerified: true },
+        })
+      : await prisma.user.create({
+          data: {
+            email,
+            phone: `9${String(100000000 + i * 137).padStart(9, '0')}`,
+            passwordHash: await bcrypt.hash(DEMO_PASSWORD, DEMO_HASH_ROUNDS),
+            status: 'ACTIVE',
+            emailVerified: true,
+            createdAt: registeredAt,
+          },
+        });
 
     const hasRole = await prisma.userRole.findUnique({
       where: { userId_roleId: { userId: user.id, roleId: userRole.id } },

@@ -21,10 +21,8 @@ import { Resend } from 'resend';
 const ACCESS_TOKEN_TYPE = 'access';
 const REFRESH_TOKEN_TYPE = 'refresh';
 
-// Resend is only used for transactional email (password reset). In production
-// these come from env vars (RESEND_API_KEY / RESEND_EMAIL_FROM / FRONTEND_URL);
-// the values below are local-development fallbacks only.
-const RESEND_API_KEY = 're_gzt3jgFz_Moi6Z9ApCfV5o7yW6E2D2otb';
+// Resend is only used for transactional email (password reset).
+// In production or local dev, set RESEND_API_KEY in .env.
 const RESET_EMAIL_FROM = 'onboarding@resend.dev';
 
 @Injectable()
@@ -497,8 +495,13 @@ export class AuthService {
     );
     const resetUrl = `${appUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
+    const resendApiKey = this.config.get<string>('RESEND_API_KEY');
+    if (!resendApiKey) {
+      return { message: 'If an account exists, a password reset link has been sent.' };
+    }
+
     try {
-      const resend = new Resend(this.config.get<string>('RESEND_API_KEY') ?? RESEND_API_KEY);
+      const resend = new Resend(resendApiKey);
       await resend.emails.send({
         from: this.config.get<string>('RESEND_EMAIL_FROM') ?? RESET_EMAIL_FROM,
         to: email,
