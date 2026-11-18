@@ -12,8 +12,8 @@
 # The build context MUST be the repository root so that npm workspaces, the
 # shared package and the root `prisma/` schema are all visible.
 #
-# Railway service settings:
-#   Root directory : (empty / repository root)
+# Container build settings (Docker / Docker Compose on AWS Lightsail):
+#   Build context  : repository root
 #   Dockerfile     : Dockerfile
 #   Build args     : APP set per service (api | website | admin)
 #                    NEXT_PUBLIC_API_URL for website/admin

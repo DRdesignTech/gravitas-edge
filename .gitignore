@@ -13,12 +13,12 @@ out/
 next-env.d.ts
 *.tsbuildinfo
 
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment files (all .env files anywhere in the repository)
+**/.env
+**/.env.*
+**/.env.local
+**/.env.*.local
+!**/.env.example
 
 # IDE
 .idea/
@@ -52,3 +52,14 @@ temp/
 
 # User-uploaded files (resumes, guest resumes)
 apps/api/storage/
+
+
+
+gravitas-edge-redesign (11).html
+
+
+commands.md
+HANDOVER.md
+gravitas-production-data-only.sql
+gravitas-production-data.sql
+docs
