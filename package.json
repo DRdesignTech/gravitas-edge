@@ -11,10 +11,11 @@
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:website": "npm run dev --workspace=apps/website",
     "dev:admin": "npm run dev --workspace=apps/admin",
-    "build": "npm run build --workspaces",
-    "build:api": "npm run build --workspace=apps/api",
-    "build:website": "npm run build --workspace=apps/website",
-    "build:admin": "npm run build --workspace=apps/admin",
+    "build": "npm run build:shared && npm run build --workspaces",
+    "build:shared": "npm run build --workspace=@job-portal/shared",
+    "build:api": "npm run build:shared && npm run build --workspace=apps/api",
+    "build:website": "npm run build:shared && npm run build --workspace=apps/website",
+    "build:admin": "npm run build:shared && npm run build --workspace=apps/admin",
     "lint": "npm run lint --workspaces",
     "lint:fix": "npm run lint:fix --workspaces",
     "format": "prettier --write \"apps/**/*.{ts,tsx,js,jsx,json}\" \"packages/**/*.{ts,tsx,js,jsx,json}\"",
@@ -22,6 +23,7 @@
     "db:generate": "npm run db:generate --workspace=apps/api",
     "db:push": "npm run db:push --workspace=apps/api",
     "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:migrate:prod": "npm run db:migrate:prod --workspace=apps/api",
     "db:studio": "npm run db:studio --workspace=apps/api",
     "db:seed": "npm run db:seed --workspace=apps/api",
     "db:seed:dev": "npm run db:seed --workspace=apps/api",
@@ -40,6 +42,6 @@
     "typescript": "^5.7.0"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=20.0.0"
   }
 }

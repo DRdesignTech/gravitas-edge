@@ -7,8 +7,8 @@ services:
     runtime: node
     plan: free
     region: oregon # or frankfurt, singapore, ohio
-    buildCommand: npm ci && npm run db:generate && npm run build:api
-    startCommand: npm run db:migrate:prod && node apps/api/dist/main.js
+    buildCommand: npm ci && npx prisma generate --schema=prisma/schema.prisma && npm run build:api
+    startCommand: npx prisma migrate deploy --schema=prisma/schema.prisma && node apps/api/dist/main.js
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
@@ -46,6 +46,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20.18.0
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
       - key: NEXT_PUBLIC_API_URL
         value: https://gravitas-edge-api.onrender.com/api
 
