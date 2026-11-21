@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Eyebrow from '@/components/marketing/Eyebrow';
-import InfoBanner from '@/components/marketing/InfoBanner';
 import ReferAndEarnCta from './ReferAndEarnCta';
+import ReferralCalculator from './ReferralCalculator';
+import ReferralWalletGraphic from './ReferralWalletGraphic';
 
 export const metadata: Metadata = {
   title: 'Refer & Earn — Gravitas Edge Consulting',
@@ -17,81 +17,102 @@ export const metadata: Metadata = {
 
 /**
  * Referral reward tiers.
- *
- * IMPORTANT: These percentages and thresholds are client-provided display
- * content (they match the published Referral Programme Terms). They DO NOT
- * currently match the active ReferralSlab rows configured in the backend
- * (which are seeded as 5% / 10% / 15% / 20% for 1-5 / 6-10 / 11-20 / 21+).
- * This discrepancy is reported and left untouched - no reward logic is
- * calculated or changed here.
+ * Matches published Referral Programme Terms:
+ * Tier 1: 10% (1–5 referrals)
+ * Tier 2: 15% (6–10 referrals)
+ * Tier 3: 20% (11+ referrals)
  */
 const REWARD_TIERS = [
-  { rate: '10%', range: '1–5 referrals', tier: 'Tier 1', accent: false },
-  { rate: '15%', range: '6–10 referrals', tier: 'Tier 2', accent: false },
-  { rate: '20%', range: '11+ referrals', tier: 'Tier 3', accent: true },
+  {
+    tier: 'Tier 1',
+    label: 'Starter Tier',
+    rate: '10%',
+    range: '1–5 referrals',
+    description: 'Immediate reward activation upon your first referred paid subscription.',
+    accent: false,
+    perks: [
+      '10% direct wallet credit',
+      'Trackable personal referral link',
+      'Real-time dashboard analytics',
+    ],
+  },
+  {
+    tier: 'Tier 2',
+    label: 'Growth Tier',
+    rate: '15%',
+    range: '6–10 referrals',
+    description: '1.5x commission multiplier automatically unlocked on your 6th referral.',
+    accent: false,
+    perks: [
+      '15% direct wallet credit',
+      'Accelerated wallet growth',
+      'Priority payout processing',
+    ],
+  },
+  {
+    tier: 'Tier 3',
+    label: 'VIP Top Tier',
+    rate: '20%',
+    range: '11+ referrals',
+    description: 'Maximum top-tier rate retained indefinitely on all subsequent referrals.',
+    accent: true,
+    perks: [
+      'Maximum 20% wallet payout',
+      'Permanent VIP rate status',
+      'Zero upper cap on total earnings',
+    ],
+  },
 ];
 
 const STEPS = [
   {
-    title: 'Copy your unique referral link',
+    number: '01',
+    title: 'Get Your Unique Link',
+    description: 'Sign in to access your unique referral link and personalized tracking code from your dashboard.',
     icon: (
-      <>
-        <path d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757" />
-        <path d="M10.81 15.312a4.5 4.5 0 01-1.242-7.244l4.5-4.5a4.5 4.5 0 016.364 6.364l-1.757 1.757" />
-      </>
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+      </svg>
     ),
   },
   {
-    title: 'Share with your network',
+    number: '02',
+    title: 'Share With Your Network',
+    description: 'Send your link to colleagues, peers, or professional communities via WhatsApp, LinkedIn, or Email.',
     icon: (
-      <>
-        <circle cx="18" cy="5" r="2.75" />
-        <circle cx="6" cy="12" r="2.75" />
-        <circle cx="18" cy="19" r="2.75" />
-        <path d="M8.6 10.6l6.8-3.7M8.6 13.4l6.8 3.7" />
-      </>
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+      </svg>
     ),
   },
   {
-    title: 'They subscribe to any plan',
+    number: '03',
+    title: 'They Subscribe to a Plan',
+    description: 'When your invited contact purchases any Gravitas Edge opportunity vault or plan, the referral is confirmed.',
     icon: (
-      <>
-        <rect x="3" y="5" width="18" height="14" rx="2.5" />
-        <path d="M3 10h18M7 15h3" />
-      </>
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
     ),
   },
   {
-    title: 'You earn rewards in your wallet',
+    number: '04',
+    title: 'Earn Instant Cash Rewards',
+    description: 'Earn 10% to 20% commission directly credited into your wallet, redeemable via bank transfer once you reach ₹1,000.',
     icon: (
-      <>
-        <path d="M3.5 8.5A2.5 2.5 0 016 6h11.5a2.5 2.5 0 012.5 2.5v8A2.5 2.5 0 0117.5 19H6a2.5 2.5 0 01-2.5-2.5v-8Z" />
-        <path d="M16 12.75h.008v.008H16v-.008Z" />
-        <path d="M3.5 9.5h13A2.5 2.5 0 0119 12v0a2.5 2.5 0 01-2.5 2.5h-13" />
-      </>
+      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
     ),
   },
 ];
 
-const NOTICE_POINTS = [
-  'Rewards are applicable only on successful paid subscriptions.',
-  'Use your unique referral link or code.',
+const PROGRAM_HIGHLIGHTS = [
+  'Rewards apply to every successful paid opportunity vault subscription.',
+  'Your unique link tracks clicks, sign-ups, and subscriptions with cookie attribution.',
+  'Earnings accumulate continuously in your Gravitas Edge digital wallet.',
+  'Direct NEFT / UPI bank redemption available once your balance reaches ₹1,000.',
 ];
-
-function StepIcon({ children }: { children: React.ReactNode }) {
-  return (
-    <svg
-      className="h-6 w-6"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.8}
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      {children}
-    </svg>
-  );
-}
 
 function CheckIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -108,189 +129,305 @@ function CheckIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
-function GiftIllustration() {
-  return (
-    <div className="relative mx-auto flex aspect-square w-full max-w-sm items-center justify-center rounded-[2rem] border border-[#C8943E]/20 bg-gradient-to-br from-[#FFF3D9] to-[#FDEBC6] dark:from-brand-950 dark:to-[#0B1B33]">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-6 -top-6 h-28 w-28 rounded-full bg-[#C8943E]/15 blur-2xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-8 -right-6 h-32 w-32 rounded-full bg-[#061B36]/10 blur-3xl dark:bg-[#C8943E]/10"
-      />
-      <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-[#E3B968] to-[#C8943E] shadow-[0_22px_55px_-25px_rgba(200,148,62,0.85)] sm:h-40 sm:w-40">
-        <svg
-          className="h-16 w-16 text-[#061B36] sm:h-20 sm:w-20"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={1.5}
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H4.5a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-          />
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 export default function ReferAndEarnPage() {
   return (
-    <div className="overflow-x-clip">
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* HERO                                                            */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden bg-[#061B36]">
+    <div className="min-h-screen bg-[#FEFDF9] text-[#1A2236] dark:bg-[#06142A] dark:text-[#EAEFFB] overflow-x-clip">
+      {/* ─────────────────────────────────────────────────────────────
+          1. EXECUTIVE HERO SECTION (.pagehead redesign)
+          ───────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#061B36] via-[#092244] to-[#0A2645] pb-16 pt-14 text-white isolate sm:pb-20 sm:pt-16">
+        {/* Ambient background glows */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              'radial-gradient(80% 90% at 20% 0%, rgba(200,148,62,0.22) 0%, rgba(200,148,62,0) 60%), radial-gradient(70% 80% at 100% 100%, rgba(227,185,104,0.14) 0%, rgba(227,185,104,0) 55%)',
-          }}
+          className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[#15803D]/20 blur-3xl"
         />
-        <div className="relative mx-auto max-w-4xl px-4 py-16 text-center sm:px-6 lg:px-8 lg:py-24">
-          <Eyebrow invert>REFER &amp; EARN</Eyebrow>
-          <h1 className="mt-5 font-serif-heading text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Share Opportunities.
-            <span className="block text-[#C8943E]">Earn Rewards.</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
-            Invite professionals in your network to Gravitas Edge. When they subscribe, you earn
-            rewards in your Gravitas Edge wallet.
-          </p>
-          <div className="mt-9 flex justify-center">
-            <ReferAndEarnCta />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-20 top-0 h-80 w-80 rounded-full bg-[#D6952F]/15 blur-3xl"
+        />
+
+        <div className="relative mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
+          {/* Breadcrumb Navigation */}
+          <div className="mb-4 flex items-center gap-1.5 text-xs text-[#AEB9D6]">
+            <Link href="/" className="text-[#F0C27B] hover:text-white transition-colors">
+              Home
+            </Link>
+            <span className="text-[#8C9AC0]">/</span>
+            <span className="text-white">Refer &amp; Earn</span>
           </div>
-          <p className="mt-4 text-xs text-slate-400 sm:text-sm">
-            Earn more as you refer more — up to 20% per successful referral.
-          </p>
+
+          <div className="max-w-3xl">
+            {/* Pill Badge */}
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#D6952F]/40 bg-[#D6952F]/15 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#F0C27B]">
+              ✨ PARTNER REWARDS PROGRAMME
+            </span>
+
+            {/* Heading */}
+            <h1 className="mt-4 font-sans text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.12]">
+              Share Opportunities.{' '}
+              <span className="text-[#F0C27B]">Earn Up to 20% Rewards.</span>
+            </h1>
+
+            {/* Subtitle */}
+            <p className="mt-4 text-sm sm:text-base lg:text-lg leading-relaxed text-[#C9D3EA]">
+              Invite professionals and peers in your network to Gravitas Edge. When they subscribe to
+              any curated opportunity vault, you earn cash rewards credited directly into your partner wallet.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <ReferAndEarnCta label="Get Your Referral Link" size="lg" variant="gold" />
+              <a
+                href="#calculator"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/10 hover:border-white/30"
+              >
+                Estimate Earnings ↓
+              </a>
+            </div>
+
+            <p className="mt-3 text-xs text-[#8C9AC0]">
+              Instant tracking · No cap on earnings · Direct bank withdrawal available
+            </p>
+          </div>
+
+          {/* 4 Trust & Benefit Badges */}
+          <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 border-t border-white/10 pt-8">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xs">
+              <span className="block text-2xl font-extrabold text-[#F0C27B]">Up to 20%</span>
+              <span className="mt-1 block text-xs font-medium text-[#C9D3EA]">
+                Tiered Commission
+              </span>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xs">
+              <span className="block text-2xl font-extrabold text-[#F0C27B]">Instant</span>
+              <span className="mt-1 block text-xs font-medium text-[#C9D3EA]">
+                Wallet Allocation
+              </span>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xs">
+              <span className="block text-2xl font-extrabold text-[#F0C27B]">₹1,000</span>
+              <span className="mt-1 block text-xs font-medium text-[#C9D3EA]">
+                Low Payout Threshold
+              </span>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xs">
+              <span className="block text-2xl font-extrabold text-[#F0C27B]">Unlimited</span>
+              <span className="mt-1 block text-xs font-medium text-[#C9D3EA]">
+                Referral Capacity
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* REWARD TIERS                                                    */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="section-glow relative bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      {/* ─────────────────────────────────────────────────────────────
+          2. REWARD TIERS SECTION
+          ───────────────────────────────────────────────────────────── */}
+      <section className="py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <Eyebrow>OUR REFERRAL REWARD TIERS</Eyebrow>
-            <h2 className="mt-4 font-serif-heading text-3xl font-bold tracking-tight text-content sm:text-4xl">
-              The more you refer, the more you earn.
+            <span className="text-xs font-bold uppercase tracking-wider text-[#D6952F]">
+              COMMISSION SLAB TIERS
+            </span>
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-4xl text-[#061B36] dark:text-white">
+              The More You Refer, The More You Earn
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-content-muted">
+            <p className="mt-3 text-sm sm:text-base leading-relaxed text-[#5B6479] dark:text-slate-400">
               Rewards are calculated as a percentage of every successful paid subscription made
-              through your referral.
+              through your referral link.
             </p>
           </div>
 
           <div className="mt-12 grid gap-6 sm:grid-cols-3">
             {REWARD_TIERS.map((tier) => (
               <div
-                key={tier.rate}
-                className={`card-static relative flex flex-col items-center overflow-hidden rounded-2xl p-7 text-center ${
-                  tier.accent ? 'ring-2 ring-[#C8943E]/60' : ''
+                key={tier.tier}
+                className={`relative flex flex-col justify-between overflow-hidden rounded-3xl border bg-white p-7 sm:p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-[#0E2340] ${
+                  tier.accent
+                    ? 'border-[#D6952F] shadow-lg ring-1 ring-[#D6952F]'
+                    : 'border-[#E9E5DC] dark:border-[#1E3557]'
                 }`}
               >
+                {/* Accent Watermark Rings for Top Tier */}
                 {tier.accent && (
-                  <span className="absolute right-4 top-4 rounded-full bg-gradient-to-br from-[#E3B968] to-[#C8943E] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#061B36]">
-                    Top tier
-                  </span>
+                  <>
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#D6952F]/10 blur-xl"
+                    />
+                    <span className="absolute right-5 top-5 rounded-full bg-[#D6952F] px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#061B36]">
+                      👑 Top Tier
+                    </span>
+                  </>
                 )}
-                <span className="text-xs font-semibold uppercase tracking-[0.22em] text-[#C8943E]">
-                  {tier.tier}
-                </span>
-                <span className="mt-4 font-serif-heading text-5xl font-extrabold tracking-tight text-[#061B36] dark:text-[#E3B968]">
-                  {tier.rate}
-                </span>
-                <span className="mt-3 text-sm font-medium text-content-muted">{tier.range}</span>
-                <span className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-[#061B36]/5 px-3 py-1 text-xs font-medium text-[#061B36] dark:bg-white/10 dark:text-slate-200">
-                  <CheckIcon className="h-3.5 w-3.5 text-[#C8943E]" />
-                  Per successful referral
-                </span>
+
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-widest text-[#D6952F]">
+                      {tier.tier}
+                    </span>
+                    <span className="text-xs text-[#8C9AC0]">· {tier.label}</span>
+                  </div>
+
+                  <div className="mt-4 flex items-baseline gap-2">
+                    <span className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#061B36] dark:text-white">
+                      {tier.rate}
+                    </span>
+                    <span className="text-xs font-semibold text-[#5B6479] dark:text-slate-400">
+                      reward rate
+                    </span>
+                  </div>
+
+                  <p className="mt-2 text-xs font-bold text-[#D6952F]">{tier.range}</p>
+                  <p className="mt-3 text-xs leading-relaxed text-[#5B6479] dark:text-slate-400">
+                    {tier.description}
+                  </p>
+
+                  <div className="mt-6 border-t border-[#E9E5DC] dark:border-[#1E3557] pt-5">
+                    <ul className="space-y-2.5">
+                      {tier.perks.map((perk) => (
+                        <li key={perk} className="flex items-center gap-2 text-xs text-[#1A2236] dark:text-slate-300">
+                          <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                            <CheckIcon className="h-3 w-3" />
+                          </span>
+                          <span>{perk}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="mt-8 pt-4">
+                  <span className="inline-flex w-full items-center justify-center rounded-xl bg-[#FAF8F5] py-2 text-xs font-semibold text-[#061B36] dark:bg-[#081B33] dark:text-slate-200">
+                    Per Paid Subscriber
+                  </span>
+                </div>
               </div>
             ))}
           </div>
 
-          <InfoBanner align="center" className="mt-8">
-            From 11 referrals onwards, you continue to earn 20% on every additional referral. No
-            upper limit on the number of referrals.
-          </InfoBanner>
+          {/* Transparent slab continuity callout */}
+          <div className="mt-8 rounded-2xl border border-[#D6952F]/30 bg-[#FAF8F5] p-4 text-center sm:p-5 dark:border-[#D6952F]/20 dark:bg-[#0A1E38]">
+            <p className="text-xs sm:text-sm text-[#061B36] dark:text-slate-200 font-medium">
+              💡 <strong>Permanent Top Tier:</strong> From 11 referrals onwards, you permanently retain
+              the <strong>20% reward rate</strong> on every additional subscriber. There is no maximum earning limit.
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* HOW IT WORKS                                                    */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="section-glow-navy relative border-t border-line bg-surface">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      {/* ─────────────────────────────────────────────────────────────
+          3. INTERACTIVE CALCULATOR SECTION
+          ───────────────────────────────────────────────────────────── */}
+      <section className="bg-[#FAF8F5] py-16 sm:py-20 lg:py-24 dark:bg-[#07172B] border-y border-[#E9E5DC] dark:border-[#1E3557]">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
+          <ReferralCalculator />
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────
+          4. HOW IT WORKS (4 SIMPLE STEPS)
+          ───────────────────────────────────────────────────────────── */}
+      <section className="py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <Eyebrow>HOW IT WORKS</Eyebrow>
-            <h2 className="mt-4 font-serif-heading text-3xl font-bold tracking-tight text-content sm:text-4xl">
-              Four simple steps.
+            <span className="text-xs font-bold uppercase tracking-wider text-[#D6952F]">
+              SIMPLE 4-STEP PROCESS
+            </span>
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-4xl text-[#061B36] dark:text-white">
+              How Partner Rewards Work
             </h2>
+            <p className="mt-3 text-sm sm:text-base leading-relaxed text-[#5B6479] dark:text-slate-400">
+              Four straightforward steps from generating your unique link to receiving your wallet payout.
+            </p>
           </div>
 
-          <ol className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((step, i) => (
-              <li
-                key={step.title}
-                className="relative flex h-full flex-col items-center rounded-2xl border border-line bg-surface p-6 text-center card-static dark:bg-surface-elevated"
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((step) => (
+              <div
+                key={step.number}
+                className="group relative flex flex-col justify-between rounded-3xl border border-[#E9E5DC] bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:border-[#D6952F]/50 hover:shadow-lg dark:border-[#1E3557] dark:bg-[#0E2340]"
               >
-                <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-[#C8943E] bg-brand-600 font-serif-heading text-xl font-bold text-white shadow-[0_12px_28px_-12px_rgba(6,27,54,0.65)]">
-                  {i + 1}
-                </span>
-                <span className="mt-5 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-50 to-brand-100 text-[#C8943E] ring-1 ring-inset ring-[#C8943E]/15 dark:from-brand-950 dark:to-brand-900">
-                  <StepIcon>{step.icon}</StepIcon>
-                </span>
-                <p className="mt-4 text-sm font-semibold leading-snug text-content">{step.title}</p>
-              </li>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#061B36] text-sm font-extrabold text-[#F0C27B] shadow-sm dark:bg-[#1D3B66]">
+                      {step.number}
+                    </span>
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FAF8F5] text-[#D6952F] group-hover:bg-[#D6952F]/10 dark:bg-[#081B33] transition-colors">
+                      {step.icon}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-6 text-base font-bold text-[#061B36] dark:text-white">
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-xs leading-relaxed text-[#5B6479] dark:text-slate-400">
+                    {step.description}
+                  </p>
+                </div>
+
+                <div className="mt-6 border-t border-[#E9E5DC] dark:border-[#1E3557] pt-4">
+                  <span className="text-[11px] font-semibold text-[#8C9AC0]">
+                    Step {step.number} of 04
+                  </span>
+                </div>
+              </div>
             ))}
-          </ol>
+          </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* YOUR REWARDS                                                    */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="border-t border-line bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-            <GiftIllustration />
-            <div className="text-center lg:text-left">
-              <Eyebrow>YOUR REWARDS</Eyebrow>
-              <h2 className="mt-4 font-serif-heading text-3xl font-bold tracking-tight text-content sm:text-4xl">
-                Rewards land in your wallet.
-              </h2>
-              <p className="mt-5 text-base leading-relaxed text-content-muted">
-                Rewards are added to your Gravitas Edge wallet. Redeem once you reach ₹1,000.
-              </p>
-              <ul className="mt-6 space-y-3 text-left">
+      {/* ─────────────────────────────────────────────────────────────
+          5. WALLET & PAYOUT TRANSPARENCY SECTION
+          ───────────────────────────────────────────────────────────── */}
+      <section className="bg-[#FAF8F5] py-16 sm:py-20 lg:py-24 dark:bg-[#07172B] border-y border-[#E9E5DC] dark:border-[#1E3557]">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
+          <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
+            {/* Visual Column: Digital Partner Wallet (5 cols) */}
+            <div className="lg:col-span-5">
+              <ReferralWalletGraphic />
+            </div>
+
+            {/* Content Column (7 cols) */}
+            <div className="lg:col-span-7 space-y-6">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#D6952F]">
+                  YOUR PARTNER WALLET
+                </span>
+                <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-4xl text-[#061B36] dark:text-white">
+                  Effortless Tracking &amp; Direct Bank Redemptions
+                </h2>
+                <p className="mt-3 text-sm sm:text-base leading-relaxed text-[#5B6479] dark:text-slate-400">
+                  Every confirmed subscription immediately adds funds to your Gravitas Edge partner wallet.
+                  Once your balance reaches ₹1,000, request a bank transfer or UPI withdrawal with one click.
+                </p>
+              </div>
+
+              <div className="space-y-3.5">
                 {[
-                  'Every successful paid subscription adds a reward to your wallet.',
-                  'Track your earnings and referral history from your dashboard.',
-                  'Redeem in one place once you reach the minimum amount.',
+                  'Real-time tracking of referral link clicks, registrations, and successful purchases.',
+                  'Detailed earnings history with transparent commission rate breakdowns.',
+                  'Low ₹1,000 minimum withdrawal threshold with zero hidden administrative fees.',
+                  'Direct NEFT or UPI payout processing to your verified Indian bank account.',
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-content">
-                    <span className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-500/10 p-1 text-emerald-600 dark:text-emerald-400">
+                  <div key={item} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                       <CheckIcon className="h-3.5 w-3.5" />
                     </span>
-                    {item}
-                  </li>
+                    <span className="text-xs sm:text-sm text-[#1A2236] dark:text-slate-300 font-medium">
+                      {item}
+                    </span>
+                  </div>
                 ))}
-              </ul>
-              <div className="mt-8 flex justify-center lg:justify-start">
+              </div>
+
+              <div className="pt-4 flex flex-wrap items-center gap-4">
+                <ReferAndEarnCta label="Open Your Wallet" size="md" variant="gold" />
                 <Link
                   href="/referral-terms"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[#C8943E]/50 bg-surface px-6 py-3 text-sm font-semibold text-[#061B36] transition-colors hover:bg-[#FFF3D9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 dark:text-[#E3B968] dark:hover:bg-brand-950"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-[#061B36] dark:text-[#F0C27B] hover:underline"
                 >
-                  Learn More
-                  <span aria-hidden="true">→</span>
+                  View Complete Terms &amp; Conditions →
                 </Link>
               </div>
             </div>
@@ -298,50 +435,87 @@ export default function ReferAndEarnPage() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* IMPORTANT NOTICE + FINAL CTA                                    */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="border-t border-line bg-surface">
-        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <div className="rounded-2xl border border-line bg-surface p-6 card-static dark:bg-surface-elevated sm:p-8">
-            <h2 className="font-serif-heading text-xl font-bold tracking-tight text-content">
-              Important
-            </h2>
-            <ul className="mt-5 space-y-3">
-              {NOTICE_POINTS.map((point) => (
-                <li key={point} className="flex items-start gap-3 text-sm leading-relaxed text-content-muted">
-                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#C8943E]" />
-                  {point}
-                </li>
+      {/* ─────────────────────────────────────────────────────────────
+          6. IMPORTANT PROGRAMME GUIDELINES & DISCLOSURES
+          ───────────────────────────────────────────────────────────── */}
+      <section className="py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
+          <div className="rounded-3xl border border-[#E9E5DC] bg-white p-7 sm:p-10 dark:border-[#1E3557] dark:bg-[#0E2340] shadow-sm">
+            <div className="flex items-center gap-2.5 mb-6">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#061B36] text-white dark:bg-[#1D3B66]">
+                ℹ
+              </span>
+              <div>
+                <h3 className="text-lg font-bold text-[#061B36] dark:text-white">
+                  Program Guidelines &amp; Transparency Disclosures
+                </h3>
+                <p className="text-xs text-[#5B6479] dark:text-slate-400">
+                  Key rules governing commission eligibility and redemption.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {PROGRAM_HIGHLIGHTS.map((point) => (
+                <div
+                  key={point}
+                  className="flex items-start gap-3 rounded-2xl border border-[#E9E5DC] bg-[#FAF8F5] p-4 dark:border-[#1E3557] dark:bg-[#081B33]"
+                >
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#D6952F]" />
+                  <span className="text-xs sm:text-sm leading-relaxed text-[#1A2236] dark:text-slate-300">
+                    {point}
+                  </span>
+                </div>
               ))}
-              <li className="flex items-start gap-3 text-sm leading-relaxed text-content-muted">
-                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#C8943E]" />
-                <span>
-                  Detailed terms and conditions are available{' '}
-                  <Link
-                    href="/referral-terms"
-                    className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
-                  >
-                    here
-                  </Link>
-                  .
-                </span>
-              </li>
-            </ul>
+            </div>
+
+            <p className="mt-6 text-xs text-[#8C9AC0] border-t border-[#E9E5DC] dark:border-[#1E3557] pt-4">
+              Self-referrals and fraudulent accounts will result in wallet forfeiture. Detailed terms
+              and conditions apply. Read the full policy{' '}
+              <Link
+                href="/referral-terms"
+                className="font-bold text-[#D6952F] underline hover:text-[#C8842D]"
+              >
+                here
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────────────────────────────────────────────────────
+          7. FINAL HIGH-CONVERSION CTA BANNER
+          ───────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#061B36] to-[#0A2645] py-16 sm:py-20 text-white isolate">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-[#15803D]/20 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-[#D6952F]/15 blur-3xl"
+        />
+
+        <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D6952F]/20 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#F0C27B]">
+            READY TO GET STARTED?
+          </span>
+          <h2 className="mt-4 font-sans text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
+            Start Earning From Your Network Today
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-[#C9D3EA]">
+            Share your unique link, invite your colleagues, and watch your rewards accumulate
+            in your Gravitas Edge partner wallet.
+          </p>
+
+          <div className="mt-8 flex justify-center">
+            <ReferAndEarnCta label="Get Your Referral Link" size="lg" variant="gold" />
           </div>
 
-          <div className="mt-12 text-center">
-            <h2 className="font-serif-heading text-2xl font-bold tracking-tight text-content sm:text-3xl">
-              Ready to start earning?
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-content-muted sm:text-base">
-              Share your unique link, invite your network, and watch your rewards grow in your
-              Gravitas Edge wallet.
-            </p>
-            <div className="mt-8 flex justify-center">
-              <ReferAndEarnCta />
-            </div>
-          </div>
+          <p className="mt-4 text-xs text-[#8C9AC0]">
+            Takes under 1 minute · Instant activation · No subscription required to refer
+          </p>
         </div>
       </section>
     </div>

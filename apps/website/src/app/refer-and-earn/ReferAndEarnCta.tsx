@@ -24,12 +24,12 @@ export default function ReferAndEarnCta({
   const href = !loading && user ? '/dashboard/referrals' : '/register';
 
   const sizeClasses =
-    size === 'lg' ? 'px-7 py-3.5 text-base' : 'px-5 py-3 text-sm';
+    size === 'lg' ? 'px-7 py-3.5 text-sm sm:text-base' : 'px-5 py-2.5 text-xs sm:text-sm';
 
   const variantClasses =
     variant === 'gold'
-      ? 'bg-gradient-to-b from-[#D3A24C] to-[#B8832F] text-white shadow-[0_12px_30px_-12px_rgba(200,148,62,0.75)] ring-1 ring-inset ring-white/15 hover:from-[#DBAA55] hover:to-[#C08A32] focus-visible:ring-[#C8943E]'
-      : 'bg-[#061B36] text-white shadow-sm hover:bg-[#061B36]/90 focus-visible:ring-[#C8943E]';
+      ? 'bg-[#D6952F] text-[#061B36] font-bold shadow-md hover:bg-[#E0A343] focus-visible:ring-[#D6952F] dark:bg-[#D6952F] dark:hover:bg-[#E0A343] dark:text-[#061B36]'
+      : 'bg-[#061B36] text-white font-bold shadow-sm hover:bg-[#10243E] focus-visible:ring-[#D6952F] dark:bg-[#1D3B66] dark:hover:bg-[#254A7F]';
 
   return (
     <Link
