@@ -2,25 +2,55 @@
 
 import Link from 'next/link';
 import { useRef, useState } from 'react';
-import { faqData } from '@/data/faq-data';
-import Eyebrow from '@/components/marketing/Eyebrow';
 
-const FEATURED_FAQ_IDS = [1, 6, 17, 20, 21, 24];
-
-function ChevronDownIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-    </svg>
-  );
+export interface FaqItemData {
+  id?: number | string;
+  question: string;
+  answer: string;
 }
+
+const REDESIGN_FAQS: FaqItemData[] = [
+  {
+    question: 'What is Gravitas Edge?',
+    answer:
+      'An opportunity-information service. We share curated job opportunities and, where available, recruiter or hiring-manager contact details or application pathways. We are not a recruitment agency or placement service and do not guarantee interviews or employment.',
+  },
+  {
+    question: 'Which vaults are available?',
+    answer:
+      'Seven: Early Career India (0–5 yrs), Management India (5–10), Leadership India (10–15), Executive India (15+), Global Career Access (under 10 yrs, international), Global Leadership Access (10+ yrs, international) and Executive Premier Access (15+ yrs, India and international).',
+  },
+  {
+    question: 'Do Global vaults include India?',
+    answer:
+      'No. Global Career Access and Global Leadership Access cover international opportunities outside India. For India, choose an India vault, Executive Premier Access, or a Build Your Bundle combination.',
+  },
+  {
+    question: 'How is my price decided?',
+    answer:
+      'By your billing country. India billing addresses are charged in INR; international billing addresses are charged in USD for the Global vaults. Local-currency amounts are shown for reference. Checkout shows the final currency, taxes and renewal terms before you pay.',
+  },
+  {
+    question: 'How does Build Your Bundle work?',
+    answer:
+      'Combine one eligible India vault with its matching Global vault for 20% off, in one checkout with one renewal date. The discount applies while both stay active; cancelling either removes it.',
+  },
+  {
+    question: 'Do I pay to apply?',
+    answer:
+      'No. You never pay an employer or recruiter. Your subscription pays for access to opportunity information.',
+  },
+  {
+    question: 'Can I preview opportunities first?',
+    answer:
+      'Review the Free Preview and the country directory before subscribing, and subscribe only if what you see is relevant to you.',
+  },
+  {
+    question: 'Are there refunds?',
+    answer:
+      'Access is digital and immediate, so subscriptions are non-refundable. You confirm this before paying.',
+  },
+];
 
 function FaqItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
@@ -28,22 +58,24 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   const [height, setHeight] = useState(0);
 
   return (
-    <div className="border-b border-line last:border-b-0">
+    <div className="mb-2.5 rounded-xl border border-[#E9E5DC] bg-white p-4 shadow-sm transition-all duration-200 sm:px-[18px] sm:py-4 dark:border-[#1E3557] dark:bg-[#0E2340]">
       <button
+        type="button"
         onClick={() => {
           const next = !open;
           setOpen(next);
           if (contentRef.current) setHeight(next ? contentRef.current.scrollHeight : 0);
         }}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-4 py-4 text-left text-sm font-medium text-content transition-colors hover:text-brand-700 dark:hover:text-brand-300 sm:text-base"
+        className="flex w-full items-center justify-between gap-3 text-left text-[0.95rem] font-bold text-[#061B36] transition-colors hover:text-[#C8842D] sm:text-[1rem] dark:text-white dark:hover:text-[#F0C27B]"
       >
         <span className="flex-1">{question}</span>
-        <ChevronDownIcon
-          className={`h-5 w-5 shrink-0 text-content-faint transition-transform duration-200 ${
-            open ? 'rotate-180' : ''
-          }`}
-        />
+        <span
+          aria-hidden="true"
+          className="flex h-6 w-6 shrink-0 items-center justify-center text-[1.3rem] font-light leading-none text-[#D6952F] select-none"
+        >
+          {open ? '–' : '+'}
+        </span>
       </button>
       <div
         className="overflow-hidden transition-[height] duration-200 ease-in-out"
@@ -51,7 +83,7 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
       >
         <div
           ref={contentRef}
-          className="pb-4 text-sm leading-relaxed text-content-muted sm:text-base"
+          className="pt-2.5 text-[0.93rem] leading-[1.55] text-[#5B6479] dark:text-slate-300"
         >
           {answer}
         </div>
@@ -60,32 +92,39 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-export default function FaqSection() {
-  const featured = faqData.filter((item) => FEATURED_FAQ_IDS.includes(item.id));
+export interface FaqSectionProps {
+  items?: FaqItemData[];
+  title?: string;
+  eyebrow?: string;
+}
 
+export default function FaqSection({
+  items = REDESIGN_FAQS,
+  title = 'Questions, answered',
+  eyebrow = 'FAQs',
+}: FaqSectionProps) {
   return (
-    <section id="faq" className="section-glow-navy relative border-t border-line bg-surface-muted">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="max-w-2xl">
-          <Eyebrow>FAQ</Eyebrow>
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
-            Frequently Asked Questions
+    <section id="faq" className="py-16 sm:py-20">
+      <div className="mx-auto max-w-[820px] px-4 sm:px-6">
+        <div className="mb-7 text-center">
+          <span className="mb-2 inline-block text-[0.75rem] font-bold uppercase tracking-[0.12em] text-[#15803D] dark:text-emerald-400">
+            {eyebrow}
+          </span>
+          <h2 className="text-3xl font-bold leading-[1.15] tracking-tight text-[#061B36] sm:text-4xl lg:text-[2.5rem] dark:text-white">
+            {title}
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-content-muted">
-            Quick answers to common questions.
-          </p>
         </div>
 
-        <div className="mt-8 rounded-2xl border border-line bg-surface px-5 py-1 card-static dark:bg-surface-elevated sm:px-7">
-          {featured.map((item) => (
-            <FaqItem key={item.id} question={item.question} answer={item.answer} />
+        <div className="w-full">
+          {items.map((item, idx) => (
+            <FaqItem key={item.id ?? idx} question={item.question} answer={item.answer} />
           ))}
         </div>
 
-        <div className="mt-6">
+        <div className="mt-7 text-center">
           <Link
             href="/faq"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-content shadow-sm transition-colors hover:border-brand-300 hover:bg-surface-muted dark:bg-surface-elevated"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#E9E5DC] bg-white px-5 py-2.5 text-sm font-semibold text-[#061B36] shadow-sm transition-all duration-200 hover:border-[#061B36] hover:bg-slate-50 dark:border-[#1E3557] dark:bg-[#0E2340] dark:text-white dark:hover:border-slate-500"
           >
             View all frequently asked questions
             <span aria-hidden="true">→</span>

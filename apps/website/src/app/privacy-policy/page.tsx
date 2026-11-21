@@ -23,10 +23,10 @@ export default function PrivacyPolicyPage() {
       lastUpdated="12 September 2026"
       intro={
         <div className="space-y-4">
-          <p className="text-[15px] leading-relaxed text-content-muted [&_a]:font-medium [&_a]:text-brand-600 [&_a]:underline [&_a]:underline-offset-2 [&_a]:dark:text-brand-400">
+          <p className="text-[15px] leading-relaxed">
             {`Gravitas Edge Consulting ("Gravitas Edge", "we", "us" or "our") respects your privacy and is committed to handling personal information responsibly. This Privacy Policy explains the personal information we may collect, why we use it, how it may be shared, how long it may be retained, and the rights and choices that may be available to you.`}
           </p>
-          <p className="text-[15px] leading-relaxed text-content-muted [&_a]:font-medium [&_a]:text-brand-600 [&_a]:underline [&_a]:underline-offset-2 [&_a]:dark:text-brand-400">
+          <p className="text-[15px] leading-relaxed">
             {`This Policy applies to the Gravitas Edge website, user accounts, Premium Opportunity Vaults, Free Preview, free communication channels, resume uploads, Recruitment Consulting interactions, referral programme, customer support and related services.`}
           </p>
         </div>

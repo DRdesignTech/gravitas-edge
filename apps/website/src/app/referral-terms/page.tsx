@@ -20,7 +20,7 @@ export default function ReferralTermsPage() {
       title="Referral Programme Terms"
       lastUpdated="12 September 2026"
       intro={
-        <p className="text-[15px] leading-relaxed text-content-muted">
+        <p className="text-[15px] leading-relaxed">
           {`These Referral Programme Terms apply to the Gravitas Edge subscriber referral programme. Participation is optional and subject to these terms.`}
         </p>
       }

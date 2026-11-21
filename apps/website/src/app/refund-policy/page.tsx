@@ -1,5 +1,10 @@
 import type { Metadata } from 'next';
-import PolicyLayout, { PolicySection, PolicyText } from '@/components/legal/PolicyLayout';
+import PolicyLayout, {
+  PolicyCallout,
+  PolicyList,
+  PolicySection,
+  PolicyText,
+} from '@/components/legal/PolicyLayout';
 
 export const metadata: Metadata = {
   title: 'Refund & Cancellation Policy | Gravitas Edge',
@@ -16,7 +21,7 @@ export default function RefundPolicyPage() {
       title="Refund & Cancellation Policy"
       lastUpdated="12 September 2026"
       intro={
-        <p className="text-[15px] leading-relaxed text-content-muted">
+        <p className="text-[15px] leading-relaxed">
           {`This Policy applies to paid Premium Opportunity Vault subscriptions and other eligible digital purchases made directly from Gravitas Edge Consulting unless separate written terms apply.`}
         </p>
       }
@@ -35,31 +40,23 @@ export default function RefundPolicyPage() {
         <PolicyText>
           {`This reflects the immediate availability of digital subscription content. Nothing in this Policy excludes or limits a refund, cancellation right or other consumer remedy that cannot legally be excluded.`}
         </PolicyText>
+        <PolicyCallout badge="Important · Read Carefully">
+          Because access is digital and immediate, subscriptions are non-refundable once activated. Review the Free Preview and country directory before subscribing.
+        </PolicyCallout>
       </PolicySection>
 
       <PolicySection number="3." title="Cases We Will Review">
         <PolicyText>{`We will review the following types of cases:`}</PolicyText>
-        <ul className="mt-4 space-y-2.5">
-          {[
+        <PolicyList
+          items={[
             'Duplicate payment for the same intended purchase.',
             'Incorrect or unauthorised charge attributable to our payment flow, subject to verification.',
             'Technical payment failure resulting in an incorrect charge.',
             'Successful payment but failure by Gravitas Edge to provide the purchased access within a reasonable period after being notified.',
             'Material discrepancy between the service purchased and the service delivered.',
             'A refund or remedy required under applicable law.',
-          ].map((item, i) => (
-            <li
-              key={i}
-              className="flex items-start gap-3 text-[15px] leading-relaxed text-content-muted"
-            >
-              <span
-                className="mt-[10px] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500/70"
-                aria-hidden="true"
-              />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
+          ]}
+        />
       </PolicySection>
 
       <PolicySection number="4." title="Wrong Vault / Accidental Selection">
@@ -102,7 +99,7 @@ export default function RefundPolicyPage() {
       </PolicySection>
 
       <PolicySection number="9." title="How to Request Review">
-        <p className="mt-4 text-[15px] leading-relaxed text-content-muted [&_a]:font-medium [&_a]:text-brand-600 [&_a]:underline [&_a]:underline-offset-2 [&_a]:dark:text-brand-400">
+        <p className="text-[15px] leading-relaxed text-[#334155] dark:text-slate-300 [&_a]:font-medium [&_a]:text-[#061B36] [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-[#B8860B] dark:[&_a]:text-[#F0C27B]">
           {`Email: `}
           <a href={`mailto:${CONTACT}`}>{CONTACT}</a>
         </p>

@@ -2,22 +2,28 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import ThemeToggle from '@/components/theme/ThemeToggle';
-import { CloseIcon } from '@/components/ui';
-import BrandLogo from '@/components/brand/BrandLogo';
+import { BRAND_LOGO_SRC } from '@/lib/brand';
 import { scrollToAnchor } from '@/lib/scroll';
+import AuthModal from '@/components/auth/AuthModal';
 
-const navLinks = [
-  { href: '#home', label: 'Home' },
-  { href: '#free-preview', label: 'Free Preview' },
-  { href: '#vaults', label: 'Opportunity Vaults' },
-  { href: '#how-it-works', label: 'How It Works' },
-  { href: '#plans', label: 'Plans' },
-  { href: '/recruitment-vendor', label: 'Recruitment Vendor' },
-  { href: '#faq', label: 'FAQ' },
-  { href: '/contact', label: 'Contact Us' },
+interface NavLinkItem {
+  href: string;
+  label: string;
+  key: string;
+}
+
+const navLinks: NavLinkItem[] = [
+  { href: '#home', label: 'Home', key: 'home' },
+  { href: '#how-it-works', label: 'How It Works', key: 'how' },
+  { href: '#free-preview', label: 'Free Preview', key: 'preview' },
+  { href: '#vaults', label: 'Opportunity Vaults', key: 'vaults' },
+  { href: '#plans', label: 'Plans', key: 'plans' },
+  { href: '/recruitment-vendor', label: 'Recruitment Vendor', key: 'vendor' },
+  { href: '#faq', label: 'FAQ', key: 'faq' },
+  { href: '/contact', label: 'Contact Us', key: 'contact' },
 ];
 
 const userMenuLinks = [
@@ -39,15 +45,16 @@ function getProfileImageUrl(img: string | null | undefined) {
   if (!img) return null;
   if (img.startsWith('http')) return img;
   const base = process.env.NEXT_PUBLIC_API_URL || '';
-  // Profile images are served from /api/storage/
   return `${base}/storage/${img}`;
 }
 
 export default function Header() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   const menuRef = useRef<HTMLDivElement>(null);
   const spyLocked = useRef(false);
@@ -58,59 +65,75 @@ export default function Header() {
   useEffect(() => setMobileOpen(false), [pathname]);
   useEffect(() => setUserMenuOpen(false), [pathname]);
 
-  // Scroll spy — tracks the section currently in view so the active highlight
-  // follows scrolling (e.g. it returns to Home when scrolled back to the top).
+  // Scroll spy — tracks the section currently in view so the active highlight follows scrolling
   useEffect(() => {
-    if (pathname !== '/') return;
-    const ids = navLinks.filter((l) => l.href.startsWith('#')).map((l) => l.href.slice(1));
+    if (pathname !== '/') {
+      if (pathname.startsWith('/recruitment-vendor')) {
+        setActiveSection('vendor');
+      } else if (pathname.startsWith('/contact')) {
+        setActiveSection('contact');
+      } else {
+        setActiveSection('');
+      }
+      return;
+    }
+
+    const sectionMapping: { id: string; key: string }[] = [
+      { id: 'home', key: 'home' },
+      { id: 'how-it-works', key: 'how' },
+      { id: 'free-preview', key: 'preview' },
+      { id: 'vaults', key: 'vaults' },
+      { id: 'plans', key: 'plans' },
+      { id: 'faq', key: 'faq' },
+    ];
 
     const update = () => {
-      // While a nav tap is programmatically scrolling, keep the tapped link
-      // highlighted and ignore scroll updates until the target is reached.
       if (spyLocked.current) {
         const target = lockedTarget.current ? document.getElementById(lockedTarget.current) : null;
         const top = target ? target.getBoundingClientRect().top : NaN;
-        if (!target || (top > 24 && top < 104)) {
+        if (!target || (top > 24 && top < 120)) {
           spyLocked.current = false;
         } else {
           return;
         }
       }
-      const offset = 88;
-      // Resolve elements on every run — sections can be replaced after data loads.
-      const entries = ids
-        .map((id) => {
+
+      const offset = 90;
+      const entries = sectionMapping
+        .map(({ id, key }) => {
           const el = document.getElementById(id);
-          return el ? { id, top: el.getBoundingClientRect().top } : null;
+          return el ? { id, key, top: el.getBoundingClientRect().top } : null;
         })
-        .filter((e): e is { id: string; top: number } => e !== null);
+        .filter((e): e is { id: string; key: string; top: number } => e !== null);
+
       if (!entries.length) return;
 
-      let current = entries[0].id;
+      let currentKey = entries[0].key;
       let closest = -Infinity;
-      let lowest = entries[0].id;
+      let lowestKey = entries[0].key;
       let lowestTop = -Infinity;
-      for (const { id, top } of entries) {
+
+      for (const { key, top } of entries) {
         if (top > lowestTop) {
           lowestTop = top;
-          lowest = id;
+          lowestKey = key;
         }
         if (top <= offset && top > closest) {
           closest = top;
-          current = id;
+          currentKey = key;
         }
       }
-      // When the page is scrolled to the very bottom the last section may not
-      // reach the offset — highlight it regardless.
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
-        current = lowest;
+
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 5) {
+        currentKey = lowestKey;
       }
-      setActiveSection(current);
+      setActiveSection(currentKey);
     };
 
     const release = () => {
       spyLocked.current = false;
     };
+
     update();
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
@@ -146,103 +169,169 @@ export default function Header() {
     if (!href.startsWith('#')) return;
     setMobileOpen(false);
     setUserMenuOpen(false);
-    // On the homepage section links scroll in-page and only sync the URL hash
-    // (replaceState — no extra history entry). From any other route we let the
-    // Next.js <Link> perform a normal single history navigation.
-    if (pathname !== '/') return;
+
+    if (pathname !== '/') {
+      router.push(`/${href}`);
+      return;
+    }
+
     e.preventDefault();
     const id = href.replace(/^#/, '');
-    // Keep the tapped link highlighted while the programmatic scroll runs.
+    const matched = navLinks.find((l) => l.href === href);
+    if (matched) {
+      setActiveSection(matched.key);
+    }
     spyLocked.current = true;
     lockedTarget.current = id;
-    setActiveSection(id);
     if (spyUnlockTimer.current) window.clearTimeout(spyUnlockTimer.current);
     spyUnlockTimer.current = window.setTimeout(() => {
       spyLocked.current = false;
     }, 1200);
-    // Collapsing the mobile menu changes the header height and shifts the page,
-    // so wait a tick for layout to settle before measuring the scroll target.
+
     if (navScrollTimer.current) window.clearTimeout(navScrollTimer.current);
     navScrollTimer.current = window.setTimeout(() => {
       scrollToAnchor(id);
       window.history.replaceState(null, '', href);
-    }, 0);
+    }, 10);
   };
 
-  const isActive = (href: string) => {
-    if (href.startsWith('#')) {
+  const isActive = (link: NavLinkItem) => {
+    if (link.href.startsWith('#')) {
       if (pathname !== '/') return false;
-      return activeSection === href.slice(1);
+      return activeSection === link.key;
     }
-    return href === '/' ? pathname === '/' : pathname.startsWith(href);
+    return pathname === link.href || pathname.startsWith(`${link.href}/`);
   };
-
-  const navLinkClass = (href: string) =>
-    `rounded-lg px-2.5 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-      isActive(href)
-        ? 'bg-[#FFF3D9] text-[#061B36] border border-[#C8943E] dark:bg-brand-950 dark:text-brand-200 dark:border-brand-500/60'
-        : 'text-content-muted hover:bg-surface-muted hover:text-content hover:border hover:border-[#C8943E]/40 border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2'
-    }`;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full max-w-[100rem] items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
-          <Link
-            href="/#home"
-            onClick={(e) => handleSectionNav(e, '#home')}
-            className="flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-            aria-label="Gravitas Edge Consulting home"
-          >
-            <BrandLogo
-              className="h-8 w-auto sm:h-10 lg:h-12"
-              nameClassName="hidden text-base font-bold tracking-tight text-content sm:inline lg:text-lg"
-            />
-          </Link>
-          <nav className="hidden items-center gap-x-0 2xl:flex" aria-label="Primary">
-            {navLinks.map((link) =>
-              link.href.startsWith('#') ? (
-                <Link
-                  key={link.href}
-                  href={`/${link.href}`}
-                  onClick={(e) => handleSectionNav(e, link.href)}
-                  className={navLinkClass(link.href)}
-                >
-                  {link.label}
-                </Link>
-              ) : (
-                <Link key={link.href} href={link.href} className={navLinkClass(link.href)}>
-                  {link.label}
-                </Link>
-              ),
-            )}
-          </nav>
-        </div>
+    <header className="sticky top-0 z-50 bg-[#FEFDF9]/95 dark:bg-[#06142A]/95 backdrop-blur-[10px] border-b border-[#E9E5DC] dark:border-[#1E3557]">
+      <div className="mx-auto flex h-[68px] max-w-[1320px] items-center gap-[14px] px-5">
+        <Link
+          href="/#home"
+          onClick={(e) => handleSectionNav(e, '#home')}
+          className="flex items-center gap-[14px] font-extrabold text-[1.05rem] text-[#061B36] dark:text-[#F2F5FA] no-underline cursor-pointer shrink-0"
+          aria-label="Gravitas Edge Consulting home"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="h-[42px] w-auto block dark:bg-white dark:rounded-lg dark:px-1 dark:py-0.5"
+            src={BRAND_LOGO_SRC}
+            alt="Gravitas Edge Consulting logo"
+            width={143}
+            height={46}
+          />
+          <span className="font-bold text-[1rem] text-[#061B36] dark:text-[#F2F5FA] whitespace-nowrap tracking-[-0.01em] max-[620px]:hidden min-[1121px]:max-[1270px]:hidden">
+            Gravitas Edge Consulting
+          </span>
+        </Link>
 
-        <div className="hidden shrink-0 items-center gap-3 2xl:flex 2xl:pl-4">
+        <nav
+          id="nav"
+          aria-label="Primary"
+          className={`min-[1121px]:flex min-[1121px]:static min-[1121px]:bg-transparent min-[1121px]:flex-row min-[1121px]:p-0 min-[1121px]:border-0 min-[1121px]:items-center min-[1121px]:gap-[2px] min-[1121px]:ml-auto min-[1121px]:mr-[10px] max-[1120px]:absolute max-[1120px]:top-[68px] max-[1120px]:left-0 max-[1120px]:right-0 max-[1120px]:bg-white max-[1120px]:dark:bg-[#0C1E38] max-[1120px]:flex-col max-[1120px]:p-[12px_20px] max-[1120px]:border-b max-[1120px]:border-[#E9E5DC] max-[1120px]:dark:border-[#1E3557] max-[1120px]:shadow-lg max-[1120px]:z-40 ${
+            mobileOpen ? 'max-[1120px]:flex max-[1120px]:items-stretch' : 'max-[1120px]:hidden'
+          }`}
+        >
+          {navLinks.map((link) => {
+            const active = isActive(link);
+            return (
+              <button
+                key={link.href}
+                type="button"
+                data-nav={link.key}
+                className={`font-sans rounded-[8px] font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer min-[1121px]:py-[6px] min-[1121px]:px-[8px] min-[1121px]:text-[0.77rem] min-[1121px]:leading-[1.55] max-[1120px]:text-left max-[1120px]:text-[0.92rem] max-[1120px]:py-[10px] max-[1120px]:px-[12px] ${
+                  active
+                    ? 'bg-[#FBF0DE] border border-[#E0A85A] text-[#061B36] dark:bg-[#D6952F]/[0.16] dark:border-[#E0A85A] dark:text-[#F6D58A]'
+                    : 'bg-transparent border border-transparent text-[#061B36] dark:text-[#F2F5FA] hover:bg-[#D6952F]/[0.08] dark:hover:bg-[#D6952F]/[0.12]'
+                }`}
+                onClick={(e) => {
+                  if (link.href.startsWith('#')) {
+                    handleSectionNav(e, link.href);
+                  } else {
+                    setMobileOpen(false);
+                    router.push(link.href);
+                  }
+                }}
+              >
+                {link.label}
+              </button>
+            );
+          })}
+
+          {/* Mobile extra items */}
+          {mobileOpen && (
+            <div className="mt-2 pt-3 border-t border-[#E9E5DC] dark:border-[#1E3557] flex flex-col gap-1 min-[1121px]:hidden">
+              <div className="flex items-center justify-between py-2 px-3">
+                <span className="text-[0.92rem] font-medium text-[#061B36] dark:text-[#F2F5FA]">
+                  Appearance
+                </span>
+                <ThemeToggle />
+              </div>
+              {user ? (
+                <>
+                  {userMenuLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setMobileOpen(false)}
+                      className="text-left text-[0.92rem] font-medium py-[10px] px-[12px] rounded-lg text-[#5B6479] dark:text-[#93A3BE] hover:bg-[#D6952F]/[0.08] hover:text-[#061B36] dark:hover:text-[#F2F5FA]"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      logout();
+                    }}
+                    className="text-left text-[0.92rem] font-semibold py-[10px] px-[12px] rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setAuthModalOpen(true);
+                  }}
+                  className="inline-flex items-center justify-center rounded-full bg-[#061B36] hover:bg-[#10243E] dark:bg-[#1D3B66] dark:hover:bg-[#26497C] text-white font-bold text-[0.88rem] py-[10px] px-[18px] text-center mt-2 cursor-pointer"
+                >
+                  Sign In
+                </button>
+              )}
+            </div>
+          )}
+        </nav>
+
+        <div className="flex items-center gap-[10px] max-[1120px]:ml-auto shrink-0">
           <ThemeToggle />
           {user ? (
             <div className="relative" ref={menuRef}>
               <button
+                type="button"
                 onClick={() => setUserMenuOpen((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={userMenuOpen}
-                className="flex max-w-[160px] items-center gap-2 rounded-xl border border-line bg-surface py-1.5 pl-1.5 pr-3 text-sm font-medium text-content hover:bg-surface-muted"
+                className="flex max-w-[170px] items-center gap-2 rounded-full border border-[#E9E5DC] dark:border-[#1E3557] bg-white dark:bg-[#0C1E38] py-1.5 pl-1.5 pr-3 text-sm font-medium text-[#061B36] dark:text-[#F2F5FA] shadow-sm hover:bg-[#D6952F]/[0.08] transition-colors"
               >
                 {user.profile?.profileImg ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={getProfileImageUrl(user.profile.profileImg) ?? undefined}
                     alt="Profile"
-                    className="h-7 w-7 shrink-0 rounded-full border border-brand-200 object-cover dark:border-brand-800"
+                    className="h-7 w-7 shrink-0 rounded-full border border-[#D6952F] object-cover"
                   />
                 ) : (
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F0C27B] text-xs font-bold text-[#061B36]">
                     {initials(user.profile?.fullName, user.email)}
                   </span>
                 )}
                 <span className="truncate">{user.profile?.fullName || 'Account'}</span>
                 <svg
-                  className="h-4 w-4 shrink-0 text-content-faint"
+                  className="h-4 w-4 shrink-0 text-[#5B6479] dark:text-[#93A3BE]"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -255,19 +344,24 @@ export default function Header() {
                 </svg>
               </button>
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-60 overflow-hidden rounded-2xl border border-line bg-surface shadow-pop dark:bg-surface-elevated">
+                <div className="absolute right-0 mt-2 w-60 overflow-hidden rounded-2xl border border-[#E9E5DC] dark:border-[#1E3557] bg-white dark:bg-[#0C1E38] shadow-lg z-50">
                   {userMenuLinks.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="block px-4 py-2.5 text-sm text-content-muted transition-all duration-150 hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:bg-surface-muted focus-visible:text-content"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="block px-4 py-2.5 text-sm text-[#5B6479] dark:text-[#93A3BE] transition-colors hover:bg-[#D6952F]/[0.08] hover:text-[#061B36] dark:hover:text-[#F2F5FA] focus-visible:outline-none"
                     >
                       {link.label}
                     </Link>
                   ))}
-                  <div className="border-t border-line" />
+                  <div className="border-t border-[#E9E5DC] dark:border-[#1E3557]" />
                   <button
-                    onClick={logout}
+                    type="button"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      logout();
+                    }}
                     className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
                   >
                     Logout
@@ -276,140 +370,32 @@ export default function Header() {
               )}
             </div>
           ) : (
-            <Link
-              href="/login"
-              className="whitespace-nowrap rounded-xl bg-[#061B36] px-4 py-2.5 text-sm font-semibold text-[#FFFEFA] shadow-sm transition-colors hover:bg-[#061B36]/90 dark:bg-brand-400 dark:text-[#061B36] dark:hover:bg-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            <button
+              type="button"
+              onClick={() => setAuthModalOpen(true)}
+              className="inline-flex items-center justify-center rounded-full bg-[#061B36] hover:bg-[#10243E] dark:bg-[#1D3B66] dark:hover:bg-[#26497C] text-white font-bold text-[0.85rem] leading-[1.55] px-[14px] py-[8px] whitespace-nowrap transition-colors no-underline max-[1120px]:hidden cursor-pointer"
             >
               Sign In
-            </Link>
-          )}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-1.5 2xl:hidden">
-          {/* Compact mobile: Free Preview → Sign In → Menu */}
-          <Link
-            href="/#free-preview"
-            onClick={(e) => handleSectionNav(e, '#free-preview')}
-            className="free-preview-border hidden min-[384px]:inline-flex whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm font-semibold text-[#061B36] transition-colors hover:bg-[#FFF3D9] dark:text-brand-200 dark:hover:bg-brand-950"
-          >
-            Free Preview
-          </Link>
-          {user ? (
-            <Link
-              href="/dashboard"
-              aria-label="Go to dashboard"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300"
-            >
-              {initials(user.profile?.fullName, user.email)}
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="whitespace-nowrap rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 dark:bg-brand-400 dark:text-[#061B36]"
-            >
-              Sign In
-            </Link>
+            </button>
           )}
           <button
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Toggle menu"
+            type="button"
+            className="hidden max-[1120px]:block bg-transparent border-0 text-[1.5rem] leading-none text-[#061B36] dark:text-[#F2F5FA] cursor-pointer p-1"
+            id="burger"
+            aria-label="Menu"
             aria-expanded={mobileOpen}
-            className="rounded-lg p-2 text-content-muted hover:bg-surface-muted hover:text-content"
+            onClick={() => setMobileOpen((v) => !v)}
           >
-            {mobileOpen ? (
-              <CloseIcon className="h-6 w-6" />
-            ) : (
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-                />
-              </svg>
-            )}
+            {mobileOpen ? '✕' : '☰'}
           </button>
         </div>
       </div>
 
-      {mobileOpen && (
-        <div className="max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain border-t border-line bg-surface px-4 pb-6 pt-3 2xl:hidden">
-          <nav
-            className="space-y-1"
-            aria-label="Primary mobile"
-            style={{ overflowWrap: 'anywhere' }}
-          >
-            {navLinks.map((link) =>
-              link.href.startsWith('#') ? (
-                <Link
-                  key={link.href}
-                  href={`/${link.href}`}
-                  onClick={(e) => handleSectionNav(e, link.href)}
-                  className={`block rounded-lg px-3 py-2.5 text-sm font-medium whitespace-normal break-words transition-all duration-200 ${
-                    isActive(link.href)
-                      ? 'bg-[#FFF3D9] text-[#061B36] border border-[#C8943E] dark:bg-brand-950 dark:text-brand-200 dark:border-brand-500/60'
-                      : 'text-content-muted hover:bg-surface-muted hover:text-content hover:border hover:border-[#C8943E]/40 border border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E]'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ) : (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium whitespace-normal break-words text-content-muted hover:bg-surface-muted hover:text-content"
-                >
-                  {link.label}
-                </Link>
-              ),
-            )}
-          </nav>
-          <div className="my-2 flex items-center justify-between border-y border-line py-2.5">
-            <span className="px-3 text-sm font-medium text-content">Appearance</span>
-            <ThemeToggle />
-          </div>
-          {user ? (
-            <>
-              {userMenuLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium whitespace-normal break-words text-content hover:bg-surface-muted"
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <button
-                onClick={logout}
-                className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <div className="flex gap-3 pt-2">
-              <Link
-                href="/login"
-                className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-brand-700 dark:bg-brand-400 dark:text-[#061B36]"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/register"
-                className="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 text-center text-sm font-medium text-content hover:bg-surface-muted"
-              >
-                Create account
-              </Link>
-            </div>
-          )}
-        </div>
-      )}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialMode="signin"
+      />
     </header>
   );
 }

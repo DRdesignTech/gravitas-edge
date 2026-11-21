@@ -1,14 +1,10 @@
-import { Poppins } from 'next/font/google';
+import Script from 'next/script';
 import '../styles/globals.css';
 import Providers from '@/components/layout/Providers';
 import ChatbotWidget from '@/components/chat/ChatbotWidget';
-
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-  variable: '--font-poppins',
-});
+import WelcomeSplashModal from '@/components/marketing/WelcomeSplashModal';
+import RecentPurchasePopup from '@/components/marketing/RecentPurchasePopup';
+import Toast from '@/components/ui/Toast';
 
 export const metadata = {
   title: 'Gravitas Edge Consulting — Find your next opportunity',
@@ -29,11 +25,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`${poppins.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <Providers>{children}</Providers>
         <ChatbotWidget />
+        <WelcomeSplashModal />
+        <RecentPurchasePopup />
+        <Toast />
       </body>
     </html>
   );

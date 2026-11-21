@@ -20,7 +20,7 @@ export default function CookiePolicyPage() {
       title="Cookie Policy"
       lastUpdated="12 September 2026"
       intro={
-        <p className="text-[15px] leading-relaxed text-content-muted">
+        <p className="text-[15px] leading-relaxed">
           {`Gravitas Edge Consulting may use cookies and similar technologies to operate, secure and improve its website.`}
         </p>
       }

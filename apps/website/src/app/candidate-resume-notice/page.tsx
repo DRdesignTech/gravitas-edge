@@ -20,7 +20,7 @@ export default function CandidateResumeNoticePage() {
       title="Candidate Resume & Recruitment Consulting Notice"
       lastUpdated="12 September 2026"
       intro={
-        <p className="text-[15px] leading-relaxed text-content-muted">
+        <p className="text-[15px] leading-relaxed">
           {`This Notice explains how optional resume uploads and candidate information may be used in connection with Gravitas Edge Recruitment Consulting and related candidate services.`}
         </p>
       }

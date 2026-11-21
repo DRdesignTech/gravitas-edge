@@ -34,6 +34,37 @@ import { LockNotice } from '@/components/LockNotice';
 import { OPPORTUNITY_FIELD_LABELS, extractEmail, buildApplyMailto } from '@job-portal/shared';
 
 /* ------------------------------------------------------------------ */
+/*  Country flags & helper mappings                                   */
+/* ------------------------------------------------------------------ */
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  'United Arab Emirates': '🇦🇪',
+  UAE: '🇦🇪',
+  'Saudi Arabia': '🇸🇦',
+  Singapore: '🇸🇬',
+  'United Kingdom': '🇬🇧',
+  UK: '🇬🇧',
+  Germany: '🇩🇪',
+  Qatar: '🇶🇦',
+  Kenya: '🇰🇪',
+  Canada: '🇨🇦',
+  'United States': '🇺🇸',
+  USA: '🇺🇸',
+  US: '🇺🇸',
+  India: '🇮🇳',
+  Australia: '🇦🇺',
+  Oman: '🇴🇲',
+  Nigeria: '🇳🇬',
+};
+
+function formatJobId(id: string): string {
+  if (!id) return '';
+  if (id.startsWith('GE-')) return id;
+  if (id.length <= 10) return id.toUpperCase();
+  return `GE-${id.slice(0, 7).toUpperCase()}`;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Inline icons                                                       */
 /* ------------------------------------------------------------------ */
 
@@ -235,8 +266,20 @@ function CheckIcon({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
+function ShieldCheckIcon({ className = 'h-5 w-5' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+      />
+    </svg>
+  );
+}
+
 /* ------------------------------------------------------------------ */
-/*  Small presentation pieces                                          */
+/*  Presentation components                                           */
 /* ------------------------------------------------------------------ */
 
 function HeroPill({
@@ -247,13 +290,13 @@ function HeroPill({
   children: React.ReactNode;
 }) {
   const tones = {
-    gold: 'border-[#C8943E]/40 bg-gradient-to-r from-[#C8943E]/25 to-[#E3B968]/10 text-[#F1CE82]',
-    emerald: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200',
+    gold: 'border-[#F0C27B]/40 bg-gradient-to-r from-[#F0C27B]/20 to-[#D6952F]/10 text-[#F0C27B] shadow-2xs',
+    emerald: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300 shadow-2xs',
     glass: 'border-white/15 bg-white/[0.06] text-slate-200',
   } as const;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur ${tones[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold backdrop-blur-md ${tones[tone]}`}
     >
       {children}
     </span>
@@ -262,14 +305,14 @@ function HeroPill({
 
 function HeroFact({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 text-sm text-slate-300">
-      <span className="text-[#C8943E]">{icon}</span>
+    <span className="inline-flex items-center gap-2 text-xs sm:text-sm text-[#C9D3EA]">
+      <span className="text-[#F0C27B]">{icon}</span>
       {children}
     </span>
   );
 }
 
-function SectionCard({
+function ExecutiveSectionCard({
   icon,
   eyebrow,
   title,
@@ -284,26 +327,31 @@ function SectionCard({
 }) {
   return (
     <section
-      className={`overflow-hidden rounded-2xl border border-line bg-surface shadow-card dark:bg-surface-elevated ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-[#E9E5DC] bg-white p-6 shadow-sm dark:border-[#1E3557] dark:bg-[#0E2340] ${className}`}
     >
+      {/* Top subtle highlight line */}
+      <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#D6952F]/40 to-transparent" />
+
       {title && (
-        <div className="flex items-center gap-3 border-b border-line px-6 py-4">
+        <div className="flex items-center gap-3.5 border-b border-[#E9E5DC] pb-4 mb-5 dark:border-[#1E3557]">
           {icon && (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] shadow-2xs dark:bg-[#1D3B66]">
               {icon}
             </span>
           )}
           <div className="min-w-0">
             {eyebrow && (
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#D6952F]">
                 {eyebrow}
               </p>
             )}
-            <h2 className="truncate text-base font-bold text-content">{title}</h2>
+            <h2 className="truncate text-base sm:text-lg font-bold text-[#061B36] dark:text-white">
+              {title}
+            </h2>
           </div>
         </div>
       )}
-      <div className="px-6 py-5">{children}</div>
+      <div>{children}</div>
     </section>
   );
 }
@@ -319,15 +367,15 @@ function FactTile({
 }) {
   if (value === undefined || value === null || value === '') return null;
   return (
-    <div className="flex items-start gap-3.5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-muted text-brand-600 dark:bg-surface-muted dark:text-brand-300">
+    <div className="flex items-start gap-3.5 rounded-xl border border-[#E9E5DC]/70 bg-[#FAF8F5] p-4 transition-colors hover:border-[#D6952F]/40 dark:border-[#1E3557] dark:bg-[#081B33]">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#D6952F] shadow-2xs dark:bg-[#0E2340] dark:text-[#F0C27B]">
         {icon}
       </span>
       <div className="min-w-0">
-        <dt className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
+        <dt className="text-[11px] font-bold uppercase tracking-wider text-[#5B6479] dark:text-slate-400">
           {label}
         </dt>
-        <dd className="mt-0.5 break-words text-sm font-medium leading-snug text-content">
+        <dd className="mt-1 break-words text-sm font-semibold leading-snug text-[#061B36] dark:text-[#EAEFFB]">
           {value}
         </dd>
       </div>
@@ -338,9 +386,9 @@ function FactTile({
 function SnapshotRow({ label, value }: { label: string; value?: React.ReactNode }) {
   if (value === undefined || value === null || value === '') return null;
   return (
-    <div className="flex items-start justify-between gap-4 text-sm">
-      <dt className="shrink-0 text-content-faint">{label}</dt>
-      <dd className="break-words text-right font-medium text-content">{value}</dd>
+    <div className="flex items-start justify-between gap-4 border-b border-[#E9E5DC]/70 py-2.5 text-xs sm:text-sm last:border-b-0 dark:border-[#1E3557]/70">
+      <dt className="shrink-0 font-medium text-[#5B6479] dark:text-slate-400">{label}</dt>
+      <dd className="break-words text-right font-bold text-[#061B36] dark:text-white">{value}</dd>
     </div>
   );
 }
@@ -357,19 +405,19 @@ function MaskedBlock({
   if (!value) return null;
   return (
     <div className={className}>
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-content-faint">
-        <LockIcon className="h-3 w-3 text-amber-500" /> {label}
+      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#5B6479] dark:text-slate-400">
+        <LockIcon className="h-3.5 w-3.5 text-[#D6952F]" /> {label}
       </p>
-      <div className="relative mt-2 overflow-hidden rounded-xl border border-dashed border-line bg-surface-muted/60 px-4 py-3.5 dark:bg-surface-muted/40">
-        <div aria-hidden="true" className="select-none space-y-2.5 blur-[3px]">
-          <div className="h-2.5 w-4/5 rounded-full bg-line" />
-          <div className="h-2.5 w-full rounded-full bg-line" />
-          <div className="h-2.5 w-3/5 rounded-full bg-line" />
+      <div className="relative mt-2 overflow-hidden rounded-xl border border-dashed border-[#E9E5DC] bg-[#FAF8F5] px-4 py-4 dark:border-[#1E3557] dark:bg-[#081B33]">
+        <div aria-hidden="true" className="select-none space-y-2.5 blur-[4px]">
+          <div className="h-2.5 w-4/5 rounded-full bg-[#E9E5DC] dark:bg-[#1E3557]" />
+          <div className="h-2.5 w-full rounded-full bg-[#E9E5DC] dark:bg-[#1E3557]" />
+          <div className="h-2.5 w-3/5 rounded-full bg-[#E9E5DC] dark:bg-[#1E3557]" />
         </div>
         <span className="absolute inset-0 flex items-center justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-content-muted shadow-sm">
-            <LockIcon className="h-3 w-3 text-amber-500" />
-            Locked
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D6952F]/40 bg-white px-3.5 py-1 text-xs font-bold text-[#061B36] shadow-2xs dark:bg-[#0E2340] dark:text-[#F0C27B]">
+            <LockIcon className="h-3.5 w-3.5 text-[#D6952F]" />
+            Subscriber Vault Access Required
           </span>
         </span>
       </div>
@@ -386,27 +434,33 @@ function CopyEmailButton({ email, className = '' }: { email: string; className?:
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard unavailable — let the user copy from the mailto link.
+      // Clipboard unavailable
     }
   };
 
   return (
-    <Button type="button" variant="outline" onClick={copy} className={className}>
+    <button
+      type="button"
+      onClick={copy}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-[#E9E5DC] bg-white px-4 py-2 text-xs font-bold text-[#061B36] hover:bg-slate-50 dark:border-[#1E3557] dark:bg-[#0E2340] dark:text-white dark:hover:bg-[#152E50] transition-colors ${className}`}
+    >
       {copied ? (
         <>
-          <CheckIcon className="h-4 w-4" /> Copied!
+          <CheckIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-emerald-600 dark:text-emerald-400">Copied to Clipboard!</span>
         </>
       ) : (
         <>
-          <CopyIcon className="h-4 w-4" /> Copy email
+          <CopyIcon className="h-4 w-4 text-[#D6952F]" />
+          <span>Copy Recruiter Email</span>
         </>
       )}
-    </Button>
+    </button>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Page                                                               */
+/*  Main Opportunity Detail Page                                      */
 /* ------------------------------------------------------------------ */
 
 export default function OpportunityPage() {
@@ -419,9 +473,7 @@ export default function OpportunityPage() {
 
   /**
    * Prefer a real browser Back when the visitor reached this page from an
-   * internal route (exact previous page + scroll position preserved). Only fall
-   * back to the hardcoded route when no internal history exists (e.g. the page
-   * was opened directly).
+   * internal route (exact previous page + scroll position preserved).
    */
   const handleBack = (e: React.MouseEvent) => {
     if (previousInternalRoute()) {
@@ -446,25 +498,25 @@ export default function OpportunityPage() {
 
   if (loading) {
     return (
-      <div>
-        <section className="bg-[#061B36]">
-          <div className="mx-auto max-w-6xl px-4 pb-12 pt-10 sm:px-6 lg:px-8 lg:pb-16 lg:pt-12">
-            <Skeleton className="h-4 w-32 bg-white/10" />
-            <Skeleton className="mt-6 h-6 w-40 bg-white/10" />
-            <Skeleton className="mt-4 h-11 w-3/4 bg-white/10" />
-            <Skeleton className="mt-3 h-6 w-1/3 bg-white/10" />
-            <Skeleton className="mt-8 h-5 w-1/2 bg-white/10" />
+      <div className="min-h-screen bg-[#FEFDF9] dark:bg-[#06142A]">
+        <section className="bg-gradient-to-b from-[#061B36] via-[#092244] to-[#0A2645] py-16 px-4">
+          <div className="mx-auto max-w-[1240px]">
+            <Skeleton className="h-4 w-36 bg-white/20 rounded-md" />
+            <Skeleton className="mt-5 h-6 w-48 bg-white/20 rounded-full" />
+            <Skeleton className="mt-4 h-12 w-3/4 bg-white/20 rounded-xl" />
+            <Skeleton className="mt-4 h-6 w-1/3 bg-white/20 rounded-md" />
+            <Skeleton className="mt-8 h-8 w-1/2 bg-white/20 rounded-lg" />
           </div>
         </section>
-        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8">
+        <div className="mx-auto max-w-[1240px] px-4 py-12">
+          <div className="grid items-start gap-8 lg:grid-cols-[1fr_360px]">
             <div className="space-y-6">
-              <Skeleton className="h-72" />
-              <Skeleton className="h-56" />
+              <Skeleton className="h-72 rounded-2xl bg-[#E9E5DC]/40 dark:bg-[#1E3557]/40 animate-pulse" />
+              <Skeleton className="h-56 rounded-2xl bg-[#E9E5DC]/40 dark:bg-[#1E3557]/40 animate-pulse" />
             </div>
             <div className="space-y-6">
-              <Skeleton className="h-64" />
-              <Skeleton className="h-48" />
+              <Skeleton className="h-80 rounded-2xl bg-[#E9E5DC]/40 dark:bg-[#1E3557]/40 animate-pulse" />
+              <Skeleton className="h-52 rounded-2xl bg-[#E9E5DC]/40 dark:bg-[#1E3557]/40 animate-pulse" />
             </div>
           </div>
         </div>
@@ -474,30 +526,32 @@ export default function OpportunityPage() {
 
   if (error || !opportunity) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-        <Card className="py-4">
-          <EmptyState
-            icon={<LockIcon className="h-6 w-6" />}
-            title={opportunity ? 'In preview' : 'Opportunity not found'}
-            description={
-              opportunity
-                ? 'This premium opportunity may require an active subscription.'
-                : "We couldn't load this opportunity."
-            }
-            action={
-              <>
-                {error && (
-                  <Button variant="outline" onClick={load}>
-                    Try again
-                  </Button>
-                )}
-                <Link href="/opportunities" onClick={handleBack}>
-                  <Button variant="ghost">Back to opportunities</Button>
-                </Link>
-              </>
-            }
-          />
-        </Card>
+      <div className="min-h-screen bg-[#FEFDF9] dark:bg-[#06142A] py-16 px-4">
+        <div className="mx-auto max-w-2xl">
+          <Card className="p-8 text-center border-[#E9E5DC] dark:border-[#1E3557] dark:bg-[#0E2340]">
+            <EmptyState
+              icon={<LockIcon className="h-8 w-8 text-[#D6952F]" />}
+              title={opportunity ? 'In Preview' : 'Opportunity Not Found'}
+              description={
+                opportunity
+                  ? 'This premium opportunity requires an active Vault subscription to inspect.'
+                  : "We couldn't locate this opportunity listing in the live registry."
+              }
+              action={
+                <div className="mt-4 flex items-center justify-center gap-3">
+                  {error && (
+                    <Button variant="outline" onClick={load}>
+                      Try again
+                    </Button>
+                  )}
+                  <Link href="/opportunities" onClick={handleBack}>
+                    <Button variant="primary">Back to opportunities</Button>
+                  </Link>
+                </div>
+              }
+            />
+          </Card>
+        </div>
       </div>
     );
   }
@@ -525,313 +579,426 @@ export default function OpportunityPage() {
     ? displayExperience(o.experienceText, o.minExperience, o.maxExperience)
     : null;
   const unlockHref = singleVault ? `/vaults/${singleVault.id}` : '/plans';
+  const flag = o.country ? COUNTRY_FLAGS[o.country] || '🌐' : '🌐';
+  const formattedId = formatJobId(o.jobId || o.id);
 
   return (
-    <div>
-      {/* ── Hero ─────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-[#061B36]">
-        <span aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <span
-            className="absolute -right-24 -top-32 h-[26rem] w-[26rem] rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(200,148,62,0.22), transparent 70%)',
-            }}
-          />
-          <span
-            className="absolute -left-24 top-1/4 h-80 w-80 rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(120,160,255,0.12), transparent 70%)',
-            }}
-          />
-          <span className="absolute right-16 top-12 h-40 w-40 rounded-full border border-white/[0.06]" />
-          <span className="absolute right-36 top-24 h-24 w-24 rounded-full border border-white/[0.06]" />
-          <span className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[#C8943E]/50 to-transparent" />
-        </span>
+    <div className="min-h-screen bg-[#FEFDF9] dark:bg-[#06142A] text-[#1A2236] dark:text-[#EAEFFB]">
+      {/* ─────────────────────────────────────────────────────────────
+          1. EXECUTIVE HERO SECTION (MATCHING DESIGN ARCHITECTURE)
+          ───────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#061B36] via-[#092244] to-[#0A2645] pb-12 pt-10 text-white isolate sm:pb-16 sm:pt-14">
+        {/* Ambient atmospheric glows */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[#15803D]/20 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-20 top-0 h-80 w-80 rounded-full bg-[#D6952F]/15 blur-3xl"
+        />
 
-        <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-12">
-          <Link
-            href={backHref}
-            onClick={handleBack}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#C8943E] transition-colors hover:text-white"
-          >
-            <ArrowLeftIcon className="h-4 w-4" />
-            {backLabel}
-          </Link>
+        {/* Concentric subtle watermark rings */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-12 top-10 h-64 w-64 rounded-full border border-white/[0.04]"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-24 top-20 h-40 w-40 rounded-full border border-[#D6952F]/10"
+        />
 
-          <div className="mt-6 flex flex-wrap items-center gap-2">
+        <div className="relative mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
+          {/* Breadcrumb Navigation */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs text-[#AEB9D6]">
+            <div className="flex items-center gap-1.5">
+              <Link href="/" className="text-[#F0C27B] hover:text-white transition-colors">
+                Home
+              </Link>
+              <span className="text-[#8C9AC0]">/</span>
+              <Link href="/opportunities" className="text-[#F0C27B] hover:text-white transition-colors">
+                Opportunities
+              </Link>
+              <span className="text-[#8C9AC0]">/</span>
+              <span className="text-white truncate max-w-[200px] sm:max-w-md">{o.title}</span>
+            </div>
+
+            <Link
+              href={backHref}
+              onClick={handleBack}
+              className="inline-flex items-center gap-1.5 font-bold text-[#F0C27B] hover:text-white transition-colors"
+            >
+              <ArrowLeftIcon className="h-3.5 w-3.5" />
+              {backLabel}
+            </Link>
+          </div>
+
+          {/* Badges Strip */}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             {o.isPremium ? (
               <HeroPill tone="gold">
-                <SparkleIcon className="h-3.5 w-3.5" /> Premium
+                <SparkleIcon className="h-3.5 w-3.5 text-[#F0C27B]" /> Premium Mandate
               </HeroPill>
             ) : (
               <HeroPill tone="emerald">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Open
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Live Opportunity
               </HeroPill>
             )}
+
             {o.isPremium && o.isFullAccess && (
               <HeroPill tone="emerald">
-                <UnlockIcon className="h-3.5 w-3.5" /> Unlocked
+                <UnlockIcon className="h-3.5 w-3.5" /> Full Access Unlocked
               </HeroPill>
             )}
-            <HeroPill tone="glass">{titleCase(o.category)}</HeroPill>
+
+            {formattedId && (
+              <span className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.08] px-3 py-1 font-mono text-[11px] font-semibold text-white backdrop-blur-md">
+                {formattedId}
+              </span>
+            )}
+
+            {o.category && <HeroPill tone="glass">{titleCase(o.category)}</HeroPill>}
             {o.employmentType && <HeroPill tone="glass">{titleCase(o.employmentType)}</HeroPill>}
           </div>
 
-          <h1 className="mt-5 max-w-4xl text-3xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-5xl">
+          {/* Role Title */}
+          <h1 className="mt-5 max-w-4xl font-sans text-3xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-5xl">
             {o.title}
           </h1>
 
+          {/* Company & Compensation Bar */}
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
             {companyWithheld ? (
               <LockNotice tone="gold" message={lockMessage} />
             ) : isMeaningful(o.company) ? (
-              <span className="inline-flex items-center gap-2 text-base text-slate-200 sm:text-lg">
-                <BuildingIcon className="h-5 w-5 text-[#C8943E]" />
+              <span className="inline-flex items-center gap-2 text-base font-semibold text-slate-100 sm:text-lg">
+                <BuildingIcon className="h-5 w-5 text-[#F0C27B]" />
                 {o.company}
               </span>
             ) : (
-              <span className="text-base italic text-slate-400 sm:text-lg">
-                Company not disclosed
+              <span className="text-base italic text-slate-300 sm:text-lg">
+                Company undisclosed in preview
               </span>
             )}
+
             {isMeaningful(o.salary) && (
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#C8943E]/40 bg-[#C8943E]/10 px-3.5 py-1.5 text-sm font-bold text-[#F1CE82]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#F0C27B]/40 bg-[#F0C27B]/15 px-3.5 py-1 text-xs sm:text-sm font-bold text-[#F0C27B] shadow-2xs">
                 <CurrencyIcon className="h-4 w-4" />
                 {o.salary}
               </span>
             )}
           </div>
 
-          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/10 pt-5">
-            {o.location && <HeroFact icon={<PinIcon className="h-4 w-4" />}>{o.location}</HeroFact>}
-            {o.country && <HeroFact icon={<GlobeIcon className="h-4 w-4" />}>{o.country}</HeroFact>}
+          {/* Quick Facts Strip */}
+          <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/10 pt-5 text-xs sm:text-sm">
+            {o.location && (
+              <HeroFact icon={<PinIcon className="h-4 w-4" />}>
+                <span>{o.location}</span>
+              </HeroFact>
+            )}
+            {o.country && (
+              <HeroFact icon={<GlobeIcon className="h-4 w-4" />}>
+                <span>
+                  {flag} {o.country}
+                </span>
+              </HeroFact>
+            )}
             {experience && !experienceWithheld && (
-              <HeroFact icon={<BarsIcon className="h-4 w-4" />}>{experience}</HeroFact>
+              <HeroFact icon={<BarsIcon className="h-4 w-4" />}>
+                <span>{experience}</span>
+              </HeroFact>
             )}
             {isMeaningful(o.industry) && (
-              <HeroFact icon={<LayersIcon className="h-4 w-4" />}>{o.industry}</HeroFact>
+              <HeroFact icon={<LayersIcon className="h-4 w-4" />}>
+                <span>{o.industry}</span>
+              </HeroFact>
+            )}
+            {o.publishedDate && (
+              <HeroFact icon={<FileTextIcon className="h-4 w-4" />}>
+                <span>Posted {formatDate(o.publishedDate)}</span>
+              </HeroFact>
             )}
           </div>
         </div>
       </section>
 
-      {/* ── Body ─────────────────────────────────────────────── */}
-      <section className="bg-surface-muted">
-        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8">
-            {/* Main column */}
-            <div className="space-y-6">
-              <SectionCard
-                icon={<BriefcaseIcon className="h-4 w-4" />}
-                eyebrow="Opportunity"
-                title="Job overview"
+      {/* ─────────────────────────────────────────────────────────────
+          2. MAIN CONTENT (2-COLUMN GRID)
+          ───────────────────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+        <div className="grid items-start gap-8 lg:grid-cols-[1fr_360px]">
+          {/* ═════════════════════════════════════════════════════════
+              LEFT COLUMN: OVERVIEW, QUALIFICATIONS & ROLE DETAILS
+              ═════════════════════════════════════════════════════════ */}
+          <div className="space-y-6">
+            {/* Section 1: Job Overview Facts */}
+            <ExecutiveSectionCard
+              icon={<BriefcaseIcon className="h-5 w-5" />}
+              eyebrow="Mandate Overview"
+              title="Job Specifications & Parameters"
+            >
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <FactTile
+                  icon={<LayersIcon className="h-5 w-5" />}
+                  label={L.sector}
+                  value={isMeaningful(o.industry) ? o.industry : undefined}
+                />
+                <FactTile
+                  icon={<PinIcon className="h-5 w-5" />}
+                  label={L.location}
+                  value={isMeaningful(o.location) ? o.location : undefined}
+                />
+                <FactTile
+                  icon={<GlobeIcon className="h-5 w-5" />}
+                  label="Target Market / Country"
+                  value={
+                    isMeaningful(o.country) ? (
+                      <span className="flex items-center gap-1.5">
+                        <span>{flag}</span>
+                        <span>{o.country}</span>
+                      </span>
+                    ) : undefined
+                  }
+                />
+                <FactTile
+                  icon={<TagIcon className="h-5 w-5" />}
+                  label="Functional Area"
+                  value={isMeaningful(o.functionalArea) ? o.functionalArea : undefined}
+                />
+                <FactTile
+                  icon={<BriefcaseIcon className="h-5 w-5" />}
+                  label="Work Model / Engagement"
+                  value={o.employmentType ? titleCase(o.employmentType) : undefined}
+                />
+                <FactTile
+                  icon={<BarsIcon className="h-5 w-5" />}
+                  label={L.experience}
+                  value={experienceWithheld ? <LockNotice message={lockMessage} /> : experience}
+                />
+              </dl>
+            </ExecutiveSectionCard>
+
+            {/* Section 2: Locked Preview OR Requirements */}
+            {locked ? (
+              <ExecutiveSectionCard
+                icon={<LockIcon className="h-5 w-5" />}
+                eyebrow="Subscriber Vault Access"
+                title="Full Opportunity Requirements & Contacts Locked"
               >
-                <dl className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
-                  <FactTile
-                    icon={<LayersIcon className="h-4 w-4" />}
-                    label={L.sector}
-                    value={isMeaningful(o.industry) ? o.industry : undefined}
-                  />
-                  <FactTile
-                    icon={<PinIcon className="h-4 w-4" />}
-                    label={L.location}
-                    value={isMeaningful(o.location) ? o.location : undefined}
-                  />
-                  <FactTile
-                    icon={<GlobeIcon className="h-4 w-4" />}
-                    label="Country"
-                    value={isMeaningful(o.country) ? o.country : undefined}
-                  />
-                  <FactTile
-                    icon={<TagIcon className="h-4 w-4" />}
-                    label="Functional area"
-                    value={isMeaningful(o.functionalArea) ? o.functionalArea : undefined}
-                  />
-                  <FactTile
-                    icon={<BriefcaseIcon className="h-4 w-4" />}
-                    label="Employment type"
-                    value={o.employmentType ? titleCase(o.employmentType) : undefined}
-                  />
-                  <FactTile
-                    icon={<BarsIcon className="h-4 w-4" />}
-                    label={L.experience}
-                    value={experienceWithheld ? <LockNotice message={lockMessage} /> : experience}
-                  />
-                </dl>
-              </SectionCard>
-
-              {locked ? (
-                <SectionCard
-                  icon={<LockIcon className="h-4 w-4" />}
-                  eyebrow="Preview"
-                  title="Full details are locked"
-                >
-                  <p className="text-sm leading-relaxed text-content-muted">
-                    Company, experience, qualification, other details and how to apply are locked
-                    for this Vault. Unlock the relevant Vault to reveal the full details.
+                <div className="rounded-xl border border-[#F0C27B]/40 bg-[#FAF8F5] p-4.5 dark:bg-[#081B33]">
+                  <p className="text-xs sm:text-sm leading-relaxed text-[#5B6479] dark:text-slate-300">
+                    Direct hiring partner identity, complete candidate requirements, qualification criteria, and unmediated recruiter contact details are protected under Opportunity Vault subscriptions.
                   </p>
-                  <div className="mt-6 grid gap-5 border-t border-line pt-6 sm:grid-cols-2">
-                    <MaskedBlock label={L.qualification} value={o.lockedPreview?.qualification} />
-                    <MaskedBlock label={L.otherDetails} value={o.lockedPreview?.otherDetails} />
-                    <MaskedBlock
-                      className="sm:col-span-2"
-                      label={L.howToApply}
-                      value={o.lockedPreview?.howToApply}
-                    />
-                  </div>
-                </SectionCard>
-              ) : (
-                <>
-                  {isMeaningful(o.qualification) && (
-                    <SectionCard
-                      icon={<AwardIcon className="h-4 w-4" />}
-                      eyebrow="Requirement"
-                      title={L.qualification}
-                    >
-                      <p className="whitespace-pre-line break-words text-sm leading-relaxed text-content">
-                        {o.qualification}
-                      </p>
-                    </SectionCard>
-                  )}
-
-                  {isMeaningful(o.description) && (
-                    <SectionCard
-                      icon={<FileTextIcon className="h-4 w-4" />}
-                      eyebrow="Details"
-                      title={L.otherDetails}
-                    >
-                      <p className="whitespace-pre-line break-words text-sm leading-relaxed text-content">
-                        {o.description}
-                      </p>
-                    </SectionCard>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Sidebar */}
-            <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-              {locked ? (
-                <div className="relative overflow-hidden rounded-2xl border border-[#C8943E]/40 bg-gradient-to-br from-[#061B36] to-[#0a2547] p-6 text-white shadow-gold">
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full"
-                    style={{
-                      background: 'radial-gradient(circle, rgba(200,148,62,0.3), transparent 70%)',
-                    }}
-                  />
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full border border-[#C8943E]/20"
-                  />
-                  <div className="relative">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#C8943E]/15 text-[#E3B968] ring-1 ring-inset ring-[#C8943E]/40">
-                      <LockIcon className="h-5 w-5" />
-                    </span>
-                    <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#E3B968]">
-                      Premium Access
-                    </p>
-                    <h2 className="mt-1 text-lg font-bold leading-snug">Unlock full job details</h2>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                      Get the complete picture for this role with an active Vault subscription.
-                    </p>
-                    <ul className="mt-4 space-y-2.5">
-                      {[
-                        'Company & experience details',
-                        'Full qualification & requirements',
-                        'Complete other details',
-                        'How to apply & direct contact',
-                      ].map((item) => (
-                        <li key={item} className="flex items-start gap-2.5 text-sm text-slate-200">
-                          <span className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-400/15 p-1 text-emerald-300">
-                            <CheckIcon className="h-3 w-3" />
-                          </span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link
-                      href={unlockHref}
-                      className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#E3B968] to-[#C8943E] px-6 py-3 text-base font-bold text-[#061B36] shadow-[0_14px_30px_-14px_rgba(200,148,62,0.9)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_-14px_rgba(200,148,62,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C8943E] focus-visible:ring-offset-2 focus-visible:ring-offset-[#061B36]"
-                    >
-                      Unlock Full Access
-                      <ArrowRightIcon className="h-4 w-4" />
-                    </Link>
-                  </div>
                 </div>
-              ) : (
-                <div className="overflow-hidden rounded-2xl border border-brand-400/40 bg-gradient-to-b from-surface to-surface-muted shadow-card dark:from-surface-elevated dark:to-surface">
-                  <div className="relative border-b border-line bg-gradient-to-br from-brand-50 via-surface to-surface px-6 py-5 dark:from-brand-500/[0.08] dark:via-surface-elevated dark:to-surface-elevated">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#061B36] text-[#E3B968] shadow-sm">
+
+                <div className="mt-6 grid gap-5 border-t border-[#E9E5DC] pt-6 sm:grid-cols-2 dark:border-[#1E3557]">
+                  <MaskedBlock label={L.qualification} value={o.lockedPreview?.qualification} />
+                  <MaskedBlock label={L.otherDetails} value={o.lockedPreview?.otherDetails} />
+                  <MaskedBlock
+                    className="sm:col-span-2"
+                    label={L.howToApply}
+                    value={o.lockedPreview?.howToApply}
+                  />
+                </div>
+              </ExecutiveSectionCard>
+            ) : (
+              <>
+                {isMeaningful(o.qualification) && (
+                  <ExecutiveSectionCard
+                    icon={<AwardIcon className="h-5 w-5" />}
+                    eyebrow="Requirements & Criteria"
+                    title={L.qualification}
+                  >
+                    <p className="whitespace-pre-line break-words text-sm sm:text-base leading-relaxed text-[#1A2236] dark:text-slate-200">
+                      {o.qualification}
+                    </p>
+                  </ExecutiveSectionCard>
+                )}
+
+                {isMeaningful(o.description) && (
+                  <ExecutiveSectionCard
+                    icon={<FileTextIcon className="h-5 w-5" />}
+                    eyebrow="Role Context & Mandate Scope"
+                    title={L.otherDetails}
+                  >
+                    <p className="whitespace-pre-line break-words text-sm sm:text-base leading-relaxed text-[#1A2236] dark:text-slate-200">
+                      {o.description}
+                    </p>
+                  </ExecutiveSectionCard>
+                )}
+              </>
+            )}
+
+            {/* Section 3: Executive Mandate Assurance */}
+            <div className="flex items-start gap-4 rounded-2xl border border-[#E9E5DC] bg-white p-5 shadow-sm dark:border-[#1E3557] dark:bg-[#0E2340]">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] dark:bg-[#1D3B66]">
+                <ShieldCheckIcon className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-[#061B36] dark:text-white">
+                  Curated Executive Mandate Guarantee
+                </h3>
+                <p className="mt-1 text-xs sm:text-sm text-[#5B6479] dark:text-slate-300 leading-relaxed">
+                  Every opportunity in Gravitas Edge is individually reviewed and sourced from retained search partners, corporate boards, and verified leadership networks. We never scrape public job boards.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ═════════════════════════════════════════════════════════
+              RIGHT COLUMN: ACTION CARD & MANDATE SNAPSHOT
+              ═════════════════════════════════════════════════════════ */}
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            {locked ? (
+              /* High-Conversion Vault Access Card */
+              <div className="relative overflow-hidden rounded-2xl border border-[#D6952F]/40 bg-gradient-to-b from-[#061B36] to-[#0A2645] p-6 text-white shadow-xl isolate">
+                {/* Decorative radial watermarks */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-[#D6952F]/20 blur-2xl"
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-4 -top-4 h-28 w-28 rounded-full border border-white/10"
+                />
+
+                <div className="relative z-10">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.08] text-[#F0C27B] border border-white/15 shadow-inner">
+                    <LockIcon className="h-6 w-6" />
+                  </span>
+
+                  <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.2em] text-[#F0C27B]">
+                    Premium Subscriber Vault
+                  </p>
+                  <h2 className="mt-1 font-sans text-xl font-extrabold text-white leading-snug">
+                    Unlock Full Mandate Details
+                  </h2>
+                  <p className="mt-2 text-xs sm:text-sm text-[#C9D3EA] leading-relaxed">
+                    Gain verified access to decision-maker contacts, exact organization details, and application channels for this role.
+                  </p>
+
+                  <ul className="mt-5 space-y-2.5 border-t border-white/10 pt-4">
+                    {[
+                      'Direct hiring partner & recruiter email',
+                      'Exact organization & leadership context',
+                      'Full requirements & experience parameters',
+                      'Direct application routes without queues',
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-200">
+                        <span className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-500/20 p-1 text-emerald-400">
+                          <CheckIcon className="h-3 w-3" />
+                        </span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Link
+                    href={unlockHref}
+                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#F0C27B] to-[#D6952F] px-6 py-3.5 text-sm font-extrabold text-[#061B36] shadow-lg hover:brightness-105 transition-all hover:-translate-y-0.5 cursor-pointer"
+                  >
+                    <span>Unlock Full Access</span>
+                    <ArrowRightIcon className="h-4 w-4" />
+                  </Link>
+
+                  <p className="mt-3 text-center text-[11px] text-[#AEB9D6]">
+                    One-time payment or flexible term · No auto-debit
+                  </p>
+                </div>
+              </div>
+            ) : (
+              /* Unlocked Application Card */
+              <div className="overflow-hidden rounded-2xl border border-emerald-500/40 bg-white shadow-sm dark:bg-[#0E2340] dark:border-emerald-500/30">
+                <div className="relative border-b border-[#E9E5DC] bg-gradient-to-b from-emerald-50/70 to-white px-6 py-5 dark:border-[#1E3557] dark:from-emerald-950/20 dark:to-[#0E2340]">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] shadow-2xs dark:bg-[#1D3B66]">
                       <SendIcon className="h-5 w-5" />
                     </span>
-                    <h2 className="mt-3 text-lg font-bold text-content">How to apply</h2>
-                    <p className="mt-1 text-sm text-content-muted">
-                      Apply directly to the hiring team.
-                    </p>
-                  </div>
-                  <div className="px-6 py-5">
-                    {applyEmail ? (
-                      <>
-                        <Button
-                          href={buildApplyMailto(applyEmail, {
-                            title: o.title,
-                            company: revealCompanyExperience ? o.company : undefined,
-                          })}
-                          size="lg"
-                          className="w-full"
-                        >
-                          Apply now
-                          <ArrowRightIcon className="h-4 w-4" />
-                        </Button>
-                        <div className="mt-4 rounded-xl border border-line bg-surface-muted/60 p-3.5 dark:bg-surface-muted/40">
-                          <p className="text-[11px] font-semibold uppercase tracking-wider text-content-faint">
-                            Contact
-                          </p>
-                          <a
-                            href={`mailto:${applyEmail}`}
-                            className="mt-1 block break-all text-sm font-medium text-brand-600 hover:underline dark:text-brand-400"
-                          >
-                            {applyEmail}
-                          </a>
-                          <CopyEmailButton email={applyEmail} className="mt-3 w-full" />
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm leading-relaxed text-content-muted">
-                        An application email is not available for this opportunity yet. Please check
-                        back later or contact us for assistance.
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-[#061B36] dark:text-white">
+                        How to Apply
+                      </h2>
+                      <p className="text-xs text-[#5B6479] dark:text-slate-400">
+                        Direct unmediated access to hiring team
                       </p>
-                    )}
+                    </div>
                   </div>
                 </div>
-              )}
 
-              <SectionCard
-                icon={<InfoIcon className="h-4 w-4" />}
-                eyebrow="Snapshot"
-                title="At a glance"
+                <div className="p-6">
+                  {applyEmail ? (
+                    <div className="space-y-4">
+                      <a
+                        href={buildApplyMailto(applyEmail, {
+                          title: o.title,
+                          company: revealCompanyExperience ? o.company : undefined,
+                        })}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#061B36] px-6 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-[#10243E] dark:bg-[#F0C27B] dark:text-[#061B36] dark:hover:bg-[#D6952F] transition-all hover:-translate-y-0.5"
+                      >
+                        <span>Apply via Direct Email</span>
+                        <ArrowRightIcon className="h-4 w-4" />
+                      </a>
+
+                      <div className="rounded-xl border border-[#E9E5DC] bg-[#FAF8F5] p-4 dark:border-[#1E3557] dark:bg-[#081B33]">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-[#5B6479] dark:text-slate-400">
+                          Recruiter / Mandate Contact
+                        </p>
+                        <a
+                          href={`mailto:${applyEmail}`}
+                          className="mt-1 block break-all text-sm font-bold text-[#061B36] hover:text-[#D6952F] dark:text-white dark:hover:text-[#F0C27B] transition-colors"
+                        >
+                          {applyEmail}
+                        </a>
+                        <CopyEmailButton email={applyEmail} className="mt-3 w-full" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-[#E9E5DC] bg-[#FAF8F5] p-4 text-xs text-[#5B6479] dark:border-[#1E3557] dark:bg-[#081B33] dark:text-slate-400">
+                      An application email is being verified for this mandate. Please check back shortly or reach out to our team.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Mandate Snapshot Card */}
+            <ExecutiveSectionCard
+              icon={<InfoIcon className="h-5 w-5" />}
+              eyebrow="Mandate Registry"
+              title="At a Glance"
+            >
+              <dl className="space-y-1">
+                <SnapshotRow label="Mandate ID" value={formattedId || o.jobId || 'N/A'} />
+                <SnapshotRow label="Date Posted" value={formatDate(o.publishedDate)} />
+                <SnapshotRow label="Closing / Expiry" value={formatDate(o.expiryDate)} />
+                <SnapshotRow label="Source" value={source || 'Direct Search Mandate'} />
+                <SnapshotRow
+                  label="Category"
+                  value={o.category ? titleCase(o.category) : undefined}
+                />
+                <SnapshotRow
+                  label={o.vaults && o.vaults.length > 1 ? 'Opportunity Vaults' : 'Opportunity Vault'}
+                  value={o.vaults?.length ? o.vaults.map((v) => v.name).join(', ') : 'Global Access'}
+                />
+              </dl>
+            </ExecutiveSectionCard>
+
+            {/* Advisory Assistance Card */}
+            <div className="rounded-2xl border border-[#E9E5DC] bg-white p-5 text-xs text-[#5B6479] shadow-sm dark:border-[#1E3557] dark:bg-[#0E2340] dark:text-slate-400">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#061B36] dark:text-white">
+                Need Mandate Guidance?
+              </h4>
+              <p className="mt-1.5 leading-relaxed">
+                Connect with our advisory consultants for free guidance on which opportunities and Vaults fit your executive background.
+              </p>
+              <Link
+                href="/contact"
+                className="mt-3 inline-flex items-center gap-1.5 font-bold text-[#D6952F] hover:underline"
               >
-                <dl className="space-y-3.5">
-                  <SnapshotRow label="Posted" value={formatDate(o.publishedDate)} />
-                  <SnapshotRow label="Expires" value={formatDate(o.expiryDate)} />
-                  <SnapshotRow
-                    label={L.jobId}
-                    value={isMeaningful(o.jobId) ? o.jobId : undefined}
-                  />
-                  <SnapshotRow label="Source" value={source} />
-                  <SnapshotRow
-                    label="Category"
-                    value={o.category ? titleCase(o.category) : undefined}
-                  />
-                  <SnapshotRow
-                    label={o.vaults && o.vaults.length > 1 ? 'Vaults' : 'Vault'}
-                    value={o.vaults?.length ? o.vaults.map((v) => v.name).join(', ') : undefined}
-                  />
-                </dl>
-              </SectionCard>
-            </aside>
-          </div>
+                Contact Advisory Team →
+              </Link>
+            </div>
+          </aside>
         </div>
       </section>
     </div>

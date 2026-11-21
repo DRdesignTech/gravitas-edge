@@ -4,6 +4,26 @@
 
 @layer base {
   :root {
+    --navy: #061B36;
+    --navy-2: #10243E;
+    --head: #061B36;
+    --ink: #1A2236;
+    --muted: #5B6479;
+    --line: #E9E5DC;
+    --bg: #FEFDF9;
+    --card: #FFFFFF;
+    --gold: #D6952F;
+    --gold-2: #F0C27B;
+    --gold-3: #C8842D;
+    --teal: #15803D;
+    --teal-soft: #DCFCE7;
+    --green: #16A34A;
+    --green-2: #22C55E;
+    --red: #C2410C;
+    --radius: 16px;
+    --shadow: 0 10px 30px -12px rgba(6, 27, 54, 0.18);
+    --font-poppins: 'Poppins', system-ui, -apple-system, sans-serif;
+
     --color-brand-50: 255 243 217; /* #FFF3D9 */
     --color-brand-100: 255 238 193;
     --color-brand-200: 255 228 159;
@@ -21,19 +41,32 @@
     --color-surface-elevated: 255 255 255;
     --color-surface-inverse: 6 27 54; /* navy */
 
-    --color-content: 6 27 54; /* primary navy */
-    --color-content-muted: 6 27 54; /* primary navy */
-    --color-content-faint: 6 27 54; /* primary navy */
+    --color-content: 26 34 54; /* #1A2236 ink */
+    --color-content-muted: 91 100 121; /* #5B6479 muted */
+    --color-content-faint: 140 154 192;
     --color-content-inverse: 255 254 250;
 
     /* Input hint / placeholder text — intentionally lighter than real values. */
     --color-hint: 148 156 170; /* #949CAA */
 
-    --color-line: 233 231 223; /* #E9E7DF */
+    --color-line: 233 229 220; /* #E9E5DC line */
     --color-line-strong: 214 210 198;
   }
 
-  .dark {
+  .dark, html.dark, body.dark {
+    --navy: #061B36;
+    --navy-2: #10243E;
+    --head: #F2F5FA;
+    --ink: #DCE5F2;
+    --muted: #93A3BE;
+    --line: #1E3557;
+    --bg: #06142A;
+    --card: #0C1E38;
+    --gold: #D6952F;
+    --gold-2: #F0C27B;
+    --gold-3: #C8842D;
+    --teal-soft: rgba(34, 197, 94, 0.14);
+
     --color-brand-50: 43 34 18; /* dark gold tint */
     --color-brand-100: 62 49 25;
     --color-brand-200: 226 195 130;
@@ -51,23 +84,25 @@
     --color-surface-elevated: 17 26 51;
     --color-surface-inverse: 255 254 250;
 
-    --color-content: 240 243 248;
-    --color-content-muted: 154 168 189;
+    --color-content: 220 229 242; /* #DCE5F2 */
+    --color-content-muted: 147 163 190; /* #93A3BE */
     --color-content-faint: 104 120 145;
     --color-content-inverse: 8 13 28;
 
     /* Input hint / placeholder text — slightly lighter than real values. */
     --color-hint: 122 137 163; /* #7A89A3 */
 
-    --color-line: 30 43 78;
+    --color-line: 30 53 87; /* #1E3557 */
     --color-line-strong: 45 62 102;
   }
 
   html {
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     color-scheme: light;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    font-size: 16px;
     /* Offset section anchors by exactly the sticky header height (h-16 = 4rem = 64px),
        so the tapped section starts flush below the header and the previous section
        is not left visible above it. */
@@ -90,8 +125,36 @@
   }
 
   body {
-    background-color: rgb(var(--color-surface-muted));
-    color: rgb(var(--color-content));
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 16px;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    line-height: 1.15;
+    color: var(--head);
+  }
+
+  h1,
+  h2 {
+    font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   ::selection {
@@ -237,6 +300,12 @@
   }
 }
 
+@keyframes oscroll {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 @keyframes pulse-gold {
   0%,
   100% {
@@ -342,11 +411,31 @@
   pointer-events: none;
 }
 
+/* Global Opportunity Map radar pulse animation */
+@keyframes ring {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+.map-marker-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ring 2.4s cubic-bezier(0.2, 0, 0.4, 1) infinite;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-text-animate,
   .btn-shine,
   .animate-marquee,
-  .free-preview-border::before {
+  .free-preview-border::before,
+  .map-marker-pulse {
     animation: none;
   }
 }

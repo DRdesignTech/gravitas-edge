@@ -577,14 +577,14 @@ export function VaultGlyph({ name, className = 'h-7 w-7' }: { name: string; clas
 function AccessPill({ locked }: { locked: boolean }) {
   if (locked) {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/30">
+      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[0.72rem] font-bold text-rose-700 ring-1 ring-inset ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/30">
         <LockIcon className="h-3 w-3" />
         Locked
       </span>
     );
   }
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/30">
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[0.72rem] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/30">
       <UnlockIcon className="h-3 w-3" />
       Unlocked
     </span>
@@ -607,27 +607,26 @@ export function VaultCard({
   return (
     <Link
       href={href}
-      className={`group relative flex h-full flex-col rounded-2xl border bg-gradient-to-b from-surface to-surface-muted p-5 transition-all duration-200 ease-premium hover:-translate-y-1 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:p-6 dark:from-surface-elevated dark:to-surface ${
+      className={`group relative flex h-full flex-col rounded-[20px] bg-white dark:bg-[#0C1E38] p-6 transition-all duration-200 ease-out hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6952F] ${
         recommended
-          ? 'border-brand-400/70 shadow-[0_18px_44px_-26px_rgba(200,148,62,0.55)] hover:border-brand-400'
-          : 'border-line hover:border-brand-400/55'
+          ? 'border-2 border-[#D6952F] shadow-[0_12px_32px_-10px_rgba(214,149,47,0.3)] hover:shadow-[0_16px_36px_-10px_rgba(214,149,47,0.4)]'
+          : 'border border-[#E9E5DC] dark:border-white/10 hover:border-[#D6952F] hover:shadow-[0_14px_34px_-12px_rgba(6,27,54,0.12)] dark:hover:shadow-[0_14px_34px_-12px_rgba(0,0,0,0.5)]'
       }`}
     >
       {/* Decorative background — CSS only, sits behind content */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-[20px]"
       >
         <span
-          className="absolute -right-14 -top-14 h-44 w-44 rounded-full opacity-90 transition-opacity duration-300 group-hover:opacity-100"
-          style={{ background: 'radial-gradient(circle, rgba(200,148,62,0.18), transparent 68%)' }}
+          className="absolute -right-14 -top-14 h-44 w-44 rounded-full opacity-60 transition-opacity duration-300 group-hover:opacity-100"
+          style={{ background: 'radial-gradient(circle, rgba(214,149,47,0.14), transparent 68%)' }}
         />
-        <span className="absolute -right-7 -top-7 h-28 w-28 rounded-full border border-brand-400/20" />
-        <span className="absolute -right-1 -top-1 h-16 w-16 rounded-full border border-brand-400/15" />
+        <span className="absolute -right-7 -top-7 h-28 w-28 rounded-full border border-[#D6952F]/15" />
       </span>
 
       {recommended && (
-        <span className="absolute left-5 top-0 z-10 inline-flex -translate-y-1/2 items-center gap-1 rounded-full bg-gradient-to-r from-brand-300 to-brand-400 px-2.5 py-0.5 text-[11px] font-semibold text-[#061B36] shadow-sm ring-1 ring-inset ring-white/50">
+        <span className="absolute -top-3 left-6 z-10 inline-flex items-center gap-1.5 rounded-full bg-[#D6952F] px-3 py-0.5 text-[0.72rem] font-bold text-[#061B36] shadow-sm uppercase tracking-wider">
           <SparkleIcon className="h-3 w-3" />
           Recommended for you
         </span>
@@ -635,11 +634,11 @@ export function VaultCard({
 
       {/* Header: gold glyph in navy tile, bold title, access badge */}
       <div className="relative flex items-start gap-3.5">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#061B36] to-brand-600 text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_12px_22px_-14px_rgba(6,27,54,0.85)] ring-1 ring-inset ring-brand-400/35 transition-all duration-200 group-hover:text-[#F1CE82] group-hover:ring-brand-400/70">
-          <VaultGlyph name={v.name} />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] border border-[#F0C27B]/30 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:text-white">
+          <VaultGlyph name={v.name} className="h-6 w-6" />
         </span>
         <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-3 gap-y-2">
-          <h3 className="min-w-0 text-[1.0625rem] font-bold leading-snug text-content sm:text-lg">
+          <h3 className="font-['Poppins',system-ui,sans-serif] min-w-0 text-[1.1rem] font-bold leading-snug text-[#061B36] dark:text-white group-hover:text-[#D6952F] transition-colors">
             {v.name}
           </h3>
           <AccessPill locked={!!v.locked} />
@@ -647,19 +646,19 @@ export function VaultCard({
       </div>
 
       {v.description && (
-        <p className="relative mt-4 flex-1 text-sm leading-relaxed text-content-muted">
+        <p className="relative mt-3.5 flex-1 text-[0.9rem] leading-[1.6] text-[#5B6479] dark:text-[#AEB9D6]">
           {v.description}
         </p>
       )}
 
       {/* Action area: existing action text + gold circular arrow */}
-      <div className="relative mt-auto flex items-end justify-between gap-4 border-t border-line pt-4">
-        <span className="text-xs font-medium leading-relaxed text-content-muted sm:text-[13px]">
+      <div className="relative mt-6 flex items-center justify-between gap-3 border-t border-[#F0ECE1] dark:border-white/10 pt-4">
+        <span className="text-[0.8rem] font-medium leading-relaxed text-[#7A8A9E] dark:text-[#8D9CB0]">
           {actionText}
         </span>
         <span
           aria-hidden="true"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#E3B968] to-brand-400 text-white shadow-[0_10px_20px_-10px_rgba(200,148,62,0.9)] ring-1 ring-inset ring-white/30 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:scale-[1.05]"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#061B36] text-[#F0C27B] border border-[#F0C27B]/30 transition-all duration-200 group-hover:bg-[#D6952F] group-hover:text-[#061B36] group-hover:border-[#D6952F] group-hover:translate-x-0.5"
         >
           <ArrowRightIcon className="h-4 w-4" />
         </span>

@@ -407,27 +407,27 @@ export function Modal({
 
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="fixed inset-0 bg-[#061B36]/50 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans">
+      <div className="fixed inset-0 bg-[#061B36]/[0.55] backdrop-blur-[2px] transition-opacity" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative mx-0 w-full sm:mx-4 ${maxWidth} max-h-[92vh] overflow-y-auto rounded-t-2xl bg-surface shadow-pop dark:bg-surface-elevated sm:rounded-2xl`}
+        className={`relative w-full ${maxWidth} max-h-[90vh] overflow-y-auto rounded-[20px] bg-white text-[#1A2236] shadow-[0_24px_50px_-16px_rgba(6,27,54,0.4)] border border-[#E9E5DC] dark:bg-[#0B1E38] dark:border-[#1A3355] dark:text-[#E2E8F0] animate-in zoom-in-95 duration-200`}
       >
         {title && (
-          <div className="flex items-center justify-between border-b border-line px-6 py-4">
-            <h2 className="text-lg font-semibold text-content">{title}</h2>
+          <div className="flex items-center justify-between border-b border-[#E9E5DC] dark:border-[#1A3355] px-6 py-4">
+            <h2 className="text-lg font-bold text-[#061B36] dark:text-white font-sans">{title}</h2>
             <button
               onClick={onClose}
               aria-label="Close"
-              className="rounded-lg p-1 text-content-faint hover:bg-surface-muted hover:text-content"
+              className="rounded-full p-1.5 text-[#5B6479] hover:bg-[#061B36]/[0.05] hover:text-[#061B36] dark:text-[#9FB0CC] dark:hover:bg-white/10 dark:hover:text-white transition-colors"
             >
               <CloseIcon className="h-5 w-5" />
             </button>
           </div>
         )}
         <div className="px-6 py-5">{children}</div>
-        {footer && <div className="border-t border-line px-6 py-4">{footer}</div>}
+        {footer && <div className="border-t border-[#E9E5DC] dark:border-[#1A3355] px-6 py-4">{footer}</div>}
       </div>
     </div>
   );

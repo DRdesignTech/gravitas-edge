@@ -1,52 +1,25 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Fragment, ReactNode, useEffect, useMemo, useState } from 'react';
-import { fetchVaults, fetchPublicPricing } from '@/lib/services';
-import { PricingGroup, Vault } from '@/lib/types';
+import { fetchVaults, fetchPublicPricing, fetchOpportunities } from '@/lib/services';
+import { PricingGroup, Vault, Opportunity } from '@/lib/types';
 import { Skeleton, ErrorState, EmptyState } from '@/components/ui';
 import { VaultCard } from '@/components/cards';
 import VaultFinder from '@/components/marketing/VaultFinder';
 import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import Eyebrow from '@/components/marketing/Eyebrow';
-import InfoCard from '@/components/marketing/InfoCard';
 import HowItWorks from '@/components/marketing/HowItWorks';
 import Testimonials from '@/components/marketing/Testimonials';
 import LiveFreePreview from '@/components/marketing/LiveFreePreview';
+import CountryDirectory from '@/components/marketing/CountryDirectory';
 import ResumeUploadCard from '@/components/marketing/ResumeUploadCard';
 import PricingSection from '@/components/marketing/PricingSection';
 import WhatsAppChannel from '@/components/marketing/WhatsAppChannel';
 import FaqSection from '@/components/marketing/FaqSection';
 import { scrollToHash } from '@/lib/scroll';
-
-const whatWeDoCards = [
-  {
-    index: '01',
-    title: 'Jobs come through many channels',
-    description:
-      'Good jobs can appear through company teams, recruiters, consultants, networks and portals - not just one place.',
-  },
-  {
-    index: '02',
-    title: 'Details matter',
-    description:
-      'A job title alone is not enough. Location, experience fit, source and how to apply all matter when deciding where to focus.',
-  },
-  {
-    index: '03',
-    title: 'Your time is valuable',
-    description:
-      'We organise job information so you can quickly see which opportunities are worth your time.',
-  },
-];
-
-const whatWeDoPoints = [
-  'Selected Opportunities',
-  'Jobs by Location and Experience',
-  'How to Apply',
-  'Save Time',
-];
 
 function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -63,150 +36,54 @@ function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────
-   HOW WE ARE DIFFERENT — content + icons
-   ──────────────────────────────────────────────────────────────────── */
-
-function StepIcon({
-  children,
-  className = 'h-5 w-5 sm:h-6 sm:w-6',
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.8}
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      {children}
-    </svg>
-  );
-}
-
-const diffSteps = [
+const whatFeatures = [
   {
-    title: 'Relevant Opportunity',
-    description: 'Carefully curated roles.',
-    icon: (
-      <>
-        <circle cx="12" cy="12" r="8.25" />
-        <circle cx="12" cy="12" r="3.5" />
-        <path strokeLinecap="round" d="M12 19.75v1.75M12 2.5v1.75M19.75 12h1.75M2.5 12h1.75" />
-      </>
-    ),
+    icon: '🌍',
+    title: 'Multiple countries',
+    description: "One subscription covers every country in your vault's coverage.",
   },
   {
-    title: 'Hiring Contact',
-    description: 'Get direct contact details.',
-    icon: (
-      <>
-        <path d="M12 12.75a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-        <path d="M4.5 20.25c1.4-2.9 4.2-4.5 7.5-4.5s6.1 1.6 7.5 4.5" />
-      </>
-    ),
+    icon: '🤝',
+    title: 'Direct pathways',
+    description: 'Recruiter or hiring-manager details where the source provides them.',
   },
   {
-    title: 'Your Application',
-    description: 'Share your resume directly.',
-    icon: (
-      <>
-        <path d="M22 2 11 13" />
-        <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
-      </>
-    ),
+    icon: '⏱️',
+    title: 'Regularly updated',
+    description: 'Expired roles are removed automatically, so you only see live listings.',
   },
 ];
 
-const diffArrow = (
-  <svg
-    className="h-3.5 w-3.5 text-[#C8943E] sm:h-5 sm:w-5 md:h-6 md:w-6"
-    fill="none"
-    viewBox="0 0 24 24"
-    strokeWidth={2}
-    stroke="currentColor"
-    aria-hidden="true"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="m9 5 7 7-7 7" />
-  </svg>
-);
-
-const diffBenefits: { label: string; icon: ReactNode }[] = [
-  {
-    label: 'Quality Opportunities',
-    icon: (
-      <>
-        <path d="M12 3.5l2.3 4.9 5.2.8-3.8 3.7.9 5.3-4.6-2.4-4.6 2.4.9-5.3-3.8-3.7 5.2-.8L12 3.5Z" />
-      </>
-    ),
-  },
-  {
-    label: 'Direct Contacts',
-    icon: (
-      <>
-        <circle cx="12" cy="8.5" r="3.5" />
-        <path d="M4.5 20c1.4-2.9 4.2-4.5 7.5-4.5s6.1 1.6 7.5 4.5" />
-      </>
-    ),
-  },
-  {
-    label: 'Across Global Markets',
-    icon: (
-      <>
-        <circle cx="12" cy="12" r="8.25" />
-        <path d="M3.75 12h16.5M12 3.75c2.4 2.3 3.6 5 3.6 8.25s-1.2 5.95-3.6 8.25c-2.4-2.3-3.6-5-3.6-8.25s1.2-5.95 3.6-8.25Z" />
-      </>
-    ),
-  },
-  {
-    label: 'Regularly Updated',
-    icon: (
-      <>
-        <path d="M20 12a8 8 0 1 1-2.34-5.66" />
-        <path d="M20 4v4h-4" />
-      </>
-    ),
-  },
-];
-
-const heroFeatures: { label: string; icon: ReactNode }[] = [
-  {
-    label: 'Curated Opportunities',
-    icon: (
-      <path d="M12 3.5l2.3 4.9 5.2.8-3.8 3.7.9 5.3-4.6-2.4-4.6 2.4.9-5.3-3.8-3.7 5.2-.8L12 3.5Z" />
-    ),
-  },
-  {
-    label: 'Direct Hiring Contacts',
-    icon: (
-      <>
-        <circle cx="12" cy="8.5" r="3.5" />
-        <path d="M4.5 20c1.4-2.9 4.2-4.5 7.5-4.5s6.1 1.6 7.5 4.5" />
-      </>
-    ),
-  },
-  {
-    label: 'Global Markets',
-    icon: (
-      <>
-        <circle cx="12" cy="12" r="8.25" />
-        <path d="M3.75 12h16.5M12 3.75c2.4 2.3 3.6 5 3.6 8.25s-1.2 5.95-3.6 8.25c-2.4-2.3-3.6-5-3.6-8.25s1.2-5.95 3.6-8.25Z" />
-      </>
-    ),
-  },
+const HERO_COUNTRIES = [
+  { name: 'United Arab Emirates', code: 'AE', flag: '🇦🇪' },
+  { name: 'Saudi Arabia', code: 'SA', flag: '🇸🇦' },
+  { name: 'Singapore', code: 'SG', flag: '🇸🇬' },
+  { name: 'United Kingdom', code: 'GB', flag: '🇬🇧' },
+  { name: 'Germany', code: 'DE', flag: '🇩🇪' },
+  { name: 'Qatar', code: 'QA', flag: '🇶🇦' },
+  { name: 'Kenya', code: 'KE', flag: '🇰🇪' },
+  { name: 'Canada', code: 'CA', flag: '🇨🇦' },
+  { name: 'United States', code: 'US', flag: '🇺🇸' },
+  { name: 'Australia', code: 'AU', flag: '🇦🇺' },
+  { name: 'Oman', code: 'OM', flag: '🇴🇲' },
+  { name: 'India', code: 'IN', flag: '🇮🇳' },
 ];
 
 export default function Home() {
+  const router = useRouter();
   const { user } = useAuth();
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [pricing, setPricing] = useState<PricingGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [recommendedVaultIds, setRecommendedVaultIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [oppsTotal, setOppsTotal] = useState(0);
+  const [countriesCount, setCountriesCount] = useState(0);
+  const [citiesCount, setCitiesCount] = useState(0);
+  const [countryCounts, setCountryCounts] = useState<Record<string, number>>({});
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
 
   const load = () => {
     setLoading(true);
@@ -214,10 +91,28 @@ export default function Home() {
     Promise.all([
       fetchVaults(),
       fetchPublicPricing(),
+      fetchOpportunities({ limit: 100 }),
     ])
-      .then(([v, p]) => {
+      .then(([v, p, oppsRes]) => {
         setVaults(v || []);
         setPricing(p || []);
+        if (oppsRes?.meta?.totalItems) {
+          setOppsTotal(oppsRes.meta.totalItems);
+        }
+        if (Array.isArray(oppsRes?.items)) {
+          setOpportunities(oppsRes.items);
+          const counts: Record<string, number> = {};
+          oppsRes.items.forEach((o) => {
+            if (o.country) {
+              counts[o.country] = (counts[o.country] || 0) + 1;
+            }
+          });
+          setCountryCounts(counts);
+          const uniqueCountries = new Set(oppsRes.items.map((o) => o.country).filter(Boolean));
+          const uniqueCities = new Set(oppsRes.items.map((o) => o.location).filter(Boolean));
+          if (uniqueCountries.size > 0) setCountriesCount(uniqueCountries.size);
+          if (uniqueCities.size > 0) setCitiesCount(uniqueCities.size);
+        }
       })
       .catch((e) => setError(getErrorMessage(e)))
       .finally(() => setLoading(false));
@@ -242,6 +137,18 @@ export default function Home() {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleHeroSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set('search', searchQuery.trim());
+    if (selectedCountry.trim()) params.set('country', selectedCountry.trim());
+    router.push(`/opportunities${params.toString() ? `?${params.toString()}` : ''}`);
+  };
+
+  const handleCountryClick = (countryName: string) => {
+    router.push(`/opportunities?country=${encodeURIComponent(countryName)}`);
+  };
+
   const visibleVaults = useMemo(() => {
     const list = [...vaults];
     if (recommendedVaultIds.size === 0) return list;
@@ -255,212 +162,370 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 1. HERO — #home                                                */}
       {/* ══════════════════════════════════════════════════════════════ */}
+
+      {/* Offer announcement ticker bar (.offerbar) */}
+      <div
+        className="relative overflow-hidden bg-gradient-to-r from-[#C8842D] via-[#E9B566] to-[#C8842D] text-[#061B36] border-b border-[#061B36]/15 select-none"
+        aria-label="Current offers"
+      >
+        <div className="pointer-events-none absolute top-0 bottom-0 left-0 w-[60px] z-10 bg-gradient-to-r from-[#C8842D] to-transparent" />
+        <div className="pointer-events-none absolute top-0 bottom-0 right-0 w-[60px] z-10 bg-gradient-to-l from-[#C8842D] to-transparent" />
+        <div className="flex w-max animate-[oscroll_38s_linear_infinite] hover:[animation-play-state:paused]">
+          {[0, 1].map((copyIndex) => (
+            <div key={copyIndex} className="flex shrink-0 items-center">
+              <button
+                type="button"
+                onClick={() => scrollTo('bundle')}
+                className="inline-flex items-center gap-2 px-[26px] py-[10px] text-[0.84rem] font-semibold whitespace-nowrap text-[#061B36] relative after:content-['✦'] after:absolute after:-right-1.5 after:text-[#061B36]/45 after:text-[0.7rem] hover:opacity-90 bg-transparent border-0 cursor-pointer"
+              >
+                <span className="bg-[#061B36] text-[#F6D58A] text-[0.64rem] font-extrabold tracking-[0.08em] px-2 py-[3px] rounded-full">
+                  OFFER
+                </span>
+                <span>
+                  <b>Build Your Bundle</b> India + Global vaults, save <b>20%</b> ·{' '}
+                  <u className="no-underline border-b-[1.5px] border-[#061B36] font-bold hover:border-b-[2.5px]">
+                    Build now
+                  </u>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => scrollTo('free-preview')}
+                className="inline-flex items-center gap-2 px-[26px] py-[10px] text-[0.84rem] font-semibold whitespace-nowrap text-[#061B36] relative after:content-['✦'] after:absolute after:-right-1.5 after:text-[#061B36]/45 after:text-[0.7rem] hover:opacity-90 bg-transparent border-0 cursor-pointer"
+              >
+                <span className="bg-[#061B36] text-[#F6D58A] text-[0.64rem] font-extrabold tracking-[0.08em] px-2 py-[3px] rounded-full">
+                  FREE
+                </span>
+                <span>
+                  Explore the <b>Free Preview</b> before you subscribe ·{' '}
+                  <u className="no-underline border-b-[1.5px] border-[#061B36] font-bold hover:border-b-[2.5px]">
+                    Preview jobs
+                  </u>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => scrollTo('vaults')}
+                className="inline-flex items-center gap-2 px-[26px] py-[10px] text-[0.84rem] font-semibold whitespace-nowrap text-[#061B36] relative after:content-['✦'] after:absolute after:-right-1.5 after:text-[#061B36]/45 after:text-[0.7rem] hover:opacity-90 bg-transparent border-0 cursor-pointer"
+              >
+                <span className="bg-[#061B36] text-[#F6D58A] text-[0.64rem] font-extrabold tracking-[0.08em] px-2 py-[3px] rounded-full">
+                  GLOBAL
+                </span>
+                <span>
+                  <b>Global Career Access</b> from <b>$39/mo</b>, one subscription for{' '}
+                  {countriesCount > 0 ? `${countriesCount} countries` : '24 countries'} ·{' '}
+                  <u className="no-underline border-b-[1.5px] border-[#061B36] font-bold hover:border-b-[2.5px]">
+                    See vaults
+                  </u>
+                </span>
+              </button>
+
+              <Link
+                href="/opportunities"
+                className="inline-flex items-center gap-2 px-[26px] py-[10px] text-[0.84rem] font-semibold whitespace-nowrap text-[#061B36] relative after:content-['✦'] after:absolute after:-right-1.5 after:text-[#061B36]/45 after:text-[0.7rem] hover:opacity-90 no-underline cursor-pointer"
+              >
+                <span className="bg-[#061B36] text-[#F6D58A] text-[0.64rem] font-extrabold tracking-[0.08em] px-2 py-[3px] rounded-full">
+                  LIVE
+                </span>
+                <span>
+                  <b>{oppsTotal > 0 ? `${oppsTotal} live roles` : '500+ live roles'}</b> across{' '}
+                  <b>{countriesCount > 0 ? `${countriesCount} countries` : '24 countries'}</b> right now ·{' '}
+                  <u className="no-underline border-b-[1.5px] border-[#061B36] font-bold hover:border-b-[2.5px]">
+                    Explore opportunities
+                  </u>
+                </span>
+              </Link>
+
+              <Link
+                href="/opportunities?country=United+Arab+Emirates"
+                className="inline-flex items-center gap-2 px-[26px] py-[10px] text-[0.84rem] font-semibold whitespace-nowrap text-[#061B36] relative after:content-['✦'] after:absolute after:-right-1.5 after:text-[#061B36]/45 after:text-[0.7rem] hover:opacity-90 no-underline cursor-pointer"
+              >
+                <span className="bg-[#061B36] text-[#F6D58A] text-[0.64rem] font-extrabold tracking-[0.08em] px-2 py-[3px] rounded-full">
+                  NEW
+                </span>
+                <span>
+                  Just added: <b>Regional Operations Lead</b> in Dubai ·{' '}
+                  <u className="no-underline border-b-[1.5px] border-[#061B36] font-bold hover:border-b-[2.5px]">
+                    View UAE
+                  </u>
+                </span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => scrollTo('vaults')}
+                className="inline-flex items-center gap-2 px-[26px] py-[10px] text-[0.84rem] font-semibold whitespace-nowrap text-[#061B36] relative after:content-['✦'] after:absolute after:-right-1.5 after:text-[#061B36]/45 after:text-[0.7rem] hover:opacity-90 bg-transparent border-0 cursor-pointer"
+              >
+                <span className="bg-[#061B36] text-[#F6D58A] text-[0.64rem] font-extrabold tracking-[0.08em] px-2 py-[3px] rounded-full">
+                  PREMIER
+                </span>
+                <span>
+                  <b>Executive Premier Access</b> India + International in one vault ·{' '}
+                  <u className="no-underline border-b-[1.5px] border-[#061B36] font-bold hover:border-b-[2.5px]">
+                    Learn more
+                  </u>
+                </span>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hero Section (.hero) */}
       <section
         id="home"
-        className="relative flex min-h-[calc(100svh-4rem)] flex-col overflow-hidden bg-[#03070C]"
+        className="relative bg-[#061B36] text-white pt-[96px] pb-[104px] max-[900px]:pt-[76px] max-[900px]:pb-[96px] overflow-hidden isolate"
       >
-        {/* Background image layer. The artwork is 16:9 and wider than the
-            portrait hero, so object-cover crops horizontally — object-position
-            pans the frame. Mobile pans to the right so the walking person
-            (lower-right of the source) is fully in frame; desktop keeps the
-            skyline, stairs and person in view via the centred crop. */}
-        <img
-          src="/images/hero_bg.png"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[90%_center] sm:object-center"
-        />
-
-        {/* Navy scrim over the photo.
-            Desktop: strongest behind the left-aligned copy, fading to fully
-            transparent before the right-side skyline, sunlight and person so
-            the original warm orange, gold and blue tones stay intact.
-            Mobile: the copy is anchored to the top, so the scrim runs
-            top-down — keeping text readable while leaving the lower artwork
-            visible. */}
+        {/* Background image layer matching .hero::before */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0 sm:hidden"
+          className="pointer-events-none absolute top-0 right-0 bottom-0 w-[70%] max-[900px]:w-full z-[-2] bg-cover bg-no-repeat [background-position:center_30%] max-[900px]:[background-position:70%_30%]"
           style={{
-            backgroundImage:
-              'linear-gradient(180deg, rgba(3,7,12,0.85) 0%, rgba(3,7,12,0.6) 30%, rgba(3,7,12,0.22) 54%, rgba(3,7,12,0) 74%)',
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0 hidden sm:block"
-          style={{
-            backgroundImage:
-              'linear-gradient(90deg, rgba(3,7,12,0.86) 0%, rgba(3,7,12,0.68) 22%, rgba(3,7,12,0.4) 42%, rgba(3,7,12,0.12) 60%, rgba(3,7,12,0) 78%), linear-gradient(0deg, rgba(3,7,12,0.4) 0%, rgba(3,7,12,0) 40%)',
-          }}
-        />
-        {/* Premium vignette — deepens the top-left where the copy sits */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0 hidden sm:block"
-          style={{
-            backgroundImage:
-              'radial-gradient(120% 90% at 0% 30%, rgba(6,27,54,0.55) 0%, rgba(6,27,54,0) 60%)',
+            backgroundImage: 'url(/images/hero_redesign.jpg)',
           }}
         />
 
-        {/* Content — anchored to the upper portion on mobile, immediately below
-            the header, so the skyline, stairs and walking person stay visible
-            below the copy. Centred composition is restored on larger screens. */}
-        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-start px-5 pb-8 pt-16 sm:justify-center sm:px-6 sm:py-12 lg:px-8 lg:py-16">
-          <div className="w-full max-w-2xl text-left">
-            <h1
-              className="hero-text-animate font-serif-heading text-[1.9rem] font-extrabold leading-[1.15] text-white sm:text-4xl sm:font-bold sm:leading-[1.12] md:text-5xl lg:text-6xl xl:text-7xl"
-              style={{ animationDelay: '0s' }}
+        {/* Gradient scrims matching .hero::after */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[-1] hidden min-[901px]:block"
+          style={{
+            background:
+              'linear-gradient(90deg, #061B36 0%, #061B36 38%, rgba(6,27,54,0.82) 50%, rgba(6,27,54,0.25) 70%, rgba(6,27,54,0) 100%), linear-gradient(0deg, rgba(6,27,54,0.55), rgba(6,27,54,0) 35%)',
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[-1] min-[901px]:hidden block"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(6,27,54,0.92), rgba(6,27,54,0.7)), linear-gradient(0deg, #061B36, rgba(6,27,54,0) 40%)',
+          }}
+        />
+
+        {/* .wrap */}
+        <div className="relative mx-auto max-w-[1180px] px-5">
+          {/* Eyebrow */}
+          <span className="inline-block text-[0.75rem] font-bold tracking-[0.12em] uppercase text-[#F0C27B] mb-[0.6rem]">
+            Global opportunities. Real connections.
+          </span>
+
+          {/* H1 Title */}
+          <h1 className="text-white font-bold tracking-[-0.02em] leading-[1.15] text-[clamp(2.1rem,5vw,3.6rem)] max-w-[780px]">
+            Find opportunities across borders.{' '}
+            <em className="not-italic text-[#D6952F]">Before they reach the usual job portals.</em>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-[#C9D3EA] text-[1.12rem] leading-[1.55] max-w-[620px] mt-[18px] mb-[28px]">
+            Curated roles from multiple countries, sorted by location and experience, with direct application pathways and hiring contacts where available.
+          </p>
+
+          {/* Search bar form (.searchbar) */}
+          <form
+            onSubmit={handleHeroSearch}
+            className="flex flex-col min-[641px]:flex-row gap-2 bg-white rounded-[18px] min-[641px]:rounded-full p-1.5 max-w-[680px] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.4)]"
+            id="heroSearch"
+          >
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Job title, keyword or Job ID"
+              aria-label="Keyword or Job ID"
+              className="flex-1 border-0 font-sans text-base py-2.5 px-3.5 outline-none text-[#1A2236] bg-transparent min-w-0 placeholder:text-[#5B6479]"
+            />
+            <select
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+              aria-label="Country"
+              className="border-0 border-t min-[641px]:border-t-0 min-[641px]:border-l border-[#E9E5DC] font-sans text-base py-2.5 px-3.5 outline-none text-[#1A2236] bg-transparent min-w-0 max-w-none min-[641px]:max-w-[190px] cursor-pointer"
             >
-              Not every <span className="block sm:inline">opportunity</span>{' '}
-              <span className="block sm:inline">reaches the usual</span>{' '}
-              <span className="block text-[#C8943E]">job portals.</span>
-            </h1>
-            <p
-              className="hero-text-animate mt-3 max-w-xl text-[15px] leading-relaxed text-white/90 sm:mt-5 sm:text-lg lg:mt-6 lg:text-xl"
-              style={{ animationDelay: '0.12s' }}
+              <option value="">All countries</option>
+              {HERO_COUNTRIES.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center gap-2 border-0 rounded-full py-3 px-6 font-bold text-[0.95rem] leading-none bg-[#D6952F] hover:bg-[#E0A85A] text-[#061B36] hover:shadow-[0_8px_24px_-6px_rgba(200,132,45,0.45)] hover:-translate-y-0.5 transition-all cursor-pointer shrink-0"
             >
-              Get direct access to real opportunities with the people actively looking to hire.
-            </p>
-            <div
-              className="hero-text-animate mt-6 sm:mt-8 lg:mt-10"
-              style={{ animationDelay: '0.24s' }}
-            >
-              <Link
-                href="#free-preview"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollTo('free-preview');
-                  window.history.replaceState(null, '', '#free-preview');
-                }}
-                className="relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-lg bg-gradient-to-b from-[#D3A24C] to-[#B8832F] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_-12px_rgba(200,148,62,0.75)] ring-1 ring-inset ring-white/15 transition-all duration-300 hover:-translate-y-0.5 hover:from-[#DBAA55] hover:to-[#C08A32] hover:shadow-[0_18px_40px_-14px_rgba(200,148,62,0.85)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#061B36] focus-visible:ring-offset-2 sm:rounded-xl sm:px-6 sm:py-3.5 sm:text-base"
-              >
-                Explore Free Preview <span aria-hidden="true">→</span>
-                <span
-                  aria-hidden="true"
-                  className="btn-shine absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/50 to-transparent"
-                />
-              </Link>
+              Search
+            </button>
+          </form>
+
+          {/* Hero Stats (.hero-stats) */}
+          <div className="flex flex-wrap gap-7 mt-[34px]">
+            <div>
+              <b className="block text-[1.8rem] text-[#86EFAC] font-bold font-sans leading-tight">
+                {oppsTotal > 0 ? oppsTotal : '500+'}
+              </b>
+              <span className="text-[#AEB9D6] text-[0.85rem]">live opportunities</span>
+            </div>
+            <div>
+              <b className="block text-[1.8rem] text-[#86EFAC] font-bold font-sans leading-tight">
+                {countriesCount > 0 ? countriesCount : '24'}
+              </b>
+              <span className="text-[#AEB9D6] text-[0.85rem]">countries represented</span>
+            </div>
+            <div>
+              <b className="block text-[1.8rem] text-[#86EFAC] font-bold font-sans leading-tight">
+                {citiesCount > 0 ? citiesCount : '60+'}
+              </b>
+              <span className="text-[#AEB9D6] text-[0.85rem]">cities</span>
             </div>
           </div>
-        </div>
 
-        {/* Bottom feature strip — navy three-column bar with gold outline icons */}
-        <div className="relative z-10 border-t border-[#C8943E]/20 bg-[#061B36]">
-          <div className="mx-auto grid w-full max-w-7xl grid-cols-3 divide-x divide-white/10 px-2 py-3 sm:px-6 sm:py-5 lg:px-8">
-            {heroFeatures.map((feature) => (
-              <div
-                key={feature.label}
-                className="flex flex-col items-center gap-1.5 px-1.5 text-center sm:gap-2"
-              >
-                <StepIcon className="h-6 w-6 text-[#C8943E]">{feature.icon}</StepIcon>
-                <span className="text-[11px] font-medium leading-tight text-white/90 sm:text-sm">
-                  {feature.label}
-                </span>
-              </div>
-            ))}
+          {/* Country Pills Row (.hero-flags button.has) - single line */}
+          <div className="mt-[26px] flex flex-nowrap items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 max-w-full">
+            {HERO_COUNTRIES.filter((c) => c.code !== 'IN')
+              .slice(0, 8)
+              .map((c) => {
+                const count = countryCounts[c.name];
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => handleCountryClick(c.name)}
+                    className="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 bg-[rgba(34,197,94,0.14)] hover:bg-white/[0.18] border border-[rgba(134,239,172,0.55)] text-white rounded-full py-1.5 px-3 text-[0.82rem] font-semibold transition-colors cursor-pointer"
+                  >
+                    <span>{c.flag}</span>
+                    <span>{c.name}</span>
+                    {count ? <span>· {count}</span> : null}
+                  </button>
+                );
+              })}
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="mt-7 flex gap-3 flex-wrap">
+            <Link
+              href="#free-preview"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollTo('free-preview');
+                window.history.replaceState(null, '', '#free-preview');
+              }}
+              className="inline-flex items-center justify-center gap-2 border-0 rounded-full py-3 px-6 font-bold text-[0.95rem] leading-none bg-[#D6952F] hover:bg-[#E0A85A] text-[#061B36] hover:shadow-[0_8px_24px_-6px_rgba(200,132,45,0.45)] hover:-translate-y-0.5 transition-all no-underline cursor-pointer"
+            >
+              Explore Free Preview →
+            </Link>
+            <Link
+              href="#vaults"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollTo('vaults');
+                window.history.replaceState(null, '', '#vaults');
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-full py-3 px-6 font-bold text-[0.95rem] leading-none bg-transparent hover:bg-white/[0.08] text-white border border-white/30 hover:border-white transition-all no-underline cursor-pointer"
+            >
+              See vaults &amp; pricing
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 2. HOW WE ARE DIFFERENT — #why-gravitas-edge                    */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <section id="why-gravitas-edge" className="section-glow relative bg-surface-muted">
-        <div className="mx-auto max-w-7xl px-4 pb-16 pt-16 sm:px-6 lg:px-8 lg:pb-24 lg:pt-24">
-          <div className="mx-auto mb-10 max-w-3xl text-center sm:mb-14">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C8943E]">
-              How It&apos;s Different
-            </p>
-            <h2 className="mt-4 font-serif-heading text-3xl font-bold leading-tight text-content sm:text-4xl lg:text-5xl">
-              Skip the portals. <span className="text-[#C8943E]">Connect Directly.</span>
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-content-muted sm:text-lg">
-              No &lsquo;Apply Now&rsquo;. Connect Directly with the recruiter, hiring manager or
-              consultant hiring for the role.
-            </p>
+      {/* 3 Trust Features Strip right below Hero (.hstrip) */}
+      <div className="bg-[#061B36] border-t border-white/[0.08]">
+        <div className="mx-auto max-w-[1180px] px-5 grid grid-cols-3">
+          <div className="flex flex-col items-center gap-2 py-[22px] px-2.5 text-white font-semibold text-[0.95rem] text-center max-[600px]:text-[0.8rem] max-[600px]:py-4 max-[600px]:px-1.5">
+            <svg
+              className="w-6 h-6 stroke-[#D6952F] fill-none stroke-[1.6]"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
+            </svg>
+            <span>Curated Opportunities</span>
           </div>
+          <div className="flex flex-col items-center gap-2 py-[22px] px-2.5 text-white font-semibold text-[0.95rem] text-center max-[600px]:text-[0.8rem] max-[600px]:py-4 max-[600px]:px-1.5 border-l border-white/[0.12]">
+            <svg
+              className="w-6 h-6 stroke-[#D6952F] fill-none stroke-[1.6]"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
+            </svg>
+            <span>Direct Hiring Contacts</span>
+          </div>
+          <div className="flex flex-col items-center gap-2 py-[22px] px-2.5 text-white font-semibold text-[0.95rem] text-center max-[600px]:text-[0.8rem] max-[600px]:py-4 max-[600px]:px-1.5 border-l border-white/[0.12]">
+            <svg
+              className="w-6 h-6 stroke-[#D6952F] fill-none stroke-[1.6]"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" />
+            </svg>
+            <span>Global Markets</span>
+          </div>
+        </div>
+      </div>
 
-          {/* Three steps with icons and arrows */}
-          <div className="mx-auto grid max-w-4xl grid-cols-[1fr_auto_1fr_auto_1fr] items-stretch gap-2 sm:gap-4">
-            {diffSteps.map((step, i) => (
-              <Fragment key={step.title}>
-                <div className="card-static flex flex-col items-center rounded-2xl px-1.5 py-3 text-center sm:px-5 sm:py-5 lg:px-6 lg:py-7">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-brand-50 to-brand-100 text-[#C8943E] ring-1 ring-inset ring-[#C8943E]/20 sm:h-14 sm:w-14">
-                    <StepIcon>{step.icon}</StepIcon>
-                  </span>
-                  <h3 className="mt-2.5 font-serif-heading text-xs font-bold leading-tight text-content [overflow-wrap:anywhere] sm:mt-4 sm:text-xl">
-                    {step.title}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* 2. WHAT GRAVITAS EDGE DOES — #what                             */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <section
+        id="what"
+        className="py-[72px] bg-[#FEFDF9] dark:bg-[#06142A] text-[#1A2236] dark:text-[#EAEFFB]"
+      >
+        {/* Retain anchor IDs for scroll compatibility */}
+        <span id="why-gravitas-edge" className="sr-only" />
+        <span id="what-we-do" className="sr-only" />
+
+        <div className="mx-auto max-w-[1180px] px-5 grid grid-cols-1 min-[861px]:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
+          <div>
+            <Eyebrow>
+              What Gravitas Edge does
+            </Eyebrow>
+            <h2 className="text-[#061B36] dark:text-[#F2F5FA] font-bold tracking-[-0.02em] leading-[1.15] text-[clamp(1.7rem,3.4vw,2.5rem)] mb-2 font-sans">
+              Skip the portals. Connect directly.
+            </h2>
+            <p className="text-[#5B6479] dark:text-[#9FB0CC] text-[1.05rem] leading-[1.55] max-w-[640px]">
+              Opportunities surface through many channels: recruiter networks, hiring managers,
+              consultants and company announcements. We find and select them, sort them by country,
+              city and experience, and give you the application pathway or hiring contact where
+              it&apos;s available.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[18px] mt-[26px]">
+              {whatFeatures.map((f) => (
+                <div key={f.title}>
+                  <div className="w-11 h-11 rounded-[12px] grid place-items-center bg-[#FBF0DE] dark:bg-[#201D19] text-[1.3rem] mb-3 select-none">
+                    {f.icon}
+                  </div>
+                  <h3 className="text-[1rem] font-bold text-[#061B36] dark:text-[#F2F5FA] leading-[1.15] mb-1 font-sans">
+                    {f.title}
                   </h3>
-                  <p className="mt-1 text-[10px] leading-relaxed text-content-muted [overflow-wrap:anywhere] sm:mt-2 sm:text-sm">
-                    {step.description}
+                  <p className="text-[#5B6479] dark:text-[#9FB0CC] text-[0.9rem] leading-[1.55]">
+                    {f.description}
                   </p>
                 </div>
-                {i < diffSteps.length - 1 && (
-                  <span aria-hidden="true" className="flex items-center self-center">
-                    {diffArrow}
-                  </span>
-                )}
-              </Fragment>
-            ))}
-          </div>
-        </div>
-
-        {/* Navy benefits panel */}
-        <div className="border-t border-[#C8943E]/20 bg-[#061B36]">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-4 gap-y-8 px-4 py-8 sm:px-6 md:grid-cols-4 lg:px-8 lg:py-10">
-            {diffBenefits.map((benefit) => (
-              <div
-                key={benefit.label}
-                className="flex flex-col items-center gap-2.5 text-center sm:flex-row sm:justify-center sm:gap-3 sm:text-left"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#C8943E]/15 text-[#C8943E]">
-                  <StepIcon className="h-5 w-5">{benefit.icon}</StepIcon>
-                </span>
-                <span className="text-sm font-semibold leading-tight text-white sm:text-base">
-                  {benefit.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="what-we-do" className="section-glow-navy relative bg-surface">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <div className="grid gap-10 lg:grid-cols-[1fr_minmax(0,1.1fr)] lg:items-start">
-            <div className="max-w-xl">
-              <Eyebrow>WHAT GRAVITAS EDGE DOES</Eyebrow>
-              <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
-                What Gravitas Edge does.
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-content-muted">
-                Good jobs are spread across many channels and are easy to miss. Gravitas Edge finds
-                and selects them, sorts them by location and experience level, and gives you the
-                application or contact details where available — so you can focus on the jobs that
-                fit your search.
-              </p>
-              <ul className="mt-8 space-y-3">
-                {whatWeDoPoints.map((point) => (
-                  <li
-                    key={point}
-                    className="flex items-start gap-2.5 text-sm font-medium text-content"
-                  >
-                    <span className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-500/10 p-1 text-emerald-600 dark:text-emerald-400">
-                      <CheckAccent className="h-3.5 w-3.5" />
-                    </span>
-                    {point}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              {whatWeDoCards.map((card) => (
-                <InfoCard key={card.index} {...card} />
               ))}
             </div>
+          </div>
+
+          <div className="bg-[#061B36] dark:bg-[#0A2645] text-white rounded-[16px] p-[26px] border border-transparent dark:border-[rgba(240,194,123,0.18)] shadow-lg">
+            <h3 className="text-white font-bold text-[1.35rem] leading-[1.15] mb-2 font-sans">
+              No &ldquo;Apply Now&rdquo; button
+            </h3>
+            <p className="text-[#C9D3EA] text-[0.93rem] mb-2.5 leading-[1.55]">
+              You reach out yourself, with context.
+            </p>
+            <ol className="list-decimal pl-5 text-[#C9D3EA] text-[0.93rem]">
+              <li className="my-1.5 leading-[1.55]">See a relevant opportunity in your vault</li>
+              <li className="my-1.5 leading-[1.55]">View the hiring contact or application pathway</li>
+              <li className="my-1.5 leading-[1.55]">Share your resume directly</li>
+            </ol>
+            <p className="text-[#8C9AC0] text-[0.78rem] mt-3.5 leading-[1.5]">
+              Gravitas Edge is an opportunity-information service, not a recruitment agency. We
+              don&apos;t guarantee interviews or placements.
+            </p>
           </div>
         </div>
       </section>
@@ -471,27 +536,29 @@ export default function Home() {
       <HowItWorks />
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 5. LIVE FREE PREVIEW — #free-preview                           */}
+      {/* 5. LIVE FREE PREVIEW — #preview / #free-preview                 */}
       {/* ══════════════════════════════════════════════════════════════ */}
       {loading ? (
         <section
-          id="free-preview"
-          className="border-t border-line bg-surface dark:bg-surface-elevated/50"
+          id="preview"
+          className="relative py-[72px] bg-[#FEFDF9] dark:bg-[#06142A] scroll-mt-20"
         >
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div id="free-preview" className="absolute -top-20" aria-hidden="true" />
+          <div className="mx-auto max-w-[1180px] px-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[18px]">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-48" />
+                <Skeleton key={i} className="h-64 rounded-[14px]" />
               ))}
             </div>
           </div>
         </section>
       ) : error ? (
         <section
-          id="free-preview"
-          className="border-t border-line bg-surface dark:bg-surface-elevated/50"
+          id="preview"
+          className="relative py-[72px] bg-[#FEFDF9] dark:bg-[#06142A] scroll-mt-20"
         >
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+          <div id="free-preview" className="absolute -top-20" aria-hidden="true" />
+          <div className="mx-auto max-w-[1180px] px-5">
             <ErrorState message={error} onRetry={load} />
           </div>
         </section>
@@ -503,6 +570,11 @@ export default function Home() {
           onRetry={load}
         />
       )}
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* 5. EXPLORE OPPORTUNITIES BY COUNTRY — #countries               */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <CountryDirectory opportunities={opportunities} />
 
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 6. OPPORTUNITY VAULTS — #vaults                                */}

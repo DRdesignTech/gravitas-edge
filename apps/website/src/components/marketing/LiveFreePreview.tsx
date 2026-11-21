@@ -1,47 +1,67 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Opportunity, Vault, VaultOpportunityCount, OpportunityQuery, PaginatedResult } from '@/lib/types';
-import {
-  Skeleton,
-  ErrorState,
-  EmptyState,
-  GridIcon,
-  ListIcon,
-  LockIcon,
-  Badge,
-  Pagination,
-} from '@/components/ui';
-import { OpportunityCard, SearchIcon, PinIcon, BarsIcon, VaultIcon } from '@/components/cards';
-import Eyebrow from '@/components/marketing/Eyebrow';
-import HomeAnchor from '@/components/marketing/HomeAnchor';
-import { displayExperience, hasExperience, titleCase } from '@/lib/format';
-import { extractEmail, buildApplyMailto } from '@job-portal/shared';
-import { fetchOpportunities, fetchVaultOpportunityCounts } from '@/lib/services';
-import { useAuth } from '@/lib/auth';
-import { canRevealCompanyExperience } from '@/lib/opportunity-access';
+import Link from 'next/link';
+import { Opportunity, Vault, OpportunityQuery, PaginatedResult } from '@/lib/types';
+import { Skeleton, ErrorState } from '@/components/ui';
+import { fetchOpportunities } from '@/lib/services';
+import Eyebrow from './Eyebrow';
 
-const PAGE_SIZE = 12;
-const VIEW_KEY = 'free-preview-view';
-type PreviewView = 'grid' | 'list';
+const COUNTRY_FLAGS: Record<string, string> = {
+  'United Arab Emirates': '🇦🇪',
+  'UAE': '🇦🇪',
+  'Saudi Arabia': '🇸🇦',
+  'Singapore': '🇸🇬',
+  'United Kingdom': '🇬🇧',
+  'UK': '🇬🇧',
+  'Germany': '🇩🇪',
+  'Qatar': '🇶🇦',
+  'Kenya': '🇰🇪',
+  'Canada': '🇨🇦',
+  'United States': '🇺🇸',
+  'USA': '🇺🇸',
+  'US': '🇺🇸',
+  'India': '🇮🇳',
+  'Australia': '🇦🇺',
+  'Oman': '🇴🇲',
+  'Nigeria': '🇳🇬',
+};
 
-function readInitialView(): PreviewView {
-  if (typeof window === 'undefined') return 'grid';
-  try {
-    if (window.sessionStorage.getItem(VIEW_KEY) === 'list') return 'list';
-  } catch {
-    // Ignore storage failures.
+type PreviewTab = 'all' | 'global' | 'india';
+
+const TABS: { key: PreviewTab; label: string }[] = [
+  { key: 'all', label: 'Latest' },
+  { key: 'global', label: 'International' },
+  { key: 'india', label: 'India' },
+];
+
+function formatAgo(dateString?: string | null): string {
+  if (!dateString) return 'Recent';
+  const d = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return 'Today';
+  if (diffDays === 1) return '1d ago';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  const weeks = Math.floor(diffDays / 7);
+  if (weeks < 4) return `${weeks}w ago`;
+  const months = Math.floor(diffDays / 30);
+  return `${months}m ago`;
+}
+
+function formatExp(o: Opportunity): string {
+  if (o.minExperience != null && o.maxExperience != null) {
+    return `${o.minExperience}–${o.maxExperience} yrs`;
   }
-  return 'grid';
-}
-
-function getMobileDefaultView(): PreviewView {
-  if (typeof window === 'undefined') return 'grid';
-  return window.innerWidth < 768 ? 'list' : 'grid';
-}
-
-interface VaultCountMap {
-  [vaultId: string]: number;
+  if (o.minExperience != null) {
+    return `${o.minExperience}+ yrs`;
+  }
+  if (o.maxExperience != null) {
+    return `Up to ${o.maxExperience} yrs`;
+  }
+  if (o.experienceText) return o.experienceText;
+  return 'Any exp.';
 }
 
 export default function LiveFreePreview({
@@ -55,497 +75,306 @@ export default function LiveFreePreview({
   error: string;
   onRetry: () => void;
 }) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [vault, setVault] = useState('');
-  const [view, setView] = useState<PreviewView>(readInitialView);
-  const [page, setPage] = useState(1);
-  const [searchTrigger, setSearchTrigger] = useState(0);
-
+  const [activeTab, setActiveTab] = useState<PreviewTab>('all');
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [vaultCounts, setVaultCounts] = useState<VaultCountMap>({});
+  const [unlockOpportunity, setUnlockOpportunity] = useState<Opportunity | null>(null);
 
   const inFlightRef = useRef<Promise<void> | null>(null);
 
-  // Load vault counts on mount
-  useEffect(() => {
-    let cancelled = false;
-    fetchVaultOpportunityCounts()
-      .then((counts) => {
-        if (!cancelled) {
-          const map: VaultCountMap = {};
-          counts.forEach((c) => { map[c.vaultId] = c.count; });
-          setVaultCounts(map);
-        }
-      })
-      .catch(() => {
-        // Silently fail - counts are supplementary
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  // Update view on mobile/desktop resize
-  useEffect(() => {
-    const handleResize = () => {
-      const isMobile = window.innerWidth < 768;
-      const storedView = window.sessionStorage.getItem(VIEW_KEY);
-      if (isMobile && !storedView) {
-        setView('list');
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const loadOpportunities = useCallback(async (opts: OpportunityQuery) => {
-    // Prevent duplicate concurrent requests
     if (inFlightRef.current) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     const promise = fetchOpportunities(opts)
       .then((data: PaginatedResult<Opportunity>) => {
         setOpportunities(data.items);
-        setTotalItems(data.meta.totalItems);
-        setTotalPages(data.meta.totalPages);
       })
       .catch((e) => {
         setError(e?.message || 'Failed to load opportunities');
         setOpportunities([]);
-        setTotalItems(0);
-        setTotalPages(1);
       })
       .finally(() => {
         setLoading(false);
         inFlightRef.current = null;
       });
-    
+
     inFlightRef.current = promise;
     await promise;
   }, []);
 
-  // Load opportunities when searchTrigger, page, or filters change
-  // searchTrigger increments ONLY when search button is clicked
   useEffect(() => {
     loadOpportunities({
-      page,
-      limit: PAGE_SIZE,
-      search: searchQuery || undefined,
-      vaultId: vault || undefined,
+      page: 1,
+      limit: 30,
       sortBy: 'createdAt',
       sortOrder: 'desc',
     });
-  }, [searchTrigger, page, vault, loadOpportunities]);
+  }, [loadOpportunities]);
 
-  /** How many of the listed jobs belong to each vault, busiest vault first. */
-  const vaultStats = useMemo(() => {
-    return vaults
-      .map((v) => ({ vault: v, count: vaultCounts[v.id] ?? 0 }))
-      .sort((a, b) => b.count - a.count || a.vault.name.localeCompare(b.vault.name));
-  }, [vaults, vaultCounts]);
-
-  const hasFilters = Boolean(searchQuery || vault);
-
-  const resetFilters = () => {
-    setSearchQuery('');
-    setVault('');
-    setPage(1);
-  };
-
-  const handleViewChange = (v: PreviewView) => {
-    setView(v);
-    try {
-      window.sessionStorage.setItem(VIEW_KEY, v);
-    } catch {
-      // Ignore storage failures.
+  const filteredOpportunities = useMemo(() => {
+    let list = [...opportunities];
+    if (activeTab === 'global') {
+      list = list.filter((o) => o.country?.toLowerCase() !== 'india');
+    } else if (activeTab === 'india') {
+      list = list.filter((o) => o.country?.toLowerCase() === 'india');
     }
-  };
-
-  const handleSearch = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setPage(1);
-    setSearchTrigger(t => t + 1);
-  };
+    return list.slice(0, 6);
+  }, [opportunities, activeTab]);
 
   return (
-    <section
-      id="free-preview"
-      className="section-glow relative border-t border-line bg-surface-muted"
-    >
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <div className="mb-8 max-w-2xl">
-          <Eyebrow>FREE PREVIEW</Eyebrow>
-          <h2 className="mt-3 text-2xl font-bold tracking-tight text-content sm:text-3xl">
-            Explore before you decide
+    <section id="preview" className="relative py-[72px] bg-[#FEFDF9] dark:bg-[#06142A] scroll-mt-20">
+      {/* Anchor for backwards compatibility */}
+      <div id="free-preview" className="absolute -top-20" aria-hidden="true" />
+
+      <div className="mx-auto max-w-[1180px] px-5">
+        {/* Section Header (.center) */}
+        <div className="text-center">
+          <Eyebrow>
+            Live Free Preview
+          </Eyebrow>
+          <h2 className="font-bold tracking-[-0.02em] text-[#061B36] dark:text-[#F2F5FA] text-[clamp(1.7rem,3.4vw,2.5rem)] leading-[1.15] mb-2 font-sans">
+            Recently added opportunities
           </h2>
-                <p className="mt-2 text-sm text-content-muted sm:text-base">
-                  See what opportunities are currently available. Use the search to find what&apos;s relevant
-                  for you.
-                </p>
-          <p className="mt-2 text-sm font-medium text-content sm:text-base">
-            Explore First. Decide if it&apos;s right for you. Then choose access.
+          <p className="text-[#5B6479] dark:text-[#93A3BE] text-[1.05rem] max-w-[640px] mx-auto leading-[1.55]">
+            A sample of what&apos;s in the vaults right now. Hiring contacts and full details unlock with a subscription.
           </p>
         </div>
 
-        {!loading && !error && vaultStats.length > 0 && (
-          <div className="mb-8">
-            <div className="mb-3 flex items-baseline justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-semibold text-content">Browse by vault</h3>
-                <p className="text-xs text-content-muted">
-                  See how many opportunities each vault holds.
-                </p>
-              </div>
-              {vault && (
-                <button
-                  type="button"
-                  onClick={() => setVault('')}
-                  className="shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+        {/* Filter Tabs (.vtabs) */}
+        <div className="flex gap-2 justify-center flex-wrap my-[26px]">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setActiveTab(t.key)}
+              className={`inline-flex items-center gap-1.5 border rounded-full py-[5px] px-3.5 text-[0.82rem] font-semibold transition-colors cursor-pointer ${
+                activeTab === t.key
+                  ? 'bg-[#061B36] text-white border-[#061B36] dark:bg-[#10243E] dark:border-[#1E3557]'
+                  : 'bg-white dark:bg-[#0C1E38] border-[#E9E5DC] dark:border-[#1E3557] text-[#061B36] dark:text-[#F2F5FA] hover:bg-[#F8F7F3] dark:hover:bg-[#10243E]'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content State: Loading, Error, or Grid */}
+        {loading || initialLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[18px]">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-64 rounded-[14px]" />
+            ))}
+          </div>
+        ) : error || initialError ? (
+          <div className="py-8">
+            <ErrorState
+              message={error || initialError}
+              onRetry={() => {
+                onRetry();
+                loadOpportunities({ page: 1, limit: 30, sortBy: 'createdAt', sortOrder: 'desc' });
+              }}
+            />
+          </div>
+        ) : filteredOpportunities.length === 0 ? (
+          <div className="text-center py-12 text-[#5B6479] dark:text-[#93A3BE] text-[0.95rem] bg-white dark:bg-[#0C1E38] border border-[#E9E5DC] dark:border-[#1E3557] rounded-[16px] p-8">
+            No live opportunities match this category right now.
+          </div>
+        ) : (
+          /* Cards Grid (.grid.cols-opp) */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[18px]">
+            {filteredOpportunities.map((o) => {
+              const country = o.country || (o.location?.includes(',') ? o.location.split(',')[1].trim() : '');
+              const city = o.location ? o.location.split(/[/,]/)[0].trim() : '';
+              const isIndia = country.toLowerCase() === 'india';
+              const flag = (country && COUNTRY_FLAGS[country]) || '🌐';
+              const hasDirectContact = Boolean(o.applicationContact || o.applicationUrl);
+              const cardVaults = o.vaults && o.vaults.length > 0 ? o.vaults : [];
+
+              return (
+                <div
+                  key={o.id}
+                  className="bg-white dark:bg-[#0C1E38] border border-[#E9E5DC] dark:border-[#1E3557] border-l-4 border-l-[#22C55E] rounded-[14px] p-[18px] flex flex-col gap-2 hover:shadow-[0_10px_30px_-12px_rgba(6,27,54,0.18)] dark:hover:shadow-none transition-shadow"
                 >
-                  Clear selection
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap justify-center gap-3">
-              {vaultStats.map(({ vault: v, count }) => {
-                const active = vault === v.id;
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => setVault(active ? '' : v.id)}
-                    aria-pressed={active}
-                    className={`group relative flex w-[calc(50%-0.375rem)] shrink-0 flex-col items-center overflow-hidden rounded-2xl border px-4 py-3.5 text-center shadow-sm transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5625rem)] ${
-                      active
-                        ? '-translate-y-0.5 border-brand-400 bg-gradient-to-b from-brand-50 to-surface shadow-lg shadow-brand-400/25 dark:border-brand-500/50 dark:from-brand-950/60 dark:to-surface-elevated'
-                        : 'border-line bg-gradient-to-b from-surface to-surface-muted shadow-sm hover:-translate-y-1 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-400/10 dark:from-surface-elevated dark:to-surface-elevated/60 dark:hover:border-brand-500/40'
-                    }`}
-                  >
+                  {/* Top row: Location tag + Job ID */}
+                  <div className="flex justify-between items-start gap-2">
                     <span
-                      className={`pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand-400 via-[#C8943E] to-brand-400 transition-opacity duration-300 ${
-                        active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      className={`inline-block text-[0.72rem] font-bold py-[3px] px-[9px] rounded-[6px] ${
+                        isIndia
+                          ? 'bg-[#FBF0DE] text-[#9C6424]'
+                          : 'bg-[rgba(34,197,94,0.14)] text-[#15803D] dark:text-[#22C55E]'
                       }`}
-                    />
-                    <span
-                      className={`pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-brand-400/20 blur-2xl transition-opacity duration-300 ${
-                        active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      }`}
-                    />
-                    <span className="flex min-h-[2.25rem] w-full items-center justify-center text-sm font-semibold leading-snug text-content break-words">
-                      {v.name}
-                    </span>
-                    <span className="mt-2.5 flex w-full flex-1 flex-col items-center justify-center border-t border-line/70 pt-2.5">
-                      <span
-                        className={`text-2xl font-extrabold leading-none tracking-tight tabular-nums ${
-                          active
-                            ? 'bg-gradient-to-br from-brand-600 to-brand-400 bg-clip-text text-transparent'
-                            : 'bg-gradient-to-br from-content to-content-muted bg-clip-text text-transparent'
-                        }`}
-                      >
-                        {count}
-                      </span>
-                      <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-content-muted">
-                        {count === 1 ? 'Job' : 'Jobs'}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {!loading && !error && (
-          <div className="mb-8">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="relative w-full max-w-2xl md:max-w-3xl">
-                      <form onSubmit={handleSearch}>
-                        <div className="flex flex-col gap-2">
-                          <div className="relative flex-1">
-                            <SearchIcon
-                              className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-content-muted/50"
-                              aria-hidden="true"
-                            />
-                            <input
-                              id="free-preview-search"
-                              type="text"
-                              placeholder="Search by role, location, salary, experience..."
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                              className="w-full rounded-xl border border-line bg-surface px-5 py-3.5 pl-12 pr-4 text-base text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface-elevated shadow-sm"
-                              aria-label="Search opportunities by keywords (role, location, salary, experience, etc.)"
-                            />
-                            {searchQuery && (
-                              <button
-                                type="button"
-                                onClick={() => { setSearchQuery(''); handleSearch(); }}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-content-muted transition-colors hover:bg-surface-muted hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:hover:bg-surface"
-                                aria-label="Clear search"
-                              >
-                                <svg
-                                  className="h-4 w-4"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth={2}
-                                  stroke="currentColor"
-                                  aria-hidden="true"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
-                          <p className="text-center text-xs text-content-muted">
-                            You can search anything — try multiple keywords like role, location, or salary
-                          </p>
-                          <button
-                            type="submit"
-                            className="mx-auto inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={loading}
-                          >
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            Search
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-              <div
-                className="inline-flex shrink-0 items-center gap-0.5 self-start rounded-xl border border-line bg-surface p-0.5 shadow-sm dark:bg-surface-elevated sm:self-auto"
-                role="group"
-                aria-label="Choose view layout"
-              >
-                <button
-                  type="button"
-                  onClick={() => handleViewChange('grid')}
-                  aria-pressed={view === 'grid'}
-                  aria-label="Grid view"
-                  title="Grid view"
-                  className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
-                    view === 'grid'
-                      ? 'bg-brand-600 text-white shadow-sm'
-                      : 'text-content-muted hover:text-content hover:bg-surface-muted transition-all duration-150'
-                  }`}
-                >
-                  <GridIcon className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleViewChange('list')}
-                  aria-pressed={view === 'list'}
-                  aria-label="List view"
-                  title="List view"
-                  className={`inline-flex h-9 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 ${
-                    view === 'list'
-                      ? 'bg-brand-600 text-white shadow-sm'
-                      : 'text-content-muted hover:text-content hover:bg-surface-muted transition-all duration-150'
-                  }`}
-                >
-                  <ListIcon className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-
-          </div>
-        )}
-
-        {/* Results count header */}
-        {!loading && !error && totalItems > 0 && (
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-content-muted">
-            <p>
-              <span className="font-medium text-content">{totalItems}</span> opportunit{totalItems === 1 ? 'y' : 'ies'} found
-              {hasFilters && <span className="ml-2 text-xs text-brand-600 dark:text-brand-400">(filtered)</span>}
-            </p>
-            {vault && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-medium dark:bg-brand-950 dark:text-brand-300">
-                Vault: {vaults.find(v => v.id === vault)?.name || vault}
-              </span>
-            )}
-          </div>
-        )}
-
-        <div id="free-preview-results">
-          {loading ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-64" />
-              ))}
-            </div>
-          ) : error ? (
-            <ErrorState message={error} onRetry={onRetry} />
-          ) : opportunities.length === 0 && totalItems === 0 ? (
-            <div className="rounded-2xl border border-line bg-surface dark:bg-surface-elevated">
-              <EmptyState
-                icon={<SearchIcon className="h-6 w-6" />}
-                title={hasFilters ? 'No matching opportunities' : 'No opportunities yet'}
-                description={
-                  hasFilters
-                    ? 'No opportunities match your search. Clear it to see the full list.'
-                    : 'Check back soon — new opportunities are added regularly.'
-                }
-                action={
-                  hasFilters ? (
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={resetFilters}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-content transition-all duration-150 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 dark:bg-transparent"
-                      >
-                        Clear search
-                      </button>
-                    </div>
-                  ) : null
-                }
-              />
-            </div>
-          ) : (
-            <>
-              {view === 'grid' ? (
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-                  {opportunities.map((o) => (
-                    <OpportunityCard key={o.id} opportunity={o} />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-2 sm:space-y-3">
-                  {opportunities.map((o) => (
-                    <a
-                      key={o.id}
-                      href={`/opportunities/${o.id}`}
-                      className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-line bg-gradient-to-b from-surface to-surface-muted px-3 py-2.5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg hover:shadow-brand-400/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 sm:px-4 sm:py-3 dark:from-surface-elevated dark:to-surface-elevated/60 dark:hover:border-brand-500/40"
                     >
-                      <span className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-400 via-[#C8943E] to-brand-400 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                      <span className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-brand-400/20 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-bold leading-snug text-content group-hover:text-brand-700 sm:text-[15px] dark:group-hover:text-brand-300">
-                          {o.title}
-                        </h3>
-                        {o.jobId && (
-                          <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
-                            <span className="text-[10px] font-mono text-brand-600 dark:text-brand-400">#</span>
-                            <span className="truncate font-mono text-[11px]">{o.jobId}</span>
-                          </span>
-                        )}
-                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                          {o.salary && (
-                            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] font-bold text-brand-700 dark:text-brand-300 dark:bg-surface">
-                              {o.salary}
-                            </span>
-                          )}
-                          {o.location && (
-                            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface">
-                              <PinIcon className="h-3 w-3 shrink-0 text-content-faint" />
-                              <span className="truncate">{o.location.split(/[/,]/)[0].trim()}</span>
-                            </span>
-                          )}
-                          {o.category && (
-                            <Badge variant="info" className="shrink-0 text-[10px] px-1.5 py-0.5">
-                              {titleCase(o.category)}
-                            </Badge>
-                          )}
-                          {o.vaults?.map((v) => (
-                            <span
-                              key={v.id}
-                              className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-line bg-surface-muted/70 px-2 py-0.5 text-[11px] text-content-muted dark:bg-surface"
-                            >
-                              <VaultIcon className="h-3 w-3 shrink-0 text-content-faint" />
-                              <span className="truncate">{v.name}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              )}
+                      {flag} {city ? `${city}, ` : ''}{country || 'Global'}
+                    </span>
+                    <span className="font-mono text-[0.78rem] text-[#5B6479] dark:text-[#93A3BE] whitespace-nowrap">
+                      {o.jobId || o.id}
+                    </span>
+                  </div>
 
-              {totalItems > 0 && totalPages > 1 && (
-                <div className="mt-10">
-                  <Pagination
-                    currentPage={page}
-                    totalPages={totalPages}
-                    onPageChange={(p) => {
-                      setPage(p);
-                      if (typeof window !== 'undefined') {
-                        document
-                          .getElementById('free-preview-results')
-                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    }}
-                  />
-                  <p className="mt-3 text-center text-xs text-content-muted">
-                    Page {page} of {totalPages} · {totalItems} opportunities
-                  </p>
-                </div>
-              )}
-              {totalItems > 0 && totalPages === 1 && (
-                <p className="mt-6 text-center text-xs text-content-muted">
-                  {totalItems} opportunit{totalItems === 1 ? 'y' : 'ies'} on this page
-                </p>
-              )}
+                  {/* Title + Live badge row */}
+                  <div className="flex justify-between items-start gap-2 mt-1">
+                    <h4 className="text-[1.02rem] font-bold text-[#061B36] dark:text-[#F2F5FA] leading-[1.25] flex-1 min-w-0">
+                      <Link
+                        href={`/opportunities/${o.id}`}
+                        className="hover:text-[#D6952F] transition-colors no-underline text-inherit"
+                      >
+                        {o.title}
+                      </Link>
+                    </h4>
+                    <span className="inline-flex items-center gap-1.5 text-[0.74rem] font-extrabold text-[#15803D] dark:text-[#22C55E] bg-[rgba(34,197,94,0.14)] py-[3px] px-[9px] rounded-full tracking-[0.02em] shrink-0 select-none">
+                      <span className="w-[7px] h-[7px] rounded-full bg-[#22C55E] animate-pulse" />
+                      Live
+                    </span>
+                  </div>
 
-              <div className="mt-10 flex flex-col items-start gap-2 rounded-2xl border border-line bg-surface-muted px-5 py-4 text-sm text-content-muted dark:bg-surface/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                <p>
-                  Full company, experience, source, contact and application details become
-                  available with the relevant Opportunity Vault access.
-                </p>
-                <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1">
-                  <HomeAnchor
-                    href="#vaults"
-                    className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                  >
-                    Explore Opportunity Vaults →
-                  </HomeAnchor>
-                  <HomeAnchor
-                    href="#plans"
-                    className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                  >
-                    View Plans →
-                  </HomeAnchor>
+                  {/* Metadata row (.meta) */}
+                  <div className="flex flex-wrap gap-x-3.5 gap-y-1.5 text-[0.84rem] text-[#5B6479] dark:text-[#93A3BE] mt-1">
+                    {o.industry && <span>💼 {o.industry}</span>}
+                    <span>⏳ {formatExp(o)}</span>
+                    {o.employmentType && <span>🏢 {o.employmentType}</span>}
+                    <span>🗓 {formatAgo(o.createdAt || o.publishedDate)}</span>
+                  </div>
+
+                  {/* Compensation row */}
+                  {o.salary ? (
+                    <div className="font-bold text-[#061B36] dark:text-[#F2F5FA] text-[0.9rem] mt-1">
+                      {o.salary}
+                    </div>
+                  ) : (
+                    <div className="text-[0.85rem] text-[#5B6479] dark:text-[#93A3BE] mt-1">
+                      Compensation not disclosed
+                    </div>
+                  )}
+
+                  {/* Vault tags row */}
+                  {cardVaults.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {cardVaults.map((v) => (
+                        <span
+                          key={v.id}
+                          className="inline-block text-[0.72rem] font-bold py-[3px] px-[9px] rounded-[6px] bg-[#E7ECF3] dark:bg-[#10243E] text-[#061B36] dark:text-[#C9D3EA]"
+                        >
+                          {v.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Lock / Unlock row (.lock) */}
+                  <div className="mt-auto flex justify-between items-center gap-2 border-t border-dashed border-[#E9E5DC] dark:border-[#1E3557] pt-2.5 text-[0.82rem] text-[#5B6479] dark:text-[#93A3BE]">
+                    <span className="truncate">
+                      🔒 {hasDirectContact ? 'Direct hiring contact available' : 'Application pathway available'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setUnlockOpportunity(o)}
+                      className="inline-flex items-center justify-center rounded-full py-1.5 px-3.5 text-[0.85rem] font-bold bg-[#D6952F] hover:bg-[#E0A85A] text-[#061B36] transition-colors cursor-pointer shrink-0"
+                    >
+                      Unlock
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              );
+            })}
+          </div>
+        )}
+
+        {/* Search All Opportunities CTA */}
+        <div className="text-center mt-[26px]">
+          <Link
+            href="/opportunities"
+            className="inline-flex items-center justify-center gap-2 rounded-full py-3 px-6 font-bold text-[0.95rem] leading-none bg-[#061B36] hover:bg-[#10243E] text-white hover:shadow-[0_8px_24px_-6px_rgba(6,27,54,0.45)] transition-all cursor-pointer no-underline"
+          >
+            Search all opportunities →
+          </Link>
         </div>
       </div>
-    </section>
-  );
-}
 
-function BrowseLink({ o }: { o: Opportunity }) {
-  const { hasVaultAccess } = useAuth();
-  if (o.isFullAccess) {
-    const email = extractEmail(o.applicationContact, o.applicationUrl);
-    if (email) {
-      return (
-        <a
-          href={buildApplyMailto(email, {
-            title: o.title,
-            company: canRevealCompanyExperience(o, hasVaultAccess) ? o.company : undefined,
-          })}
-          className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-100 dark:bg-brand-950 dark:text-brand-300 dark:hover:bg-brand-900"
+      {/* Unlock Role Modal */}
+      {unlockOpportunity && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#061B36]/65 backdrop-blur-sm"
+          onClick={() => setUnlockOpportunity(null)}
         >
-          Apply <span aria-hidden="true">→</span>
-        </a>
-      );
-    }
-    return (
-      <span className="shrink-0 truncate rounded-lg border border-line bg-surface-muted/70 px-3 py-1.5 text-xs text-content-muted">
-        Application email unavailable
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
-      <LockIcon className="h-3.5 w-3.5" />
-      Unlock Full Access
-    </span>
+          <div
+            className="relative w-full max-w-[520px] rounded-[20px] bg-white dark:bg-[#0C1E38] p-6 shadow-2xl border border-[#E9E5DC] dark:border-[#1E3557]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setUnlockOpportunity(null)}
+              aria-label="Close modal"
+              className="absolute top-4 right-4 text-[#5B6479] hover:text-[#061B36] dark:text-[#93A3BE] dark:hover:text-white p-1 text-xl leading-none transition-colors cursor-pointer"
+            >
+              ✕
+            </button>
+
+            <h3 className="font-sans font-bold text-[1.25rem] text-[#061B36] dark:text-[#F2F5FA] leading-[1.2] pr-6">
+              {unlockOpportunity.title}
+            </h3>
+
+            <p className="text-[0.9rem] text-[#5B6479] dark:text-[#93A3BE] mt-1.5 mb-3 flex items-center flex-wrap gap-2">
+              <span>{unlockOpportunity.location || unlockOpportunity.country || 'Global'}</span>
+              <span>·</span>
+              <span>{formatExp(unlockOpportunity)}</span>
+              <span>·</span>
+              <span className="font-mono text-[0.78rem] text-[#5B6479] dark:text-[#93A3BE]">
+                {unlockOpportunity.jobId || unlockOpportunity.id}
+              </span>
+            </p>
+
+            <p className="text-[0.92rem] text-[#1A2236] dark:text-[#DCE5F2] font-medium mb-3">
+              The{' '}
+              {unlockOpportunity.applicationContact || unlockOpportunity.applicationUrl
+                ? 'hiring contact'
+                : 'application pathway'}{' '}
+              for this role is in:
+            </p>
+
+            <div className="space-y-2 mb-4">
+              {(unlockOpportunity.vaults && unlockOpportunity.vaults.length > 0
+                ? unlockOpportunity.vaults
+                : vaults.slice(0, 3)
+              ).map((v) => (
+                <div
+                  key={v.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-[12px] border border-[#E9E5DC] dark:border-[#1E3557] bg-[#FEFDF9] dark:bg-[#10243E]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <b className="block text-[0.95rem] text-[#061B36] dark:text-[#F2F5FA] truncate">
+                      {v.name}
+                    </b>
+                    <small className="text-[0.78rem] text-[#5B6479] dark:text-[#93A3BE] block truncate">
+                      {v.type === 'both' || v.type === 'premier'
+                        ? 'India + International'
+                        : v.type === 'india'
+                          ? 'India'
+                          : 'International'}
+                      {v.description ? ` · ${v.description}` : ''}
+                    </small>
+                  </div>
+                  <Link
+                    href={`/opportunities/${unlockOpportunity.id}`}
+                    className="inline-flex items-center justify-center rounded-full py-1.5 px-4 text-[0.82rem] font-bold bg-[#061B36] hover:bg-[#10243E] text-white transition-colors no-underline shrink-0"
+                  >
+                    View Details
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-[0.82rem] text-[#5B6479] dark:text-[#93A3BE] leading-relaxed">
+              Subscribe to any vault above to reveal the contact and application details for this opportunity.
+            </p>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

@@ -463,21 +463,23 @@ export default function ChatbotWidget() {
             href={WHATSAPP_CHANNEL_URL}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Connect with us on WhatsApp"
-            title="Connect with us on WhatsApp"
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 transition-all duration-200 hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-600/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+            aria-label="Chat on WhatsApp"
+            title="Chat on WhatsApp"
+            className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_10px_24px_-6px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 border-0"
           >
-            <WhatsAppIcon className="h-7 w-7" />
+            <svg viewBox="0 0 32 32" className="h-[30px] w-[30px] fill-white" aria-hidden="true">
+              <path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.6a10.6 10.6 0 0 1-5.4-1.5l-.4-.2-3.9 1 1-3.8-.2-.4A10.6 10.6 0 1 1 16 26.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7 0a8.7 8.7 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7 6.3 6.3 0 0 0 1.3 3.3 14.4 14.4 0 0 0 5.5 4.9c2 .9 2.9.9 3.9.8a3.3 3.3 0 0 0 2.2-1.6 2.7 2.7 0 0 0 .2-1.6c-.1-.2-.3-.2-.6-.4z" />
+            </svg>
           </a>
           <button
             type="button"
             onClick={() => setOpen(true)}
             aria-label="Open chat assistant"
             title="Chat with Gravitas Edge"
-            className="relative flex h-14 w-14 items-center justify-center rounded-full bg-brand-400 text-white shadow-lg shadow-brand-500/30 transition-all duration-200 hover:bg-brand-500 hover:shadow-xl hover:shadow-brand-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2"
+            className="relative flex h-[58px] w-[58px] items-center justify-center rounded-full bg-brand-400 text-white shadow-lg shadow-brand-500/30 transition-all duration-200 hover:bg-brand-500 hover:shadow-xl hover:shadow-brand-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2"
           >
             <ChatIcon className="h-7 w-7" />
-            <span className="absolute right-0.5 top-0.5 h-3 w-3 rounded-full border-2 border-surface bg-emerald-500 dark:border-surface-elevated" />
+            <span className="absolute right-0.5 top-0.5 h-3.5 w-3.5 rounded-full border-2 border-surface bg-emerald-500 dark:border-surface-elevated" />
           </button>
         </div>
       )}

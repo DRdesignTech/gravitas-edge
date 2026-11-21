@@ -39,6 +39,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
+          'Poppins',
           'var(--font-poppins)',
           'ui-sans-serif',
           'system-ui',

@@ -24,19 +24,19 @@ export default function TermsAndConditionsPage() {
       lastUpdated="12 September 2026"
       intro={
         <div className="space-y-4">
-          <p className="text-[15px] leading-relaxed text-content-muted [&_a]:font-medium [&_a]:text-brand-600 [&_a]:underline [&_a]:underline-offset-2 [&_a]:dark:text-brand-400">
+          <p className="text-[15px] leading-relaxed">
             {`These Terms & Conditions ("Terms") govern use of the Gravitas Edge Consulting website, accounts, Premium Opportunity Vaults, Free Preview, free channels, referral programme and other paid or free services unless separate terms expressly apply.`}
           </p>
-          <p className="text-[15px] leading-relaxed text-content-muted [&_a]:font-medium [&_a]:text-brand-600 [&_a]:underline [&_a]:underline-offset-2 [&_a]:dark:text-brand-400">
+          <p className="text-[15px] leading-relaxed">
             {`By creating an account, purchasing a subscription or using a paid service, you agree to these Terms. If you do not agree, do not purchase or use the relevant service.`}
           </p>
         </div>
       }
     >
       <PolicySection number="1." title="About Gravitas Edge">
-        <p className="mt-4 text-[15px] leading-relaxed text-content-muted">
+        <PolicyText>
           {`Gravitas Edge operates two distinct service models:`}
-        </p>
+        </PolicyText>
         <PolicySubheading>A. Premium Opportunity Vaults</PolicySubheading>
         <PolicyText>
           {`A subscription-based information and curation service through which employment opportunities and relevant application/contact routes are organised and made accessible to subscribers.`}
@@ -108,9 +108,9 @@ export default function TermsAndConditionsPage() {
       </PolicySection>
 
       <PolicySection number="6." title="No Guarantee of Employment or Outcome">
-        <p className="mt-4 text-[15px] leading-relaxed text-content-muted">
+        <PolicyText>
           {`Gravitas Edge does not guarantee:`}
-        </p>
+        </PolicyText>
         <PolicyList
           items={[
             'Interview',

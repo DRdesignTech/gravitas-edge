@@ -20,7 +20,7 @@ export default function DisclaimerPage() {
       title="Disclaimer"
       lastUpdated="12 September 2026"
       intro={
-        <p className="text-[15px] leading-relaxed text-content-muted">
+        <p className="text-[15px] leading-relaxed">
           {`Gravitas Edge Consulting provides curated employment-opportunity information and, separately, may provide Recruitment Consulting for specific client mandates.`}
         </p>
       }
