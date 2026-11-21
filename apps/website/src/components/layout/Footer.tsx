@@ -16,7 +16,16 @@ function WhatsAppIcon({ className = 'h-4 w-4' }: { className?: string }) {
 
 function InstagramIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
       <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
       <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
@@ -68,7 +77,10 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-[#061B36] text-[#AEB9D6] pt-14 pb-6 text-[0.88rem] leading-[1.55] font-sans" id="footer">
+    <footer
+      className="bg-[#061B36] text-[#AEB9D6] pt-14 pb-6 text-[0.88rem] leading-[1.55] font-sans"
+      id="footer"
+    >
       <div className="mx-auto max-w-[1180px] px-5">
         <div className="grid grid-cols-1 min-[540px]:grid-cols-2 min-[801px]:grid-cols-[1.3fr_1fr_1fr_1.2fr] gap-7">
           {/* Column 1: Brand & Office */}
@@ -87,10 +99,12 @@ export default function Footer() {
               GLOBAL OPPORTUNITIES. REAL CONNECTIONS.
             </p>
             <p className="text-[#AEB9D6] text-[0.88rem] leading-[1.55]">
-              Direct access to curated international opportunities and the people involved in hiring.
+              Direct access to curated international opportunities and the people involved in
+              hiring.
             </p>
             <p className="text-[#AEB9D6] text-[0.88rem] leading-[1.55] mt-3">
-              704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri (West), Mumbai 400061
+              704, Mount Sea View Co-operative Housing Society Ltd., J.P. Road, Versova, Andheri
+              (West), Mumbai 400061
             </p>
 
             {/* Social & WhatsApp Channel Strip (single line) */}
@@ -128,29 +142,49 @@ export default function Footer() {
           {/* Column 2: Platform */}
           <div className="min-w-0">
             <h4 className="text-white font-bold text-[0.9rem] mb-3 leading-[1.15]">Platform</h4>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/opportunities">
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/opportunities"
+            >
               Explore Countries
             </Link>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/opportunities">
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/opportunities"
+            >
               Search Opportunities
             </Link>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/vaults">
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/vaults"
+            >
               Vaults &amp; Pricing
             </Link>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/plans">
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/plans"
+            >
               Build Your Bundle
             </Link>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/recruitment-vendor">
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/recruitment-vendor"
+            >
               Recruitment Vendor Access
             </Link>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/refer-and-earn">
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/refer-and-earn"
+            >
               Refer &amp; Earn
             </Link>
           </div>
 
           {/* Column 3: Top countries */}
           <div className="min-w-0">
-            <h4 className="text-white font-bold text-[0.9rem] mb-3 leading-[1.15]">Top countries</h4>
+            <h4 className="text-white font-bold text-[0.9rem] mb-3 leading-[1.15]">
+              Top countries
+            </h4>
             <div id="footCountries">
               {topCountries.map((c) => (
                 <Link
@@ -174,7 +208,9 @@ export default function Footer() {
           {/* Column 4: Newsletter & Resources */}
           <div className="min-w-0 min-[540px]:max-[800px]:col-span-full">
             <h4 className="text-white font-bold text-[0.9rem] mb-3 leading-[1.15]">Newsletter</h4>
-            <p className="text-[#AEB9D6] text-[0.88rem] mb-2.5 leading-[1.55]">New roles, countries and market updates.</p>
+            <p className="text-[#AEB9D6] text-[0.88rem] mb-2.5 leading-[1.55]">
+              New roles, countries and market updates.
+            </p>
             <form
               className="flex items-center bg-white/[0.08] border border-white/[0.16] rounded-full p-1"
               onSubmit={handleNewsletterSubmit}
@@ -207,8 +243,13 @@ export default function Footer() {
               + Add a note on what jobs you want
             </Link>
 
-            <h4 className="text-white font-bold text-[0.9rem] mt-[22px] mb-3 leading-[1.15]">Resources</h4>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/opportunities">
+            <h4 className="text-white font-bold text-[0.9rem] mt-[22px] mb-3 leading-[1.15]">
+              Resources
+            </h4>
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/opportunities"
+            >
               Free Preview
             </Link>
             <button
@@ -218,13 +259,22 @@ export default function Footer() {
             >
               Current Offers
             </button>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/upload-resume">
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/upload-resume"
+            >
               Upload Resume
             </Link>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/faq">
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/faq"
+            >
               FAQ
             </Link>
-            <Link className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors" href="/contact">
+            <Link
+              className="block text-[#AEB9D6] hover:text-white my-1.5 text-left text-[0.88rem] leading-[1.55] transition-colors"
+              href="/contact"
+            >
               Contact Us
             </Link>
           </div>
@@ -233,16 +283,37 @@ export default function Footer() {
         {/* Bottom Legal Bar */}
         <div className="border-t border-white/10 mt-9 pt-[18px] flex flex-wrap gap-x-[18px] gap-y-2 justify-between text-[#AEB9D6] text-[0.88rem] leading-[1.55]">
           <span>
-            © {year} Gravitas Edge Consulting. An opportunity-information service, not a recruitment agency.
+            © {year} Gravitas Edge Consulting. An opportunity-information service, not a recruitment
+            agency.
           </span>
           <span>
-            <Link className="hover:text-white transition-colors" href="/privacy-policy">Privacy</Link> ·{' '}
-            <Link className="hover:text-white transition-colors" href="/terms-and-conditions">Terms</Link> ·{' '}
-            <Link className="hover:text-white transition-colors" href="/refund-policy">Refund</Link> ·{' '}
-            <Link className="hover:text-white transition-colors" href="/cookie-policy">Cookies</Link> ·{' '}
-            <Link className="hover:text-white transition-colors" href="/disclaimer">Disclaimer</Link> ·{' '}
-            <Link className="hover:text-white transition-colors" href="/referral-terms">Referral Terms</Link> ·{' '}
-            <Link className="hover:text-white transition-colors" href="/candidate-resume-notice">Candidate Resume Notice</Link>
+            <Link className="hover:text-white transition-colors" href="/privacy-policy">
+              Privacy
+            </Link>{' '}
+            ·{' '}
+            <Link className="hover:text-white transition-colors" href="/terms-and-conditions">
+              Terms
+            </Link>{' '}
+            ·{' '}
+            <Link className="hover:text-white transition-colors" href="/refund-policy">
+              Refund
+            </Link>{' '}
+            ·{' '}
+            <Link className="hover:text-white transition-colors" href="/cookie-policy">
+              Cookies
+            </Link>{' '}
+            ·{' '}
+            <Link className="hover:text-white transition-colors" href="/disclaimer">
+              Disclaimer
+            </Link>{' '}
+            ·{' '}
+            <Link className="hover:text-white transition-colors" href="/referral-terms">
+              Referral Terms
+            </Link>{' '}
+            ·{' '}
+            <Link className="hover:text-white transition-colors" href="/candidate-resume-notice">
+              Candidate Resume Notice
+            </Link>
           </span>
         </div>
       </div>

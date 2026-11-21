@@ -245,7 +245,31 @@ export default function PolicyLayout({
           </div>
         </aside>
 
-        {/* Mobile Quick Jump */}
+       
+
+        {/* Main Content Area */}
+        <main className="flex w-full min-w-0 flex-1 flex-col items-start justify-start gap-8 lg:pl-10">
+          {/* Header Banner */}
+          <div className="relative flex w-full flex-col items-start justify-start gap-4 overflow-hidden rounded-[16px] bg-gradient-to-br from-[#061B36] via-[#092244] to-[#041022] px-6 py-10 shadow-xl sm:px-10 lg:py-14">
+            <div className="flex flex-col items-start justify-start rounded-sm bg-[#D4AF37] px-2.5 py-0.5">
+              <div className="text-[11px] font-bold uppercase leading-[16.5px] tracking-[3px] text-black">
+                {companyBadge}
+              </div>
+            </div>
+            <div className="w-full">
+              <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-white sm:text-[42px] lg:text-[52px]">
+                {title}.
+              </h1>
+            </div>
+            {intro && (
+              <div className="w-full max-w-[760px] text-sm leading-relaxed text-white/90 sm:text-base [&_a]:font-medium [&_a]:text-[#F0C27B] [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-white">
+                {intro}
+              </div>
+            )}
+            <div className="mt-2 h-px w-full bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
+          </div>
+
+           {/* Mobile Quick Jump */}
         {sections.length > 0 && (
           <div className="mb-6 w-full lg:hidden">
             <button
@@ -275,28 +299,6 @@ export default function PolicyLayout({
             )}
           </div>
         )}
-
-        {/* Main Content Area */}
-        <main className="flex w-full min-w-0 flex-1 flex-col items-start justify-start gap-8 lg:pl-10">
-          {/* Header Banner */}
-          <div className="relative flex w-full flex-col items-start justify-start gap-4 overflow-hidden rounded-[16px] bg-gradient-to-br from-[#061B36] via-[#092244] to-[#041022] px-6 py-10 shadow-xl sm:px-10 lg:py-14">
-            <div className="flex flex-col items-start justify-start rounded-sm bg-[#D4AF37] px-2.5 py-0.5">
-              <div className="text-[11px] font-bold uppercase leading-[16.5px] tracking-[3px] text-black">
-                {companyBadge}
-              </div>
-            </div>
-            <div className="w-full">
-              <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-white sm:text-[42px] lg:text-[52px]">
-                {title}.
-              </h1>
-            </div>
-            {intro && (
-              <div className="w-full max-w-[760px] text-sm leading-relaxed text-white/90 sm:text-base [&_a]:font-medium [&_a]:text-[#F0C27B] [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-white">
-                {intro}
-              </div>
-            )}
-            <div className="mt-2 h-px w-full bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
-          </div>
 
           {/* Policy Sections */}
           <div className="flex w-full flex-col gap-7">{children}</div>

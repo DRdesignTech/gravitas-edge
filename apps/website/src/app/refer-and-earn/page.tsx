@@ -133,17 +133,44 @@ export default function ReferAndEarnPage() {
   return (
     <div className="min-h-screen bg-[#FEFDF9] text-[#1A2236] dark:bg-[#06142A] dark:text-[#EAEFFB] overflow-x-clip">
       {/* ─────────────────────────────────────────────────────────────
-          1. EXECUTIVE HERO SECTION (.pagehead redesign)
+          1. EXECUTIVE HERO SECTION (WITH ATMOSPHERIC BACKGROUND IMAGE)
           ───────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#061B36] via-[#092244] to-[#0A2645] pb-16 pt-14 text-white isolate sm:pb-20 sm:pt-16">
-        {/* Ambient background glows */}
+      <section className="relative overflow-hidden bg-[#061B36] pb-16 pt-14 text-white isolate sm:pb-20 sm:pt-16">
+        {/* Background Image Layer (matching .hero::before from redesign HTML) */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[#15803D]/20 blur-3xl"
+          className="pointer-events-none absolute inset-0 z-[-2] bg-cover bg-no-repeat [background-position:center_right] opacity-75 sm:opacity-85"
+          style={{
+            backgroundImage: 'url(/images/refer_earn_hero_bg.jpg)',
+          }}
+        />
+
+        {/* Gradient Scrims (matching .hero::after for perfect contrast) */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[-1] hidden min-[901px]:block"
+          style={{
+            background:
+              'linear-gradient(90deg, #061B36 0%, #061B36 38%, rgba(6,27,54,0.85) 55%, rgba(6,27,54,0.3) 80%, rgba(6,27,54,0.6) 100%), linear-gradient(0deg, #061B36 0%, rgba(6,27,54,0.35) 40%, rgba(6,27,54,0) 100%)',
+          }}
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-20 top-0 h-80 w-80 rounded-full bg-[#D6952F]/15 blur-3xl"
+          className="pointer-events-none absolute inset-0 z-[-1] min-[901px]:hidden block"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(6,27,54,0.95), rgba(6,27,54,0.75)), linear-gradient(0deg, #061B36 0%, rgba(6,27,54,0.4) 50%, rgba(6,27,54,0) 100%)',
+          }}
+        />
+
+        {/* Ambient background glows */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[#15803D]/20 blur-3xl z-[-1]"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-10 top-0 h-80 w-80 rounded-full bg-[#D6952F]/15 blur-3xl z-[-1]"
         />
 
         <div className="relative mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
@@ -156,7 +183,7 @@ export default function ReferAndEarnPage() {
             <span className="text-white">Refer &amp; Earn</span>
           </div>
 
-          <div className="max-w-3xl">
+          <div className="max-w-2xl lg:max-w-3xl">
             {/* Pill Badge */}
             <span className="inline-flex items-center gap-2 rounded-full border border-[#D6952F]/40 bg-[#D6952F]/15 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#F0C27B]">
               ✨ PARTNER REWARDS PROGRAMME
@@ -179,7 +206,7 @@ export default function ReferAndEarnPage() {
               <ReferAndEarnCta label="Get Your Referral Link" size="lg" variant="gold" />
               <a
                 href="#calculator"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/10 hover:border-white/30"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-xs transition-colors hover:bg-white/20 hover:border-white/40"
               >
                 Estimate Earnings ↓
               </a>
@@ -191,26 +218,26 @@ export default function ReferAndEarnPage() {
           </div>
 
           {/* 4 Trust & Benefit Badges */}
-          <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 border-t border-white/10 pt-8">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xs">
+          <div className="mt-14 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4 border-t border-white/10 pt-8">
+            <div className="rounded-2xl border border-white/10 bg-[#061B36]/65 p-4 backdrop-blur-md">
               <span className="block text-2xl font-extrabold text-[#F0C27B]">Up to 20%</span>
               <span className="mt-1 block text-xs font-medium text-[#C9D3EA]">
                 Tiered Commission
               </span>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xs">
+            <div className="rounded-2xl border border-white/10 bg-[#061B36]/65 p-4 backdrop-blur-md">
               <span className="block text-2xl font-extrabold text-[#F0C27B]">Instant</span>
               <span className="mt-1 block text-xs font-medium text-[#C9D3EA]">
                 Wallet Allocation
               </span>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xs">
+            <div className="rounded-2xl border border-white/10 bg-[#061B36]/65 p-4 backdrop-blur-md">
               <span className="block text-2xl font-extrabold text-[#F0C27B]">₹1,000</span>
               <span className="mt-1 block text-xs font-medium text-[#C9D3EA]">
                 Low Payout Threshold
               </span>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xs">
+            <div className="rounded-2xl border border-white/10 bg-[#061B36]/65 p-4 backdrop-blur-md">
               <span className="block text-2xl font-extrabold text-[#F0C27B]">Unlimited</span>
               <span className="mt-1 block text-xs font-medium text-[#C9D3EA]">
                 Referral Capacity
@@ -438,7 +465,7 @@ export default function ReferAndEarnPage() {
       {/* ─────────────────────────────────────────────────────────────
           6. IMPORTANT PROGRAMME GUIDELINES & DISCLOSURES
           ───────────────────────────────────────────────────────────── */}
-      <section className="py-16 sm:py-20 lg:py-24">
+      <section className="py-16">
         <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
           <div className="rounded-3xl border border-[#E9E5DC] bg-white p-7 sm:p-10 dark:border-[#1E3557] dark:bg-[#0E2340] shadow-sm">
             <div className="flex items-center gap-2.5 mb-6">
@@ -485,37 +512,81 @@ export default function ReferAndEarnPage() {
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
-          7. FINAL HIGH-CONVERSION CTA BANNER
+          7. FINAL HIGH-CONVERSION CTA BANNER (FLOATING EXECUTIVE CARD)
           ───────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#061B36] to-[#0A2645] py-16 sm:py-20 text-white isolate">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-[#15803D]/20 blur-3xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-[#D6952F]/15 blur-3xl"
-        />
+      <section className="py-16 bg-[#FEFDF9] dark:bg-[#06142A]">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
+          <div className="relative overflow-hidden rounded-[2.5rem] border border-[#D6952F]/40 bg-gradient-to-br from-[#061B36] via-[#092244] to-[#0A2645] p-8 sm:p-12 lg:p-16 text-center text-white shadow-2xl isolate">
+            {/* Ambient Background Glows inside card */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[#15803D]/25 blur-3xl"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-20 -bottom-20 h-80 w-80 rounded-full bg-[#D6952F]/20 blur-3xl"
+            />
+            {/* Watermark Concentric Rings */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -left-28 -bottom-28 h-72 w-72 rounded-full border border-white/5 opacity-50"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -right-28 -top-28 h-72 w-72 rounded-full border border-white/5 opacity-50"
+            />
 
-        <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D6952F]/20 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#F0C27B]">
-            READY TO GET STARTED?
-          </span>
-          <h2 className="mt-4 font-sans text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
-            Start Earning From Your Network Today
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-[#C9D3EA]">
-            Share your unique link, invite your colleagues, and watch your rewards accumulate
-            in your Gravitas Edge partner wallet.
-          </p>
+            <div className="relative mx-auto max-w-3xl">
+              {/* Eyebrow Pill */}
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#D6952F]/40 bg-[#D6952F]/15 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#F0C27B] shadow-sm">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#D6952F] animate-pulse" />
+                READY TO GET STARTED?
+              </span>
 
-          <div className="mt-8 flex justify-center">
-            <ReferAndEarnCta label="Get Your Referral Link" size="lg" variant="gold" />
+              {/* Headline */}
+              <h2 className="mt-5 font-sans text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl leading-tight text-white">
+                Start Earning From{' '}
+                <span className="text-[#F0C27B]">Your Network Today</span>
+              </h2>
+
+              {/* Subtitle */}
+              <p className="mx-auto mt-4 max-w-2xl text-sm sm:text-base lg:text-lg leading-relaxed text-[#C9D3EA]">
+                Share your unique link, invite your colleagues, and watch your rewards accumulate
+                in your Gravitas Edge partner wallet. Redeem directly to your bank account anytime.
+              </p>
+
+              {/* Dual Action Buttons */}
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                <ReferAndEarnCta label="Get Your Referral Link" size="lg" variant="gold" />
+                <Link
+                  href="/referral-terms"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3.5 text-sm sm:text-base font-semibold text-white backdrop-blur-xs transition-all hover:bg-white/10 hover:border-white/30 hover:-translate-y-0.5"
+                >
+                  Review Terms &amp; Policies →
+                </Link>
+              </div>
+
+              {/* Feature Checklist Strip */}
+              <div className="mt-10 flex flex-wrap items-center justify-center gap-6 border-t border-white/10 pt-6 text-xs sm:text-sm text-[#AEB9D6]">
+                <span className="inline-flex items-center gap-2">
+                  <CheckIcon className="h-4 w-4 text-[#F0C27B]" />
+                  Takes under 1 minute
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <CheckIcon className="h-4 w-4 text-[#F0C27B]" />
+                  Instant unique link
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <CheckIcon className="h-4 w-4 text-[#F0C27B]" />
+                  No subscription needed to refer
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <CheckIcon className="h-4 w-4 text-[#F0C27B]" />
+                  ₹1,000 direct bank payout
+                </span>
+              </div>
+            </div>
           </div>
-
-          <p className="mt-4 text-xs text-[#8C9AC0]">
-            Takes under 1 minute · Instant activation · No subscription required to refer
-          </p>
         </div>
       </section>
     </div>
