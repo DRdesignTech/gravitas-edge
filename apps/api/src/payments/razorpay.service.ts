@@ -52,8 +52,8 @@ export class RazorpayService implements OnModuleInit {
     }
 
     this.razorpay = new Razorpay({
-      key_id: keyId || '',
-      key_secret: keySecret || '',
+      key_id: keyId || 'rzp_test_placeholder',
+      key_secret: keySecret || 'placeholder_secret',
     });
   }
 
