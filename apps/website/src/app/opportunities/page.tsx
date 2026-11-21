@@ -13,6 +13,8 @@ import {
   EmptyState,
   GridIcon,
   ListIcon,
+  SlidersIcon,
+  CloseIcon,
 } from '@/components/ui';
 import { LockIcon } from '@/components/ui';
 import { displayExperience, formatDate, hasExperience, isMeaningful } from '@/lib/format';
@@ -188,6 +190,26 @@ function OpportunityPageContent() {
   const [sort, setSort] = useState<SortOption>('new');
   const [page, setPage] = useState(1);
   const [view, setView] = useState<OpportunityView>(readInitialView);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+
+  // Prevent background scrolling when mobile filter drawer is open & close on Escape
+  useEffect(() => {
+    if (!mobileFilterOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileFilterOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileFilterOpen]);
 
   const didRestore = useRef(false);
   const pendingScroll = useRef(0);
@@ -458,6 +480,18 @@ function OpportunityPageContent() {
   const totalPages = data?.meta.totalPages ?? 1;
   const totalItems = data?.meta.totalItems ?? 0;
   const hasActiveFilters = Boolean(search || category || employmentType || country);
+  const activeFilterCount = [search, category, employmentType, country].filter(Boolean).length;
+
+  const handleMobileApply = (e: React.FormEvent) => {
+    e.preventDefault();
+    setMobileFilterOpen(false);
+    handleSearch(e);
+  };
+
+  const handleMobileReset = () => {
+    clearFilters();
+    setMobileFilterOpen(false);
+  };
 
   // Available unique countries in current dataset
   const availableCountries = useMemo(() => {
@@ -561,9 +595,9 @@ function OpportunityPageContent() {
       <div className="mx-auto max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
         <div className="grid grid-cols-1 gap-7 lg:grid-cols-[270px_1fr] items-start">
           {/* ═════════════════════════════════════════════════════════
-              LEFT COLUMN: FILTERS ASIDE (.filters)
+              LEFT COLUMN: DESKTOP FILTERS ASIDE (hidden on mobile < lg)
               ═════════════════════════════════════════════════════════ */}
-          <aside className="lg:sticky lg:top-24 rounded-2xl border border-[#E9E5DC] bg-white p-5 shadow-sm dark:border-[#1E3557] dark:bg-[#0E2340]">
+          <aside className="hidden lg:block lg:sticky lg:top-24 rounded-2xl border border-[#E9E5DC] bg-white p-5 shadow-sm dark:border-[#1E3557] dark:bg-[#0E2340]">
             <div className="flex items-center justify-between border-b border-[#E9E5DC] pb-3 mb-4 dark:border-[#1E3557]">
               <span className="text-xs font-bold uppercase tracking-wider text-[#061B36] dark:text-white">
                 Filter Roles
@@ -703,27 +737,218 @@ function OpportunityPageContent() {
           </aside>
 
           {/* ═════════════════════════════════════════════════════════
+              MOBILE FILTER SIDEBAR DRAWER (< lg)
+              ═════════════════════════════════════════════════════════ */}
+          {mobileFilterOpen && (
+            <div
+              className="fixed inset-0 z-50 lg:hidden"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Filter opportunities"
+            >
+              {/* Backdrop overlay */}
+              <div
+                className="fixed inset-0 bg-[#061B36]/60 backdrop-blur-xs transition-opacity"
+                onClick={() => setMobileFilterOpen(false)}
+                aria-hidden="true"
+              />
+
+              {/* Slide-over sidebar container */}
+              <div className="fixed inset-y-0 left-0 flex max-w-full pr-10">
+                <div className="relative w-screen max-w-xs sm:max-w-sm bg-white dark:bg-[#0A1E38] shadow-2xl flex flex-col border-r border-[#E9E5DC] dark:border-[#1E3557]">
+                  {/* Drawer Header */}
+                  <div className="flex items-center justify-between border-b border-[#E9E5DC] px-5 py-4 dark:border-[#1E3557]">
+                    <div className="flex items-center gap-2">
+                      <SlidersIcon className="h-4 w-4 text-[#D6952F]" />
+                      <h2 className="text-sm font-bold uppercase tracking-wider text-[#061B36] dark:text-white">
+                        Filter Roles
+                      </h2>
+                      {activeFilterCount > 0 && (
+                        <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#D6952F] px-1.5 text-[10px] font-bold text-white">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setMobileFilterOpen(false)}
+                      className="rounded-lg p-1.5 text-[#5B6479] hover:bg-slate-100 hover:text-[#061B36] dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
+                      aria-label="Close filter drawer"
+                    >
+                      <CloseIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {/* Drawer Form Fields */}
+                  <form
+                    onSubmit={handleMobileApply}
+                    className="flex-1 overflow-y-auto px-5 py-5 space-y-4"
+                  >
+                    {/* Keyword / Job ID */}
+                    <div>
+                      <label
+                        htmlFor="m-filter-search"
+                        className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#5B6479] dark:text-slate-400"
+                      >
+                        Keyword or Job ID
+                      </label>
+                      <input
+                        id="m-filter-search"
+                        type="text"
+                        placeholder="e.g. Finance or GE-AE-3100"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full rounded-xl border border-[#E9E5DC] bg-[#FAF8F5] px-3 py-2 text-xs font-medium text-[#061B36] placeholder-[#8C9AC0] focus:border-[#D6952F] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white sm:text-sm"
+                      />
+                    </div>
+
+                    {/* Country Selection */}
+                    <div>
+                      <label
+                        htmlFor="m-filter-country"
+                        className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#5B6479] dark:text-slate-400"
+                      >
+                        Country
+                      </label>
+                      <select
+                        id="m-filter-country"
+                        value={country}
+                        onChange={(e) => {
+                          const newCountry = e.target.value;
+                          setCountry(newCountry);
+                          setPage(1);
+                          const params = new URLSearchParams(window.location.search);
+                          if (newCountry) {
+                            params.set('country', newCountry);
+                          } else {
+                            params.delete('country');
+                          }
+                          params.delete('page');
+                          const qs = params.toString();
+                          prevSearchParamsRef.current = qs;
+                          router.replace(`/opportunities${qs ? `?${qs}` : ''}`, { scroll: false });
+                        }}
+                        className="w-full rounded-xl border border-[#E9E5DC] bg-[#FAF8F5] px-3 py-2 text-xs font-medium text-[#061B36] focus:border-[#D6952F] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white sm:text-sm"
+                      >
+                        <option value="">All countries</option>
+                        {availableCountries.map((c) => (
+                          <option key={c} value={c}>
+                            {COUNTRY_FLAGS[c] || '🌐'} {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Industry / Category */}
+                    <div>
+                      <label
+                        htmlFor="m-filter-category"
+                        className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#5B6479] dark:text-slate-400"
+                      >
+                        Industry / Sector
+                      </label>
+                      <select
+                        id="m-filter-category"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="w-full rounded-xl border border-[#E9E5DC] bg-[#FAF8F5] px-3 py-2 text-xs font-medium text-[#061B36] focus:border-[#D6952F] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white sm:text-sm"
+                      >
+                        <option value="">All industries</option>
+                        {OPPORTUNITY_CATEGORIES.map((c) => (
+                          <option key={c} value={c}>
+                            {titleOption(c)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Work Model / Employment Type */}
+                    <div>
+                      <label
+                        htmlFor="m-filter-type"
+                        className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#5B6479] dark:text-slate-400"
+                      >
+                        Work Model
+                      </label>
+                      <select
+                        id="m-filter-type"
+                        value={employmentType}
+                        onChange={(e) => setEmploymentType(e.target.value)}
+                        className="w-full rounded-xl border border-[#E9E5DC] bg-[#FAF8F5] px-3 py-2 text-xs font-medium text-[#061B36] focus:border-[#D6952F] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white sm:text-sm"
+                      >
+                        <option value="">Any model</option>
+                        {EMPLOYMENT_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {titleOption(t)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="pt-4 space-y-2 border-t border-[#E9E5DC] dark:border-[#1E3557]">
+                      <button
+                        type="submit"
+                        className="w-full rounded-xl bg-[#061B36] py-3 text-xs sm:text-sm font-bold text-white shadow-2xs hover:bg-[#10243E] dark:bg-[#1D3B66] dark:hover:bg-[#254A7F] transition-colors"
+                      >
+                        Apply Filters
+                      </button>
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={handleMobileReset}
+                          className="w-full rounded-xl border border-[#E9E5DC] bg-white py-2 text-xs font-semibold text-[#5B6479] hover:bg-slate-50 dark:border-[#1E3557] dark:bg-[#0E2340] dark:text-slate-300 dark:hover:bg-[#152E50] transition-colors"
+                        >
+                          Reset filters
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ═════════════════════════════════════════════════════════
               RIGHT COLUMN: RESULTS LIST / CARDS (.cols-opp)
               ═════════════════════════════════════════════════════════ */}
           <main className="min-w-0">
             {/* Results Header Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E9E5DC] pb-3 mb-6 dark:border-[#1E3557]">
-              <div>
-                <span className="text-sm font-bold text-[#061B36] dark:text-white">
-                  {!loading && (
-                    <>
-                      {totalItems} {totalItems === 1 ? 'opportunity' : 'opportunities'}
-                    </>
+              <div className="flex items-center gap-2.5">
+                {/* Mobile Filter Button (< lg) */}
+                <button
+                  type="button"
+                  onClick={() => setMobileFilterOpen(true)}
+                  aria-label="Open filter sidebar"
+                  className="inline-flex lg:hidden items-center gap-2 rounded-xl border border-[#E9E5DC] bg-white px-3 py-1.5 text-xs font-bold text-[#061B36] shadow-2xs hover:border-[#D6952F] hover:text-[#D6952F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6952F] dark:border-[#1E3557] dark:bg-[#0E2340] dark:text-white dark:hover:border-[#D6952F] transition-colors"
+                >
+                  <SlidersIcon className="h-4 w-4 text-[#D6952F]" />
+                  <span>Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#D6952F] px-1 text-[10px] font-bold text-white">
+                      {activeFilterCount}
+                    </span>
                   )}
-                </span>
-                {country && (
-                  <span className="ml-2 text-xs text-[#5B6479] dark:text-slate-400">
-                    in <strong>{country}</strong>
+                </button>
+
+                <div>
+                  <span className="text-sm font-bold text-[#061B36] dark:text-white">
+                    {!loading && (
+                      <>
+                        {totalItems} {totalItems === 1 ? 'opportunity' : 'opportunities'}
+                      </>
+                    )}
                   </span>
-                )}
+                  {country && (
+                    <span className="ml-2 text-xs text-[#5B6479] dark:text-slate-400">
+                      in <strong>{country}</strong>
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <ViewToggle view={view} onChange={handleViewChange} />
                 <select
                   id="sSort"
@@ -741,6 +966,83 @@ function OpportunityPageContent() {
                 </select>
               </div>
             </div>
+
+            {/* Mobile Active Filter Chips */}
+            {hasActiveFilters && (
+              <div className="flex lg:hidden flex-wrap items-center gap-1.5 mb-5">
+                {search && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF8F5] border border-[#E9E5DC] px-2.5 py-1 text-[11px] font-medium text-[#061B36] dark:bg-[#0E2340] dark:border-[#1E3557] dark:text-slate-200">
+                    Keyword: &ldquo;{search}&rdquo;
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch('');
+                        handleSearch();
+                      }}
+                      aria-label="Remove search filter"
+                      className="text-[#8C9AC0] hover:text-[#061B36] dark:hover:text-white"
+                    >
+                      <CloseIcon className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {country && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF8F5] border border-[#E9E5DC] px-2.5 py-1 text-[11px] font-medium text-[#061B36] dark:bg-[#0E2340] dark:border-[#1E3557] dark:text-slate-200">
+                    {COUNTRY_FLAGS[country] || '🌐'} {country}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCountry('');
+                        setPage(1);
+                        const params = new URLSearchParams(window.location.search);
+                        params.delete('country');
+                        params.delete('page');
+                        const qs = params.toString();
+                        prevSearchParamsRef.current = qs;
+                        router.replace(`/opportunities${qs ? `?${qs}` : ''}`, { scroll: false });
+                      }}
+                      aria-label="Remove country filter"
+                      className="text-[#8C9AC0] hover:text-[#061B36] dark:hover:text-white"
+                    >
+                      <CloseIcon className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {category && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF8F5] border border-[#E9E5DC] px-2.5 py-1 text-[11px] font-medium text-[#061B36] dark:bg-[#0E2340] dark:border-[#1E3557] dark:text-slate-200">
+                    {titleOption(category)}
+                    <button
+                      type="button"
+                      onClick={() => setCategory('')}
+                      aria-label="Remove category filter"
+                      className="text-[#8C9AC0] hover:text-[#061B36] dark:hover:text-white"
+                    >
+                      <CloseIcon className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                {employmentType && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF8F5] border border-[#E9E5DC] px-2.5 py-1 text-[11px] font-medium text-[#061B36] dark:bg-[#0E2340] dark:border-[#1E3557] dark:text-slate-200">
+                    {titleOption(employmentType)}
+                    <button
+                      type="button"
+                      onClick={() => setEmploymentType('')}
+                      aria-label="Remove employment type filter"
+                      className="text-[#8C9AC0] hover:text-[#061B36] dark:hover:text-white"
+                    >
+                      <CloseIcon className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-[11px] font-bold text-[#D6952F] hover:underline ml-1"
+                >
+                  Reset all
+                </button>
+              </div>
+            )}
 
             {/* Content States */}
             {loading ? (
