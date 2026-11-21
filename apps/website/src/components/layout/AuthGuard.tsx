@@ -18,6 +18,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
+    if (typeof window !== 'undefined' && sessionStorage.getItem('is_logging_out')) {
+      try {
+        sessionStorage.removeItem('is_logging_out');
+      } catch {
+        // ignore storage errors
+      }
+      router.replace('/');
+      return;
+    }
     if (!user) {
       router.replace('/login');
       return;

@@ -146,12 +146,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('is_logging_out', '1');
+      } catch {
+        // ignore storage errors
+      }
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
     setToken(null);
     setAccessFlags({ hasVaultAccess: null, hasRvaAccess: null });
-    router.push('/');
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    } else {
+      router.push('/');
+    }
   };
 
   return (
