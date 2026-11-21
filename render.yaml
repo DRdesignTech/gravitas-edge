@@ -55,6 +55,6 @@ databases:
   # ---------------------------------------------------------------------------
   - name: gravitas-edge-db
     databaseName: job_portal
-    user: postgres
+    user: job_portal_user
     plan: free
     region: oregon
