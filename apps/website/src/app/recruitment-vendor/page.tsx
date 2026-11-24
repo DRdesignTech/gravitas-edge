@@ -23,6 +23,13 @@ import {
   SearchIcon,
 } from '@/components/cards';
 import Eyebrow from '@/components/marketing/Eyebrow';
+import VendorHeroCarousel from '@/components/marketing/VendorHeroCarousel';
+import {
+  VendorServicesSection,
+  VendorProcessSection,
+  VendorComparisonSection,
+  VendorEnquirySection,
+} from '@/components/marketing/VendorSections';
 import { formatDate, formatMoney } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
@@ -190,6 +197,7 @@ export default function RecruitmentVendorPage() {
   const [buyingPlanId, setBuyingPlanId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('list');
   const [opportunities, setOpportunities] = useState<RvaOpportunity[]>([]);
   const [page, setPage] = useState(1);
@@ -205,20 +213,28 @@ export default function RecruitmentVendorPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const goToPage = useCallback(async (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages || loadingPage) return;
-    setLoadingPage(true);
-    try {
-      const res = await fetchRvaOpportunities({ page: newPage, limit: PREVIEW_LIMIT, search: searchQuery || undefined });
-      setOpportunities(res.items);
-      setTotalPages(res.meta.totalPages);
-      setPage(newPage);
-    } catch (e) {
-      showToast(getErrorMessage(e), 'error');
-    } finally {
-      setLoadingPage(false);
-    }
-  }, [totalPages, loadingPage, searchQuery, showToast]);
+  const goToPage = useCallback(
+    async (newPage: number) => {
+      if (newPage < 1 || newPage > totalPages || loadingPage) return;
+      setLoadingPage(true);
+      try {
+        const res = await fetchRvaOpportunities({
+          page: newPage,
+          limit: PREVIEW_LIMIT,
+          search: searchQuery || undefined,
+          category: selectedCategory || undefined,
+        });
+        setOpportunities(res.items);
+        setTotalPages(res.meta.totalPages);
+        setPage(newPage);
+      } catch (e) {
+        showToast(getErrorMessage(e), 'error');
+      } finally {
+        setLoadingPage(false);
+      }
+    },
+    [totalPages, loadingPage, searchQuery, selectedCategory, showToast],
+  );
 
   useEffect(() => {
     loadOverview();
@@ -233,11 +249,16 @@ export default function RecruitmentVendorPage() {
     }
   }, [overview]);
 
-  // Refetch opportunities when search query changes
+  // Refetch opportunities when search query or selectedCategory changes
   useEffect(() => {
     if (searchQuery !== undefined) {
       setLoadingPage(true);
-      fetchRvaOpportunities({ page: 1, limit: PREVIEW_LIMIT, search: searchQuery || undefined })
+      fetchRvaOpportunities({
+        page: 1,
+        limit: PREVIEW_LIMIT,
+        search: searchQuery || undefined,
+        category: selectedCategory || undefined,
+      })
         .then((res) => {
           setOpportunities(res.items);
           setTotalPages(res.meta.totalPages);
@@ -246,7 +267,7 @@ export default function RecruitmentVendorPage() {
         .catch((e) => showToast(getErrorMessage(e), 'error'))
         .finally(() => setLoadingPage(false));
     }
-  }, [searchQuery]);
+  }, [searchQuery, selectedCategory, showToast]);
 
   // Restore the user's preferred layout (defaulting to list on small screens).
   useEffect(() => {
@@ -280,6 +301,16 @@ export default function RecruitmentVendorPage() {
     setPage(1);
   };
 
+  const handleCategoryClick = (categoryValue: string) => {
+    if (selectedCategory === categoryValue) {
+      setSelectedCategory(null);
+    } else {
+      setSelectedCategory(categoryValue);
+      scrollToId('free-preview');
+    }
+    setPage(1);
+  };
+
   const handleChoosePlan = async (plan: RvaPlan) => {
     if (!user) {
       router.push('/register');
@@ -305,11 +336,16 @@ export default function RecruitmentVendorPage() {
   const faqs = overview?.faqs ?? [];
   const publishedCount = overview?.publishedOpportunityCount ?? 0;
   const hasSearch = searchQuery.trim().length > 0;
+  const hasActiveFilter = hasSearch || selectedCategory !== null;
 
   const filteredOpportunities = useMemo(() => {
+    let list = opportunities;
+    if (selectedCategory) {
+      list = list.filter((o) => o.category === selectedCategory);
+    }
     const terms = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (terms.length === 0) return opportunities;
-    return opportunities.filter((o) => {
+    if (terms.length === 0) return list;
+    return list.filter((o) => {
       const haystack = [
         o.title,
         o.role,
@@ -329,134 +365,51 @@ export default function RecruitmentVendorPage() {
         .toLowerCase();
       return terms.every((t) => haystack.includes(t));
     });
-  }, [opportunities, searchQuery]);
+  }, [opportunities, searchQuery, selectedCategory]);
 
   return (
     <div className="overflow-x-clip">
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 1. HERO                                                         */}
+      {/* 1. HERO CAROUSEL                                                */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section
-        id="home"
-        className="relative flex min-h-[calc(100svh-4rem)] flex-col overflow-hidden bg-[#03070C]"
-      >
-        <img
-          src="/images/new_vault_hero.png"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover object-center blur-[10px] sm:scale-100 sm:blur-none"
-        />
+      <VendorHeroCarousel
+        publishedCount={publishedCount}
+        loading={loading}
+        scrollToId={scrollToId}
+      />
 
-        {/* Mobile scrim — soft top-down navy so the copy stays readable over the blurred image. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0 sm:hidden"
-          style={{
-            backgroundImage:
-              'linear-gradient(180deg, rgba(3,7,12,0.82) 0%, rgba(3,7,12,0.62) 34%, rgba(3,7,12,0.34) 60%, rgba(3,7,12,0.12) 82%, rgba(3,7,12,0.2) 100%)',
-          }}
-        />
-        {/* Navy scrim — left-anchored, keeps the copy readable on larger screens. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0 hidden sm:block"
-          style={{
-            backgroundImage:
-              'linear-gradient(90deg, rgba(3,7,12,0.86) 0%, rgba(3,7,12,0.68) 22%, rgba(3,7,12,0.4) 42%, rgba(3,7,12,0.12) 60%, rgba(3,7,12,0) 78%), linear-gradient(0deg, rgba(3,7,12,0.4) 0%, rgba(3,7,12,0) 40%)',
-          }}
-        />
-        {/* Premium vignette — deepens the top-left where the copy sits */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-0 hidden sm:block"
-          style={{
-            backgroundImage:
-              'radial-gradient(120% 90% at 0% 30%, rgba(6,27,54,0.55) 0%, rgba(6,27,54,0) 60%)',
-          }}
-        />
-
-        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-5 pb-8 pt-12 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
-          <div className="w-full max-w-2xl text-left">
-            <div className="hero-text-animate" style={{ animationDelay: '0s' }}>
-              <Eyebrow invert>RECRUITMENT VENDOR ACCESS</Eyebrow>
-            </div>
-            <h1
-              className="hero-text-animate mt-4 font-serif-heading text-[2rem] font-extrabold leading-[1.15] text-white sm:text-4xl sm:font-bold sm:leading-[1.12] md:text-5xl lg:text-6xl xl:text-7xl"
-              style={{ animationDelay: '0.06s' }}
-            >
-              Opportunities for Recruitment and <span className="text-[#C8943E]">Staffing Partners</span>
-            </h1>
-            <p
-              className="hero-text-animate mt-3 max-w-xl text-[15px] leading-relaxed text-white/90 sm:mt-5 sm:text-lg lg:mt-6 lg:text-xl"
-              style={{ animationDelay: '0.12s' }}
-            >
-              Access curated third-party opportunities where organisations are seeking recruitment,
-              staffing, executive search or talent-acquisition partners. Get direct application or
-              contact details wherever available.
-            </p>
+      {/* Bottom feature strip — navy bar with gold outline icons. */}
+      <div className="relative z-10 border-t border-[#C8943E]/20 bg-[#061B36]">
+        <div className="mx-auto grid w-full max-w-[1320px] grid-cols-2 divide-x divide-white/10 px-2 py-3 sm:grid-cols-4 sm:px-6 sm:py-5 lg:px-8">
+          {HERO_FEATURES.map((feature) => (
             <div
-              className="hero-text-animate mt-6 flex flex-wrap items-center gap-3 sm:mt-8 lg:mt-10"
-              style={{ animationDelay: '0.24s' }}
+              key={feature.label}
+              className="flex flex-col items-center gap-1.5 px-1.5 text-center sm:gap-2"
             >
-              <button
-                type="button"
-                onClick={() => scrollToId('free-preview')}
-                className="relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-lg bg-gradient-to-b from-[#D3A24C] to-[#B8832F] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_-12px_rgba(200,148,62,0.75)] ring-1 ring-inset ring-white/15 transition-all duration-300 hover:-translate-y-0.5 hover:from-[#DBAA55] hover:to-[#C08A32] hover:shadow-[0_18px_40px_-14px_rgba(200,148,62,0.85)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#061B36] focus-visible:ring-offset-2 sm:rounded-xl sm:px-6 sm:py-3.5 sm:text-base"
+              <svg
+                className="h-6 w-6 text-[#C8943E]"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.7}
+                stroke="currentColor"
+                aria-hidden="true"
               >
-                Explore Free Opportunities <span aria-hidden="true">→</span>
-                <span
-                  aria-hidden="true"
-                  className="btn-shine absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/50 to-transparent"
-                />
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToId('plans')}
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/25 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition-colors duration-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#03070C] sm:rounded-xl sm:px-6 sm:py-3.5 sm:text-base"
-              >
-                View Access Plans
-              </button>
+                {feature.paths.map((d) => (
+                  <path key={d} strokeLinecap="round" strokeLinejoin="round" d={d} />
+                ))}
+              </svg>
+              <span className="text-[11px] font-medium leading-tight text-white/90 sm:text-sm">
+                {feature.label}
+              </span>
             </div>
-            {!loading && publishedCount > 0 && (
-              <p
-                className="hero-text-animate mt-6 text-sm text-white/70"
-                style={{ animationDelay: '0.3s' }}
-              >
-                <span className="font-semibold text-[#E3B968]">{publishedCount}</span>{' '}
-                {publishedCount === 1 ? 'opportunity' : 'opportunities'} currently listed
-              </p>
-            )}
-          </div>
+          ))}
         </div>
+      </div>
 
-        {/* Bottom feature strip — navy bar with gold outline icons. */}
-        <div className="relative z-10 border-t border-[#C8943E]/20 bg-[#061B36]">
-          <div className="mx-auto grid w-full max-w-7xl grid-cols-2 divide-x divide-white/10 px-2 py-3 sm:grid-cols-4 sm:px-6 sm:py-5 lg:px-8">
-            {HERO_FEATURES.map((feature) => (
-              <div
-                key={feature.label}
-                className="flex flex-col items-center gap-1.5 px-1.5 text-center sm:gap-2"
-              >
-                <svg
-                  className="h-6 w-6 text-[#C8943E]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.7}
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  {feature.paths.map((d) => (
-                    <path key={d} strokeLinecap="round" strokeLinejoin="round" d={d} />
-                  ))}
-                </svg>
-                <span className="text-[11px] font-medium leading-tight text-white/90 sm:text-sm">
-                  {feature.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* 2. DEDICATED VENDOR SERVICES & INTRODUCTION                     */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <VendorServicesSection />
 
       {error && (
         <section className="border-t border-line bg-surface-muted">
@@ -492,25 +445,70 @@ export default function RecruitmentVendorPage() {
               </div>
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {categories.map((category) => (
-                  <div
-                    key={category.value}
-                    className="card-static flex flex-col rounded-2xl p-5"
-                  >
-                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#061B36] to-brand-600 text-[#E3B968] ring-1 ring-inset ring-[#C8943E]/30">
-                      <CategoryIcon value={category.value} className="h-6 w-6" />
-                    </span>
-                    <h3 className="mt-4 text-base font-bold leading-snug text-content">
-                      {category.label}
-                    </h3>
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-content-muted">
-                      {CATEGORY_BLURBS[category.value] ?? 'Recruitment partnership opportunities.'}
-                    </p>
-                    <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[#C8943E]">
-                      {category.count} {category.count === 1 ? 'opportunity' : 'opportunities'}
-                    </p>
-                  </div>
-                ))}
+                {categories.map((category) => {
+                  const isSelected = selectedCategory === category.value;
+                  return (
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      key={category.value}
+                      onClick={() => handleCategoryClick(category.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleCategoryClick(category.value);
+                        }
+                      }}
+                      className={`group relative flex flex-col rounded-2xl p-5 text-left transition-all duration-300 cursor-pointer select-none ${
+                        isSelected
+                          ? 'border-2 border-[#D6952F] bg-gradient-to-b from-[#D6952F]/15 via-surface to-surface dark:from-[#D6952F]/20 dark:via-surface-elevated dark:to-surface-elevated shadow-[0_12px_28px_-6px_rgba(214,149,47,0.35)] -translate-y-1.5 ring-2 ring-[#D6952F]/40'
+                          : 'card-static border border-line hover:-translate-y-1 hover:border-[#D6952F]/60 hover:shadow-card-hover'
+                      }`}
+                    >
+                      {/* Top icon & active badge indicator */}
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-105 ${
+                            isSelected
+                              ? 'bg-[#D6952F] text-[#061B36] shadow-md ring-2 ring-[#D6952F]'
+                              : 'bg-gradient-to-br from-[#061B36] to-brand-600 text-[#E3B968] ring-1 ring-inset ring-[#C8943E]/30'
+                          }`}
+                        >
+                          <CategoryIcon value={category.value} className="h-6 w-6" />
+                        </span>
+
+                        {isSelected ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#D6952F] px-2.5 py-0.5 text-[11px] font-bold text-[#061B36] shadow-sm">
+                            <span>Active</span>
+                            <span>✕</span>
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold text-brand-600 dark:text-[#E3B968] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                            <span>Filter</span>
+                            <span>→</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="mt-4 text-base font-bold leading-snug text-content group-hover:text-brand-600 dark:group-hover:text-brand-300 transition-colors">
+                        {category.label}
+                      </h3>
+
+                      <p className="mt-2 flex-1 text-sm leading-relaxed text-content-muted">
+                        {CATEGORY_BLURBS[category.value] ?? 'Recruitment partnership opportunities.'}
+                      </p>
+
+                      <div className="mt-4 flex items-center justify-between border-t border-line/70 pt-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#C8943E]">
+                          {category.count} {category.count === 1 ? 'opportunity' : 'opportunities'}
+                        </p>
+                        <span className="text-xs font-semibold text-brand-600 dark:text-[#E3B968] group-hover:underline">
+                          {isSelected ? 'Click to clear ✕' : 'Filter preview →'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -523,7 +521,7 @@ export default function RecruitmentVendorPage() {
       {!error && (
         <section
           id="free-preview"
-          className="section-glow-navy relative border-t border-line bg-surface"
+          className="section-glow-navy relative border-t border-line bg-surface scroll-mt-20"
         >
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
             <div className="mb-8 max-w-2xl">
@@ -537,8 +535,37 @@ export default function RecruitmentVendorPage() {
               </p>
             </div>
 
+            {/* Selected category filter pill bar */}
+            {selectedCategory && (
+              <div className="mb-6 flex flex-wrap items-center gap-2.5 rounded-2xl border border-[#D6952F]/40 bg-[#D6952F]/10 px-4 py-3 text-sm">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#D6952F]">
+                  Active Filter:
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1 text-xs font-bold text-content shadow-sm border border-line">
+                  <span>
+                    {categories.find((c) => c.value === selectedCategory)?.label || selectedCategory}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory(null)}
+                    className="ml-1 text-content-muted hover:text-red-500 font-bold transition-colors"
+                    title="Remove filter"
+                  >
+                    ✕
+                  </button>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCategory(null)}
+                  className="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 hover:underline sm:ml-auto"
+                >
+                  Show All Categories (Reset Filter)
+                </button>
+              </div>
+            )}
+
             {/* Search + layout toggle */}
-            {!loading && (opportunities.length > 0 || hasSearch) && (
+            {!loading && (opportunities.length > 0 || hasActiveFilter) && (
               <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="w-full max-w-2xl md:max-w-3xl">
                   <form onSubmit={handleSearch}>
@@ -632,16 +659,19 @@ export default function RecruitmentVendorPage() {
                   <Skeleton key={i} className="h-56" />
                 ))}
               </div>
-            ) : hasSearch && filteredOpportunities.length === 0 ? (
+            ) : hasActiveFilter && filteredOpportunities.length === 0 ? (
               <div className="rounded-2xl border border-line bg-surface-muted px-6 py-10 text-center">
                 <p className="text-sm text-content-muted">
-                  No opportunities match your search.{' '}
+                  No opportunities match your filter.{' '}
                   <button
                     type="button"
-                    onClick={clearSearch}
-                    className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                    onClick={() => {
+                      clearSearch();
+                      setSelectedCategory(null);
+                    }}
+                    className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 underline"
                   >
-                    Clear search
+                    Reset all filters
                   </button>
                 </p>
               </div>
@@ -695,7 +725,17 @@ export default function RecruitmentVendorPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 4. PLANS                                                       */}
+      {/* 4. VENDOR ONBOARDING PROCESS (HOW IT WORKS)                     */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <VendorProcessSection />
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* 5. VENDOR VALUE COMPARISON (AGENCY ADVANTAGE)                   */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <VendorComparisonSection />
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* 6. PLANS                                                       */}
       {/* ══════════════════════════════════════════════════════════════ */}
       {!error && (
         <section
@@ -743,7 +783,12 @@ export default function RecruitmentVendorPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 5. FAQ                                                          */}
+      {/* 7. VENDOR PARTNERSHIP & ONBOARDING ENQUIRY                      */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      <VendorEnquirySection />
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* 8. FAQ                                                          */}
       {/* ══════════════════════════════════════════════════════════════ */}
       {!error && faqs.length > 0 && (
         <section id="faq" className="section-glow relative border-t border-line bg-surface-muted">
@@ -764,39 +809,73 @@ export default function RecruitmentVendorPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 6. FINAL CTA                                                    */}
+      {/* 6. FINAL CTA BANNER (COMPACT EXECUTIVE DESIGN)                  */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden border-t border-line bg-[#061B36]">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              'radial-gradient(70% 90% at 50% 0%, rgba(200,148,62,0.22), transparent 60%)',
-          }}
-        />
-        <div className="relative mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:py-20">
-          <h2 className="font-serif-heading text-2xl font-bold leading-tight text-white sm:text-3xl">
-            Explore the Free Preview and see current opportunities.
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-white/75 sm:text-base">
-            Review what&apos;s available, then choose the access plan that fits your goals.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button
-              size="lg"
-              className="!bg-gradient-to-b !from-[#D3A24C] !to-[#B8832F] !text-white hover:!from-[#DBAA55] hover:!to-[#C08A32]"
-              onClick={() => scrollToId('free-preview')}
-            >
-              Explore Free Opportunities
-              <ArrowRight className="h-5 w-5" />
-            </Button>
-            <Link
-              href="/contact"
-              className="text-sm font-medium text-white/75 underline-offset-4 hover:text-white hover:underline"
-            >
-              Talk to us
-            </Link>
+      <section className="relative overflow-hidden bg-surface-muted py-8 sm:py-12 border-t border-line">
+        <div className="mx-auto max-w-[1320px] px-5">
+          <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-b from-[#061B36] via-[#092244] to-[#041226] text-white shadow-xl border border-[#D6952F]/25 px-5 py-7 sm:px-10 sm:py-9 text-center">
+            {/* Ambient luxury lighting */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[550px] h-[180px] bg-gradient-to-b from-[#D6952F]/15 to-transparent blur-[60px] rounded-full"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 w-[400px] h-[120px] bg-blue-500/10 blur-[70px] rounded-full"
+            />
+
+            <div className="relative z-10 mx-auto max-w-2xl">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-[#D6952F]/15 text-[#F0C27B] border border-[#D6952F]/35 shadow-sm mb-3">
+                <span className="text-[#D6952F]">✦</span>
+                <span>Recruitment Partner Vault</span>
+              </span>
+
+              <h2 className="font-serif-heading text-2xl sm:text-3xl font-bold text-white tracking-tight leading-snug">
+                Explore the Free Preview and see{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F0C27B] via-[#D6952F] to-[#E5A93C]">
+                  current opportunities.
+                </span>
+              </h2>
+
+              <p className="mt-2 text-xs sm:text-sm text-[#C9D3EA] leading-relaxed max-w-xl mx-auto font-sans">
+                Review verified corporate empanelment notices, commercial staffing tenders, and active vendor requirements before choosing your access plan.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => scrollToId('free-preview')}
+                  className="inline-flex items-center justify-center gap-2 rounded-full py-2.5 px-6 font-bold text-sm bg-gradient-to-r from-[#D6952F] to-[#C08124] hover:from-[#E0A23D] hover:to-[#CF8F30] text-[#061B36] shadow-[0_8px_20px_-4px_rgba(214,149,47,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer border-0"
+                >
+                  <span>Explore Free Opportunities</span>
+                  <span className="text-base leading-none font-bold">→</span>
+                </button>
+
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 px-5 font-semibold text-sm text-white/95 bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/35 backdrop-blur-sm transition-all no-underline cursor-pointer"
+                >
+                  Talk to us
+                </Link>
+              </div>
+
+              {/* Trust Indicators */}
+              <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center">
+                <div className="flex items-center justify-center gap-1.5 text-xs text-[#D7DFEE]">
+                  <span className="text-emerald-400 font-bold">✓</span>
+                  <span>100% Verified Mandates</span>
+                </div>
+                <div className="flex items-center justify-center gap-1.5 text-xs text-[#D7DFEE]">
+                  <span className="text-emerald-400 font-bold">✓</span>
+                  <span>Direct Procurement Access</span>
+                </div>
+                <div className="flex items-center justify-center gap-1.5 text-xs text-[#D7DFEE]">
+                  <span className="text-emerald-400 font-bold">✓</span>
+                  <span>Zero Agency Commission</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

@@ -752,6 +752,21 @@
   }
 }
 
+@keyframes heroSlideScrollHorizontal {
+  0% {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.hero-slide-scroll {
+  animation: heroSlideScrollHorizontal 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-text-animate,
   .btn-shine,

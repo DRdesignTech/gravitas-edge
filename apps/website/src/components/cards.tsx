@@ -684,7 +684,7 @@ export function VaultCard({
       </span>
 
       {recommended && (
-        <span className="absolute -top-3 left-6 z-20 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#D6952F] via-[#E2A746] to-[#B37E28] px-3.5 py-1 text-[11px] font-extrabold text-white shadow-md uppercase tracking-wider ring-2 ring-white dark:ring-[#0C1E38]">
+        <span className="absolute left-6 top-0 z-20 -translate-y-1/2 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#D6952F] via-[#E2A746] to-[#B37E28] px-3.5 py-1 text-[11px] font-extrabold text-white shadow-md uppercase tracking-wider ring-2 ring-white dark:ring-[#0C1E38]">
           <HiSparkles className="h-3.5 w-3.5 text-white" />
           Recommended For You
         </span>

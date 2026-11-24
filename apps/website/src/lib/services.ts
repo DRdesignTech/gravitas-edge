@@ -1,5 +1,8 @@
 import { api, apiFetch, uploadFile } from './api';
 import {
+  AiChatAction,
+  AiChatMessage,
+  AiChatResponse,
   AvailableCouponsResult,
   CommissionItem,
   CommissionQuery,
@@ -357,3 +360,17 @@ export function failRvaPayment(paymentId: string) {
 export function fetchVaultOpportunityCounts(): Promise<VaultOpportunityCount[]> {
   return api.get<VaultOpportunityCount[]>('/opportunities/vault-counts');
 }
+
+export type { AiChatAction, AiChatMessage, AiChatResponse };
+
+/** Executive AI Chatbot endpoint powered by backend OpenAI gpt-4o-mini integration. */
+export function sendAiChatMessage(
+  message: string,
+  history?: AiChatMessage[],
+): Promise<AiChatResponse> {
+  return api.post<AiChatResponse>('/ai/chat', {
+    message,
+    history,
+  });
+}
+

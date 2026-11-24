@@ -567,6 +567,132 @@ function OpportunityPageContent() {
               : 'Filter live curated roles across every country. Search by Job ID or keyword to jump to a specific listing.'}
           </p>
 
+          {/* Quick Corridor Filter Shortcuts */}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#F0C27B] mr-1">
+              Priority Corridors:
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setCountry('United Kingdom');
+                setSearch('London');
+                setPage(1);
+                const params = new URLSearchParams(window.location.search);
+                params.set('country', 'United Kingdom');
+                params.set('search', 'London');
+                params.delete('page');
+                const qs = params.toString();
+                prevSearchParamsRef.current = qs;
+                router.replace(`/opportunities${qs ? `?${qs}` : ''}`, { scroll: false });
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer ${
+                country === 'United Kingdom' && search === 'London'
+                  ? 'bg-[#D6952F] text-[#061B36] border-[#D6952F] font-bold shadow-md'
+                  : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+              }`}
+            >
+              <span>🇬🇧 London Roles</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCountry('United Arab Emirates');
+                setSearch('');
+                setPage(1);
+                const params = new URLSearchParams(window.location.search);
+                params.set('country', 'United Arab Emirates');
+                params.delete('search');
+                params.delete('page');
+                const qs = params.toString();
+                prevSearchParamsRef.current = qs;
+                router.replace(`/opportunities${qs ? `?${qs}` : ''}`, { scroll: false });
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer ${
+                country === 'United Arab Emirates'
+                  ? 'bg-[#D6952F] text-[#061B36] border-[#D6952F] font-bold shadow-md'
+                  : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+              }`}
+            >
+              <span>🇦🇪 UAE &amp; Dubai</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCountry('Saudi Arabia');
+                setSearch('');
+                setPage(1);
+                const params = new URLSearchParams(window.location.search);
+                params.set('country', 'Saudi Arabia');
+                params.delete('search');
+                params.delete('page');
+                const qs = params.toString();
+                prevSearchParamsRef.current = qs;
+                router.replace(`/opportunities${qs ? `?${qs}` : ''}`, { scroll: false });
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer ${
+                country === 'Saudi Arabia'
+                  ? 'bg-[#D6952F] text-[#061B36] border-[#D6952F] font-bold shadow-md'
+                  : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+              }`}
+            >
+              <span>🇸🇦 Saudi &amp; GCC</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCountry('Singapore');
+                setSearch('');
+                setPage(1);
+                const params = new URLSearchParams(window.location.search);
+                params.set('country', 'Singapore');
+                params.delete('search');
+                params.delete('page');
+                const qs = params.toString();
+                prevSearchParamsRef.current = qs;
+                router.replace(`/opportunities${qs ? `?${qs}` : ''}`, { scroll: false });
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer ${
+                country === 'Singapore'
+                  ? 'bg-[#D6952F] text-[#061B36] border-[#D6952F] font-bold shadow-md'
+                  : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+              }`}
+            >
+              <span>🇸🇬 Singapore</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCountry('India');
+                setSearch('');
+                setPage(1);
+                const params = new URLSearchParams(window.location.search);
+                params.set('country', 'India');
+                params.delete('search');
+                params.delete('page');
+                const qs = params.toString();
+                prevSearchParamsRef.current = qs;
+                router.replace(`/opportunities${qs ? `?${qs}` : ''}`, { scroll: false });
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer ${
+                country === 'India'
+                  ? 'bg-[#D6952F] text-[#061B36] border-[#D6952F] font-bold shadow-md'
+                  : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+              }`}
+            >
+              <span>🇮🇳 India Hubs</span>
+            </button>
+            {(country || search) && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-xs text-[#F0C27B] hover:text-white underline ml-2 cursor-pointer"
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
+
           {/* Non-Subscriber Informational Banner */}
           {!isSubscriber && !vaultId && (
             <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 rounded-xl border border-[#F0C27B]/50 bg-[#FBF0DE] p-4 text-xs sm:text-sm text-[#061B36] shadow-sm dark:bg-[#10243E] dark:border-[#D6952F]/40 dark:text-[#F0C27B]">

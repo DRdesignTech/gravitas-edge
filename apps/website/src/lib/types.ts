@@ -65,6 +65,7 @@ export interface Opportunity {
   minExperience?: number | null;
   maxExperience?: number | null;
   salary?: string | null;
+  currency?: string | null;
   experienceText?: string | null;
   externalRef?: string | null;
   jobId?: string | null;
@@ -637,3 +638,21 @@ export interface RvaConfirmResult {
   payment: { id: string; status: string; amount: number; currency: string };
   coupon?: PurchaseCouponInfo;
 }
+
+// ── AI Chat Assistant types ──────────────────────────────────────────
+export interface AiChatAction {
+  label: string;
+  href: string;
+}
+
+export interface AiChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AiChatResponse {
+  reply: string;
+  actions?: AiChatAction[];
+  suggestions?: string[];
+}
+

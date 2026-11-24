@@ -38,19 +38,19 @@ interface MarkerCluster {
 const MAPW = 960;
 const MAPH = 470;
 
-// Sample fallback countries
+// Sample fallback countries (Reflecting ~10 London opportunities and priority UAE corridors)
 const FALLBACK_COUNTRIES: { name: string; cc: string; count: number; cities: string[]; inds: string[] }[] = [
-  { name: 'United Arab Emirates', cc: 'AE', count: 4, cities: ['Dubai', 'Abu Dhabi'], inds: ['Finance', 'Energy & Utilities', 'Sales', 'Technology'] },
-  { name: 'Saudi Arabia', cc: 'SA', count: 3, cities: ['Riyadh', 'Jeddah'], inds: ['Construction & Infrastructure', 'Human Resources', 'Logistics'] },
-  { name: 'Singapore', cc: 'SG', count: 3, cities: ['Singapore'], inds: ['Fintech', 'Technology', 'Banking'] },
-  { name: 'United Kingdom', cc: 'GB', count: 3, cities: ['London', 'Manchester'], inds: ['Technology', 'Consulting', 'Healthcare'] },
-  { name: 'Germany', cc: 'DE', count: 2, cities: ['Berlin', 'Munich'], inds: ['Technology', 'Manufacturing'] },
-  { name: 'Qatar', cc: 'QA', count: 2, cities: ['Doha'], inds: ['Finance', 'Hospitality'] },
-  { name: 'Kenya', cc: 'KE', count: 2, cities: ['Nairobi'], inds: ['Finance', 'Development Sector'] },
-  { name: 'Canada', cc: 'CA', count: 1, cities: ['Toronto'], inds: ['Banking'] },
-  { name: 'United States', cc: 'US', count: 1, cities: ['Austin'], inds: ['Technology'] },
-  { name: 'Oman', cc: 'OM', count: 1, cities: ['Muscat'], inds: ['Logistics'] },
-  { name: 'India', cc: 'IN', count: 7, cities: ['Bengaluru', 'Mumbai', 'Pune', 'Gurugram', 'Hyderabad', 'Chennai'], inds: ['Marketing', 'Finance', 'Manufacturing', 'Technology', 'Consulting', 'Sales'] },
+  { name: 'United Kingdom', cc: 'GB', count: 10, cities: ['London', 'Canary Wharf', 'Mayfair', 'Manchester'], inds: ['Technology', 'Investment Banking', 'Private Equity', 'Legal', 'Consulting'] },
+  { name: 'United Arab Emirates', cc: 'AE', count: 12, cities: ['Dubai', 'Abu Dhabi', 'DIFC', 'ADGM'], inds: ['Finance & Wealth', 'Energy & Utilities', 'Digital & Cloud', 'Logistics', 'Real Estate'] },
+  { name: 'Saudi Arabia', cc: 'SA', count: 6, cities: ['Riyadh', 'Jeddah', 'NEOM'], inds: ['Construction & Infrastructure', 'Human Resources', 'Logistics', 'Tech'] },
+  { name: 'Singapore', cc: 'SG', count: 5, cities: ['Singapore'], inds: ['Fintech', 'Technology', 'Banking & Asset Management'] },
+  { name: 'Germany', cc: 'DE', count: 4, cities: ['Berlin', 'Munich', 'Frankfurt'], inds: ['Technology', 'Manufacturing', 'Automotive'] },
+  { name: 'Qatar', cc: 'QA', count: 3, cities: ['Doha'], inds: ['Finance', 'Hospitality', 'Energy'] },
+  { name: 'Kenya', cc: 'KE', count: 3, cities: ['Nairobi'], inds: ['Finance', 'Development Sector', 'AgriTech'] },
+  { name: 'Canada', cc: 'CA', count: 3, cities: ['Toronto', 'Vancouver'], inds: ['Banking', 'AI & Technology'] },
+  { name: 'United States', cc: 'US', count: 4, cities: ['New York', 'Austin', 'San Francisco'], inds: ['Technology', 'Financial Services'] },
+  { name: 'Oman', cc: 'OM', count: 2, cities: ['Muscat'], inds: ['Logistics', 'Maritime'] },
+  { name: 'India', cc: 'IN', count: 15, cities: ['Bengaluru', 'Mumbai', 'Pune', 'Gurugram', 'Hyderabad', 'Chennai'], inds: ['Marketing', 'Finance', 'Manufacturing', 'Technology', 'Consulting', 'Sales'] },
 ];
 
 export default function CountryDirectory({

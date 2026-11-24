@@ -177,6 +177,74 @@ export const chatbotTopics: ChatTopic[] = [
       { label: 'Contact Us page', href: chatbotContact.pageUrl },
     ],
   },
+  {
+    id: 'resume',
+    label: 'How do I submit my resume?',
+    question: 'How do I submit my resume?',
+    answer:
+      'You can upload your CV or resume directly on our Upload Resume page as a guest or logged-in member (PDF, DOC, DOCX up to 5MB). Our system automatically extracts your contact details and experience to pre-fill your profile. When you register with the same email, your uploaded resume links to your account automatically.',
+    keywords: [
+      'resume',
+      'cv',
+      'upload resume',
+      'submit resume',
+      'upload cv',
+      'send cv',
+      'profile',
+    ],
+    actions: [{ label: 'Upload Resume', href: '/upload-resume' }],
+  },
+  {
+    id: 'register',
+    label: 'How do I register for free?',
+    question: 'How do I register for free?',
+    answer:
+      'Creating an account on Gravitas Edge is completely free — no credit card or payment required. Sign up to explore executive mandates, view live opportunity previews, and track your applications.',
+    keywords: [
+      'register',
+      'signup',
+      'sign up',
+      'create account',
+      'join',
+      'new account',
+    ],
+    actions: [{ label: 'Create Free Account', href: '/register' }],
+  },
+  {
+    id: 'bundle',
+    label: 'What is the 20% Bundle discount?',
+    question: 'What is the 20% Bundle discount?',
+    answer:
+      'Our Build Your Bundle promotion allows you to combine an India Opportunity Vault with a Global & UAE Vault in one seamless checkout to receive an automatic 20% recurring discount for as long as both stay active.',
+    keywords: [
+      'bundle',
+      'discount',
+      'offer',
+      'promo',
+      'coupon',
+      '20% off',
+      'save 20',
+      'special offer',
+    ],
+    actions: [{ label: 'Build Your Bundle', href: '/plans' }],
+  },
+  {
+    id: 'referrals',
+    label: 'How does Refer & Earn work?',
+    question: 'How does Refer & Earn work?',
+    answer:
+      'Share Gravitas Edge with senior colleagues using your unique referral link from your dashboard. When they subscribe to an Opportunity Vault, you earn recurring commissions credited directly to your digital partner wallet (Tier 1: 10%, Tier 2: 15%, Tier 3: 20%).',
+    keywords: [
+      'refer',
+      'referral',
+      'refer and earn',
+      'affiliate',
+      'commission',
+      'wallet',
+      'earn money',
+    ],
+    actions: [{ label: 'Refer & Earn', href: '/refer-and-earn' }],
+  },
 ];
 
 const simpleGreetings = [

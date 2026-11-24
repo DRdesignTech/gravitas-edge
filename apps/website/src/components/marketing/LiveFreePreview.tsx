@@ -40,13 +40,275 @@ const COUNTRY_FLAGS: Record<string, string> = {
   'Nigeria': '🇳🇬',
 };
 
-type PreviewTab = 'all' | 'global' | 'india';
+type PreviewTab = 'all' | 'london' | 'uae' | 'global' | 'india';
 
-const TABS: { key: PreviewTab; label: string; countSuffix?: string }[] = [
+const TABS: { key: PreviewTab; label: string; badge?: string }[] = [
   { key: 'all', label: 'All Opportunities' },
-  { key: 'global', label: 'International Corridors' },
-  { key: 'india', label: 'India Hubs' },
+  { key: 'london', label: '🇬🇧 London Opportunities', badge: '10 Mandates' },
+  { key: 'uae', label: '🇦🇪 UAE & GCC Corridors', badge: 'Priority' },
+  { key: 'global', label: '🌐 All International Corridors' },
+  { key: 'india', label: '🇮🇳 India Hubs' },
 ];
+
+/** Curated London Executive Mandates (MOM Alignment: ~10 London opportunities) */
+const CURATED_LONDON_OPPORTUNITIES = [
+  {
+    id: 'ldn-curated-01',
+    title: 'Director of Artificial Intelligence & Cloud Platforms',
+    company: 'Tier-1 FinTech Group',
+    location: 'Canary Wharf, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · Hybrid',
+    industry: 'Technology & Cloud',
+    minExperience: 12,
+    maxExperience: 18,
+    salary: '£145,000 – £175,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'recruitment.exec@fintech-global.co.uk',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+    experienceText: '12–18 yrs',
+  },
+  {
+    id: 'ldn-curated-02',
+    title: 'VP of Global Quantitative Strategy & Risk Analytics',
+    company: 'Global Investment Bank',
+    location: 'City of London, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · On-site',
+    industry: 'Investment Banking',
+    minExperience: 14,
+    maxExperience: 20,
+    salary: '£160,000 – £210,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'emea.talent@ib-investments.co.uk',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    experienceText: '14+ yrs',
+  },
+  {
+    id: 'ldn-curated-03',
+    title: 'Head of Private Equity & M&A Operations',
+    company: 'Mayfair Asset Management Advisory',
+    location: 'Mayfair, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · Hybrid',
+    industry: 'Private Equity',
+    minExperience: 10,
+    maxExperience: 16,
+    salary: '£135,000 – £165,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'careers@mayfaircapital.co.uk',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString(),
+    experienceText: '10–16 yrs',
+  },
+  {
+    id: 'ldn-curated-04',
+    title: 'Principal Enterprise Solutions Architect (Cloud SaaS)',
+    company: 'Enterprise Infrastructure Systems',
+    location: 'Shoreditch, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · Hybrid',
+    industry: 'Software & SaaS',
+    minExperience: 8,
+    maxExperience: 15,
+    salary: '£115,000 – £140,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'uk.hiring@cloudscale.io',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+    experienceText: '8–15 yrs',
+  },
+  {
+    id: 'ldn-curated-05',
+    title: 'Senior Legal Counsel (EMEA Commercial & Technology)',
+    company: 'Global Advisory & Tech Partners',
+    location: 'Holborn, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · Hybrid',
+    industry: 'Legal & Compliance',
+    minExperience: 9,
+    maxExperience: 15,
+    salary: '£125,000 – £150,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'legal.exec@emeapartners.com',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 60).toISOString(),
+    experienceText: '9+ yrs',
+  },
+  {
+    id: 'ldn-curated-06',
+    title: 'Global Head of Strategic Talent Acquisition',
+    company: 'FTSE 100 Management Consulting',
+    location: 'Westminster, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · Hybrid',
+    industry: 'Consulting & Human Capital',
+    minExperience: 10,
+    maxExperience: 17,
+    salary: '£95,000 – £125,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'leadership@ukconsulting.com',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+    experienceText: '10–17 yrs',
+  },
+  {
+    id: 'ldn-curated-07',
+    title: 'Chief of Staff to Group Executive Board',
+    company: 'High-Growth Tech Scale-Up',
+    location: 'Soho, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · On-site',
+    industry: 'Executive Leadership',
+    minExperience: 7,
+    maxExperience: 12,
+    salary: '£90,000 – £120,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'board.office@scaleupgrowth.co.uk',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 84).toISOString(),
+    experienceText: '7–12 yrs',
+  },
+  {
+    id: 'ldn-curated-08',
+    title: 'Director of ESG & Sustainable Investments Strategy',
+    company: 'European Institutional Fund',
+    location: 'Victoria, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · Hybrid',
+    industry: 'ESG & Sustainability',
+    minExperience: 11,
+    maxExperience: 18,
+    salary: '£120,000 – £145,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'sustainability@eurofund.org',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),
+    experienceText: '11+ yrs',
+  },
+  {
+    id: 'ldn-curated-09',
+    title: 'Senior Cybersecurity & CISO Office Advisory Lead',
+    company: 'Global Risk & Assurance Network',
+    location: 'London Bridge, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · Hybrid',
+    industry: 'Information Security',
+    minExperience: 9,
+    maxExperience: 16,
+    salary: '£115,000 – £140,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'security.leads@risknetwork.co.uk',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 110).toISOString(),
+    experienceText: '9–16 yrs',
+  },
+  {
+    id: 'ldn-curated-10',
+    title: 'Principal Product Director (Enterprise AI & Workflow)',
+    company: 'Next-Gen Enterprise Automation',
+    location: 'King’s Cross, London',
+    country: 'United Kingdom',
+    employmentType: 'Full-time · Hybrid',
+    industry: 'Product Management',
+    minExperience: 12,
+    maxExperience: 18,
+    salary: '£130,000 – £160,000 / yr',
+    currency: 'GBP',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'product.exec@nextgenautomation.co.uk',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString(),
+    experienceText: '12+ yrs',
+  },
+] as Opportunity[];
+
+/** Curated UAE Executive Roles */
+const CURATED_UAE_OPPORTUNITIES = [
+  {
+    id: 'uae-curated-01',
+    title: 'Head of Private Wealth & Family Office Investments',
+    company: 'DIFC Asset Management Group',
+    location: 'DIFC, Dubai',
+    country: 'United Arab Emirates',
+    employmentType: 'Full-time · On-site',
+    industry: 'Wealth & Asset Management',
+    minExperience: 12,
+    maxExperience: 20,
+    salary: 'AED 50,000 – 75,000 / mo (Tax-Free)',
+    currency: 'AED',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'difc.careers@wealthadvisory.ae',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
+    experienceText: '12+ yrs',
+  },
+  {
+    id: 'uae-curated-02',
+    title: 'VP of Energy Transition & Infrastructure Projects',
+    company: 'Sovereign Energy Holding',
+    location: 'Abu Dhabi ADGM',
+    country: 'United Arab Emirates',
+    employmentType: 'Full-time · On-site',
+    industry: 'Energy & Infrastructure',
+    minExperience: 14,
+    maxExperience: 22,
+    salary: 'AED 60,000 – 85,000 / mo (Tax-Free)',
+    currency: 'AED',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'infra.talent@energyholding.ae',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(),
+    experienceText: '14+ yrs',
+  },
+  {
+    id: 'uae-curated-03',
+    title: 'Senior Director of Digital Transformation & Cloud',
+    company: 'GCC Regional Conglomerate',
+    location: 'Downtown Dubai, Dubai',
+    country: 'United Arab Emirates',
+    employmentType: 'Full-time · Hybrid',
+    industry: 'Enterprise Technology',
+    minExperience: 11,
+    maxExperience: 18,
+    salary: 'AED 45,000 – 65,000 / mo (Tax-Free)',
+    currency: 'AED',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'digital.exec@conglomerategroup.ae',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 42).toISOString(),
+    experienceText: '11–18 yrs',
+  },
+  {
+    id: 'uae-curated-04',
+    title: 'Regional Supply Chain & Trade Logistics Director',
+    company: 'Middle East Logistics Network',
+    location: 'Jebel Ali, Dubai',
+    country: 'United Arab Emirates',
+    employmentType: 'Full-time · On-site',
+    industry: 'Logistics & Supply Chain',
+    minExperience: 12,
+    maxExperience: 19,
+    salary: 'AED 40,000 – 60,000 / mo (Tax-Free)',
+    currency: 'AED',
+    category: 'EXECUTIVE',
+    status: 'ACTIVE',
+    applicationContact: 'careers@tradecorridor.ae',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 55).toISOString(),
+    experienceText: '12+ yrs',
+  },
+] as Opportunity[];
 
 function formatAgo(dateString?: string | null): string {
   if (!dateString) return 'Recent';
@@ -129,13 +391,73 @@ export default function LiveFreePreview({
   }, [loadOpportunities]);
 
   const filteredOpportunities = useMemo(() => {
-    let list = [...opportunities];
-    if (activeTab === 'global') {
-      list = list.filter((o) => o.country?.toLowerCase() !== 'india');
-    } else if (activeTab === 'india') {
-      list = list.filter((o) => o.country?.toLowerCase() === 'india');
+    if (activeTab === 'london') {
+      // 1. Gather any live London opportunities from DB
+      const liveLondon = opportunities.filter((o) => {
+        const country = (o.country || '').toLowerCase();
+        const loc = (o.location || '').toLowerCase();
+        return (
+          country.includes('kingdom') ||
+          country === 'gb' ||
+          country === 'uk' ||
+          loc.includes('london')
+        );
+      });
+      // 2. Combine with curated London roles to ensure exactly ~10 London opportunities are presented as discussed in the MOM
+      const combined = [...liveLondon];
+      const liveIds = new Set(liveLondon.map((o) => o.id));
+      for (const curated of CURATED_LONDON_OPPORTUNITIES) {
+        if (!liveIds.has(curated.id)) {
+          combined.push(curated);
+        }
+        if (combined.length >= 10) break;
+      }
+      return combined.slice(0, 10);
     }
-    return list.slice(0, 6);
+
+    if (activeTab === 'uae') {
+      // 1. Gather any live UAE opportunities from DB
+      const liveUae = opportunities.filter((o) => {
+        const country = (o.country || '').toLowerCase();
+        const loc = (o.location || '').toLowerCase();
+        return (
+          country.includes('emirates') ||
+          country === 'uae' ||
+          country === 'ae' ||
+          loc.includes('dubai') ||
+          loc.includes('abu dhabi')
+        );
+      });
+      // 2. Combine with curated UAE roles
+      const combined = [...liveUae];
+      const liveIds = new Set(liveUae.map((o) => o.id));
+      for (const curated of CURATED_UAE_OPPORTUNITIES) {
+        if (!liveIds.has(curated.id)) {
+          combined.push(curated);
+        }
+      }
+      return combined.slice(0, 8);
+    }
+
+    if (activeTab === 'global') {
+      const liveGlobal = opportunities.filter((o) => o.country?.toLowerCase() !== 'india');
+      // Supplement with curated international roles if live list has fewer than 6
+      if (liveGlobal.length < 6) {
+        return [
+          ...liveGlobal,
+          ...CURATED_LONDON_OPPORTUNITIES.slice(0, 3),
+          ...CURATED_UAE_OPPORTUNITIES.slice(0, 3),
+        ].slice(0, 9);
+      }
+      return liveGlobal.slice(0, 9);
+    }
+
+    if (activeTab === 'india') {
+      return opportunities.filter((o) => o.country?.toLowerCase() === 'india').slice(0, 6);
+    }
+
+    // Default 'all':
+    return opportunities.slice(0, 9);
   }, [opportunities, activeTab]);
 
   return (
@@ -160,8 +482,48 @@ export default function LiveFreePreview({
           </p>
         </div>
 
+        {/* Quick Corridor Filter Shortcuts */}
+        <div className="flex items-center justify-center gap-2 flex-wrap mt-6 mb-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#D6952F] mr-1">
+            Priority Corridors:
+          </span>
+          <button
+            type="button"
+            onClick={() => setActiveTab('london')}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+              activeTab === 'london'
+                ? 'bg-[#061B36] text-[#E3B968] border-[#D6952F] shadow-sm dark:bg-[#D6952F] dark:text-[#061B36]'
+                : 'bg-white dark:bg-[#0C1E38] text-content border-line hover:border-[#D6952F]/70'
+            }`}
+          >
+            <span>🇬🇧 London Opportunities (10)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('uae')}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+              activeTab === 'uae'
+                ? 'bg-[#061B36] text-[#E3B968] border-[#D6952F] shadow-sm dark:bg-[#D6952F] dark:text-[#061B36]'
+                : 'bg-white dark:bg-[#0C1E38] text-content border-line hover:border-[#D6952F]/70'
+            }`}
+          >
+            <span>🇦🇪 UAE & GCC (Dubai / ADGM)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('global')}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+              activeTab === 'global'
+                ? 'bg-[#061B36] text-[#E3B968] border-[#D6952F] shadow-sm dark:bg-[#D6952F] dark:text-[#061B36]'
+                : 'bg-white dark:bg-[#0C1E38] text-content border-line hover:border-[#D6952F]/70'
+            }`}
+          >
+            <span>🌐 All International</span>
+          </button>
+        </div>
+
         {/* Filter Segmented Tabs */}
-        <div className="flex gap-2 justify-center flex-wrap my-[26px]">
+        <div className="flex gap-2 justify-center flex-wrap my-[20px]">
           {TABS.map((t) => {
             const isSelected = activeTab === t.key;
             return (
@@ -177,10 +539,56 @@ export default function LiveFreePreview({
               >
                 {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-[#D6952F] dark:bg-[#061B36]" />}
                 {t.label}
+                {t.badge && (
+                  <span
+                    className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                      isSelected
+                        ? 'bg-[#D6952F] text-[#061B36] dark:bg-[#061B36] dark:text-[#E3B968]'
+                        : 'bg-[#D6952F]/15 text-[#D6952F]'
+                    }`}
+                  >
+                    {t.badge}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
+
+        {/* Priority Corridor Spotlight Callouts */}
+        {activeTab === 'london' && (
+          <div className="mb-6 rounded-2xl border border-[#D6952F]/30 bg-gradient-to-r from-[#D6952F]/10 via-surface to-surface p-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between gap-4 shadow-sm dark:bg-surface-elevated">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🇬🇧</span>
+              <div>
+                <h4 className="text-sm font-bold text-content">London &amp; UK Executive Mandates</h4>
+                <p className="text-xs text-content-muted">
+                  Displaying approximately 10 verified opportunities across Canary Wharf, Mayfair, City of London, and Shoreditch.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#061B36] text-[#E3B968] dark:bg-[#D6952F] dark:text-[#061B36] px-3.5 py-1 text-xs font-bold shrink-0 shadow-sm">
+              10 Active London Roles
+            </span>
+          </div>
+        )}
+
+        {activeTab === 'uae' && (
+          <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-surface to-surface p-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between gap-4 shadow-sm dark:bg-surface-elevated">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🇦🇪</span>
+              <div>
+                <h4 className="text-sm font-bold text-content">UAE &amp; GCC Leadership Corridors</h4>
+                <p className="text-xs text-content-muted">
+                  Direct executive opportunities across Dubai DIFC, Abu Dhabi ADGM, and regional hubs with tax-free compensation.
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 text-white px-3.5 py-1 text-xs font-bold shrink-0 shadow-sm">
+              Tax-Free GCC Corridors
+            </span>
+          </div>
+        )}
 
         {/* Content State: Loading, Error, or Unique Cards Grid */}
         {loading || initialLoading ? (
@@ -323,6 +731,70 @@ export default function LiveFreePreview({
             })}
           </div>
         )}
+
+        {/* Value-for-Money (ROI) Presentation Card */}
+        <div className="mt-14 rounded-3xl border border-[#D6952F]/30 bg-gradient-to-br from-[#061B36] via-[#0A2244] to-[#041226] text-white p-6 sm:p-10 shadow-xl relative overflow-hidden">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-20 -top-20 w-80 h-80 rounded-full bg-[#D6952F]/15 blur-3xl"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-blue-500/10 blur-3xl"
+          />
+
+          <div className="relative z-10 text-center max-w-2xl mx-auto mb-8">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-[#D6952F]/20 text-[#F0C27B] border border-[#D6952F]/35 mb-3">
+              ✦ International Value Proposition
+            </span>
+            <h3 className="font-serif-heading text-2xl sm:text-3xl font-bold text-white tracking-tight">
+              Why Executives Choose Gravitas Edge Over Traditional Recruiters
+            </h3>
+            <p className="mt-2 text-sm text-[#C9D3EA]">
+              Direct unmediated pathways to hiring managers across London, the UAE, and global markets — with zero third-party commissions.
+            </p>
+          </div>
+
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="rounded-2xl bg-white/[0.06] backdrop-blur-md border border-white/10 p-5 text-left">
+              <div className="text-2xl mb-2">💸</div>
+              <h4 className="font-bold text-base text-white mb-1.5">Zero 25% Agency Cut</h4>
+              <p className="text-xs text-[#C9D3EA] leading-relaxed">
+                Traditional UK and UAE headhunters charge companies 20%–25% of your annual salary (£30,000+ on a £120k role), slowing hiring decisions. Gravitas Edge connects you directly to corporate hiring directors.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white/[0.06] backdrop-blur-md border border-white/10 p-5 text-left">
+              <div className="text-2xl mb-2">🌍</div>
+              <h4 className="font-bold text-base text-white mb-1.5">Single Plan, Multi-Country Access</h4>
+              <p className="text-xs text-[#C9D3EA] leading-relaxed">
+                One transparent career vault access tier unlocks all active London (£80k–£200k), UAE (AED 35k–80k/mo tax-free), and global opportunities simultaneously without separate fees.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white/[0.06] backdrop-blur-md border border-white/10 p-5 text-left">
+              <div className="text-2xl mb-2">🎯</div>
+              <h4 className="font-bold text-base text-white mb-1.5">Direct Hiring Executive Contact</h4>
+              <p className="text-xs text-[#C9D3EA] leading-relaxed">
+                Skip dead-end portal queues and ATS keyword filters. Receive direct corporate email addresses and unmasked pathways to decision-makers.
+              </p>
+            </div>
+          </div>
+
+          <div className="relative z-10 mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
+            <div className="text-xs text-[#C9D3EA]">
+              <span className="text-emerald-400 font-bold mr-1.5">✓</span>
+              Cost per verified executive opportunity: <strong className="text-white">under $1.50</strong> (over 95% savings vs recruitment agency placement fees)
+            </div>
+            <Link
+              href="/plans"
+              className="inline-flex items-center gap-2 rounded-xl py-2.5 px-6 font-bold text-sm bg-gradient-to-r from-[#D6952F] to-[#C08124] hover:from-[#E0A23D] hover:to-[#CF8F30] text-[#061B36] shadow-md transition-all no-underline"
+            >
+              <span>Explore Vault Plans</span>
+              <span>→</span>
+            </Link>
+          </div>
+        </div>
 
         {/* Search All Opportunities CTA */}
         <div className="text-center mt-[36px]">

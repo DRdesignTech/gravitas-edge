@@ -11,6 +11,7 @@ import VaultFinder from '@/components/marketing/VaultFinder';
 import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import Eyebrow from '@/components/marketing/Eyebrow';
+import HeroCarousel from '@/components/marketing/HeroCarousel';
 import HowItWorks from '@/components/marketing/HowItWorks';
 import Testimonials from '@/components/marketing/Testimonials';
 import LiveFreePreview from '@/components/marketing/LiveFreePreview';
@@ -277,161 +278,21 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Hero Section (.hero) */}
-      <section
-        id="home"
-        className="relative bg-[#061B36] text-white pt-[96px] pb-[104px] max-[900px]:pt-[76px] max-[900px]:pb-[96px] overflow-hidden isolate"
-      >
-        {/* Background image layer matching .hero::before */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute top-0 right-0 bottom-0 w-[70%] max-[900px]:w-full z-[-2] bg-cover bg-no-repeat [background-position:center_30%] max-[900px]:[background-position:70%_30%]"
-          style={{
-            backgroundImage: 'url(/images/hero_redesign.jpg)',
-          }}
-        />
-
-        {/* Gradient scrims matching .hero::after */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-[-1] hidden min-[901px]:block"
-          style={{
-            background:
-              'linear-gradient(90deg, #061B36 0%, #061B36 38%, rgba(6,27,54,0.82) 50%, rgba(6,27,54,0.25) 70%, rgba(6,27,54,0) 100%), linear-gradient(0deg, rgba(6,27,54,0.55), rgba(6,27,54,0) 35%)',
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-[-1] min-[901px]:hidden block"
-          style={{
-            background:
-              'linear-gradient(90deg, rgba(6,27,54,0.92), rgba(6,27,54,0.7)), linear-gradient(0deg, #061B36, rgba(6,27,54,0) 40%)',
-          }}
-        />
-
-        {/* .wrap */}
-        <div className="relative mx-auto max-w-[1180px] px-5">
-          {/* Eyebrow */}
-          <span className="inline-block text-[0.75rem] font-bold tracking-[0.12em] uppercase text-[#F0C27B] mb-[0.6rem]">
-            Global opportunities. Real connections.
-          </span>
-
-          {/* H1 Title */}
-          <h1 className="text-white font-bold tracking-[-0.02em] leading-[1.15] text-[clamp(2.1rem,5vw,3.6rem)] max-w-[780px]">
-            Find opportunities across borders.{' '}
-            <em className="not-italic text-[#D6952F]">Before they reach the usual job portals.</em>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="text-[#C9D3EA] text-[1.12rem] leading-[1.55] max-w-[620px] mt-[18px] mb-[28px]">
-            Curated roles from multiple countries, sorted by location and experience, with direct application pathways and hiring contacts where available.
-          </p>
-
-          {/* Search bar form (.searchbar) */}
-          <form
-            onSubmit={handleHeroSearch}
-            className="flex flex-col min-[641px]:flex-row gap-2 bg-white rounded-[18px] min-[641px]:rounded-full p-1.5 max-w-[680px] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.4)]"
-            id="heroSearch"
-          >
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Job title, keyword or Job ID"
-              aria-label="Keyword or Job ID"
-              className="flex-1 border-0 font-sans text-base py-2.5 px-3.5 outline-none text-[#1A2236] bg-transparent min-w-0 placeholder:text-[#5B6479]"
-            />
-            <select
-              value={selectedCountry}
-              onChange={(e) => setSelectedCountry(e.target.value)}
-              aria-label="Country"
-              className="border-0 border-t min-[641px]:border-t-0 min-[641px]:border-l border-[#E9E5DC] font-sans text-base py-2.5 px-3.5 outline-none text-[#1A2236] bg-transparent min-w-0 max-w-none min-[641px]:max-w-[190px] cursor-pointer"
-            >
-              <option value="">All countries</option>
-              {HERO_COUNTRIES.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center gap-2 border-0 rounded-full py-3 px-6 font-bold text-[0.95rem] leading-none bg-[#D6952F] hover:bg-[#E0A85A] text-[#061B36] hover:shadow-[0_8px_24px_-6px_rgba(200,132,45,0.45)] hover:-translate-y-0.5 transition-all cursor-pointer shrink-0"
-            >
-              Search
-            </button>
-          </form>
-
-          {/* Hero Stats (.hero-stats) */}
-          <div className="flex flex-wrap gap-7 mt-[34px]">
-            <div>
-              <b className="block text-[1.8rem] text-[#86EFAC] font-bold font-sans leading-tight">
-                {oppsTotal > 0 ? oppsTotal : '500+'}
-              </b>
-              <span className="text-[#AEB9D6] text-[0.85rem]">live opportunities</span>
-            </div>
-            <div>
-              <b className="block text-[1.8rem] text-[#86EFAC] font-bold font-sans leading-tight">
-                {countriesCount > 0 ? countriesCount : '24'}
-              </b>
-              <span className="text-[#AEB9D6] text-[0.85rem]">countries represented</span>
-            </div>
-            <div>
-              <b className="block text-[1.8rem] text-[#86EFAC] font-bold font-sans leading-tight">
-                {citiesCount > 0 ? citiesCount : '60+'}
-              </b>
-              <span className="text-[#AEB9D6] text-[0.85rem]">cities</span>
-            </div>
-          </div>
-
-          {/* Country Pills Row (.hero-flags button.has) - single line */}
-          <div className="mt-[26px] flex flex-nowrap items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 max-w-full">
-            {HERO_COUNTRIES.filter((c) => c.code !== 'IN')
-              .slice(0, 8)
-              .map((c) => {
-                const count = countryCounts[c.name];
-                return (
-                  <button
-                    key={c.code}
-                    type="button"
-                    onClick={() => handleCountryClick(c.name)}
-                    className="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 bg-[rgba(34,197,94,0.14)] hover:bg-white/[0.18] border border-[rgba(134,239,172,0.55)] text-white rounded-full py-1.5 px-3 text-[0.82rem] font-semibold transition-colors cursor-pointer"
-                  >
-                    <span>{c.flag}</span>
-                    <span>{c.name}</span>
-                    {count ? <span>· {count}</span> : null}
-                  </button>
-                );
-              })}
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="mt-7 flex gap-3 flex-wrap">
-            <Link
-              href="#free-preview"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollTo('free-preview');
-                window.history.replaceState(null, '', '#free-preview');
-              }}
-              className="inline-flex items-center justify-center gap-2 border-0 rounded-full py-3 px-6 font-bold text-[0.95rem] leading-none bg-[#D6952F] hover:bg-[#E0A85A] text-[#061B36] hover:shadow-[0_8px_24px_-6px_rgba(200,132,45,0.45)] hover:-translate-y-0.5 transition-all no-underline cursor-pointer"
-            >
-              Explore Free Preview →
-            </Link>
-            <Link
-              href="#vaults"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollTo('vaults');
-                window.history.replaceState(null, '', '#vaults');
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-full py-3 px-6 font-bold text-[0.95rem] leading-none bg-transparent hover:bg-white/[0.08] text-white border border-white/30 hover:border-white transition-all no-underline cursor-pointer"
-            >
-              See vaults &amp; pricing
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Hero Section (.hero) with Dynamic Carousel */}
+      <HeroCarousel
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedCountry={selectedCountry}
+        setSelectedCountry={setSelectedCountry}
+        handleHeroSearch={handleHeroSearch}
+        countriesList={HERO_COUNTRIES}
+        countryCounts={countryCounts}
+        handleCountryClick={handleCountryClick}
+        oppsTotal={oppsTotal}
+        countriesCount={countriesCount}
+        citiesCount={citiesCount}
+        scrollTo={scrollTo}
+      />
 
       {/* 3 Trust Features Strip right below Hero (.hstrip) */}
       <div className="bg-[#061B36] border-t border-white/[0.08]">
@@ -641,7 +502,7 @@ export default function Home() {
               />
             </div>
           ) : (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-3">
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-5">
               {visibleVaults.map((v) => (
                 <VaultCard key={v.id} vault={v} recommended={recommendedVaultIds.has(v.id)} />
               ))}

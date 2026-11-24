@@ -21,6 +21,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { ResumesModule } from './resumes/resumes.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RecruitmentVendorModule } from './recruitment-vendor/recruitment-vendor.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { RecruitmentVendorModule } from './recruitment-vendor/recruitment-vendor
     ResumesModule,
     PaymentsModule,
     RecruitmentVendorModule,
+    AiModule,
   ],
   controllers: [HealthController, PublicExperienceLevelsController, PublicTestimonialsController],
   providers: [
