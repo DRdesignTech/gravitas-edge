@@ -4,6 +4,13 @@ import Link from 'next/link';
 import { Opportunity, Vault } from '@/lib/types';
 import { Badge, LockIcon, UnlockIcon } from '@/components/ui';
 import {
+  HiSparkles,
+  HiLockClosed,
+  HiLockOpen,
+  HiArrowRight,
+  HiShieldCheck,
+} from 'react-icons/hi2';
+import {
   titleCase,
   formatDate,
   displayExperience,
@@ -577,18 +584,69 @@ export function VaultGlyph({ name, className = 'h-7 w-7' }: { name: string; clas
 function AccessPill({ locked }: { locked: boolean }) {
   if (locked) {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-rose-50 px-2.5 py-0.5 text-[0.72rem] font-bold text-rose-700 ring-1 ring-inset ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/30">
-        <LockIcon className="h-3 w-3" />
-        Locked
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#061B36]/5 px-2.5 py-0.5 text-[0.72rem] font-bold text-content-muted ring-1 ring-inset ring-line dark:bg-white/10 dark:text-[#E2E8F0]">
+        <HiLockClosed className="h-3 w-3 text-[#C8943E]" />
+        Preview Ready
       </span>
     );
   }
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[0.72rem] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/30">
-      <UnlockIcon className="h-3 w-3" />
-      Unlocked
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[0.72rem] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/30">
+      <HiShieldCheck className="h-3.5 w-3.5" />
+      Access Active
     </span>
   );
+}
+
+function getVaultMeta(name: string): { level: string; region: string; badges: string[] } {
+  const n = name.toLowerCase();
+  if (n.includes('executive')) {
+    return {
+      level: 'Executive (C-Suite & Board)',
+      region: 'India & Key Corridors',
+      badges: ['Direct CXO Roles', 'Board Appointments', 'Verified Comp'],
+    };
+  }
+  if (n.includes('leadership')) {
+    return {
+      level: 'Leadership (10+ Years)',
+      region: 'India Hubs',
+      badges: ['Senior Management', 'Direct Recruiter Access', 'Pre-Vetted Roles'],
+    };
+  }
+  if (n.includes('management')) {
+    return {
+      level: 'Management (5–10 Years)',
+      region: 'India Hubs',
+      badges: ['Mid-Level Leads', 'Functional Heads', 'Verified Companies'],
+    };
+  }
+  if (n.includes('early') || n.includes('career')) {
+    return {
+      level: 'Early Career (0–5 Years)',
+      region: 'India Hubs',
+      badges: ['Fast-Track Roles', 'Growth Startups', 'High-Impact Openings'],
+    };
+  }
+  if (n.includes('remote')) {
+    return {
+      level: 'Cross-Border Remote',
+      region: 'Global / Borderless',
+      badges: ['100% Remote', 'USD/EUR Compensation', 'Global Companies'],
+    };
+  }
+  if (n.includes('uae') || n.includes('global')) {
+    return {
+      level: 'International & GCC',
+      region: 'Dubai, GCC, Singapore & Global',
+      badges: ['Tax-Free Comp', 'GCC Executive Hubs', 'Global Relocation'],
+    };
+  }
+  return {
+    level: 'Verified Career Channel',
+    region: 'Curated Opportunity Channel',
+    badges: ['Verified Pathways', 'Direct Contacts', 'Active Pipeline'],
+  };
 }
 
 export function VaultCard({
@@ -601,66 +659,90 @@ export function VaultCard({
   const unlocked = !v.locked;
   const href = unlocked ? `/opportunities?vaultId=${encodeURIComponent(v.id)}` : `/vaults/${v.id}`;
   const actionText = v.locked
-    ? 'Browse jobs free · Full details via subscription'
-    : 'Open the jobs included with your access';
+    ? 'Browse free preview · Full unlock via subscription'
+    : 'Open opportunities included with your plan';
+  const meta = getVaultMeta(v.name);
 
   return (
     <Link
       href={href}
-      className={`group relative flex h-full flex-col rounded-[20px] bg-white dark:bg-[#0C1E38] p-6 transition-all duration-200 ease-out hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6952F] ${
+      className={`group relative flex h-full flex-col justify-between rounded-[20px] bg-white p-6 transition-all duration-300 ease-out hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6952F] dark:bg-[#0C1E38] ${
         recommended
-          ? 'border-2 border-[#D6952F] shadow-[0_12px_32px_-10px_rgba(214,149,47,0.3)] hover:shadow-[0_16px_36px_-10px_rgba(214,149,47,0.4)]'
-          : 'border border-[#E9E5DC] dark:border-white/10 hover:border-[#D6952F] hover:shadow-[0_14px_34px_-12px_rgba(6,27,54,0.12)] dark:hover:shadow-[0_14px_34px_-12px_rgba(0,0,0,0.5)]'
+          ? 'border-2 border-[#D6952F] shadow-[0_16px_36px_-12px_rgba(214,149,47,0.35)] ring-2 ring-[#D6952F]/20 hover:shadow-[0_20px_42px_-12px_rgba(214,149,47,0.45)]'
+          : 'border border-[#E9E5DC] dark:border-white/10 hover:border-[#D6952F] hover:shadow-[0_16px_36px_-12px_rgba(6,27,54,0.12)] dark:hover:shadow-[0_16px_36px_-12px_rgba(0,0,0,0.5)]'
       }`}
     >
-      {/* Decorative background — CSS only, sits behind content */}
+      {/* Decorative background glow */}
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 overflow-hidden rounded-[20px]"
       >
         <span
-          className="absolute -right-14 -top-14 h-44 w-44 rounded-full opacity-60 transition-opacity duration-300 group-hover:opacity-100"
-          style={{ background: 'radial-gradient(circle, rgba(214,149,47,0.14), transparent 68%)' }}
+          className="absolute -right-12 -top-12 h-44 w-44 rounded-full opacity-50 transition-opacity duration-300 group-hover:opacity-100"
+          style={{ background: 'radial-gradient(circle, rgba(214,149,47,0.18), transparent 70%)' }}
         />
-        <span className="absolute -right-7 -top-7 h-28 w-28 rounded-full border border-[#D6952F]/15" />
       </span>
 
       {recommended && (
-        <span className="absolute -top-3 left-6 z-10 inline-flex items-center gap-1.5 rounded-full bg-[#D6952F] px-3 py-0.5 text-[0.72rem] font-bold text-[#061B36] shadow-sm uppercase tracking-wider">
-          <SparkleIcon className="h-3 w-3" />
-          Recommended for you
+        <span className="absolute -top-3 left-6 z-20 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#D6952F] via-[#E2A746] to-[#B37E28] px-3.5 py-1 text-[11px] font-extrabold text-white shadow-md uppercase tracking-wider ring-2 ring-white dark:ring-[#0C1E38]">
+          <HiSparkles className="h-3.5 w-3.5 text-white" />
+          Recommended For You
         </span>
       )}
 
-      {/* Header: gold glyph in navy tile, bold title, access badge */}
-      <div className="relative flex items-start gap-3.5">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] border border-[#F0C27B]/30 shadow-sm transition-all duration-200 group-hover:scale-105 group-hover:text-white">
-          <VaultGlyph name={v.name} className="h-6 w-6" />
-        </span>
-        <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-3 gap-y-2">
-          <h3 className="font-['Poppins',system-ui,sans-serif] min-w-0 text-[1.1rem] font-bold leading-snug text-[#061B36] dark:text-white group-hover:text-[#D6952F] transition-colors">
-            {v.name}
-          </h3>
-          <AccessPill locked={!!v.locked} />
+      <div>
+        {/* Top Meta Line: Seniority Tag + Access Pill */}
+        <div className="relative flex items-center justify-between gap-2 border-b border-line/50 pb-3 dark:border-white/10">
+          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#C8943E]">
+            {meta.level}
+          </span>
+          <AccessPill locked={!unlocked} />
+        </div>
+
+        {/* Main Header: Glyph in navy/gold tile + Vault Title */}
+        <div className="relative mt-4 flex items-start gap-3.5">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] border border-[#F0C27B]/30 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:border-[#D6952F] group-hover:text-white">
+            <VaultGlyph name={v.name} className="h-6 w-6" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-['Poppins',system-ui,sans-serif] text-[1.12rem] font-bold leading-snug text-[#061B36] transition-colors group-hover:text-[#D6952F] dark:text-white">
+              {v.name}
+            </h3>
+            <p className="mt-0.5 text-xs text-content-faint">
+              {meta.region}
+            </p>
+          </div>
+        </div>
+
+        {v.description && (
+          <p className="relative mt-3.5 text-[0.88rem] leading-[1.6] text-[#5B6479] dark:text-[#AEB9D6]">
+            {v.description}
+          </p>
+        )}
+
+        {/* Key Feature Badges */}
+        <div className="relative mt-4 flex flex-wrap gap-1.5">
+          {meta.badges.map((b) => (
+            <span
+              key={b}
+              className="rounded-md bg-[#061B36]/5 px-2 py-0.5 text-[10px] font-semibold text-content-muted dark:bg-white/5 dark:text-[#AEB9D6]"
+            >
+              {b}
+            </span>
+          ))}
         </div>
       </div>
 
-      {v.description && (
-        <p className="relative mt-3.5 flex-1 text-[0.9rem] leading-[1.6] text-[#5B6479] dark:text-[#AEB9D6]">
-          {v.description}
-        </p>
-      )}
-
-      {/* Action area: existing action text + gold circular arrow */}
-      <div className="relative mt-6 flex items-center justify-between gap-3 border-t border-[#F0ECE1] dark:border-white/10 pt-4">
-        <span className="text-[0.8rem] font-medium leading-relaxed text-[#7A8A9E] dark:text-[#8D9CB0]">
+      {/* Action area: action text + circular arrow */}
+      <div className="relative mt-6 flex items-center justify-between gap-3 border-t border-[#F0ECE1] pt-4 dark:border-white/10">
+        <span className="text-[0.78rem] font-medium leading-relaxed text-[#7A8A9E] dark:text-[#8D9CB0]">
           {actionText}
         </span>
         <span
           aria-hidden="true"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#061B36] text-[#F0C27B] border border-[#F0C27B]/30 transition-all duration-200 group-hover:bg-[#D6952F] group-hover:text-[#061B36] group-hover:border-[#D6952F] group-hover:translate-x-0.5"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#061B36] text-[#F0C27B] border border-[#F0C27B]/30 transition-all duration-200 group-hover:bg-[#D6952F] group-hover:text-[#061B36] group-hover:border-[#D6952F] group-hover:translate-x-1"
         >
-          <ArrowRightIcon className="h-4 w-4" />
+          <HiArrowRight className="h-4 w-4" />
         </span>
       </div>
     </Link>

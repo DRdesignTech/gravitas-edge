@@ -20,6 +20,7 @@ import PricingSection from '@/components/marketing/PricingSection';
 import WhatsAppChannel from '@/components/marketing/WhatsAppChannel';
 import FaqSection from '@/components/marketing/FaqSection';
 import { scrollToHash } from '@/lib/scroll';
+import { HiSparkles } from 'react-icons/hi2';
 
 function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -149,13 +150,16 @@ export default function Home() {
     router.push(`/opportunities?country=${encodeURIComponent(countryName)}`);
   };
 
+  const [onlyRecommended, setOnlyRecommended] = useState(false);
+
   const visibleVaults = useMemo(() => {
     const list = [...vaults];
     if (recommendedVaultIds.size === 0) return list;
     const recommended = list.filter((v) => recommendedVaultIds.has(v.id));
+    if (onlyRecommended) return recommended;
     const rest = list.filter((v) => !recommendedVaultIds.has(v.id));
     return [...recommended, ...rest];
-  }, [vaults, recommendedVaultIds]);
+  }, [vaults, recommendedVaultIds, onlyRecommended]);
 
   return (
     <div className="overflow-x-clip">
@@ -586,23 +590,29 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-2xl">
-              <Eyebrow>OPPORTUNITY VAULTS</Eyebrow>
-              <h2 className="mt-3 text-2xl font-bold tracking-tight text-content sm:text-3xl">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D6952F]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#D6952F]">
+                  <HiSparkles className="h-3.5 w-3.5 text-[#D6952F]" />
+                  Curated Career Channels
+                </span>
+              </div>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-content sm:text-3xl">
                 Find where you fit.
               </h2>
               <p className="mt-2 text-sm text-content-muted sm:text-base">
-                Opportunities organised by experience level and location, so you know exactly where
-                to look.
+                Opportunities segmented by seniority level, compensation tier, and target market geography.
               </p>
             </div>
-            {user && (
-              <Link
-                href="/dashboard/vaults"
-                className="whitespace-nowrap text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
-              >
-                My vaults →
-              </Link>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {user && (
+                <Link
+                  href="/dashboard/vaults"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-2 text-xs font-bold text-content transition hover:border-[#D6952F] hover:text-[#D6952F] dark:bg-surface-elevated"
+                >
+                  My Vaults Directory →
+                </Link>
+              )}
+            </div>
           </div>
 
           {!loading && !error && vaults.length > 0 && (
@@ -610,13 +620,15 @@ export default function Home() {
               vaults={vaults}
               recommended={recommendedVaultIds}
               onRecommendedChange={setRecommendedVaultIds}
+              onlyRecommended={onlyRecommended}
+              onToggleOnlyRecommended={setOnlyRecommended}
             />
           )}
 
           {loading ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-36" />
+                <Skeleton key={i} className="h-44 rounded-2xl" />
               ))}
             </div>
           ) : error ? (
@@ -629,7 +641,7 @@ export default function Home() {
               />
             </div>
           ) : (
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-3">
               {visibleVaults.map((v) => (
                 <VaultCard key={v.id} vault={v} recommended={recommendedVaultIds.has(v.id)} />
               ))}

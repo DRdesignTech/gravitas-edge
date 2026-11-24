@@ -12,6 +12,13 @@ import {
   COUNTRY_NAME_TO_CC,
 } from './worldMapData';
 import Eyebrow from './Eyebrow';
+import {
+  HiMapPin,
+  HiArrowUpRight,
+  HiArrowRight,
+  HiChevronDown,
+  HiChevronUp,
+} from 'react-icons/hi2';
 
 export interface CountryInfo {
   name: string;
@@ -31,7 +38,7 @@ interface MarkerCluster {
 const MAPW = 960;
 const MAPH = 470;
 
-// Sample fallback countries matching redesign prototype (gravitas-edge-redesign (11).html)
+// Sample fallback countries
 const FALLBACK_COUNTRIES: { name: string; cc: string; count: number; cities: string[]; inds: string[] }[] = [
   { name: 'United Arab Emirates', cc: 'AE', count: 4, cities: ['Dubai', 'Abu Dhabi'], inds: ['Finance', 'Energy & Utilities', 'Sales', 'Technology'] },
   { name: 'Saudi Arabia', cc: 'SA', count: 3, cities: ['Riyadh', 'Jeddah'], inds: ['Construction & Infrastructure', 'Human Resources', 'Logistics'] },
@@ -109,8 +116,14 @@ export default function CountryDirectory({
   const intlCountries = useMemo(() => countries.filter((c) => c.cc !== 'IN'), [countries]);
   const indiaCountry = useMemo(() => countries.find((c) => c.cc === 'IN'), [countries]);
   const sortedTiles = useMemo(() => {
-    return [...intlCountries, ...(indiaCountry ? [indiaCountry] : [])];
-  }, [intlCountries, indiaCountry]);
+    // Sort countries by active opportunity count descending so top opportunity hubs appear first
+    return [...countries].sort((a, b) => b.count - a.count);
+  }, [countries]);
+
+  const [showAll, setShowAll] = useState(false);
+  const visibleTiles = useMemo(() => {
+    return showAll ? sortedTiles : sortedTiles.slice(0, 6);
+  }, [showAll, sortedTiles]);
 
   const totalLiveRoles = useMemo(() => countries.reduce((s, c) => s + c.count, 0), [countries]);
   const totalCities = useMemo(() => countries.reduce((s, c) => s + c.cities.size, 0), [countries]);
@@ -822,45 +835,128 @@ export default function CountryDirectory({
 
         {/* Country Directory Tiles Grid (.grid.ctiles#countryGrid) */}
         <div
-          className="grid grid-cols-2 min-[540px]:grid-cols-3 min-[800px]:grid-cols-4 min-[1020px]:grid-cols-6 gap-3.5 mt-[30px]"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-7"
           id="countryGrid"
         >
-          {sortedTiles.map((c) => {
+          {visibleTiles.map((c) => {
             const isIndia = c.cc === 'IN';
             const flag = COUNTRY_FLAGS[c.cc] || '🌐';
-            const citiesText = Array.from(c.cities).join(' · ');
+            const citiesArray = Array.from(c.cities);
+            const citiesText = citiesArray.join(' · ');
+            const isHighlighted = highlightedCC === c.cc;
 
             return (
               <Link
                 key={c.name}
                 href={`/opportunities?country=${encodeURIComponent(c.name)}`}
-                className={`bg-white dark:bg-[#10243E] border rounded-[14px] p-4 text-left transition-all duration-200 flex flex-col gap-1 border-t-4 border-t-[#22C55E] hover:-translate-y-1 hover:border-[#D6952F] hover:shadow-[0_10px_30px_-12px_rgba(6,27,54,0.18)] ${
-                  isIndia ? 'border-dashed border-[#E9E5DC] dark:border-white/10' : 'border-[#E9E5DC] dark:border-white/10'
+                onMouseEnter={() => setHighlightedCC(c.cc)}
+                onMouseLeave={() => setHighlightedCC(null)}
+                className={`group relative overflow-hidden rounded-[14px] border bg-white p-4 text-left transition-all duration-200 shadow-sm hover:-translate-y-1 hover:shadow-[0_12px_28px_-10px_rgba(6,27,54,0.12)] dark:bg-[#10243E] dark:hover:shadow-[0_12px_28px_-10px_rgba(0,0,0,0.4)] ${
+                  isHighlighted
+                    ? 'border-[#C8943E] ring-1 ring-[#C8943E]/30'
+                    : isIndia
+                    ? 'border-dashed border-[#E9E5DC] dark:border-white/10 hover:border-[#C8943E]'
+                    : 'border-[#E9E5DC] dark:border-white/10 hover:border-[#C8943E]'
                 }`}
               >
-                <span className="text-[1.8rem] leading-none mb-0.5">{flag}</span>
-                <b className="text-[#061B36] dark:text-white text-[1rem] leading-tight font-bold font-['Poppins']">
-                  {c.name}
-                </b>
-                <span className="font-['Poppins',sans-serif] font-bold text-[1.5rem] text-[#15803D] dark:text-[#4ADE80] leading-none mt-1">
-                  {c.count}
-                </span>
-                <span className="text-[0.82rem] text-[#5B6479] dark:text-[#AEB9D6] leading-tight">
-                  active {c.count === 1 ? 'opportunity' : 'opportunities'}
-                </span>
-                <span className="self-start inline-flex items-center gap-1.5 text-[0.7rem] font-bold text-[#15803D] dark:text-[#4ADE80] bg-[#DCFCE7] dark:bg-[#15803D]/20 px-2 py-0.5 rounded-full mt-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
-                  Hiring now
-                </span>
-                {citiesText && (
-                  <span className="text-[0.82rem] text-[#5B6479] dark:text-[#AEB9D6] mt-1 line-clamp-1">
-                    {citiesText}
+                {/* Header: Flag + Code + Live Hiring Badge */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl leading-none" role="img" aria-label={c.name}>
+                      {flag}
+                    </span>
+                    <span className="rounded bg-[#061B36]/5 px-1.5 py-0.5 font-mono text-[11px] font-bold text-content dark:bg-white/10 dark:text-white">
+                      {c.cc}
+                    </span>
+                  </div>
+
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    </span>
+                    Hiring now
                   </span>
+                </div>
+
+                {/* Country Name + Interactive Arrow */}
+                <div className="mt-2.5 flex items-center justify-between gap-1.5">
+                  <h3 className="font-['Poppins',sans-serif] text-[0.95rem] font-bold text-[#061B36] transition-colors group-hover:text-[#C8943E] dark:text-white line-clamp-1">
+                    {c.name}
+                  </h3>
+                  <HiArrowUpRight className="h-4 w-4 shrink-0 text-[#9FB0CC] transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#C8943E]" />
+                </div>
+
+                {/* Metric Counter Display */}
+                <div className="mt-1.5 flex items-baseline gap-1.5">
+                  <span className="font-['Poppins',sans-serif] text-2xl font-extrabold tracking-tight text-[#061B36] transition-colors group-hover:text-emerald-600 dark:text-white dark:group-hover:text-emerald-400">
+                    {c.count}
+                  </span>
+                  <span className="text-[11px] font-medium text-[#5B6479] dark:text-[#AEB9D6]">
+                    {c.count === 1 ? 'active opportunity' : 'active opportunities'}
+                  </span>
+                </div>
+
+                {/* Opportunity Demand Volume Bar */}
+                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[#F3F1EB] dark:bg-white/10">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      isIndia
+                        ? 'bg-gradient-to-r from-[#C8842D] to-[#F0C27B]'
+                        : 'bg-gradient-to-r from-[#16A34A] to-[#4ADE80] group-hover:from-[#C8842D] group-hover:to-[#F0C27B]'
+                    }`}
+                    style={{ width: `${Math.max(14, (c.count / maxCount) * 100)}%` }}
+                  />
+                </div>
+
+                {/* Cities / Locations in a clean, compact line */}
+                {citiesText && (
+                  <div className="mt-2.5 flex items-center gap-1 text-[11px] text-[#5B6479] dark:text-[#AEB9D6]">
+                    <HiMapPin className="h-3.5 w-3.5 shrink-0 text-[#C8943E]" />
+                    <span className="truncate">{citiesText}</span>
+                  </div>
                 )}
+
+                {/* Compact Card Footer */}
+                <div className="mt-3 flex items-center justify-between border-t border-[#E9E5DC]/80 pt-2 text-[11px] font-semibold dark:border-white/10">
+                  <span className="text-[#5B6479] dark:text-[#AEB9D6]">
+                    {isIndia ? 'India Vaults' : 'Global Vaults'}
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 text-[#C8943E] transition-all group-hover:translate-x-0.5">
+                    View <HiArrowRight className="h-3 w-3" />
+                  </span>
+                </div>
               </Link>
             );
           })}
         </div>
+
+        {/* View All / Show Less Toggle Button */}
+        {sortedTiles.length > 6 && (
+          <div className="mt-8 flex flex-col items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAll((prev) => !prev)}
+              className="group inline-flex items-center justify-center gap-2 rounded-xl border border-[#D6952F]/40 bg-[#061B36] px-6 py-2.5 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#0B2548] hover:border-[#D6952F] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#D6952F]/50 dark:bg-[#D6952F] dark:text-[#061B36] dark:hover:bg-[#C8842D]"
+            >
+              <span>
+                {showAll
+                  ? 'Show Top 6 Countries'
+                  : `View All ${sortedTiles.length} Countries`}
+              </span>
+              {showAll ? (
+                <HiChevronUp className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5" />
+              ) : (
+                <HiChevronDown className="h-3.5 w-3.5 transition-transform group-hover:translate-y-0.5" />
+              )}
+            </button>
+            <p className="text-[11px] text-[#5B6479] dark:text-[#AEB9D6]">
+              {showAll
+                ? `Showing all ${sortedTiles.length} active country talent markets`
+                : `Displaying top 6 of ${sortedTiles.length} countries with live opportunities`}
+            </p>
+          </div>
+        )}
 
         {/* Billnote summary (.billnote#countryNote) */}
         <p className="text-center text-[#5B6479] dark:text-[#AEB9D6] text-[0.85rem] mt-[18px]" id="countryNote">

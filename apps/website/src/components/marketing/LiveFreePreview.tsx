@@ -6,6 +6,19 @@ import { Opportunity, Vault, OpportunityQuery, PaginatedResult } from '@/lib/typ
 import { Skeleton, ErrorState } from '@/components/ui';
 import { fetchOpportunities } from '@/lib/services';
 import Eyebrow from './Eyebrow';
+import {
+  HiBriefcase,
+  HiBuildingOffice2,
+  HiClock,
+  HiLockClosed,
+  HiLockOpen,
+  HiSparkles,
+  HiArrowRight,
+  HiShieldCheck,
+  HiXMark,
+  HiMapPin,
+  HiCheckBadge,
+} from 'react-icons/hi2';
 
 const COUNTRY_FLAGS: Record<string, string> = {
   'United Arab Emirates': '🇦🇪',
@@ -29,10 +42,10 @@ const COUNTRY_FLAGS: Record<string, string> = {
 
 type PreviewTab = 'all' | 'global' | 'india';
 
-const TABS: { key: PreviewTab; label: string }[] = [
-  { key: 'all', label: 'Latest' },
-  { key: 'global', label: 'International' },
-  { key: 'india', label: 'India' },
+const TABS: { key: PreviewTab; label: string; countSuffix?: string }[] = [
+  { key: 'all', label: 'All Opportunities' },
+  { key: 'global', label: 'International Corridors' },
+  { key: 'india', label: 'India Hubs' },
 ];
 
 function formatAgo(dateString?: string | null): string {
@@ -61,7 +74,7 @@ function formatExp(o: Opportunity): string {
     return `Up to ${o.maxExperience} yrs`;
   }
   if (o.experienceText) return o.experienceText;
-  return 'Any exp.';
+  return 'Executive exp.';
 }
 
 export default function LiveFreePreview({
@@ -130,43 +143,50 @@ export default function LiveFreePreview({
       {/* Anchor for backwards compatibility */}
       <div id="free-preview" className="absolute -top-20" aria-hidden="true" />
 
-      <div className="mx-auto max-w-[1180px] px-5">
-        {/* Section Header (.center) */}
+      <div className="mx-auto max-w-[1240px] px-5">
+        {/* Section Header */}
         <div className="text-center">
-          <Eyebrow>
-            Live Free Preview
-          </Eyebrow>
-          <h2 className="font-bold tracking-[-0.02em] text-[#061B36] dark:text-[#F2F5FA] text-[clamp(1.7rem,3.4vw,2.5rem)] leading-[1.15] mb-2 font-sans">
-            Recently added opportunities
+          <div className="flex items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D6952F]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#D6952F]">
+              <HiSparkles className="h-3.5 w-3.5 text-[#D6952F]" />
+              Live Free Preview
+            </span>
+          </div>
+          <h2 className="mt-2 font-bold tracking-[-0.02em] text-[#061B36] dark:text-[#F2F5FA] text-[clamp(1.7rem,3.4vw,2.5rem)] leading-[1.15] mb-2 font-sans">
+            Recently Added Opportunities
           </h2>
-          <p className="text-[#5B6479] dark:text-[#93A3BE] text-[1.05rem] max-w-[640px] mx-auto leading-[1.55]">
-            A sample of what&apos;s in the vaults right now. Hiring contacts and full details unlock with a subscription.
+          <p className="text-[#5B6479] dark:text-[#93A3BE] text-[1.05rem] max-w-[660px] mx-auto leading-[1.55]">
+            A live preview of opportunities active across our career vaults right now. Direct recruiter contacts and full application details unlock with access.
           </p>
         </div>
 
-        {/* Filter Tabs (.vtabs) */}
+        {/* Filter Segmented Tabs */}
         <div className="flex gap-2 justify-center flex-wrap my-[26px]">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => setActiveTab(t.key)}
-              className={`inline-flex items-center gap-1.5 border rounded-full py-[5px] px-3.5 text-[0.82rem] font-semibold transition-colors cursor-pointer ${
-                activeTab === t.key
-                  ? 'bg-[#061B36] text-white border-[#061B36] dark:bg-[#10243E] dark:border-[#1E3557]'
-                  : 'bg-white dark:bg-[#0C1E38] border-[#E9E5DC] dark:border-[#1E3557] text-[#061B36] dark:text-[#F2F5FA] hover:bg-[#F8F7F3] dark:hover:bg-[#10243E]'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+          {TABS.map((t) => {
+            const isSelected = activeTab === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setActiveTab(t.key)}
+                className={`inline-flex items-center gap-2 rounded-xl py-2 px-4 text-xs font-bold transition-all shadow-sm cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#061B36] text-white shadow-md dark:bg-[#D6952F] dark:text-[#061B36]'
+                    : 'bg-white dark:bg-[#0C1E38] border border-[#E9E5DC] dark:border-[#1E3557] text-[#061B36] dark:text-[#F2F5FA] hover:border-[#D6952F]/60 hover:bg-[#F8F7F3] dark:hover:bg-[#10243E]'
+                }`}
+              >
+                {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-[#D6952F] dark:bg-[#061B36]" />}
+                {t.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Content State: Loading, Error, or Grid */}
+        {/* Content State: Loading, Error, or Unique Cards Grid */}
         {loading || initialLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[18px]">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-64 rounded-[14px]" />
+              <Skeleton key={i} className="h-72 rounded-[20px]" />
             ))}
           </div>
         ) : error || initialError ? (
@@ -180,12 +200,12 @@ export default function LiveFreePreview({
             />
           </div>
         ) : filteredOpportunities.length === 0 ? (
-          <div className="text-center py-12 text-[#5B6479] dark:text-[#93A3BE] text-[0.95rem] bg-white dark:bg-[#0C1E38] border border-[#E9E5DC] dark:border-[#1E3557] rounded-[16px] p-8">
+          <div className="text-center py-12 text-[#5B6479] dark:text-[#93A3BE] text-[0.95rem] bg-white dark:bg-[#0C1E38] border border-[#E9E5DC] dark:border-[#1E3557] rounded-[20px] p-8">
             No live opportunities match this category right now.
           </div>
         ) : (
-          /* Cards Grid (.grid.cols-opp) */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[18px]">
+          /* Unique Executive Cards Grid */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredOpportunities.map((o) => {
               const country = o.country || (o.location?.includes(',') ? o.location.split(',')[1].trim() : '');
               const city = o.location ? o.location.split(/[/,]/)[0].trim() : '';
@@ -197,84 +217,105 @@ export default function LiveFreePreview({
               return (
                 <div
                   key={o.id}
-                  className="bg-white dark:bg-[#0C1E38] border border-[#E9E5DC] dark:border-[#1E3557] border-l-4 border-l-[#22C55E] rounded-[14px] p-[18px] flex flex-col gap-2 hover:shadow-[0_10px_30px_-12px_rgba(6,27,54,0.18)] dark:hover:shadow-none transition-shadow"
+                  className="group relative flex flex-col justify-between overflow-hidden rounded-[20px] border border-[#E9E5DC] bg-white p-5 text-left transition-all duration-300 shadow-sm hover:-translate-y-1.5 hover:border-[#D6952F] hover:shadow-[0_16px_36px_-12px_rgba(6,27,54,0.14)] dark:border-white/10 dark:bg-[#0C1E38] dark:hover:shadow-[0_16px_36px_-12px_rgba(0,0,0,0.5)]"
                 >
-                  {/* Top row: Location tag + Job ID */}
-                  <div className="flex justify-between items-start gap-2">
-                    <span
-                      className={`inline-block text-[0.72rem] font-bold py-[3px] px-[9px] rounded-[6px] ${
-                        isIndia
-                          ? 'bg-[#FBF0DE] text-[#9C6424]'
-                          : 'bg-[rgba(34,197,94,0.14)] text-[#15803D] dark:text-[#22C55E]'
-                      }`}
-                    >
-                      {flag} {city ? `${city}, ` : ''}{country || 'Global'}
-                    </span>
-                    <span className="font-mono text-[0.78rem] text-[#5B6479] dark:text-[#93A3BE] whitespace-nowrap">
-                      {o.jobId || o.id}
-                    </span>
-                  </div>
+                  <div>
+                    {/* Top Header Row: Location Pill + Live Verified Badge (Zero raw IDs shown) */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          isIndia
+                            ? 'bg-[#FBF0DE] text-[#9C6424] dark:bg-[#C8943E]/15 dark:text-[#E3B968]'
+                            : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                        }`}
+                      >
+                        <span className="text-sm leading-none">{flag}</span>
+                        <span>{city ? `${city}, ` : ''}{country || 'Global'}</span>
+                      </span>
 
-                  {/* Title + Live badge row */}
-                  <div className="flex justify-between items-start gap-2 mt-1">
-                    <h4 className="text-[1.02rem] font-bold text-[#061B36] dark:text-[#F2F5FA] leading-[1.25] flex-1 min-w-0">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                        </span>
+                        Live Role
+                      </span>
+                    </div>
+
+                    {/* Opportunity Title */}
+                    <h4 className="mt-3.5 text-[1.05rem] font-bold leading-snug text-[#061B36] transition-colors group-hover:text-[#D6952F] dark:text-[#F2F5FA] line-clamp-2">
                       <Link
                         href={`/opportunities/${o.id}`}
-                        className="hover:text-[#D6952F] transition-colors no-underline text-inherit"
+                        className="hover:underline"
                       >
                         {o.title}
                       </Link>
                     </h4>
-                    <span className="inline-flex items-center gap-1.5 text-[0.74rem] font-extrabold text-[#15803D] dark:text-[#22C55E] bg-[rgba(34,197,94,0.14)] py-[3px] px-[9px] rounded-full tracking-[0.02em] shrink-0 select-none">
-                      <span className="w-[7px] h-[7px] rounded-full bg-[#22C55E] animate-pulse" />
-                      Live
-                    </span>
-                  </div>
 
-                  {/* Metadata row (.meta) */}
-                  <div className="flex flex-wrap gap-x-3.5 gap-y-1.5 text-[0.84rem] text-[#5B6479] dark:text-[#93A3BE] mt-1">
-                    {o.industry && <span>💼 {o.industry}</span>}
-                    <span>⏳ {formatExp(o)}</span>
-                    {o.employmentType && <span>🏢 {o.employmentType}</span>}
-                    <span>🗓 {formatAgo(o.createdAt || o.publishedDate)}</span>
-                  </div>
-
-                  {/* Compensation row */}
-                  {o.salary ? (
-                    <div className="font-bold text-[#061B36] dark:text-[#F2F5FA] text-[0.9rem] mt-1">
-                      {o.salary}
-                    </div>
-                  ) : (
-                    <div className="text-[0.85rem] text-[#5B6479] dark:text-[#93A3BE] mt-1">
-                      Compensation not disclosed
-                    </div>
-                  )}
-
-                  {/* Vault tags row */}
-                  {cardVaults.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {cardVaults.map((v) => (
-                        <span
-                          key={v.id}
-                          className="inline-block text-[0.72rem] font-bold py-[3px] px-[9px] rounded-[6px] bg-[#E7ECF3] dark:bg-[#10243E] text-[#061B36] dark:text-[#C9D3EA]"
-                        >
-                          {v.name}
+                    {/* Metadata Attribute Chips with Official Vector Icons */}
+                    <div className="mt-3 flex flex-wrap gap-1.5 text-xs text-content-muted">
+                      {o.industry && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-[#061B36]/5 px-2 py-1 dark:bg-white/5">
+                          <HiBuildingOffice2 className="h-3.5 w-3.5 text-[#C8943E]" />
+                          {o.industry}
                         </span>
-                      ))}
+                      )}
+                      <span className="inline-flex items-center gap-1 rounded-md bg-[#061B36]/5 px-2 py-1 dark:bg-white/5">
+                        <HiBriefcase className="h-3.5 w-3.5 text-[#C8943E]" />
+                        {formatExp(o)}
+                      </span>
+                      {o.employmentType && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-[#061B36]/5 px-2 py-1 dark:bg-white/5">
+                          <HiShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                          {o.employmentType}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 rounded-md bg-[#061B36]/5 px-2 py-1 dark:bg-white/5">
+                        <HiClock className="h-3.5 w-3.5 text-content-faint" />
+                        {formatAgo(o.createdAt || o.publishedDate)}
+                      </span>
                     </div>
-                  )}
 
-                  {/* Lock / Unlock row (.lock) */}
-                  <div className="mt-auto flex justify-between items-center gap-2 border-t border-dashed border-[#E9E5DC] dark:border-[#1E3557] pt-2.5 text-[0.82rem] text-[#5B6479] dark:text-[#93A3BE]">
-                    <span className="truncate">
-                      🔒 {hasDirectContact ? 'Direct hiring contact available' : 'Application pathway available'}
-                    </span>
+                    {/* Compensation Tag */}
+                    <div className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-[#C8943E]/40 bg-[#FFF3D9]/30 px-3 py-2 text-xs dark:bg-[#C8943E]/10">
+                      <span className="font-bold text-[#061B36] dark:text-[#E3B968]">
+                        {o.salary ? o.salary : 'Executive Compensation · Tier Protected'}
+                      </span>
+                      <span className="text-[10px] font-semibold text-[#C8943E] uppercase tracking-wider">
+                        {isIndia ? 'INR' : 'Global'}
+                      </span>
+                    </div>
+
+                    {/* Associated Vault Channels */}
+                    {cardVaults.length > 0 && (
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {cardVaults.map((v) => (
+                          <span
+                            key={v.id}
+                            className="rounded-full bg-surface-muted px-2.5 py-0.5 text-[10px] font-semibold text-content-muted dark:bg-white/5"
+                          >
+                            {v.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Unique Action Footer with Secure Unlock */}
+                  <div className="mt-5 flex items-center justify-between border-t border-line/60 pt-3 text-xs">
+                    <div className="flex items-center gap-1.5 text-content-muted">
+                      <HiLockClosed className="h-3.5 w-3.5 text-[#C8943E]" />
+                      <span className="text-[11px] font-medium">
+                        {hasDirectContact ? 'Direct Hiring Contact' : 'Application Pathway'}
+                      </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setUnlockOpportunity(o)}
-                      className="inline-flex items-center justify-center rounded-full py-1.5 px-3.5 text-[0.85rem] font-bold bg-[#D6952F] hover:bg-[#E0A85A] text-[#061B36] transition-colors cursor-pointer shrink-0"
+                      className="inline-flex items-center gap-1 rounded-xl bg-[#D6952F] px-3.5 py-1.5 text-xs font-bold text-[#061B36] shadow-sm transition-all hover:bg-[#C8842D] hover:shadow active:scale-[0.98] cursor-pointer"
                     >
-                      Unlock
+                      <HiLockOpen className="h-3.5 w-3.5" />
+                      Unlock Role
                     </button>
                   </div>
                 </div>
@@ -284,12 +325,12 @@ export default function LiveFreePreview({
         )}
 
         {/* Search All Opportunities CTA */}
-        <div className="text-center mt-[26px]">
+        <div className="text-center mt-[36px]">
           <Link
             href="/opportunities"
-            className="inline-flex items-center justify-center gap-2 rounded-full py-3 px-6 font-bold text-[0.95rem] leading-none bg-[#061B36] hover:bg-[#10243E] text-white hover:shadow-[0_8px_24px_-6px_rgba(6,27,54,0.45)] transition-all cursor-pointer no-underline"
+            className="inline-flex items-center justify-center gap-2 rounded-xl py-3 px-8 font-bold text-sm bg-[#061B36] hover:bg-[#10243E] text-white hover:shadow-[0_8px_24px_-6px_rgba(6,27,54,0.45)] transition-all cursor-pointer no-underline border border-[#D6952F]/40"
           >
-            Search all opportunities →
+            Search All Opportunities <HiArrowRight className="h-4 w-4 text-[#D6952F]" />
           </Link>
         </div>
       </div>
@@ -303,65 +344,75 @@ export default function LiveFreePreview({
           onClick={() => setUnlockOpportunity(null)}
         >
           <div
-            className="relative w-full max-w-[520px] rounded-[20px] bg-white dark:bg-[#0C1E38] p-6 shadow-2xl border border-[#E9E5DC] dark:border-[#1E3557]"
+            className="relative w-full max-w-[520px] rounded-[24px] bg-white dark:bg-[#0C1E38] p-6 shadow-2xl border border-[#E9E5DC] dark:border-[#1E3557]"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setUnlockOpportunity(null)}
               aria-label="Close modal"
-              className="absolute top-4 right-4 text-[#5B6479] hover:text-[#061B36] dark:text-[#93A3BE] dark:hover:text-white p-1 text-xl leading-none transition-colors cursor-pointer"
+              className="absolute top-4 right-4 text-[#5B6479] hover:text-[#061B36] dark:text-[#93A3BE] dark:hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
             >
-              ✕
+              <HiXMark className="h-5 w-5" />
             </button>
+
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#D6952F]/15 px-2.5 py-0.5 text-xs font-bold text-[#D6952F]">
+                <HiLockOpen className="h-3.5 w-3.5" /> Role Unlock
+              </span>
+            </div>
 
             <h3 className="font-sans font-bold text-[1.25rem] text-[#061B36] dark:text-[#F2F5FA] leading-[1.2] pr-6">
               {unlockOpportunity.title}
             </h3>
 
-            <p className="text-[0.9rem] text-[#5B6479] dark:text-[#93A3BE] mt-1.5 mb-3 flex items-center flex-wrap gap-2">
-              <span>{unlockOpportunity.location || unlockOpportunity.country || 'Global'}</span>
-              <span>·</span>
-              <span>{formatExp(unlockOpportunity)}</span>
-              <span>·</span>
-              <span className="font-mono text-[0.78rem] text-[#5B6479] dark:text-[#93A3BE]">
-                {unlockOpportunity.jobId || unlockOpportunity.id}
+            <p className="text-[0.88rem] text-[#5B6479] dark:text-[#93A3BE] mt-2 mb-4 flex items-center flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1 font-semibold text-content">
+                <HiMapPin className="h-3.5 w-3.5 text-[#D6952F]" />
+                {unlockOpportunity.location || unlockOpportunity.country || 'Global'}
               </span>
+              <span>·</span>
+              <span className="font-semibold text-content">{formatExp(unlockOpportunity)}</span>
+              {unlockOpportunity.industry && (
+                <>
+                  <span>·</span>
+                  <span>{unlockOpportunity.industry}</span>
+                </>
+              )}
             </p>
 
-            <p className="text-[0.92rem] text-[#1A2236] dark:text-[#DCE5F2] font-medium mb-3">
+            <p className="text-[0.92rem] text-[#1A2236] dark:text-[#DCE5F2] font-semibold mb-3">
               The{' '}
               {unlockOpportunity.applicationContact || unlockOpportunity.applicationUrl
-                ? 'hiring contact'
-                : 'application pathway'}{' '}
-              for this role is in:
+                ? 'direct hiring manager contact'
+                : 'exclusive application pathway'}{' '}
+              for this role is available in:
             </p>
 
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2.5 mb-5">
               {(unlockOpportunity.vaults && unlockOpportunity.vaults.length > 0
                 ? unlockOpportunity.vaults
                 : vaults.slice(0, 3)
               ).map((v) => (
                 <div
                   key={v.id}
-                  className="flex items-center justify-between gap-3 p-3 rounded-[12px] border border-[#E9E5DC] dark:border-[#1E3557] bg-[#FEFDF9] dark:bg-[#10243E]"
+                  className="flex items-center justify-between gap-3 p-3.5 rounded-[14px] border border-[#E9E5DC] dark:border-[#1E3557] bg-[#FEFDF9] dark:bg-[#10243E] transition hover:border-[#D6952F]"
                 >
                   <div className="min-w-0 flex-1">
-                    <b className="block text-[0.95rem] text-[#061B36] dark:text-[#F2F5FA] truncate">
+                    <b className="block text-sm text-[#061B36] dark:text-[#F2F5FA] truncate">
                       {v.name}
                     </b>
-                    <small className="text-[0.78rem] text-[#5B6479] dark:text-[#93A3BE] block truncate">
+                    <span className="text-xs text-[#5B6479] dark:text-[#93A3BE] block truncate mt-0.5">
                       {v.type === 'both' || v.type === 'premier'
-                        ? 'India + International'
+                        ? 'India + International Corridors'
                         : v.type === 'india'
-                          ? 'India'
-                          : 'International'}
-                      {v.description ? ` · ${v.description}` : ''}
-                    </small>
+                          ? 'India Leadership Hubs'
+                          : 'Global Talent Markets'}
+                    </span>
                   </div>
                   <Link
                     href={`/opportunities/${unlockOpportunity.id}`}
-                    className="inline-flex items-center justify-center rounded-full py-1.5 px-4 text-[0.82rem] font-bold bg-[#061B36] hover:bg-[#10243E] text-white transition-colors no-underline shrink-0"
+                    className="inline-flex items-center justify-center rounded-xl py-2 px-4 text-xs font-bold bg-[#061B36] hover:bg-[#10243E] text-white transition-colors no-underline shrink-0 shadow-sm"
                   >
                     View Details
                   </Link>
@@ -369,8 +420,8 @@ export default function LiveFreePreview({
               ))}
             </div>
 
-            <p className="text-[0.82rem] text-[#5B6479] dark:text-[#93A3BE] leading-relaxed">
-              Subscribe to any vault above to reveal the contact and application details for this opportunity.
+            <p className="text-xs text-[#5B6479] dark:text-[#93A3BE] leading-relaxed">
+              Unlock the verified hiring contact or application link by accessing any of the relevant vaults above.
             </p>
           </div>
         </div>

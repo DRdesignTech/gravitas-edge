@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Badge,
+  BadgeVariant,
   Button,
   Card,
   Column,
   EmptyState,
   ErrorState,
-  PageHeader,
   Pagination,
   Skeleton,
   Select,
@@ -35,6 +35,24 @@ import {
 } from '@/lib/services';
 import { formatDate, formatMoney, titleCase } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
+import {
+  HiGift,
+  HiCurrencyRupee,
+  HiUserGroup,
+  HiCheckCircle,
+  HiClock,
+  HiClipboardDocument,
+  HiShare,
+  HiArrowPath,
+  HiSparkles,
+  HiShieldCheck,
+  HiDocumentText,
+  HiEnvelope,
+  HiLink,
+  HiBanknotes,
+  HiArrowRight,
+  HiInformationCircle,
+} from 'react-icons/hi2';
 
 const PAGE_SIZE = 10;
 
@@ -42,9 +60,9 @@ const PAGE_SIZE = 10;
 // Terms). NOTE: this is display content only — the active backend ReferralSlab
 // rows are 5% / 10% / 15% / 20%. No reward is calculated from these values here.
 const REWARD_STRUCTURE = [
-  { rate: '10%', range: '1–5 referrals' },
-  { rate: '15%', range: '6–10 referrals' },
-  { rate: '20%', range: '11+ referrals' },
+  { rate: '10%', range: '1–5 referrals', tier: 'Foundation Partner', desc: 'Starting commission tier on all referred candidate subscription activations.' },
+  { rate: '15%', range: '6–10 referrals', tier: 'Growth Partner', desc: 'Enhanced commission tier unlocked automatically upon reaching 6 referrals.' },
+  { rate: '20%', range: '11+ referrals', tier: 'Executive Elite', desc: 'Maximum partner tier. Earn 20% on every subscription with no upper cap.' },
 ];
 
 type Tab = 'overview' | 'referrals' | 'commissions';
@@ -58,24 +76,6 @@ const COMMISSION_FILTER_OPTIONS: SelectOption[] = [
   { value: '', label: 'All statuses' },
   ...COMMISSION_STATUSES.map((s) => ({ value: s, label: titleCase(s) })),
 ];
-
-function ReferralIcon({ className = 'h-6 w-6' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.8}
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-      />
-    </svg>
-  );
-}
 
 function WhatsAppIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -95,6 +95,33 @@ function maskEmail(email?: string | null): string {
 
 function formatAmount(amount: string | number): string {
   return formatMoney(Number(amount), 'INR');
+}
+
+function commissionSum(stats: CommissionStatistics | null, key: 'pending' | 'approved' | 'paid'): string {
+  if (!stats) return '0';
+  return stats.counts[key].toString();
+}
+
+function statusToVariant(status: string): BadgeVariant {
+  const s = (status || '').toUpperCase();
+  switch (s) {
+    case 'SUCCESSFUL':
+    case 'APPROVED':
+    case 'PAID':
+    case 'SUBSCRIBED':
+      return 'success';
+    case 'PENDING':
+    case 'REGISTERED':
+      return 'warning';
+    case 'INVALID':
+    case 'REJECTED':
+    case 'CANCELLED':
+    case 'SUSPENDED':
+    case 'EXPIRED':
+      return 'danger';
+    default:
+      return 'neutral';
+  }
 }
 
 export default function ReferralsPage() {
@@ -171,7 +198,7 @@ export default function ReferralsPage() {
     try {
       const code = await generateReferralCode();
       setSummary((prev) => (prev ? { ...prev, ...code } : prev));
-      showToast('Your referral link is ready.', 'success');
+      showToast('Your referral link and code are ready.', 'success');
       loadSummary();
     } catch (e) {
       showToast(getErrorMessage(e), 'error');
@@ -191,7 +218,7 @@ export default function ReferralsPage() {
 
   const handleShareWhatsApp = () => {
     if (!summary?.referralLink) return;
-    const text = `Join me on Gravitas Edge Consulting and unlock premium opportunity vaults. Use my referral link: ${summary.referralLink}`;
+    const text = `Join me on Gravitas Edge Consulting and unlock verified executive opportunity vaults. Use my referral link: ${summary.referralLink}`;
     window.open(
       `https://wa.me/?text=${encodeURIComponent(text)}`,
       '_blank',
@@ -202,39 +229,419 @@ export default function ReferralsPage() {
   const overviewLoading = summaryLoading || (!summary && !summaryError && !generating);
   const overviewError = summaryError || '';
 
-  return (
-    <div>
-      <PageHeader
-        title="Refer & Earn"
-        subtitle="Share opportunities with your network and earn rewards."
-      />
+  // Calculate current commission tier for badge display
+  const totalRefs = summary?.counts.totalReferrals ?? 0;
+  const currentTier =
+    totalRefs >= 11
+      ? { rate: '20%', label: 'Executive Elite (Tier 3)', tag: 'MAX TIER' }
+      : totalRefs >= 6
+      ? { rate: '15%', label: 'Growth Partner (Tier 2)', tag: 'TIER 2' }
+      : { rate: '10%', label: 'Foundation Partner (Tier 1)', tag: 'TIER 1' };
 
-      {/* Tab navigation */}
-      <div className="mt-6 flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1 card-static dark:bg-surface-elevated">
-        {(
-          [
-            ['overview', 'Overview'],
-            ['referrals', 'My Referrals'],
-            ['commissions', 'Commission History'],
-          ] as [Tab, string][]
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`flex-1 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
-              tab === key
-                ? 'bg-brand-600 text-white shadow-sm'
-                : 'text-content-muted hover:bg-surface-muted hover:text-content'
-            }`}
+  // Columns for My Referrals Table
+  const referralColumns: Column<ReferralItem>[] = [
+    {
+      key: 'referredUser',
+      label: 'Referred Candidate',
+      render: (r) => (
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#061B36]/5 text-[#061B36] dark:bg-white/10 dark:text-white">
+            <HiEnvelope className="h-3.5 w-3.5" />
+          </div>
+          <span className="font-medium text-content">{maskEmail(r.referredUser?.email)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (r) => <Badge variant={statusToVariant(r.status)}>{titleCase(r.status)}</Badge>,
+    },
+    {
+      key: 'createdAt',
+      label: 'Referred On',
+      render: (r) => <span className="text-content-muted">{formatDate(r.createdAt)}</span>,
+    },
+    {
+      key: 'successfulDate',
+      label: 'Qualified On',
+      render: (r) =>
+        r.successfulDate ? (
+          <span className="text-content-muted">{formatDate(r.successfulDate)}</span>
+        ) : (
+          <span className="text-content-faint">—</span>
+        ),
+    },
+    {
+      key: 'commission',
+      label: 'Earned Commission',
+      render: (r) => {
+        const total = r.commissions.reduce((sum, c) => sum + Number(c.commissionAmount), 0);
+        if (total <= 0) return <span className="text-content-faint">—</span>;
+        return <span className="font-semibold text-emerald-600 dark:text-emerald-400">{formatAmount(total)}</span>;
+      },
+    },
+  ];
+
+  // Columns for Commission History Table
+  const commissionColumns: Column<CommissionItem>[] = [
+    {
+      key: 'commissionAmount',
+      label: 'Commission',
+      render: (c) => (
+        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+          {formatAmount(c.commissionAmount)}
+        </span>
+      ),
+    },
+    {
+      key: 'subscriptionAmount',
+      label: 'Subscription',
+      render: (c) => <span className="font-medium text-content">{formatAmount(c.subscriptionAmount)}</span>,
+    },
+    {
+      key: 'commissionPercentage',
+      label: 'Rate',
+      render: (c) => <Badge variant="info">{Number(c.commissionPercentage).toFixed(1)}%</Badge>,
+    },
+    {
+      key: 'plan',
+      label: 'Plan',
+      render: (c) => <span className="font-medium text-content-muted">{c.subscription?.plan?.name || '—'}</span>,
+    },
+    {
+      key: 'referredUser',
+      label: 'Referred Candidate',
+      render: (c) => (
+        <span className="text-content-muted">{maskEmail(c.referral?.referredUser?.email)}</span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (c) => <Badge variant={statusToVariant(c.status)}>{titleCase(c.status)}</Badge>,
+    },
+    {
+      key: 'approvedDate',
+      label: 'Approved On',
+      render: (c) =>
+        c.approvedDate ? (
+          <span className="text-content-muted">{formatDate(c.approvedDate)}</span>
+        ) : (
+          <span className="text-content-faint">—</span>
+        ),
+    },
+    {
+      key: 'paidDate',
+      label: 'Paid On',
+      render: (c) =>
+        c.paidDate ? (
+          <span className="text-content-muted">{formatDate(c.paidDate)}</span>
+        ) : (
+          <span className="text-content-faint">—</span>
+        ),
+    },
+    {
+      key: 'payoutReference',
+      label: 'Payout Reference',
+      render: (c) =>
+        c.payoutReference ? (
+          <span className="rounded bg-surface-muted px-2 py-0.5 font-mono text-xs text-content-muted">
+            {c.payoutReference}
+          </span>
+        ) : (
+          <span className="text-content-faint">—</span>
+        ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* ── Executive Page Header ────────────────────────── */}
+      <div className="flex flex-col justify-between gap-4 border-b border-line pb-6 sm:flex-row sm:items-end">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C8943E]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#C8943E]">
+              <HiSparkles className="h-3.5 w-3.5 text-[#C8943E]" />
+              Partner Programme & Wallet
+            </span>
+          </div>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-content sm:text-3xl">
+            Refer & Earn Rewards
+          </h1>
+          <p className="mt-1 text-sm text-content-muted">
+            Share verified opportunities with senior peers. Earn up to 20% recurring commissions on all active subscriptions.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/referral-terms"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-xs font-medium text-content-muted transition hover:border-[#C8943E] hover:text-content"
           >
-            {label}
-          </button>
-        ))}
+            <HiDocumentText className="h-4 w-4 text-[#C8943E]" />
+            Programme Terms
+          </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadSummary}
+            disabled={summaryLoading}
+            title="Refresh metrics"
+          >
+            <HiArrowPath className={`h-4 w-4 ${summaryLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* ── Overview tab ─────────────────────────────── */}
+      {/* ── Top Executive KPI Metrics ────────────────────── */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Metric 1: Total Commissions Earned */}
+        <div className="relative overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-sm transition hover:shadow-md dark:bg-surface-elevated">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-content-faint">
+              Total Commissions
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C8943E]/10 text-[#C8943E]">
+              <HiCurrencyRupee className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="font-serif-heading text-2xl font-bold tracking-tight text-content sm:text-3xl">
+              {formatAmount(summary?.commissionTotalAmount ?? '0')}
+            </p>
+            <p className="mt-1 text-xs text-content-muted">Lifetime earnings credited to wallet</p>
+          </div>
+        </div>
+
+        {/* Metric 2: Active Referrals */}
+        <div className="relative overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-sm transition hover:shadow-md dark:bg-surface-elevated">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-content-faint">
+              Active Referrals
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <HiCheckCircle className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="flex items-baseline gap-2">
+              <p className="font-serif-heading text-2xl font-bold tracking-tight text-content sm:text-3xl">
+                {summary?.counts.successfulReferrals ?? 0}
+              </p>
+              <span className="text-xs font-medium text-content-muted">
+                of {summary?.counts.totalReferrals ?? 0} total
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-content-muted">Subscribed candidates generating payouts</p>
+          </div>
+        </div>
+
+        {/* Metric 3: Pending In Pipeline */}
+        <div className="relative overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-sm transition hover:shadow-md dark:bg-surface-elevated">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-content-faint">
+              Pending Pipeline
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <HiClock className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="flex items-baseline gap-2">
+              <p className="font-serif-heading text-2xl font-bold tracking-tight text-content sm:text-3xl">
+                {summary?.counts.pendingReferrals ?? 0}
+              </p>
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">Awaiting activation</span>
+            </div>
+            <p className="mt-1 text-xs text-content-muted">Registered candidates awaiting plan purchase</p>
+          </div>
+        </div>
+
+        {/* Metric 4: Active Tier & Rate */}
+        <div className="relative overflow-hidden rounded-2xl border border-[#C8943E]/30 bg-gradient-to-br from-[#061B36] to-[#0B254A] p-5 text-white shadow-sm transition hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#C8943E]">
+              Commission Rate
+            </span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C8943E]/20 text-[#C8943E]">
+              <HiSparkles className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="flex items-baseline gap-2">
+              <p className="font-serif-heading text-2xl font-extrabold tracking-tight text-[#E3B968] sm:text-3xl">
+                {currentTier.rate}
+              </p>
+              <span className="rounded-full bg-[#C8943E]/20 px-2 py-0.5 text-[10px] font-bold tracking-wider text-[#E3B968]">
+                {currentTier.tag}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-[#9FB0CC]">{currentTier.label}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Referral Link & Code Showcase Card ──────────── */}
+      {summary?.referralCode ? (
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-card transition dark:bg-surface-elevated">
+          <div className="grid gap-6 lg:grid-cols-12 lg:items-center">
+            {/* Link Side */}
+            <div className="lg:col-span-7">
+              <div className="flex items-center gap-2">
+                <HiLink className="h-4 w-4 text-[#C8943E]" />
+                <span className="text-xs font-bold uppercase tracking-wider text-content-faint">
+                  Your Unique Referral Link
+                </span>
+              </div>
+              <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    type="text"
+                    readOnly
+                    value={summary.referralLink}
+                    className="w-full rounded-xl border border-line bg-surface-muted px-3.5 py-2.5 font-mono text-xs text-content shadow-inner focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyToClipboard(summary.referralLink, 'Referral link')}
+                    className="whitespace-nowrap"
+                  >
+                    <HiClipboardDocument className="h-4 w-4 text-[#C8943E]" />
+                    Copy Link
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={handleShareWhatsApp}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#25D366] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1DA851] active:scale-[0.98]"
+                  >
+                    <WhatsAppIcon className="h-4 w-4" />
+                    WhatsApp
+                  </button>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-content-muted">
+                Direct colleagues straight to registration with your referral credentials automatically embedded.
+              </p>
+            </div>
+
+            {/* Code Side */}
+            <div className="border-t border-line pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0 lg:col-span-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <HiGift className="h-4 w-4 text-[#C8943E]" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-content-faint">
+                    Your Referral Code
+                  </span>
+                </div>
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  Ready to Share
+                </span>
+              </div>
+              <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl border border-dashed border-[#C8943E]/50 bg-[#FFF3D9]/30 p-3 dark:bg-[#C8943E]/10">
+                <span className="font-mono text-xl font-bold tracking-wider text-[#061B36] dark:text-[#E3B968]">
+                  {summary.referralCode}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyToClipboard(summary.referralCode, 'Referral code')}
+                  className="shrink-0"
+                >
+                  <HiClipboardDocument className="h-3.5 w-3.5 text-[#C8943E]" />
+                  Copy Code
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-content-muted">
+                Can be entered manually during signup or subscription checkout.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-line bg-surface p-6 shadow-card dark:bg-surface-elevated">
+          <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
+            <div>
+              <h3 className="text-base font-semibold text-content">
+                Activate Your Executive Referral Programme
+              </h3>
+              <p className="mt-1 text-sm text-content-muted">
+                Generate your personal referral code and link to begin inviting candidates and earning recurring commissions.
+              </p>
+            </div>
+            <Button onClick={handleGenerateCode} loading={generating} className="shrink-0">
+              <HiSparkles className="h-4 w-4 text-[#C8943E]" />
+              Generate My Referral Code
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Segmented Tab Navigation ────────────────────── */}
+      <div className="flex flex-wrap gap-2 border-b border-line pb-4">
+        <button
+          onClick={() => setTab('overview')}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            tab === 'overview'
+              ? 'bg-[#061B36] text-white shadow-sm dark:bg-[#C8943E] dark:text-[#061B36]'
+              : 'border border-line bg-surface text-content-muted hover:border-[#C8943E]/50 hover:bg-surface-muted hover:text-content'
+          }`}
+        >
+          <HiSparkles className="h-4 w-4" />
+          Overview & Rewards
+        </button>
+        <button
+          onClick={() => setTab('referrals')}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            tab === 'referrals'
+              ? 'bg-[#061B36] text-white shadow-sm dark:bg-[#C8943E] dark:text-[#061B36]'
+              : 'border border-line bg-surface text-content-muted hover:border-[#C8943E]/50 hover:bg-surface-muted hover:text-content'
+          }`}
+        >
+          <HiUserGroup className="h-4 w-4" />
+          My Referrals
+          {summary?.counts.totalReferrals !== undefined && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs ${
+                tab === 'referrals'
+                  ? 'bg-white/20 text-white dark:bg-[#061B36]/20 dark:text-[#061B36]'
+                  : 'bg-surface-muted text-content-muted'
+              }`}
+            >
+              {summary.counts.totalReferrals}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setTab('commissions')}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+            tab === 'commissions'
+              ? 'bg-[#061B36] text-white shadow-sm dark:bg-[#C8943E] dark:text-[#061B36]'
+              : 'border border-line bg-surface text-content-muted hover:border-[#C8943E]/50 hover:bg-surface-muted hover:text-content'
+          }`}
+        >
+          <HiCurrencyRupee className="h-4 w-4" />
+          Commission History
+          {stats?.counts.total !== undefined && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs ${
+                tab === 'commissions'
+                  ? 'bg-white/20 text-white dark:bg-[#061B36]/20 dark:text-[#061B36]'
+                  : 'bg-surface-muted text-content-muted'
+              }`}
+            >
+              {stats.counts.total}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ── Overview Tab ─────────────────────────────────── */}
       {tab === 'overview' && (
-        <div className="mt-6 space-y-6">
+        <div className="space-y-6">
           {overviewLoading ? (
             <div className="space-y-4">
               <Skeleton className="h-32" />
@@ -247,179 +654,223 @@ export default function ReferralsPage() {
             </Card>
           ) : (
             <>
-              {/* Referral link + code */}
-              {summary?.referralCode ? (
-                <Card>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {/* Your referral link */}
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium uppercase tracking-wider text-content-faint">
-                        Your Referral Link
-                      </p>
-                      <p className="mt-1.5 break-all text-sm text-content-muted">
-                        {summary.referralLink}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(summary.referralLink, 'Referral link')}
-                        >
-                          Copy Link
-                        </Button>
-                        <button
-                          type="button"
-                          onClick={handleShareWhatsApp}
-                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#1DA851] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98]"
-                        >
-                          <WhatsAppIcon />
-                          Share via WhatsApp
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Your referral code */}
-                    <div className="min-w-0 md:border-l md:border-line md:pl-6">
-                      <p className="text-xs font-medium uppercase tracking-wider text-content-faint">
-                        Your Referral Code
-                      </p>
-                      <p className="mt-1 break-all font-mono text-2xl font-bold tracking-tight text-content">
-                        {summary.referralCode}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyToClipboard(summary.referralCode, 'Referral code')}
-                        >
-                          Copy Code
-                        </Button>
-                      </div>
-                    </div>
+              {/* Commission Reward Tiers */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-semibold text-content">
+                      Tiered Partner Reward Structure
+                    </h3>
+                    <p className="mt-0.5 text-xs text-content-muted">
+                      Your commission percentage scales automatically with the total number of candidates referred.
+                    </p>
                   </div>
-                </Card>
-              ) : (
-                <Card>
-                  <p className="text-sm text-content-muted">
-                    Generate your unique referral code to start earning commissions.
-                  </p>
-                  <Button className="mt-4" onClick={handleGenerateCode} loading={generating}>
-                    Generate my referral code
-                  </Button>
-                </Card>
-              )}
-
-              {/* Referral counts */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <StatBlock label="Total referrals" value={summary?.counts.totalReferrals ?? 0} />
-                <StatBlock
-                  label="Successful"
-                  value={summary?.counts.successfulReferrals ?? 0}
-                  accent="success"
-                />
-                <StatBlock
-                  label="Pending"
-                  value={summary?.counts.pendingReferrals ?? 0}
-                  accent="warning"
-                />
-              </div>
-
-              {/* Commission totals */}
-              <div>
-                <h3 className="mb-3 text-base font-semibold text-content">Commission</h3>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <StatBlock
-                    label="Total commission"
-                    value={formatAmount(summary?.commissionTotalAmount ?? '0')}
-                    accent="brand"
-                  />
-                  <StatBlock
-                    label="Pending"
-                    value={formatAmount(commissionSum(stats, 'pending'))}
-                    accent="warning"
-                  />
-                  <StatBlock
-                    label="Approved"
-                    value={formatAmount(commissionSum(stats, 'approved'))}
-                    accent="info"
-                  />
-                  <StatBlock
-                    label="Paid"
-                    value={formatAmount(commissionSum(stats, 'paid'))}
-                    accent="success"
-                  />
+                  <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-[#C8943E]">
+                    <HiShieldCheck className="h-4 w-4" /> Verified Payout Slabs
+                  </span>
                 </div>
-              </div>
 
-              {/* Referral rewards structure */}
-              <div>
-                <h3 className="mb-3 text-base font-semibold text-content">
-                  Referral Rewards Structure
-                </h3>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {REWARD_STRUCTURE.map((tier) => (
-                    <div
-                      key={tier.rate}
-                      className="rounded-2xl border border-line bg-surface p-5 text-center card-static dark:bg-surface-elevated"
-                    >
-                      <p className="font-serif-heading text-3xl font-extrabold tracking-tight text-[#C8943E]">
-                        {tier.rate}
-                      </p>
-                      <p className="mt-2 text-sm font-medium text-content-muted">{tier.range}</p>
-                    </div>
-                  ))}
+                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                  {REWARD_STRUCTURE.map((tier, idx) => {
+                    const isCurrent =
+                      (idx === 0 && totalRefs <= 5) ||
+                      (idx === 1 && totalRefs >= 6 && totalRefs <= 10) ||
+                      (idx === 2 && totalRefs >= 11);
+
+                    return (
+                      <div
+                        key={tier.rate}
+                        className={`relative rounded-2xl border p-5 transition ${
+                          isCurrent
+                            ? 'border-[#C8943E] bg-[#FFF3D9]/30 shadow-md ring-1 ring-[#C8943E]/50 dark:bg-[#C8943E]/10'
+                            : 'border-line bg-surface dark:bg-surface-elevated'
+                        }`}
+                      >
+                        {isCurrent && (
+                          <div className="absolute -top-3 right-4">
+                            <span className="rounded-full bg-[#061B36] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#E3B968] shadow-sm dark:bg-[#C8943E] dark:text-[#061B36]">
+                              Current Tier
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-xs font-semibold uppercase tracking-wider text-content-faint">
+                          {tier.tier}
+                        </span>
+                        <p className="mt-2 font-serif-heading text-3xl font-extrabold tracking-tight text-[#C8943E]">
+                          {tier.rate}
+                        </p>
+                        <p className="mt-1 text-xs font-semibold text-content">{tier.range}</p>
+                        <p className="mt-2 text-xs leading-relaxed text-content-muted">{tier.desc}</p>
+                      </div>
+                    );
+                  })}
                 </div>
-                <p className="mt-3 text-sm text-content-muted">
-                  From 11 referrals onwards, you continue to earn 20% on every additional referral.
-                  No upper limit on the number of referrals.
+                <p className="mt-3 text-xs text-content-muted">
+                  From 11 referrals onwards, you remain at the maximum 20% tier on all subsequent candidate subscription purchases with no upper limit.
                 </p>
               </div>
 
-              <p className="text-sm text-content-muted">
-                Rewards are subject to the{' '}
+              {/* Commission Lifecycle Overview */}
+              <div>
+                <h3 className="text-base font-semibold text-content">Commission Status Breakdown</h3>
+                <p className="mt-0.5 text-xs text-content-muted">
+                  Overview of commission payouts across verification stages.
+                </p>
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-line bg-surface p-4 dark:bg-surface-elevated">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                        Pending Verification
+                      </span>
+                      <HiClock className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <p className="mt-2 text-xl font-bold text-content">
+                      {commissionSum(stats, 'pending')} orders
+                    </p>
+                    <p className="mt-1 text-xs text-content-muted">
+                      Transactions being reviewed and within standard cooling period
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-line bg-surface p-4 dark:bg-surface-elevated">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                        Approved for Payout
+                      </span>
+                      <HiShieldCheck className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <p className="mt-2 text-xl font-bold text-content">
+                      {commissionSum(stats, 'approved')} orders
+                    </p>
+                    <p className="mt-1 text-xs text-content-muted">
+                      Verified commissions queued for next bank settlement cycle
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-line bg-surface p-4 dark:bg-surface-elevated">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        Paid Out to Account
+                      </span>
+                      <HiCheckCircle className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <p className="mt-2 text-xl font-bold text-content">
+                      {commissionSum(stats, 'paid')} orders
+                    </p>
+                    <p className="mt-1 text-xs text-content-muted">
+                      Successfully disbursed to your designated bank account
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* How It Works Guide */}
+              <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm dark:bg-surface-elevated">
+                <h3 className="text-base font-semibold text-content">How the Referral Programme Works</h3>
+                <div className="mt-4 grid gap-6 sm:grid-cols-3">
+                  <div className="flex flex-col">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#061B36]/5 text-[#061B36] font-bold dark:bg-white/10 dark:text-white">
+                      1
+                    </div>
+                    <h4 className="mt-3 text-sm font-semibold text-content">Share Your Invite Link</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-content-muted">
+                      Copy your personal link or share your code directly with senior executives seeking curated opportunities.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#061B36]/5 text-[#061B36] font-bold dark:bg-white/10 dark:text-white">
+                      2
+                    </div>
+                    <h4 className="mt-3 text-sm font-semibold text-content">Colleague Subscribes</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-content-muted">
+                      When your referred candidate joins and unlocks any opportunity vault or plan, the order is linked to your partner wallet.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#061B36]/5 text-[#061B36] font-bold dark:bg-white/10 dark:text-white">
+                      3
+                    </div>
+                    <h4 className="mt-3 text-sm font-semibold text-content">Receive Cash Payouts</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-content-muted">
+                      Earn up to 20% of every subscription. Payouts are credited regularly directly to your bank account or wallet.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-xl bg-surface-muted p-4 text-xs text-content-muted">
+                <span>
+                  All referral commissions and disbursements are governed by the{' '}
+                  <Link
+                    href="/referral-terms"
+                    className="font-medium text-[#C8943E] underline underline-offset-2 hover:text-[#B6822E]"
+                  >
+                    Referral Programme Terms & Conditions
+                  </Link>
+                  .
+                </span>
                 <Link
                   href="/referral-terms"
-                  className="font-medium text-brand-600 underline underline-offset-2 hover:text-brand-700 dark:text-brand-400"
+                  className="hidden sm:inline-flex items-center gap-1 font-semibold text-content hover:text-[#C8943E]"
                 >
-                  Referral Programme Terms
+                  View Terms <HiArrowRight className="h-3.5 w-3.5" />
                 </Link>
-                .
-              </p>
+              </div>
             </>
           )}
         </div>
       )}
 
-      {/* ── My Referrals tab ─────────────────────────── */}
+      {/* ── My Referrals Tab ─────────────────────────────── */}
       {tab === 'referrals' && (
-        <div className="mt-6 space-y-4">
-          <div className="flex w-full sm:w-64">
-            <Select
-              label="Filter by status"
-              options={REFERRAL_FILTER_OPTIONS}
-              value={refStatus}
-              onChange={(e) => {
-                setRefStatus(e.target.value);
-                setRefPage(1);
-              }}
-            />
+        <div className="space-y-4">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <h3 className="text-base font-semibold text-content">Referred Candidates</h3>
+              <p className="text-xs text-content-muted">
+                Candidates who joined Gravitas Edge using your invitation link or code.
+              </p>
+            </div>
+            <div className="w-full sm:w-64">
+              <Select
+                label="Filter by status"
+                options={REFERRAL_FILTER_OPTIONS}
+                value={refStatus}
+                onChange={(e) => {
+                  setRefStatus(e.target.value);
+                  setRefPage(1);
+                }}
+              />
+            </div>
           </div>
 
           <Card padding={false}>
             {refLoading && referrals === null ? (
-              <div className="p-6">
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
+              <div className="space-y-3 p-6">
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
               </div>
             ) : refError ? (
               <ErrorState message={refError} onRetry={() => loadReferrals(refPage, refStatus)} />
             ) : referrals && referrals.items.length === 0 ? (
               <EmptyState
-                icon={<ReferralIcon className="h-6 w-6" />}
-                title="No referrals yet"
-                description="Share your referral code and get rewarded when people sign up with it."
-                action={<Button onClick={() => setTab('overview')}>Get my referral code</Button>}
+                icon={<HiUserGroup className="h-8 w-8 text-[#C8943E]" />}
+                title="No referrals found"
+                description={
+                  refStatus
+                    ? `No referred candidates found with status "${titleCase(refStatus)}".`
+                    : 'Share your referral code and earn cash rewards when your colleagues subscribe.'
+                }
+                action={
+                  <Button onClick={() => setTab('overview')}>
+                    <HiShare className="h-4 w-4" />
+                    Get My Referral Link
+                  </Button>
+                }
               />
             ) : referrals ? (
               <>
@@ -427,7 +878,7 @@ export default function ReferralsPage() {
                   columns={referralColumns}
                   data={referrals.items}
                   rowKey={(r) => r.id}
-                  emptyMessage="No referrals found"
+                  emptyMessage="No referrals matching criteria"
                 />
                 <div className="border-t border-line p-4">
                   <Pagination
@@ -442,36 +893,53 @@ export default function ReferralsPage() {
         </div>
       )}
 
-      {/* ── Commission History tab ───────────────────── */}
+      {/* ── Commission History Tab ───────────────────────── */}
       {tab === 'commissions' && (
-        <div className="mt-6 space-y-4">
-          <div className="flex w-full sm:w-64">
-            <Select
-              label="Filter by status"
-              options={COMMISSION_FILTER_OPTIONS}
-              value={comStatus}
-              onChange={(e) => {
-                setComStatus(e.target.value);
-                setComPage(1);
-              }}
-            />
+        <div className="space-y-4">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <h3 className="text-base font-semibold text-content">Commission Earnings History</h3>
+              <p className="text-xs text-content-muted">
+                Detailed transaction records of all subscription purchases attributed to your account.
+              </p>
+            </div>
+            <div className="w-full sm:w-64">
+              <Select
+                label="Filter by status"
+                options={COMMISSION_FILTER_OPTIONS}
+                value={comStatus}
+                onChange={(e) => {
+                  setComStatus(e.target.value);
+                  setComPage(1);
+                }}
+              />
+            </div>
           </div>
 
           <Card padding={false}>
             {comLoading && commissions === null ? (
-              <div className="p-6">
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
-                <Skeleton className="h-24" />
+              <div className="space-y-3 p-6">
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
+                <Skeleton className="h-16" />
               </div>
             ) : comError ? (
               <ErrorState message={comError} onRetry={() => loadCommissions(comPage, comStatus)} />
             ) : commissions && commissions.items.length === 0 ? (
               <EmptyState
-                icon={<ReferralIcon className="h-6 w-6" />}
-                title="No commissions yet"
-                description="When someone you refer makes a subscription purchase, your commission will appear here."
-                action={<Button onClick={() => setTab('overview')}>Get my referral code</Button>}
+                icon={<HiCurrencyRupee className="h-8 w-8 text-[#C8943E]" />}
+                title="No commissions found"
+                description={
+                  comStatus
+                    ? `No commission records found with status "${titleCase(comStatus)}".`
+                    : 'When someone you refer makes an eligible subscription purchase, your commission will appear here.'
+                }
+                action={
+                  <Button onClick={() => setTab('overview')}>
+                    <HiGift className="h-4 w-4" />
+                    View Referral Link
+                  </Button>
+                }
               />
             ) : commissions ? (
               <>
@@ -479,7 +947,7 @@ export default function ReferralsPage() {
                   columns={commissionColumns}
                   data={commissions.items}
                   rowKey={(c) => c.id}
-                  emptyMessage="No commissions found"
+                  emptyMessage="No commissions matching criteria"
                 />
                 <div className="border-t border-line p-4">
                   <Pagination
@@ -495,158 +963,4 @@ export default function ReferralsPage() {
       )}
     </div>
   );
-}
-
-function StatBlock({
-  label,
-  value,
-  accent = 'brand',
-}: {
-  label: string;
-  value: React.ReactNode;
-  accent?: 'brand' | 'success' | 'warning' | 'info';
-}) {
-  const accents: Record<string, string> = {
-    brand: 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300',
-    success: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
-    warning: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400',
-    info: 'bg-[#061B36]/5 text-[#061B36] dark:bg-blue-500/10 dark:text-blue-400',
-  };
-  return (
-    <div className="rounded-2xl border border-line bg-surface p-5 card-static dark:bg-surface-elevated">
-      <span
-        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${accents[accent]}`}
-      >
-        {label}
-      </span>
-      <p className="mt-3 break-all text-2xl font-bold tracking-tight text-content">{value}</p>
-    </div>
-  );
-}
-
-function commissionSum(stats: CommissionStatistics | null, key: 'pending' | 'approved' | 'paid') {
-  if (!stats) return '0';
-  return stats.counts[key].toString();
-}
-
-const referralColumns: Column<ReferralItem>[] = [
-  {
-    key: 'referredUser',
-    label: 'Referred user',
-    render: (r) => <p className="text-content">{maskEmail(r.referredUser?.email)}</p>,
-  },
-  {
-    key: 'status',
-    label: 'Status',
-    render: (r) => <Badge variant={statusToVariant(r.status)}>{titleCase(r.status)}</Badge>,
-  },
-  {
-    key: 'createdAt',
-    label: 'Referred on',
-    render: (r) => <span className="text-content-muted">{formatDate(r.createdAt)}</span>,
-  },
-  {
-    key: 'successfulDate',
-    label: 'Qualified on',
-    render: (r) =>
-      r.successfulDate ? (
-        <span className="text-content-muted">{formatDate(r.successfulDate)}</span>
-      ) : (
-        <span className="text-content-faint">—</span>
-      ),
-  },
-  {
-    key: 'commission',
-    label: 'Commission',
-    render: (r) => {
-      const total = r.commissions.reduce((sum, c) => sum + Number(c.commissionAmount), 0);
-      if (total <= 0) return <span className="text-content-faint">—</span>;
-      return <span className="font-medium text-content">{formatAmount(total)}</span>;
-    },
-  },
-];
-
-const commissionColumns: Column<CommissionItem>[] = [
-  {
-    key: 'commissionAmount',
-    label: 'Commission',
-    render: (c) => (
-      <span className="font-semibold text-content">{formatAmount(c.commissionAmount)}</span>
-    ),
-  },
-  {
-    key: 'subscriptionAmount',
-    label: 'Subscription',
-    render: (c) => <span className="text-content">{formatAmount(c.subscriptionAmount)}</span>,
-  },
-  {
-    key: 'commissionPercentage',
-    label: 'Rate',
-    render: (c) => <Badge variant="info">{Number(c.commissionPercentage).toFixed(2)}%</Badge>,
-  },
-  {
-    key: 'plan',
-    label: 'Plan',
-    render: (c) => <span className="text-content-muted">{c.subscription?.plan?.name || '—'}</span>,
-  },
-  {
-    key: 'referredUser',
-    label: 'Referred user',
-    render: (c) => (
-      <span className="text-content-muted">{maskEmail(c.referral?.referredUser?.email)}</span>
-    ),
-  },
-  {
-    key: 'status',
-    label: 'Status',
-    render: (c) => <Badge variant={statusToVariant(c.status)}>{titleCase(c.status)}</Badge>,
-  },
-  {
-    key: 'approvedDate',
-    label: 'Approved',
-    render: (c) =>
-      c.approvedDate ? (
-        <span className="text-content-muted">{formatDate(c.approvedDate)}</span>
-      ) : (
-        <span className="text-content-faint">—</span>
-      ),
-  },
-  {
-    key: 'paidDate',
-    label: 'Paid',
-    render: (c) =>
-      c.paidDate ? (
-        <span className="text-content-muted">{formatDate(c.paidDate)}</span>
-      ) : (
-        <span className="text-content-faint">—</span>
-      ),
-  },
-  {
-    key: 'payoutReference',
-    label: 'Payout ref',
-    render: (c) =>
-      c.payoutReference ? (
-        <span className="break-all font-mono text-xs text-content-muted">{c.payoutReference}</span>
-      ) : (
-        <span className="text-content-faint">—</span>
-      ),
-  },
-];
-
-function statusToVariant(status: string): 'success' | 'warning' | 'danger' | 'info' | 'neutral' {
-  switch (status) {
-    case 'SUCCESSFUL':
-    case 'APPROVED':
-    case 'PAID':
-      return 'success';
-    case 'PENDING':
-      return 'warning';
-    case 'INVALID':
-    case 'REJECTED':
-    case 'CANCELLED':
-    case 'SUSPENDED':
-      return 'danger';
-    default:
-      return 'neutral';
-  }
 }

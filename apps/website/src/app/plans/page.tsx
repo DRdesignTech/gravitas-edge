@@ -239,9 +239,9 @@ export default function PlansPage() {
           {/* MAIN CONTENT AREA */}
           <div className="mt-8">
             {loading ? (
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-4 sm:gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-64 rounded-3xl" />
+                  <Skeleton key={i} className="h-[242px] rounded-[28px]" />
                 ))}
               </div>
             ) : error ? (
@@ -250,9 +250,9 @@ export default function PlansPage() {
               <CardError message="No plans are available right now." onRetry={load} retry={false} />
             ) : viewMode === 'cards' ? (
               /* 1. CARDS VIEW */
-              <div className="grid items-start gap-6 lg:gap-8 md:grid-cols-2">
+              <div className="grid items-start gap-4 sm:gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
                 {groups.map((group) => (
-                  <OpportunityVaultCard key={group.vault.id} group={group} defaultExpanded />
+                  <OpportunityVaultCard key={group.vault.id} group={group} />
                 ))}
               </div>
             ) : (

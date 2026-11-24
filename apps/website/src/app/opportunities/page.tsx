@@ -1093,7 +1093,11 @@ function OpportunityPageContent() {
                           }}
                           role="link"
                           tabIndex={0}
-                          className="group relative flex flex-col justify-between rounded-2xl border border-[#E9E5DC] border-l-4 border-l-[#22C55E] bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-[#1E3557] dark:border-l-[#22C55E] dark:bg-[#0E2340] cursor-pointer"
+                          className={`group relative flex flex-col justify-between rounded-2xl border border-[#E9E5DC] border-l-4 ${
+                            isFull
+                              ? 'border-l-[#22C55E] dark:border-l-[#22C55E]'
+                              : 'border-l-[#D6952F] dark:border-l-[#F0C27B]'
+                          } bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-[#1E3557] dark:bg-[#0E2340] cursor-pointer`}
                         >
                           <div>
                             {/* Top row: Location chip + Job ID */}
@@ -1245,7 +1249,11 @@ function OpportunityPageContent() {
                           }}
                           role="link"
                           tabIndex={0}
-                          className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-[#E9E5DC] border-l-4 border-l-[#22C55E] bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-[#1E3557] dark:border-l-[#22C55E] dark:bg-[#0E2340] cursor-pointer"
+                          className={`group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-[#E9E5DC] border-l-4 ${
+                            isFull
+                              ? 'border-l-[#22C55E] dark:border-l-[#22C55E]'
+                              : 'border-l-[#D6952F] dark:border-l-[#F0C27B]'
+                          } bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-[#1E3557] dark:bg-[#0E2340] cursor-pointer`}
                         >
                           <div className="flex-1 min-w-0">
                             {/* Top row */}

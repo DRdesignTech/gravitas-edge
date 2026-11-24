@@ -3,22 +3,96 @@
 import { useEffect, useState } from 'react';
 import { Vault } from '@/lib/types';
 import Eyebrow from '@/components/marketing/Eyebrow';
+import {
+  HiAcademicCap,
+  HiChartBar,
+  HiUserGroup,
+  HiBriefcase,
+  HiGlobeAmericas,
+  HiBuildingOffice2,
+  HiComputerDesktop,
+  HiSparkles,
+  HiCheck,
+  HiArrowPath,
+  HiInformationCircle,
+  HiFunnel,
+  HiMapPin,
+} from 'react-icons/hi2';
 
 export type ExperienceOption = 'early' | 'mid' | 'senior' | 'executive';
 export type LocationOption = 'india' | 'uae' | 'global' | 'remote';
 
-const EXPERIENCE_OPTIONS: { key: ExperienceOption; label: string }[] = [
-  { key: 'early', label: '0–5 years' },
-  { key: 'mid', label: '5–10 years' },
-  { key: 'senior', label: '10+ years' },
-  { key: 'executive', label: 'Executive (C-suite)' },
+interface ExperienceDef {
+  key: ExperienceOption;
+  label: string;
+  stage: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const EXPERIENCE_OPTIONS: ExperienceDef[] = [
+  {
+    key: 'early',
+    label: '0–5 years',
+    stage: 'Early Career',
+    desc: 'Entry to Associate & Specialist roles',
+    icon: HiAcademicCap,
+  },
+  {
+    key: 'mid',
+    label: '5–10 years',
+    stage: 'Management',
+    desc: 'Mid-Level Managers & Functional Leads',
+    icon: HiChartBar,
+  },
+  {
+    key: 'senior',
+    label: '10+ years',
+    stage: 'Leadership',
+    desc: 'Directors, Dept Heads & Senior Leads',
+    icon: HiUserGroup,
+  },
+  {
+    key: 'executive',
+    label: 'Executive (C-Suite)',
+    stage: 'C-Suite & Board',
+    desc: 'VP, CXO, Managing Director & Board roles',
+    icon: HiBriefcase,
+  },
 ];
 
-const LOCATION_OPTIONS: { key: LocationOption; label: string }[] = [
-  { key: 'india', label: 'India' },
-  { key: 'uae', label: 'UAE' },
-  { key: 'global', label: 'Global' },
-  { key: 'remote', label: 'Remote' },
+interface LocationDef {
+  key: LocationOption;
+  label: string;
+  region: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+const LOCATION_OPTIONS: LocationDef[] = [
+  {
+    key: 'india',
+    label: 'India',
+    region: 'Domestic Leadership Hubs',
+    icon: HiBuildingOffice2,
+  },
+  {
+    key: 'uae',
+    label: 'UAE & GCC',
+    region: 'Middle East Executive Corridors',
+    icon: HiMapPin,
+  },
+  {
+    key: 'global',
+    label: 'Global Hubs',
+    region: 'UK, US, Europe & Singapore',
+    icon: HiGlobeAmericas,
+  },
+  {
+    key: 'remote',
+    label: 'Cross-Border Remote',
+    region: 'Distributed & Borderless Roles',
+    icon: HiComputerDesktop,
+  },
 ];
 
 interface VaultFit {
@@ -38,6 +112,14 @@ const VAULT_FIT: Record<string, VaultFit> = {
 function getVaultFit(vault: Vault): VaultFit {
   const exact = VAULT_FIT[vault.name.trim()];
   if (exact) return exact;
+  const lower = vault.name.toLowerCase();
+  if (lower.includes('early') || lower.includes('career')) return { experience: 'early', locations: ['india'] };
+  if (lower.includes('management') || lower.includes('mid')) return { experience: 'mid', locations: ['india'] };
+  if (lower.includes('leadership') || lower.includes('senior')) return { experience: 'senior', locations: ['india'] };
+  if (lower.includes('executive') || lower.includes('c-suite')) return { experience: 'executive', locations: ['india'] };
+  if (lower.includes('remote')) return { experience: 'any', locations: ['remote'] };
+  if (lower.includes('uae') || lower.includes('global') || lower.includes('middle east')) return { experience: 'any', locations: ['uae', 'global'] };
+
   switch (vault.type) {
     case 'INDIA':
       return { experience: 'any', locations: ['india'] };
@@ -50,10 +132,13 @@ function getVaultFit(vault: Vault): VaultFit {
   }
 }
 
-export function findRecommendedVaults(vaults: Vault[], options: {
-  experience: ExperienceOption | null;
-  locations: LocationOption[];
-}): Set<string> {
+export function findRecommendedVaults(
+  vaults: Vault[],
+  options: {
+    experience: ExperienceOption | null;
+    locations: LocationOption[];
+  },
+): Set<string> {
   const { experience, locations } = options;
   if (!experience || locations.length === 0) return new Set();
   const recommended = vaults
@@ -67,40 +152,18 @@ export function findRecommendedVaults(vaults: Vault[], options: {
   return new Set(recommended);
 }
 
-function OptionButton({
-  label,
-  selected,
-  onSelect,
-}: {
-  label: string;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
-      className={`inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
-        selected
-          ? 'border-brand-400 bg-gradient-to-br from-[#061B36] to-[#061B36] text-white shadow-[0_12px_26px_-16px_rgba(6,27,54,0.9)]'
-          : 'border-line bg-surface text-content hover:border-brand-400/60 hover:bg-surface-muted dark:bg-surface-elevated dark:hover:bg-surface'
-      }`}
-    >
-      {label}
-      {selected && <CheckIcon className="h-4 w-4 shrink-0 text-[#E3B968]" />}
-    </button>
-  );
-}
-
 export default function VaultFinder({
   vaults,
   recommended,
   onRecommendedChange,
+  onlyRecommended = false,
+  onToggleOnlyRecommended,
 }: {
   vaults: Vault[];
   recommended: Set<string>;
   onRecommendedChange: (ids: Set<string>) => void;
+  onlyRecommended?: boolean;
+  onToggleOnlyRecommended?: (val: boolean) => void;
 }) {
   const [experience, setExperience] = useState<ExperienceOption | null>(null);
   const [locations, setLocations] = useState<LocationOption[]>([]);
@@ -117,206 +180,247 @@ export default function VaultFinder({
     setExperience(null);
     setLocations([]);
     onRecommendedChange(new Set());
+    if (onToggleOnlyRecommended) onToggleOnlyRecommended(false);
   };
 
   const hasSelection = experience !== null || locations.length > 0;
   const answered = experience !== null && locations.length > 0;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-line bg-gradient-to-b from-surface to-surface-muted p-6 shadow-card dark:from-surface-elevated dark:to-surface sm:p-8">
-      {/* Decorative background — CSS only */}
+    <div className="relative overflow-hidden rounded-3xl border border-line bg-gradient-to-b from-surface via-surface to-surface-muted p-6 shadow-card transition-all duration-300 dark:from-surface-elevated dark:via-surface-elevated dark:to-surface sm:p-8">
+      {/* Subtle luxury glow in top right */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(200,148,62,0.14), transparent 68%)' }}
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full border border-brand-400/20"
+        className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full opacity-60"
+        style={{ background: 'radial-gradient(circle, rgba(200,148,62,0.18), transparent 70%)' }}
       />
 
       <div className="relative">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        {/* Top Header & Reset Action */}
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line/60 pb-5">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#061B36] to-brand-600 text-[#E3B968] shadow-[inset_0_1px_0_rgba(255,255,255,0.09)] ring-1 ring-inset ring-brand-400/35">
-                <CompassIcon className="h-5 w-5" />
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#061B36] text-[#E3B968] shadow-sm dark:bg-[#D6952F] dark:text-[#061B36]">
+                <HiFunnel className="h-4 w-4" />
               </span>
-              <Eyebrow>VAULT FINDER</Eyebrow>
-            </span>
-            <h3 className="mt-3 text-xl font-bold tracking-tight text-content sm:text-2xl">
-              Build around where you are. And where you want to go.
+              <Eyebrow>VAULT NAVIGATOR</Eyebrow>
+            </div>
+            <h3 className="mt-2 text-xl font-bold tracking-tight text-content sm:text-2xl">
+              Tailor opportunities to your seniority &amp; target markets
             </h3>
-            <p className="mt-2 text-sm text-content-muted sm:text-base">
-              Opportunity curated by experience level &amp; market location.
+            <p className="mt-1 text-sm text-content-muted">
+              Select your career stage and preferred geographies to instantly spotlight matching vaults.
             </p>
           </div>
+
           {hasSelection && (
             <button
               type="button"
               onClick={reset}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-content-muted transition-colors hover:border-brand-400/60 hover:text-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 dark:bg-surface-elevated"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#D6952F]/40 bg-surface px-3.5 py-2 text-xs font-semibold text-content-muted transition hover:border-[#D6952F] hover:bg-surface-muted hover:text-content active:scale-[0.98] dark:bg-surface-elevated"
             >
-              <CloseIcon className="h-4 w-4" />
-              Clear
+              <HiArrowPath className="h-3.5 w-3.5 text-[#D6952F]" />
+              Reset Filters
             </button>
           )}
         </div>
 
-        <div className="mt-7 grid gap-7 lg:grid-cols-2">
-          <div role="group" aria-labelledby="vf-experience-label">
-            <p id="vf-experience-label" className="text-sm font-semibold text-content">
-              Your experience level?
-            </p>
+        {/* Dual Selectors: Seniority & Location */}
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          {/* Question 1: Experience Level */}
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-content-faint">
+                1. Select Experience Level
+              </p>
+              {experience && (
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  Selected
+                </span>
+              )}
+            </div>
+
             <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {EXPERIENCE_OPTIONS.map((option) => (
-                <OptionButton
-                  key={option.key}
-                  label={option.label}
-                  selected={experience === option.key}
-                  onSelect={() => setExperience(option.key)}
-                />
-              ))}
+              {EXPERIENCE_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const isSelected = experience === opt.key;
+
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setExperience(opt.key)}
+                    className={`group relative flex flex-col justify-between rounded-2xl border p-3.5 text-left transition-all duration-200 active:scale-[0.98] ${
+                      isSelected
+                        ? 'border-[#D6952F] bg-[#061B36] text-white shadow-md ring-1 ring-[#D6952F] dark:bg-[#061B36] dark:text-white'
+                        : 'border-line bg-surface hover:border-[#D6952F]/60 hover:bg-surface-muted text-content dark:bg-surface-elevated'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                            isSelected
+                              ? 'bg-white/10 text-[#E3B968]'
+                              : 'bg-surface-muted text-content-muted group-hover:text-[#D6952F] dark:bg-white/5'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="font-bold text-sm leading-tight">{opt.label}</p>
+                          <p
+                            className={`text-[11px] font-semibold ${
+                              isSelected ? 'text-[#E3B968]' : 'text-content-faint'
+                            }`}
+                          >
+                            {opt.stage}
+                          </p>
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#D6952F] text-[#061B36]">
+                          <HiCheck className="h-3 w-3" />
+                        </span>
+                      )}
+                    </div>
+                    <p
+                      className={`mt-2 text-[11px] leading-snug line-clamp-1 ${
+                        isSelected ? 'text-[#9FB0CC]' : 'text-content-muted'
+                      }`}
+                    >
+                      {opt.desc}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          <div role="group" aria-labelledby="vf-location-label">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <p id="vf-location-label" className="text-sm font-semibold text-content">
-                Preferred location(s)?
+          {/* Question 2: Target Markets / Location */}
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold uppercase tracking-wider text-content-faint">
+                2. Select Preferred Markets
               </p>
-              <span className="text-xs font-medium text-content-faint">Select one or more</span>
+              <span className="text-[11px] font-medium text-content-muted">
+                {locations.length > 0 ? `${locations.length} selected` : 'Multi-select'}
+              </span>
             </div>
+
             <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {LOCATION_OPTIONS.map((option) => (
-                <button
-                  key={option.key}
-                  type="button"
-                  onClick={() => toggleLocation(option.key)}
-                  aria-pressed={locations.includes(option.key)}
-                  className={`inline-flex items-center justify-between gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
-                    locations.includes(option.key)
-                      ? 'border-brand-400 bg-gradient-to-br from-[#061B36] to-[#061B36] text-white shadow-[0_12px_26px_-16px_rgba(6,27,54,0.9)]'
-                      : 'border-line bg-surface text-content hover:border-brand-400/60 hover:bg-surface-muted dark:bg-surface-elevated dark:hover:bg-surface'
-                  }`}
-                >
-                  {option.label}
-                  {locations.includes(option.key) && (
-                    <CheckIcon className="h-4 w-4 shrink-0 text-[#E3B968]" />
-                  )}
-                </button>
-              ))}
+              {LOCATION_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const isSelected = locations.includes(opt.key);
+
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => toggleLocation(opt.key)}
+                    className={`group relative flex flex-col justify-between rounded-2xl border p-3.5 text-left transition-all duration-200 active:scale-[0.98] ${
+                      isSelected
+                        ? 'border-[#D6952F] bg-[#061B36] text-white shadow-md ring-1 ring-[#D6952F] dark:bg-[#061B36] dark:text-white'
+                        : 'border-line bg-surface hover:border-[#D6952F]/60 hover:bg-surface-muted text-content dark:bg-surface-elevated'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                            isSelected
+                              ? 'bg-white/10 text-[#E3B968]'
+                              : 'bg-surface-muted text-content-muted group-hover:text-[#D6952F] dark:bg-white/5'
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="font-bold text-sm leading-tight">{opt.label}</p>
+                          <p
+                            className={`text-[11px] font-semibold ${
+                              isSelected ? 'text-[#E3B968]' : 'text-content-faint'
+                            }`}
+                          >
+                            {opt.region}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition ${
+                          isSelected
+                            ? 'bg-[#D6952F] text-[#061B36]'
+                            : 'border border-line bg-surface-muted dark:bg-white/5'
+                        }`}
+                      >
+                        {isSelected && <HiCheck className="h-3 w-3" />}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {answered ? (
-          <p
-            className={`mt-7 flex items-start gap-2.5 rounded-2xl border px-4 py-3 text-sm ${
-              recommended.size > 0
-                ? 'border-brand-400/35 bg-gradient-to-br from-brand-50/70 to-surface text-content dark:border-brand-400/25 dark:from-brand-950/40 dark:to-surface'
-                : 'border-line bg-surface-muted text-content-muted dark:bg-surface'
-            }`}
-          >
-            {recommended.size > 0 ? (
-              <>
-                <SparkleIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
-                <span>
-                  Based on your answers, the vault
-                  {recommended.size > 1 ? 's marked' : ' marked'}{' '}
-                  <strong className="font-semibold text-content">&ldquo;Recommended for you&rdquo;</strong>{' '}
-                  below {recommended.size > 1 ? 'are' : 'is'} the best match
-                  {recommended.size > 1 ? 'es' : ''} for your search.
+        {/* Live Recommendation Feedback Bar */}
+        <div className="mt-6 pt-5 border-t border-line/60">
+          {answered ? (
+            <div
+              className={`flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between ${
+                recommended.size > 0
+                  ? 'border-[#D6952F]/40 bg-[#FFF3D9]/40 text-content dark:bg-[#C8943E]/10'
+                  : 'border-line bg-surface-muted text-content-muted'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#D6952F] text-[#061B36]">
+                  <HiSparkles className="h-4 w-4" />
                 </span>
-              </>
-            ) : (
-              <>
-                <InfoIcon className="mt-0.5 h-4 w-4 shrink-0 text-content-faint" />
-                <span>We couldn&apos;t find a vault matching your answers. All vaults are shown below.</span>
-              </>
-            )}
-          </p>
-        ) : (
-          <p className="mt-7 flex items-center gap-2 text-sm text-content-faint">
-            <InfoIcon className="h-4 w-4 shrink-0" />
-            Select an option for both questions to see your recommended vaults.
-          </p>
-        )}
+                <div>
+                  <p className="font-bold text-sm text-[#061B36] dark:text-white">
+                    {recommended.size > 0
+                      ? `Found ${recommended.size} matching career vault${recommended.size > 1 ? 's' : ''}`
+                      : 'No exact vault matches found'}
+                  </p>
+                  <p className="text-xs text-content-muted">
+                    {recommended.size > 0
+                      ? 'The vaults highlighted with "Recommended For You" match your selected criteria.'
+                      : 'Showing all vaults. Try expanding your location or experience selection.'}
+                  </p>
+                </div>
+              </div>
+
+              {recommended.size > 0 && onToggleOnlyRecommended && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onToggleOnlyRecommended(!onlyRecommended)}
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition shadow-sm ${
+                      onlyRecommended
+                        ? 'bg-[#061B36] text-white hover:bg-[#0A2645] dark:bg-[#D6952F] dark:text-[#061B36]'
+                        : 'border border-[#D6952F] bg-white text-[#061B36] hover:bg-[#FFF3D9] dark:bg-white/10 dark:text-white'
+                    }`}
+                  >
+                    {onlyRecommended
+                      ? `Show All (${vaults.length})`
+                      : `Show Only Matches (${recommended.size})`}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-content-muted">
+              <HiInformationCircle className="h-4 w-4 shrink-0 text-[#D6952F]" />
+              <span>
+                Pick your seniority level and one or more target regions above to filter the vaults below.
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  );
-}
-
-function CheckIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2.2}
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-    </svg>
-  );
-}
-
-function CloseIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-}
-
-function CompassIcon({ className = 'h-5 w-5' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.8}
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polygon
-        points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SparkleIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 2l1.1 5.5L18 9l-4.9 1.5L12 16l-1.1-5.5L6 9l4.9-1.5L12 2zm6.5 10l.6 2.9L22 15l-2.9.9L18.5 19l-.6-3.1L15 15l2.9-.9L18.5 12zM5.5 12l.6 2.9L9 15l-2.9.9L5.5 19l-.6-3.1L2 15l2.9-.9L5.5 12z" />
-    </svg>
-  );
-}
-
-function InfoIcon({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.8}
-      stroke="currentColor"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10.5v5.25M12 7.75h.008v.008H12V7.75z" />
-    </svg>
   );
 }
