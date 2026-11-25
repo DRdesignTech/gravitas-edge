@@ -314,6 +314,13 @@ export default function ResumeUploadCard({
           </div>
           {canUseExisting && (
             <div className="flex flex-wrap gap-2">
+              {!user && (
+                <Link href="/register">
+                  <Button type="button" size="sm" variant="primary">
+                    Create Free Account →
+                  </Button>
+                </Link>
+              )}
               <Button type="button" size="sm" variant="outline" onClick={resetForm}>
                 <UploadIcon className="h-4 w-4" />
                 Upload another resume

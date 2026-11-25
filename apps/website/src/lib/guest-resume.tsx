@@ -91,6 +91,13 @@ export function GuestResumeProvider({ children }: { children: React.ReactNode })
     setResume(readStoredInfo());
     setHydrated(true);
     void refreshGuestResume();
+
+    const handleCleared = () => {
+      setToken(null);
+      setResume(null);
+    };
+    window.addEventListener('guest-resume-cleared', handleCleared);
+    return () => window.removeEventListener('guest-resume-cleared', handleCleared);
   }, [refreshGuestResume]);
 
   return (

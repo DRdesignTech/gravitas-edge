@@ -364,8 +364,15 @@ export default function UploadResumePage() {
                       <UploadIcon className="h-3.5 w-3.5 mr-1" />
                       Upload another resume
                     </Button>
+                    {!user && (
+                      <Link href="/register">
+                        <Button size="sm">Create Account &amp; Pre-Fill Profile →</Button>
+                      </Link>
+                    )}
                     <Link href="/opportunities">
-                      <Button size="sm">Browse Opportunities →</Button>
+                      <Button size="sm" variant={user ? 'primary' : 'outline'}>
+                        Browse Opportunities →
+                      </Button>
                     </Link>
                   </div>
                 </div>

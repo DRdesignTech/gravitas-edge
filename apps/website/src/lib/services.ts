@@ -7,10 +7,13 @@ import {
   CommissionItem,
   CommissionQuery,
   CommissionStatistics,
+  CandidateProfileDetail,
   ConfirmPurchaseResult,
   CouponValidationResult,
   ExperienceLevel,
   GuestResumeInfo,
+  NewsletterSubscribeResponse,
+  NewsletterUnsubscribeResponse,
   Opportunity,
   OpportunityQuery,
   PaginatedResult,
@@ -83,12 +86,26 @@ export function fetchMyProfile(): Promise<UserProfile | null> {
   return api.get<UserProfile | null>('/users/me/profile');
 }
 
+export function fetchMyCandidateProfile(): Promise<{
+  profile: UserProfile | null;
+  candidateProfile: CandidateProfileDetail | null;
+}> {
+  return api.get<{
+    profile: UserProfile | null;
+    candidateProfile: CandidateProfileDetail | null;
+  }>('/users/me/candidate-profile');
+}
+
 export async function fetchMyResumes(): Promise<Resume[]> {
   const res = await api.get<{ data: Resume[]; meta: PaginatedResult<Resume>['meta'] }>('/resumes');
   return res?.data ?? [];
 }
 
-export function updateMyProfile(dto: Partial<UserProfile>) {
+export function processMyResume(id: string): Promise<Resume> {
+  return api.post<Resume>(`/resumes/${encodeURIComponent(id)}/process`);
+}
+
+export function updateMyProfile(dto: Partial<UserProfile> & { confirmExtractedProfile?: boolean }) {
   return api.patch<User>('/users/me/profile', dto);
 }
 
@@ -115,6 +132,14 @@ export interface ExtractedResumeContact {
   fullName: string | null;
   email: string | null;
   phone: string | null;
+  location?: string | null;
+  totalExperienceMonths?: number | null;
+  yearsExperience?: number | null;
+  monthsExperience?: number | null;
+  currentJobTitle?: string | null;
+  currentCompany?: string | null;
+  skills?: string[];
+  parserVersion?: string;
 }
 
 export function extractResumeContact(file: File) {
@@ -372,5 +397,16 @@ export function sendAiChatMessage(
     message,
     history,
   });
+}
+
+export function subscribeNewsletter(email: string): Promise<NewsletterSubscribeResponse> {
+  return api.post<NewsletterSubscribeResponse>('/newsletter/subscribe', { email });
+}
+
+export function unsubscribeNewsletter(payload: {
+  token?: string;
+  email?: string;
+}): Promise<NewsletterUnsubscribeResponse> {
+  return api.post<NewsletterUnsubscribeResponse>('/newsletter/unsubscribe', payload);
 }
 

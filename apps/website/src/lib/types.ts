@@ -1,3 +1,32 @@
+export interface CandidateEducationItem {
+  qualification: string;
+  institution?: string | null;
+  field?: string | null;
+  startYear?: number | null;
+  endYear?: number | null;
+}
+
+export interface CandidateWorkExperienceItem {
+  company: string;
+  jobTitle?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  isCurrent?: boolean;
+}
+
+export interface CandidateCertificationItem {
+  name: string;
+  issuer?: string | null;
+  issueYear?: number | null;
+}
+
+export interface CareerPreferences {
+  noticePeriod?: string;
+  workPreference?: string;
+  preferredRole?: string;
+  preferredLocation?: string;
+}
+
 export interface UserProfile {
   fullName?: string | null;
   phone?: string | null;
@@ -7,6 +36,11 @@ export interface UserProfile {
   currentJobTitle?: string | null;
   currentCompany?: string | null;
   profileImg?: string | null;
+  skills?: string[] | null;
+  education?: CandidateEducationItem[] | null;
+  workExperience?: CandidateWorkExperienceItem[] | null;
+  certifications?: CandidateCertificationItem[] | null;
+  careerPreferences?: CareerPreferences | null;
   createdAt?: string;
 }
 
@@ -440,6 +474,13 @@ export interface CommissionQuery {
   status?: string;
 }
 
+export interface ResumeProcessingInfo {
+  status: string;
+  parserVersion?: string | null;
+  completedAt?: string | null;
+  errorMessage?: string | null;
+}
+
 export interface Resume {
   id: string;
   originalName: string;
@@ -447,6 +488,8 @@ export interface Resume {
   fileSize: number;
   uploadStatus?: string;
   uploadedAt: string;
+  processedAt?: string | null;
+  processing?: ResumeProcessingInfo | null;
 }
 
 export interface GuestResumeInfo {
@@ -455,6 +498,30 @@ export interface GuestResumeInfo {
   fileSize: number;
   uploadedAt: string;
   linked?: boolean;
+  fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}
+
+export interface CandidateProfileDetail {
+  id: string;
+  resumeId: string;
+  confirmationStatus: 'EXTRACTED' | 'CONFIRMED';
+  fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  totalExperienceMonths?: number | null;
+  currentJobTitle?: string | null;
+  currentCompany?: string | null;
+  skills: string[];
+  workExperience: CandidateWorkExperienceItem[];
+  education: CandidateEducationItem[];
+  certifications: CandidateCertificationItem[];
+  industries: string[];
+  functionalAreas: string[];
+  resume?: Resume | null;
+  updatedAt: string;
 }
 
 // ── Recruitment Vendor Access (RVA) ─────────────────────────────────
@@ -654,5 +721,23 @@ export interface AiChatResponse {
   reply: string;
   actions?: AiChatAction[];
   suggestions?: string[];
+}
+
+export type NewsletterSubscriptionStatus = 'SUBSCRIBED' | 'UNSUBSCRIBED';
+
+export interface NewsletterSubscribeResponse {
+  subscribed: boolean;
+  alreadySubscribed: boolean;
+  email: string;
+  status: NewsletterSubscriptionStatus;
+  message: string;
+}
+
+export interface NewsletterUnsubscribeResponse {
+  unsubscribed: boolean;
+  alreadyUnsubscribed: boolean;
+  email: string;
+  status: NewsletterSubscriptionStatus;
+  message: string;
 }
 

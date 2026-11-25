@@ -117,6 +117,7 @@ export default function ChatbotWidget() {
   const isCheckout = pathname?.includes('/checkout');
 
   const [open, setOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: 0, role: 'bot', text: chatbotWelcome },
   ]);
@@ -267,8 +268,18 @@ export default function ChatbotWidget() {
     window.setTimeout(() => inputRef.current?.focus(), 40);
   };
 
-  // Keep hidden on checkout pages to avoid overlapping active payment flow
-  if (isCheckout) {
+  useEffect(() => {
+    setDrawerOpen(document.body.dataset.profileDrawerOpen === 'true');
+    const onDrawerToggle = (e: Event) => {
+      const custom = e as CustomEvent<{ open?: boolean }>;
+      setDrawerOpen(Boolean(custom.detail?.open));
+    };
+    window.addEventListener('ge-profile-drawer', onDrawerToggle);
+    return () => window.removeEventListener('ge-profile-drawer', onDrawerToggle);
+  }, []);
+
+  // Keep hidden on checkout pages or when a profile edit drawer is open
+  if (isCheckout || drawerOpen) {
     return null;
   }
 

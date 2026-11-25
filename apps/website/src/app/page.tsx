@@ -21,7 +21,7 @@ import PricingSection from '@/components/marketing/PricingSection';
 import WhatsAppChannel from '@/components/marketing/WhatsAppChannel';
 import FaqSection from '@/components/marketing/FaqSection';
 import { scrollToHash } from '@/lib/scroll';
-import { HiSparkles } from 'react-icons/hi2';
+import { HiSparkles, HiGlobeAlt, HiUserGroup, HiClock } from 'react-icons/hi2';
 
 function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -40,17 +40,17 @@ function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
 
 const whatFeatures = [
   {
-    icon: '🌍',
+    icon: <HiGlobeAlt className="h-5 w-5 text-[#C8943E] dark:text-[#F0C27B]" aria-hidden="true" />,
     title: 'Multiple countries',
     description: "One subscription covers every country in your vault's coverage.",
   },
   {
-    icon: '🤝',
+    icon: <HiUserGroup className="h-5 w-5 text-[#C8943E] dark:text-[#F0C27B]" aria-hidden="true" />,
     title: 'Direct pathways',
     description: 'Recruiter or hiring-manager details where the source provides them.',
   },
   {
-    icon: '⏱️',
+    icon: <HiClock className="h-5 w-5 text-[#C8943E] dark:text-[#F0C27B]" aria-hidden="true" />,
     title: 'Regularly updated',
     description: 'Expired roles are removed automatically, so you only see live listings.',
   },
@@ -127,11 +127,34 @@ export default function Home() {
 
   // Support arriving on the homepage with a hash (e.g. /#plans from another route).
   useEffect(() => {
-    scrollToHash(window.location.hash);
-    const onHashChange = () => scrollToHash(window.location.hash);
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
+    const scrollCurrentHash = () => {
+      const hash = window.location.hash;
+      if (!hash) return;
+      if (hash === '#home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      scrollToHash(hash);
+    };
+
+    scrollCurrentHash();
+    window.addEventListener('hashchange', scrollCurrentHash);
+    return () => window.removeEventListener('hashchange', scrollCurrentHash);
   }, []);
+
+  // Re-align hash scroll after async home sections finish loading so layout shifts don't miss the target.
+  useEffect(() => {
+    if (loading || !window.location.hash) return;
+    const hash = window.location.hash;
+    const timer = window.setTimeout(() => {
+      if (hash === '#home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        scrollToHash(hash);
+      }
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [loading]);
 
   const scrollTo = (id: string) => {
     if (typeof window === 'undefined') return;
@@ -537,36 +560,107 @@ export default function Home() {
       {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="upload-resume"
-        className="section-glow relative border-t border-line bg-surface dark:bg-surface-elevated/50"
+        className="relative overflow-hidden border-t border-line bg-[#FEFDF9] dark:bg-[#06142A] scroll-mt-20"
       >
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-12">
-            <div className="max-w-2xl">
-              <Eyebrow>RESUME</Eyebrow>
-              <h2 className="mt-3 text-2xl font-bold tracking-tight text-content sm:text-3xl">
-                Upload your resume
+        {/* Subtle ambient background glows */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-24 top-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-[#D6952F]/10 blur-[110px]"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-24 top-1/3 h-80 w-80 rounded-full bg-brand-600/10 blur-[110px]"
+        />
+
+        <div className="relative z-10 mx-auto max-w-[1320px] px-5 py-16 sm:py-24">
+          <div className="grid gap-10 lg:grid-cols-12 lg:items-center lg:gap-12">
+            {/* Left Column: Executive Pitch & 2x2 Bento Benefits */}
+            <div className="lg:col-span-6">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#D6952F]/35 bg-[#D6952F]/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#9C6424] dark:text-[#F0C27B]">
+                <span className="text-[#D6952F]">✦</span>
+                <span>Executive Talent Profile</span>
+              </span>
+
+              <h2 className="mt-4 font-serif-heading text-3xl font-bold tracking-tight text-[#061B36] dark:text-[#F2F5FA] sm:text-4xl leading-[1.15]">
+                Upload your resume.{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D6952F] to-[#B37E28]">
+                  Let the right roles find you.
+                </span>
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-content-muted sm:text-base">
-                Make your profile ready for the right opportunities. Share your resume once and let
-                relevant roles come to you — no account needed to start.
+
+              <p className="mt-4 text-sm leading-relaxed text-[#5B6479] dark:text-[#93A3BE] sm:text-base max-w-xl">
+                Make your profile ready for high-impact opportunities across India, UAE, London, and
+                global corridors. Share your resume once—no account needed to start.
               </p>
-              <ul className="mt-6 space-y-3">
+
+              {/* 2x2 Bento Benefit Grid */}
+              <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {[
-                  'Get matched with relevant opportunities',
-                  'Keep your resume ready for recruiters',
-                  'Upload or update it any time',
-                  'Your data is shared only with your consent',
-                ].map((point) => (
-                  <li key={point} className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-                      <CheckAccent className="h-3.5 w-3.5" />
-                    </span>
-                    <span className="text-sm text-content-muted sm:text-base">{point}</span>
-                  </li>
+                  {
+                    title: 'Smart Role Matching',
+                    desc: 'Get matched with relevant regional and executive opportunities.',
+                  },
+                  {
+                    title: 'Recruiter Ready',
+                    desc: 'Keep your profile accessible for verified hiring desks.',
+                  },
+                  {
+                    title: 'Update Anytime',
+                    desc: 'Upload, replace, or refresh your CV whenever you choose.',
+                  },
+                  {
+                    title: 'Consent-First Privacy',
+                    desc: 'Your data is shared strictly with your explicit consent.',
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.title}
+                    className="group rounded-2xl border border-[#E9E5DC] dark:border-[#1E3557] bg-white/80 dark:bg-[#0C1E38]/80 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D6952F]/60 hover:shadow-md"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#061B36] to-[#102E57] text-[#F0C27B] ring-1 ring-[#D6952F]/30">
+                        <CheckAccent className="h-3.5 w-3.5" />
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-bold text-[#061B36] dark:text-[#F2F5FA]">
+                          {item.title}
+                        </h3>
+                        <p className="mt-1 text-xs leading-relaxed text-[#5B6479] dark:text-[#93A3BE]">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
+
+              {/* Trust & Format Strip */}
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line/70 pt-5 text-xs font-medium text-[#5B6479] dark:text-[#93A3BE]">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  No Account Required
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#D6952F]" />
+                  Auto-Extracts Contact Details
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                  PDF, DOC, DOCX · Max 5 MB
+                </span>
+              </div>
             </div>
-            <ResumeUploadCard />
+
+            {/* Right Column: Elevated ResumeUploadCard Wrapper */}
+            <div className="lg:col-span-6 relative">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-2 rounded-[2rem] bg-gradient-to-br from-[#D6952F]/20 via-transparent to-[#061B36]/15 blur-xl opacity-70"
+              />
+              <div className="relative">
+                <ResumeUploadCard />
+              </div>
+            </div>
           </div>
         </div>
       </section>

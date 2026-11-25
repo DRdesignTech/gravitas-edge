@@ -22,6 +22,7 @@ import { ResumesModule } from './resumes/resumes.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RecruitmentVendorModule } from './recruitment-vendor/recruitment-vendor.module';
 import { AiModule } from './ai/ai.module';
+import { NewsletterModule } from './newsletter/newsletter.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AiModule } from './ai/ai.module';
     PaymentsModule,
     RecruitmentVendorModule,
     AiModule,
+    NewsletterModule,
   ],
   controllers: [HealthController, PublicExperienceLevelsController, PublicTestimonialsController],
   providers: [

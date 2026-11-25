@@ -173,20 +173,21 @@ export default function Header() {
 
   const handleSectionNav = (e: React.MouseEvent, href: string) => {
     if (!href.startsWith('#')) return;
+    e.preventDefault();
     setMobileOpen(false);
     setUserMenuOpen(false);
+
+    const id = href.replace(/^#/, '');
+    const matched = navLinks.find((l) => l.href === href);
+    if (matched) {
+      setActiveSection(matched.key);
+    }
 
     if (pathname !== '/') {
       router.push(`/${href}`);
       return;
     }
 
-    e.preventDefault();
-    const id = href.replace(/^#/, '');
-    const matched = navLinks.find((l) => l.href === href);
-    if (matched) {
-      setActiveSection(matched.key);
-    }
     spyLocked.current = true;
     lockedTarget.current = id;
     if (spyUnlockTimer.current) window.clearTimeout(spyUnlockTimer.current);
@@ -196,7 +197,11 @@ export default function Header() {
 
     if (navScrollTimer.current) window.clearTimeout(navScrollTimer.current);
     navScrollTimer.current = window.setTimeout(() => {
-      scrollToAnchor(id);
+      if (id === 'home') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        scrollToAnchor(id);
+      }
       window.history.replaceState(null, '', href);
     }, 10);
   };

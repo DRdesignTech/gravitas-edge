@@ -30,14 +30,15 @@ import {
 } from 'react-icons/hi2';
 import { useAuth } from '@/lib/auth';
 import {
-  fetchMyProfile,
+  fetchMyCandidateProfile,
   updateMyProfile,
   uploadProfileImage,
   removeProfileImage,
   fetchMyResumes,
   uploadResume,
+  processMyResume,
 } from '@/lib/services';
-import type { Resume, UserProfile } from '@/lib/types';
+import type { CandidateProfileDetail, Resume, UserProfile } from '@/lib/types';
 import {
   Button,
   Card,
@@ -86,29 +87,18 @@ const emptyForm: FormState = {
   currentCompany: '',
 };
 
-const DEFAULT_SKILLS = [
-  'Executive Leadership',
-  'Strategic Planning',
-  'P&L Management',
-  'Talent Acquisition',
-  'Digital Transformation',
-  'Cross-functional Leadership',
-  'Revenue Operations',
-  'Stakeholder Management',
-];
-
-const DEFAULT_EDUCATION: EducationState = {
-  degree: 'Master of Business Administration (MBA)',
-  university: 'Premier Business School',
-  field: 'Strategic Management & Finance',
-  year: '2018',
+const emptyEducation: EducationState = {
+  degree: '',
+  university: '',
+  field: '',
+  year: '',
 };
 
-const DEFAULT_PREFERENCES: PreferencesState = {
-  noticePeriod: '30 Days',
-  workPreference: 'Hybrid (Preferred)',
-  preferredRole: 'Director / VP / CXO',
-  preferredLocation: 'India & GCC / UAE',
+const emptyPreferences: PreferencesState = {
+  noticePeriod: '',
+  workPreference: '',
+  preferredRole: '',
+  preferredLocation: '',
 };
 
 function formatFileSize(bytes: number): string {
@@ -149,14 +139,12 @@ export default function ProfilePage() {
   // Active section for table of contents
   const [activeSection, setActiveSection] = useState('basic-details');
 
-  // Executive Skills state
-  const [skills, setSkills] = useState<string[]>(DEFAULT_SKILLS);
-
-  // Career Preferences state
-  const [preferences, setPreferences] = useState<PreferencesState>(DEFAULT_PREFERENCES);
-
-  // Education state
-  const [education, setEducation] = useState<EducationState>(DEFAULT_EDUCATION);
+  // Persisted Candidate Background & AI Extracted Profile state
+  const [skills, setSkills] = useState<string[]>([]);
+  const [preferences, setPreferences] = useState<PreferencesState>(emptyPreferences);
+  const [education, setEducation] = useState<EducationState>(emptyEducation);
+  const [candidateProfile, setCandidateProfile] = useState<CandidateProfileDetail | null>(null);
+  const [syncingAi, setSyncingAi] = useState(false);
 
   // ─────────────────────────────────────────────────────────────────
   // RIGHT-SIDE DRAWER MODAL STATE FOR SECTION EDITING
@@ -165,27 +153,87 @@ export default function ProfilePage() {
   const [draftForm, setDraftForm] = useState<FormState>(emptyForm);
   const [draftSkills, setDraftSkills] = useState<string[]>([]);
   const [newSkillInput, setNewSkillInput] = useState('');
-  const [draftPreferences, setDraftPreferences] = useState<PreferencesState>(DEFAULT_PREFERENCES);
-  const [draftEducation, setDraftEducation] = useState<EducationState>(DEFAULT_EDUCATION);
+  const [draftPreferences, setDraftPreferences] = useState<PreferencesState>(emptyPreferences);
+  const [draftEducation, setDraftEducation] = useState<EducationState>(emptyEducation);
   const [drawerErrors, setDrawerErrors] = useState<Partial<Record<keyof FormState, string>>>({});
 
   const loadProfileData = useCallback(() => {
     setLoading(true);
     setLoadError('');
-    fetchMyProfile()
-      .then((p) => {
-        const data = p ?? ({} as UserProfile);
+    fetchMyCandidateProfile()
+      .then(({ profile, candidateProfile: cand }) => {
+        const data = profile ?? ({} as UserProfile);
+        setCandidateProfile(cand);
+
+        const totalMonths = cand?.totalExperienceMonths;
+        const derivedYears =
+          data.yearsExperience != null
+            ? String(data.yearsExperience)
+            : totalMonths != null
+              ? String(Math.floor(totalMonths / 12))
+              : '';
+        const derivedMonths =
+          data.monthsExperience != null
+            ? String(data.monthsExperience)
+            : totalMonths != null
+              ? String(totalMonths % 12)
+              : '';
+
         const loadedForm: FormState = {
-          fullName: data.fullName || '',
-          phone: data.phone || '',
-          location: data.location || '',
-          yearsExperience: data.yearsExperience != null ? String(data.yearsExperience) : '',
-          monthsExperience: data.monthsExperience != null ? String(data.monthsExperience) : '',
-          currentJobTitle: data.currentJobTitle || '',
-          currentCompany: data.currentCompany || '',
+          fullName: data.fullName || cand?.fullName || '',
+          phone: data.phone || cand?.phone || '',
+          location: data.location || cand?.location || '',
+          yearsExperience: derivedYears,
+          monthsExperience: derivedMonths,
+          currentJobTitle: data.currentJobTitle || cand?.currentJobTitle || '',
+          currentCompany: data.currentCompany || cand?.currentCompany || '',
         };
         setForm(loadedForm);
         setProfileImg(data.profileImg ?? null);
+
+        const loadedSkills =
+          Array.isArray(data.skills) && data.skills.length > 0
+            ? data.skills
+            : cand?.skills && cand.skills.length > 0
+              ? cand.skills
+              : [];
+        setSkills(loadedSkills);
+
+        const loadedEduList =
+          Array.isArray(data.education) && data.education.length > 0
+            ? data.education
+            : cand?.education ?? [];
+        const firstEdu = loadedEduList[0];
+        if (firstEdu) {
+          setEducation({
+            degree: firstEdu.qualification || '',
+            university: firstEdu.institution || '',
+            field: firstEdu.field || '',
+            year: firstEdu.endYear != null ? String(firstEdu.endYear) : '',
+          });
+        } else {
+          setEducation(emptyEducation);
+        }
+
+        if (data.careerPreferences) {
+          setPreferences({
+            noticePeriod: data.careerPreferences.noticePeriod || '',
+            workPreference: data.careerPreferences.workPreference || '',
+            preferredRole:
+              data.careerPreferences.preferredRole || cand?.currentJobTitle || '',
+            preferredLocation:
+              data.careerPreferences.preferredLocation || cand?.location || '',
+          });
+        } else if (cand) {
+          setPreferences({
+            noticePeriod: '',
+            workPreference: '',
+            preferredRole: cand.currentJobTitle || '',
+            preferredLocation: cand.location || '',
+          });
+        } else {
+          setPreferences(emptyPreferences);
+        }
       })
       .catch((e) => setLoadError(getErrorMessage(e)))
       .finally(() => setLoading(false));
@@ -215,12 +263,28 @@ export default function ProfilePage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeDrawer]);
 
+  // Notify global floating widgets (WhatsApp / AI Chatbot) to hide while an edit drawer is open
+  useEffect(() => {
+    const isOpen = activeDrawer !== null;
+    document.body.dataset.profileDrawerOpen = isOpen ? 'true' : 'false';
+    window.dispatchEvent(new CustomEvent('ge-profile-drawer', { detail: { open: isOpen } }));
+    return () => {
+      document.body.dataset.profileDrawerOpen = 'false';
+      window.dispatchEvent(new CustomEvent('ge-profile-drawer', { detail: { open: false } }));
+    };
+  }, [activeDrawer]);
+
   // Open right drawer with fresh draft copies
   const openDrawer = (section: DrawerSection) => {
     setDraftForm({ ...form });
     setDraftSkills([...skills]);
     setNewSkillInput('');
-    setDraftPreferences({ ...preferences });
+    setDraftPreferences({
+      noticePeriod: preferences.noticePeriod || '30 Days',
+      workPreference: preferences.workPreference || 'Hybrid (Preferred)',
+      preferredRole: preferences.preferredRole,
+      preferredLocation: preferences.preferredLocation,
+    });
     setDraftEducation({ ...education });
     setDrawerErrors({});
     setActiveDrawer(section);
@@ -278,14 +342,37 @@ export default function ProfilePage() {
         }
         showToast('Profile information saved successfully', 'success');
       } else if (activeDrawer === 'skills') {
+        const updated = await updateMyProfile({
+          skills: draftSkills,
+          confirmExtractedProfile: true,
+        });
         setSkills([...draftSkills]);
-        showToast('Skills updated successfully', 'success');
+        if (setUser && updated) setUser(updated);
+        showToast('Skills saved to your profile', 'success');
       } else if (activeDrawer === 'preferences') {
+        const updated = await updateMyProfile({ careerPreferences: draftPreferences });
         setPreferences({ ...draftPreferences });
+        if (setUser && updated) setUser(updated);
         showToast('Career preferences saved', 'success');
       } else if (activeDrawer === 'education') {
+        const yearNum = draftEducation.year.trim() ? Number(draftEducation.year.trim()) : undefined;
+        const educationPayload = draftEducation.degree.trim()
+          ? [
+              {
+                qualification: draftEducation.degree.trim(),
+                institution: draftEducation.university.trim() || undefined,
+                field: draftEducation.field.trim() || undefined,
+                endYear: yearNum && Number.isInteger(yearNum) ? yearNum : undefined,
+              },
+            ]
+          : [];
+        const updated = await updateMyProfile({
+          education: educationPayload,
+          confirmExtractedProfile: true,
+        });
         setEducation({ ...draftEducation });
-        showToast('Education details updated', 'success');
+        if (setUser && updated) setUser(updated);
+        showToast('Education details saved', 'success');
       }
       closeDrawer();
     } catch (e) {
@@ -400,13 +487,26 @@ export default function ProfilePage() {
     setResumeUploading(true);
     try {
       await uploadResume(file);
-      showToast('Resume uploaded and attached to profile', 'success');
-      loadResumesData();
+      showToast('Resume uploaded & AI-synced to your profile', 'success');
+      await Promise.all([loadResumesData(), loadProfileData()]);
     } catch (e: any) {
       showToast(e?.message || 'Failed to upload resume', 'error');
     } finally {
       setResumeUploading(false);
       if (resumeInputRef.current) resumeInputRef.current.value = '';
+    }
+  };
+
+  const handleSyncFromResume = async (resumeId: string) => {
+    setSyncingAi(true);
+    try {
+      await processMyResume(resumeId);
+      showToast('AI profile refreshed from your resume', 'success');
+      await Promise.all([loadResumesData(), loadProfileData()]);
+    } catch (e: any) {
+      showToast(e?.message || 'Could not refresh profile from resume', 'error');
+    } finally {
+      setSyncingAi(false);
     }
   };
 
@@ -730,6 +830,16 @@ export default function ProfilePage() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          loading={syncingAi}
+                          onClick={() => handleSyncFromResume(latestResume.id)}
+                          className="text-xs inline-flex items-center gap-1"
+                        >
+                          <HiSparkles className="h-3.5 w-3.5 text-[#D6952F]" />
+                          <span>Sync AI</span>
+                        </Button>
                         <Link href="/dashboard/resumes">
                           <Button size="sm" variant="outline" className="text-xs">
                             Manage All
@@ -888,7 +998,7 @@ export default function ProfilePage() {
                       Notice Period
                     </span>
                     <p className="text-xs sm:text-sm font-bold text-[#061B36] dark:text-white mt-0.5">
-                      {preferences.noticePeriod}
+                      {preferences.noticePeriod || 'Not specified'}
                     </p>
                   </div>
                 </div>
@@ -923,14 +1033,20 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="inline-flex items-center rounded-full border border-[#E9E5DC] bg-[#FAF8F5] px-3.5 py-1 text-xs font-semibold text-[#061B36] dark:border-[#1E3557] dark:bg-[#081B33] dark:text-slate-200"
-                    >
-                      {skill}
-                    </span>
-                  ))}
+                  {skills.length === 0 ? (
+                    <p className="text-xs text-[#5B6479] dark:text-slate-400">
+                      No skills saved yet. Upload a resume to auto-extract skills or click Edit Skills.
+                    </p>
+                  ) : (
+                    skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="inline-flex items-center rounded-full border border-[#E9E5DC] bg-[#FAF8F5] px-3.5 py-1 text-xs font-semibold text-[#061B36] dark:border-[#1E3557] dark:bg-[#081B33] dark:text-slate-200"
+                      >
+                        {skill}
+                      </span>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -968,7 +1084,7 @@ export default function ProfilePage() {
                       Notice Period / Availability
                     </span>
                     <p className="text-xs sm:text-sm font-bold text-[#061B36] dark:text-white mt-0.5">
-                      {preferences.noticePeriod}
+                      {preferences.noticePeriod || 'Not specified'}
                     </p>
                   </div>
 
@@ -977,7 +1093,7 @@ export default function ProfilePage() {
                       Preferred Work Mode
                     </span>
                     <p className="text-xs sm:text-sm font-bold text-[#061B36] dark:text-white mt-0.5">
-                      {preferences.workPreference}
+                      {preferences.workPreference || 'Not specified'}
                     </p>
                   </div>
 
@@ -986,7 +1102,7 @@ export default function ProfilePage() {
                       Target Executive Level
                     </span>
                     <p className="text-xs sm:text-sm font-bold text-[#061B36] dark:text-white mt-0.5">
-                      {preferences.preferredRole}
+                      {preferences.preferredRole || 'Not specified'}
                     </p>
                   </div>
 
@@ -995,7 +1111,7 @@ export default function ProfilePage() {
                       Target Geographies
                     </span>
                     <p className="text-xs sm:text-sm font-bold text-[#061B36] dark:text-white mt-0.5">
-                      {preferences.preferredLocation}
+                      {preferences.preferredLocation || 'Not specified'}
                     </p>
                   </div>
                 </div>
@@ -1030,21 +1146,56 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="p-4 rounded-xl border border-[#E9E5DC] bg-[#FAF8F5] dark:border-[#1E3557] dark:bg-[#081B33]">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-xs sm:text-sm font-bold text-[#061B36] dark:text-white">
-                          {education.degree}
-                        </p>
-                        <p className="text-xs text-[#5B6479] dark:text-slate-400 mt-1">
-                          {education.university} · {education.field}
-                        </p>
+                  {education.degree ? (
+                    <div className="p-4 rounded-xl border border-[#E9E5DC] bg-[#FAF8F5] dark:border-[#1E3557] dark:bg-[#081B33]">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs sm:text-sm font-bold text-[#061B36] dark:text-white">
+                            {education.degree}
+                          </p>
+                          {(education.university || education.field) && (
+                            <p className="text-xs text-[#5B6479] dark:text-slate-400 mt-1">
+                              {[education.university, education.field].filter(Boolean).join(' · ')}
+                            </p>
+                          )}
+                        </div>
+                        {education.year && (
+                          <span className="text-[10px] font-bold text-[#8C9AC0] bg-white dark:bg-[#0E2340] px-2 py-0.5 rounded border border-[#E9E5DC] dark:border-[#1E3557]">
+                            {education.year}
+                          </span>
+                        )}
                       </div>
-                      <span className="text-[10px] font-bold text-[#8C9AC0] bg-white dark:bg-[#0E2340] px-2 py-0.5 rounded border border-[#E9E5DC] dark:border-[#1E3557]">
-                        {education.year}
-                      </span>
                     </div>
-                  </div>
+                  ) : (
+                    <p className="text-xs text-[#5B6479] dark:text-slate-400">
+                      No education credentials saved yet. Upload a resume or click Edit to add your degree.
+                    </p>
+                  )}
+
+                  {candidateProfile?.workExperience && candidateProfile.workExperience.length > 0 && (
+                    <div className="pt-2 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#8C9AC0]">
+                        Extracted Career History ({candidateProfile.workExperience.length})
+                      </p>
+                      {candidateProfile.workExperience.slice(0, 4).map((work, index) => (
+                        <div
+                          key={`${work.company}-${index}`}
+                          className="p-3 rounded-xl border border-[#E9E5DC] bg-[#FAF8F5] dark:border-[#1E3557] dark:bg-[#081B33] flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-[#061B36] dark:text-white truncate">
+                              {work.jobTitle || 'Role'} · {work.company}
+                            </p>
+                          </div>
+                          {work.isCurrent && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full shrink-0 dark:bg-emerald-950 dark:text-emerald-300">
+                              Current
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </>

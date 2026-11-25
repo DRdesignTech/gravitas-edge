@@ -35,7 +35,8 @@ type NavItem = {
     | 'slab'
     | 'coupon'
     | 'testimonial'
-    | 'resume';
+    | 'resume'
+    | 'mail';
 };
 
 const nav: NavItem[] = [
@@ -53,6 +54,7 @@ const nav: NavItem[] = [
   { href: '/referral-slabs', label: 'Referral Slabs', icon: 'slab' },
   { href: '/coupons', label: 'Coupons', icon: 'coupon' },
   { href: '/testimonials', label: 'Testimonials', icon: 'testimonial' },
+  { href: '/newsletter', label: 'Newsletter', icon: 'mail' },
 ];
 
 const rvaNav: NavItem[] = [
@@ -89,6 +91,8 @@ const iconPaths: Record<NavItem['icon'], string> = {
     'M2.25 15.75a3.75 3.75 0 013.75-3.75h.75a.75.75 0 01.75.75v6a.75.75 0 01-.75.75H6a3.75 3.75 0 01-3.75-3.75zm11.25 6a3.75 3.75 0 003.75-3.75v-6a.75.75 0 01.75-.75h.75a3.75 3.75 0 013.75 3.75V18a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75zM8.625 6a.75.75 0 00-.75.75v6a.75.75 0 00.75.75h6a.75.75 0 00.75-.75v-6a.75.75 0 00-.75-.75h-6z',
   resume:
     'M14.25 3.75H6.75A1.5 1.5 0 005.25 5.25v13.5a1.5 1.5 0 001.5 1.5h10.5a1.5 1.5 0 001.5-1.5V7.5l-3.75-3.75zM14.25 3.75V7.5h3.75M8.25 12.75h7.5M8.25 16.5h4.5',
+  mail:
+    'M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75',
 };
 
 function NavIcon({ name }: { name: NavItem['icon'] }) {

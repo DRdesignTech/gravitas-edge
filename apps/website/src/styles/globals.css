@@ -115,6 +115,17 @@
     }
   }
 
+  html,
+  body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
   html.dark {
     color-scheme: dark;
   }
@@ -283,6 +294,36 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     border-radius: 9999px;
     background-color: rgb(var(--color-line-strong));
+  }
+
+  /* Custom sleek navy + gold scrollbar for dark surfaces (e.g. CountryDirectory #mapList) */
+  .scrollbar-navy-gold::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  .scrollbar-navy-gold::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 9999px;
+    margin: 4px 0;
+  }
+  .scrollbar-navy-gold::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(240, 194, 123, 0.7) 0%, rgba(200, 132, 45, 0.7) 100%);
+    border-radius: 9999px;
+  }
+  .scrollbar-navy-gold::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #f0c27b 0%, #d6952f 100%);
+  }
+  .scrollbar-navy-gold::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  /* Fallback for browsers without ::-webkit-scrollbar (e.g. Firefox) — kept separate so Chromium 121+ does not disable ::-webkit-scrollbar */
+  @supports not selector(::-webkit-scrollbar) {
+    .scrollbar-navy-gold {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(214, 149, 47, 0.6) rgba(255, 255, 255, 0.05);
+    }
   }
 }
 @layer utilities {

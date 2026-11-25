@@ -703,3 +703,34 @@ export function adminExtractResume(id: string) {
 export function adminDeleteResume(id: string) {
   return api.del<{ message: string }>(`/admin/resumes/${id}`);
 }
+
+export function adminGetNewsletterStats() {
+  return api.get<import('./types').NewsletterSubscriberStats>('/admin/newsletter/stats');
+}
+
+export function adminListNewsletterSubscribers(query?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: import('./types').NewsletterSubscriberStatus;
+}) {
+  const params = new URLSearchParams();
+  if (query?.page) params.set('page', String(query.page));
+  if (query?.limit) params.set('limit', String(query.limit));
+  if (query?.search?.trim()) params.set('search', query.search.trim());
+  if (query?.status) params.set('status', query.status);
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  return api.get<import('./types').PaginatedResult<import('./types').NewsletterSubscriber>>(
+    `/admin/newsletter/subscribers${suffix}`,
+  );
+}
+
+export function adminUpdateNewsletterSubscriberStatus(
+  id: string,
+  status: import('./types').NewsletterSubscriberStatus,
+) {
+  return api.patch<import('./types').NewsletterSubscriber>(
+    `/admin/newsletter/subscribers/${id}/status`,
+    { status },
+  );
+}

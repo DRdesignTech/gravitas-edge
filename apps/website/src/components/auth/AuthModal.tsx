@@ -24,6 +24,7 @@ const TRUST_MESSAGES = [
 interface FieldErrors {
   fullName?: string;
   email?: string;
+  phone?: string;
   password?: string;
   confirm?: string;
   terms?: string;
@@ -118,6 +119,7 @@ export default function AuthModal({
   // ─── Sign Up State ──────────────────────────────────────────
   const [signUpFullName, setSignUpFullName] = useState('');
   const [signUpEmail, setSignUpEmail] = useState('');
+  const [signUpPhone, setSignUpPhone] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirm, setSignUpConfirm] = useState('');
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
@@ -128,7 +130,13 @@ export default function AuthModal({
   const [signUpFieldErrors, setSignUpFieldErrors] = useState<FieldErrors>({});
   const [signUpLoading, setSignUpLoading] = useState(false);
 
-  // Referral code hydration
+  // Referral code & guest resume contact hydration
+  useEffect(() => {
+    if (guestResume?.fullName && !signUpFullName) setSignUpFullName(guestResume.fullName);
+    if (guestResume?.email && !signUpEmail) setSignUpEmail(guestResume.email);
+    if (guestResume?.phone && !signUpPhone) setSignUpPhone(guestResume.phone);
+  }, [guestResume, signUpFullName, signUpEmail, signUpPhone]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
@@ -207,6 +215,9 @@ export default function AuthModal({
     const next: FieldErrors = {};
     if (!signUpFullName.trim()) next.fullName = 'Please enter your full name.';
     if (!EMAIL_RE.test(signUpEmail.trim())) next.email = 'Please enter a valid email.';
+    if (signUpPhone.trim() && !/^\+?[0-9\s\-().]{7,20}$/.test(signUpPhone.trim())) {
+      next.phone = 'Please enter a valid phone number.';
+    }
     const passwordError = getPasswordError(signUpPassword);
     if (passwordError) next.password = passwordError;
     if (signUpConfirm !== signUpPassword) next.confirm = 'Passwords do not match.';
@@ -226,20 +237,24 @@ export default function AuthModal({
         signUpEmail.trim(),
         signUpPassword,
         signUpReferralCode.trim() || undefined,
+        {
+          phone: signUpPhone.trim() || undefined,
+          onBeforeRedirect: async () => {
+            if (guestToken) {
+              try {
+                await linkGuestResume(guestToken);
+                clearGuestResume();
+                showToast('Your resume has been linked to your account.', 'success');
+              } catch {
+                // Best effort
+              }
+            }
+          },
+        },
       );
 
       if (typeof window !== 'undefined') {
         localStorage.removeItem('referralCode');
-      }
-
-      if (guestToken) {
-        try {
-          await linkGuestResume(guestToken);
-          clearGuestResume();
-          showToast('Your resume has been linked to your account.', 'success');
-        } catch {
-          // Best effort
-        }
       }
 
       showToast(`Account created! Welcome to ${BRAND_NAME}.`, 'success');
@@ -749,6 +764,34 @@ export default function AuthModal({
                     {signUpFieldErrors.email && (
                       <p className="text-[11px] text-rose-600 font-medium mt-1">
                         {signUpFieldErrors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Phone (optional) */}
+                  <div>
+                    <label htmlFor="regPhone" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Phone / WhatsApp (Optional)
+                    </label>
+                    <input
+                      id="regPhone"
+                      type="tel"
+                      autoComplete="tel"
+                      value={signUpPhone}
+                      onChange={(e) => {
+                        setSignUpPhone(e.target.value);
+                        clearSignUpField('phone');
+                      }}
+                      placeholder="+91 98765 43210"
+                      className={`w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-[#0B132B] border text-sm text-[#0B132B] dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#C59B27] focus:ring-2 focus:ring-[#D4AF37]/25 transition ${
+                        signUpFieldErrors.phone
+                          ? 'border-rose-500 bg-rose-50/20'
+                          : 'border-slate-300 dark:border-white/15'
+                      }`}
+                    />
+                    {signUpFieldErrors.phone && (
+                      <p className="text-[11px] text-rose-600 font-medium mt-1">
+                        {signUpFieldErrors.phone}
                       </p>
                     )}
                   </div>

@@ -1,18 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { useGuestResume } from '@/lib/guest-resume';
-import { linkGuestResume } from '@/lib/services';
+import { extractResumeContact, linkGuestResume, uploadResume } from '@/lib/services';
 import { Alert, useToast } from '@/components/ui';
 import { BRAND_NAME } from '@/components/brand/BrandLogo';
 import { getErrorMessage } from '@/lib/errors';
 import { getPasswordError } from '@/lib/password';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^\+?[0-9\s\-().]{7,20}$/;
 const REFERRAL_CODE_RE = /^REF-[A-Z2-9]{10}$/;
+const RESUME_MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_RESUME_EXTS = ['.pdf', '.doc', '.docx'];
 
 const TRUST_MESSAGES = [
   '✦ Direct Hiring Contacts • Pre-Market Roles',
@@ -23,6 +26,8 @@ const TRUST_MESSAGES = [
 interface FieldErrors {
   fullName?: string;
   email?: string;
+  phone?: string;
+  yearsExperience?: string;
   password?: string;
   confirm?: string;
   terms?: string;
@@ -88,6 +93,17 @@ function RegisterForm() {
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [location, setLocation] = useState('');
+  const [currentJobTitle, setCurrentJobTitle] = useState('');
+  const [currentCompany, setCurrentCompany] = useState('');
+  const [yearsExperience, setYearsExperience] = useState('');
+  const [extractedSkills, setExtractedSkills] = useState<string[]>([]);
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [extractingCv, setExtractingCv] = useState(false);
+  const [cvAutoFilled, setCvAutoFilled] = useState(false);
+  const cvInputRef = useRef<HTMLInputElement>(null);
+
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -96,6 +112,75 @@ function RegisterForm() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
+
+  // Auto-prefill from an already-uploaded guest resume
+  useEffect(() => {
+    if (guestResume?.fullName && !fullName) setFullName(guestResume.fullName);
+    if (guestResume?.email && !email) setEmail(guestResume.email);
+    if (guestResume?.phone && !phone) setPhone(guestResume.phone);
+  }, [guestResume, fullName, email, phone]);
+
+  const handleCvSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    const lower = selected.name.toLowerCase();
+    if (!ALLOWED_RESUME_EXTS.some((ext) => lower.endsWith(ext))) {
+      showToast('Only PDF, DOC, and DOCX files are allowed.', 'error');
+      return;
+    }
+    if (selected.size > RESUME_MAX_BYTES) {
+      showToast('Resume file must be 5 MB or less.', 'error');
+      return;
+    }
+
+    setCvFile(selected);
+    setExtractingCv(true);
+    setCvAutoFilled(false);
+    try {
+      const parsed = await extractResumeContact(selected);
+      let anyFilled = false;
+      if (parsed.fullName) {
+        setFullName((prev) => prev || parsed.fullName || '');
+        anyFilled = true;
+      }
+      if (parsed.email) {
+        setEmail((prev) => prev || parsed.email || '');
+        anyFilled = true;
+      }
+      if (parsed.phone) {
+        setPhone((prev) => prev || parsed.phone || '');
+        anyFilled = true;
+      }
+      if (parsed.location) {
+        setLocation((prev) => prev || parsed.location || '');
+        anyFilled = true;
+      }
+      if (parsed.currentJobTitle) {
+        setCurrentJobTitle((prev) => prev || parsed.currentJobTitle || '');
+        anyFilled = true;
+      }
+      if (parsed.currentCompany) {
+        setCurrentCompany((prev) => prev || parsed.currentCompany || '');
+        anyFilled = true;
+      }
+      if (parsed.yearsExperience != null) {
+        setYearsExperience((prev) => prev || String(parsed.yearsExperience));
+        anyFilled = true;
+      }
+      if (parsed.skills && parsed.skills.length > 0) {
+        setExtractedSkills(parsed.skills.slice(0, 12));
+        anyFilled = true;
+      }
+      setCvAutoFilled(anyFilled);
+      if (anyFilled) {
+        showToast('AI extracted details from your resume — please review below.', 'success');
+      }
+    } catch {
+      // Extraction is best-effort; file will still be attached after signup.
+    } finally {
+      setExtractingCv(false);
+    }
+  };
 
   // Rotating trust messages
   const [trustIndex, setTrustIndex] = useState(0);
@@ -139,6 +224,15 @@ function RegisterForm() {
     const next: FieldErrors = {};
     if (!fullName.trim()) next.fullName = 'Please enter your full name.';
     if (!EMAIL_RE.test(email.trim())) next.email = 'Please enter a valid email.';
+    if (phone.trim() && !PHONE_RE.test(phone.trim())) {
+      next.phone = 'Please enter a valid phone number (7–20 digits).';
+    }
+    if (yearsExperience.trim()) {
+      const yrs = Number(yearsExperience.trim());
+      if (!Number.isInteger(yrs) || yrs < 0 || yrs > 80) {
+        next.yearsExperience = 'Enter whole years (0–80).';
+      }
+    }
     const passwordError = getPasswordError(password);
     if (passwordError) next.password = passwordError;
     if (confirm !== password) next.confirm = 'Passwords do not match.';
@@ -153,25 +247,43 @@ function RegisterForm() {
 
     setLoading(true);
     try {
+      const parsedYears = yearsExperience.trim() ? Number(yearsExperience.trim()) : undefined;
       await register(
         fullName.trim(),
         email.trim(),
         password,
         referralCode.trim() || undefined,
+        {
+          phone: phone.trim() || undefined,
+          location: location.trim() || undefined,
+          yearsExperience: parsedYears,
+          currentJobTitle: currentJobTitle.trim() || undefined,
+          currentCompany: currentCompany.trim() || undefined,
+          skills: extractedSkills.length > 0 ? extractedSkills : undefined,
+          onBeforeRedirect: async () => {
+            if (cvFile) {
+              try {
+                await uploadResume(cvFile);
+                if (guestToken) clearGuestResume();
+                showToast('Resume uploaded & AI-linked to your new profile.', 'success');
+              } catch {
+                // Non-fatal: user account is created and can re-upload in dashboard.
+              }
+            } else if (guestToken) {
+              try {
+                await linkGuestResume(guestToken);
+                clearGuestResume();
+                showToast('Your resume has been linked to your account.', 'success');
+              } catch {
+                // Best effort
+              }
+            }
+          },
+        },
       );
 
       if (typeof window !== 'undefined') {
         localStorage.removeItem('referralCode');
-      }
-
-      if (guestToken) {
-        try {
-          await linkGuestResume(guestToken);
-          clearGuestResume();
-          showToast('Your resume has been linked to your account.', 'success');
-        } catch {
-          // Best effort
-        }
       }
 
       showToast(`Account created! Welcome to ${BRAND_NAME}.`, 'success');
@@ -349,11 +461,75 @@ function RegisterForm() {
                 </div>
               )}
 
-              {guestResume && (
+              {guestResume && !cvFile && (
                 <div className="mb-4 rounded-xl border border-[#D4AF37]/30 bg-[#FFF3D9] px-3.5 py-2.5 text-xs text-[#7A5A1E] dark:border-[#D4AF37]/30 dark:bg-brand-950 dark:text-brand-200">
-                  📄 You uploaded <strong>{guestResume.originalName}</strong> — it will be linked to your new account automatically.
+                  📄 Using uploaded CV <strong>{guestResume.originalName}</strong> — contact details pre-filled and resume will be linked &amp; AI-processed automatically.
                 </div>
               )}
+
+              {/* Optional AI Resume Quick-Fill Upload Box */}
+              <div className="mb-5 rounded-2xl border border-dashed border-[#D4AF37]/50 bg-[#FAF8F5] p-3.5 dark:border-[#D4AF37]/30 dark:bg-[#081B33]">
+                <input
+                  ref={cvInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleCvSelect}
+                  disabled={loading || extractingCv}
+                  className="sr-only"
+                  aria-label="Upload CV to auto-fill registration form"
+                />
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-[#061B36] dark:text-white">
+                      {extractingCv
+                        ? 'AI is reading your CV…'
+                        : cvFile
+                          ? `Selected: ${cvFile.name}`
+                          : 'Quick-Fill with Resume / CV (Optional)'}
+                    </p>
+                    <p className="text-[11px] text-[#5B6479] dark:text-slate-400">
+                      {cvAutoFilled
+                        ? 'AI extracted your contact, experience & skills below.'
+                        : 'Upload PDF, DOC, or DOCX (max 5 MB) to auto-fill & attach to your profile.'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {cvFile && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCvFile(null);
+                          setCvAutoFilled(false);
+                          if (cvInputRef.current) cvInputRef.current.value = '';
+                        }}
+                        className="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={loading || extractingCv}
+                      onClick={() => cvInputRef.current?.click()}
+                      className="rounded-lg bg-[#061B36] px-3 py-1.5 text-[11px] font-bold text-white hover:bg-[#10243E] dark:bg-[#D4AF37] dark:text-[#070C1B] cursor-pointer disabled:opacity-60"
+                    >
+                      {cvFile ? 'Change CV' : 'Upload CV'}
+                    </button>
+                  </div>
+                </div>
+                {extractedSkills.length > 0 && (
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {extractedSkills.slice(0, 6).map((skill) => (
+                      <span
+                        key={skill}
+                        className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-[#061B36] border border-[#E9E5DC] dark:bg-[#0E2340] dark:text-slate-200 dark:border-white/10"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {error && (
                 <Alert variant="error" className="mb-4 text-xs">
@@ -394,35 +570,67 @@ function RegisterForm() {
                   )}
                 </div>
 
-                {/* Email Address */}
-                <div>
-                  <label
-                    htmlFor="regEmail"
-                    className="block text-xs font-bold text-[#334155] dark:text-slate-300 mb-1.5"
-                  >
-                    Email Address *
-                  </label>
-                  <input
-                    id="regEmail"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      clearField('email');
-                    }}
-                    placeholder="priya@domain.com"
-                    className={`w-full rounded-xl border bg-white px-4 py-3 text-xs sm:text-sm font-medium text-[#061B36] placeholder-[#94A3B8] focus:border-[#061B36] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white transition ${
-                      fieldErrors.email
-                        ? 'border-rose-500 bg-rose-50/20'
-                        : 'border-[#CBD5E1] dark:border-white/15'
-                    }`}
-                  />
-                  {fieldErrors.email && (
-                    <p className="text-[11px] text-rose-600 font-medium mt-1">
-                      {fieldErrors.email}
-                    </p>
-                  )}
+                {/* Email & Phone 2-Column Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label
+                      htmlFor="regEmail"
+                      className="block text-xs font-bold text-[#334155] dark:text-slate-300 mb-1.5"
+                    >
+                      Email Address *
+                    </label>
+                    <input
+                      id="regEmail"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        clearField('email');
+                      }}
+                      placeholder="priya@domain.com"
+                      className={`w-full rounded-xl border bg-white px-4 py-3 text-xs sm:text-sm font-medium text-[#061B36] placeholder-[#94A3B8] focus:border-[#061B36] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white transition ${
+                        fieldErrors.email
+                          ? 'border-rose-500 bg-rose-50/20'
+                          : 'border-[#CBD5E1] dark:border-white/15'
+                      }`}
+                    />
+                    {fieldErrors.email && (
+                      <p className="text-[11px] text-rose-600 font-medium mt-1">
+                        {fieldErrors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="regPhone"
+                      className="block text-xs font-bold text-[#334155] dark:text-slate-300 mb-1.5"
+                    >
+                      Phone / WhatsApp (Optional)
+                    </label>
+                    <input
+                      id="regPhone"
+                      type="tel"
+                      autoComplete="tel"
+                      value={phone}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        clearField('phone');
+                      }}
+                      placeholder="+91 98765 43210"
+                      className={`w-full rounded-xl border bg-white px-4 py-3 text-xs sm:text-sm font-medium text-[#061B36] placeholder-[#94A3B8] focus:border-[#061B36] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white transition ${
+                        fieldErrors.phone
+                          ? 'border-rose-500 bg-rose-50/20'
+                          : 'border-[#CBD5E1] dark:border-white/15'
+                      }`}
+                    />
+                    {fieldErrors.phone && (
+                      <p className="text-[11px] text-rose-600 font-medium mt-1">
+                        {fieldErrors.phone}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Password with Live Strength Indicator */}
@@ -532,33 +740,103 @@ function RegisterForm() {
                   )}
                 </div>
 
-                {/* Referral Code (optional) */}
-                <div>
-                  <label
-                    htmlFor="regReferral"
-                    className="block text-xs font-bold text-[#334155] dark:text-slate-300 mb-1.5"
-                  >
-                    Referral Code (Optional)
-                  </label>
-                  <input
-                    id="regReferral"
-                    type="text"
-                    autoComplete="off"
-                    value={referralCode}
-                    onChange={(e) => {
-                      const val = e.target.value.toUpperCase();
-                      setReferralCode(val);
-                      clearField('referralCode');
-                    }}
-                    placeholder="REF-XXXXXXXXXX"
-                    maxLength={14}
-                    className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-xs sm:text-sm font-mono uppercase text-[#061B36] placeholder-[#94A3B8] focus:border-[#061B36] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white transition"
-                  />
-                  {fieldErrors.referralCode && (
-                    <p className="text-[11px] text-rose-600 font-medium mt-1">
-                      {fieldErrors.referralCode}
-                    </p>
-                  )}
+                {/* Experience & Background (Optional / Auto-Filled) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label
+                      htmlFor="regRole"
+                      className="block text-xs font-bold text-[#334155] dark:text-slate-300 mb-1.5"
+                    >
+                      Current Role / Title (Optional)
+                    </label>
+                    <input
+                      id="regRole"
+                      type="text"
+                      value={currentJobTitle}
+                      onChange={(e) => setCurrentJobTitle(e.target.value)}
+                      placeholder="e.g., Senior Engineering Manager"
+                      className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-xs sm:text-sm font-medium text-[#061B36] placeholder-[#94A3B8] focus:border-[#061B36] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="regExpYears"
+                      className="block text-xs font-bold text-[#334155] dark:text-slate-300 mb-1.5"
+                    >
+                      Experience (Years)
+                    </label>
+                    <input
+                      id="regExpYears"
+                      type="number"
+                      min={0}
+                      max={80}
+                      value={yearsExperience}
+                      onChange={(e) => {
+                        setYearsExperience(e.target.value);
+                        clearField('yearsExperience');
+                      }}
+                      placeholder="e.g., 8"
+                      className={`w-full rounded-xl border bg-white px-4 py-2.5 text-xs sm:text-sm font-medium text-[#061B36] placeholder-[#94A3B8] focus:border-[#061B36] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white transition ${
+                        fieldErrors.yearsExperience
+                          ? 'border-rose-500 bg-rose-50/20'
+                          : 'border-[#CBD5E1] dark:border-white/15'
+                      }`}
+                    />
+                    {fieldErrors.yearsExperience && (
+                      <p className="text-[11px] text-rose-600 font-medium mt-1">
+                        {fieldErrors.yearsExperience}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Location & Referral Code */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label
+                      htmlFor="regLocation"
+                      className="block text-xs font-bold text-[#334155] dark:text-slate-300 mb-1.5"
+                    >
+                      Current City / Country (Optional)
+                    </label>
+                    <input
+                      id="regLocation"
+                      type="text"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="e.g., Mumbai, India"
+                      className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-xs sm:text-sm font-medium text-[#061B36] placeholder-[#94A3B8] focus:border-[#061B36] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="regReferral"
+                      className="block text-xs font-bold text-[#334155] dark:text-slate-300 mb-1.5"
+                    >
+                      Referral Code (Optional)
+                    </label>
+                    <input
+                      id="regReferral"
+                      type="text"
+                      autoComplete="off"
+                      value={referralCode}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setReferralCode(val);
+                        clearField('referralCode');
+                      }}
+                      placeholder="REF-XXXXXXXXXX"
+                      maxLength={14}
+                      className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-2.5 text-xs sm:text-sm font-mono uppercase text-[#061B36] placeholder-[#94A3B8] focus:border-[#061B36] focus:outline-none dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white transition"
+                    />
+                    {fieldErrors.referralCode && (
+                      <p className="text-[11px] text-rose-600 font-medium mt-1">
+                        {fieldErrors.referralCode}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Candidate Privacy & Terms Consent */}
@@ -642,14 +920,8 @@ function RegisterForm() {
 
               {/* Security & Support Note */}
               <div className="mt-7 pt-5 border-t border-[#F0EBE1] dark:border-white/10 flex items-center justify-between text-xs text-[#8C9AC0]">
-                <span className="flex items-center gap-1.5">
-                  <svg className="h-3.5 w-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
-                  </svg>
-                  256-bit encrypted security
-                </span>
                 <Link href="/contact" className="hover:text-[#061B36] dark:hover:text-white transition">
-                  Need Help?
+                  Need help? Reach out via Email or WhatsApp →
                 </Link>
               </div>
 

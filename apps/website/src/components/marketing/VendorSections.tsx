@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Country, State, City } from 'country-state-city';
 import {
   HiOutlineBuildingOffice2,
   HiOutlineDocumentText,
@@ -14,6 +15,9 @@ import {
   HiOutlineSparkles,
   HiOutlineClipboardDocumentCheck,
   HiOutlineChatBubbleBottomCenterText,
+  HiChevronDown,
+  HiXMark,
+  HiCheck,
 } from 'react-icons/hi2';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import { Button, useToast } from '@/components/ui';
@@ -319,6 +323,180 @@ export function VendorComparisonSection() {
   );
 }
 
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+/** Custom searchable combobox: single input acts as both selected display and live search bar. */
+function SearchableSelect({
+  options,
+  value,
+  onChange,
+  placeholder = 'Search or select...',
+  disabled = false,
+  allowClear = false,
+  required = false,
+}: {
+  options: SelectOption[];
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  allowClear?: boolean;
+  required?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption = useMemo(
+    () => options.find((o) => o.value === value) || null,
+    [options, value],
+  );
+
+  const filteredOptions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((o) => o.label.toLowerCase().includes(q));
+  }, [options, query]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  const inputValue = open ? query : selectedOption?.label || '';
+  const inputPlaceholder = open
+    ? selectedOption
+      ? `Search (current: ${selectedOption.label})...`
+      : placeholder
+    : placeholder;
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          required={required && !value}
+          value={inputValue}
+          placeholder={inputPlaceholder}
+          onFocus={() => {
+            if (disabled) return;
+            setOpen(true);
+            setQuery('');
+          }}
+          onClick={() => {
+            if (disabled) return;
+            if (!open) {
+              setOpen(true);
+              setQuery('');
+            }
+          }}
+          onChange={(e) => {
+            if (!open) setOpen(true);
+            setQuery(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setOpen(false);
+              setQuery('');
+            } else if (e.key === 'Enter' && open && filteredOptions.length > 0) {
+              e.preventDefault();
+              onChange(filteredOptions[0].value);
+              setOpen(false);
+              setQuery('');
+            }
+          }}
+          className={`w-full rounded-xl border bg-surface px-4 py-3 text-sm text-content placeholder:text-hint transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface disabled:cursor-not-allowed disabled:opacity-50 ${
+            allowClear && value ? 'pr-16' : 'pr-10'
+          } ${open ? 'border-[#D6952F] ring-2 ring-[#D6952F]/20' : 'border-line'}`}
+        />
+
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          {allowClear && value && !disabled && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange('');
+                setQuery('');
+              }}
+              aria-label="Clear selection"
+              className="rounded-md p-1 text-content-muted hover:bg-surface-muted hover:text-content transition-colors"
+            >
+              <HiXMark className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              if (disabled) return;
+              setOpen((prev) => !prev);
+              setQuery('');
+            }}
+            aria-label="Toggle dropdown"
+            className="rounded-md p-1 text-content-muted hover:text-content transition-colors disabled:pointer-events-none"
+          >
+            <HiChevronDown
+              className={`h-4 w-4 transition-transform duration-200 ${open ? 'rotate-180 text-[#D6952F]' : ''}`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {open && !disabled && (
+        <ul
+          role="listbox"
+          className="absolute z-30 mt-1.5 max-h-60 w-full overflow-y-auto scrollbar-navy-gold rounded-xl border border-line bg-surface p-1.5 shadow-xl dark:border-[#1E3557] dark:bg-[#0C1E38]"
+        >
+          {filteredOptions.length === 0 ? (
+            <li className="px-3 py-2.5 text-center text-xs text-content-muted">
+              No matching results
+            </li>
+          ) : (
+            filteredOptions.map((opt) => {
+              const isSelected = opt.value === value;
+              return (
+                <li key={opt.value} role="option" aria-selected={isSelected}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      onChange(opt.value);
+                      setOpen(false);
+                      setQuery('');
+                    }}
+                    className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      isSelected
+                        ? 'bg-[#D6952F]/15 font-semibold text-[#9C6424] dark:text-[#F0C27B]'
+                        : 'text-content hover:bg-surface-muted dark:hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="truncate">{opt.label}</span>
+                    {isSelected && <HiCheck className="h-4 w-4 shrink-0 text-[#D6952F]" />}
+                  </button>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════════════════
 // 4. DEDICATED VENDOR PARTNERSHIP ENQUIRY FORM
 // ══════════════════════════════════════════════════════════════════════════════════
@@ -332,9 +510,24 @@ export function VendorEnquirySection() {
     workEmail: '',
     phone: '',
     specialization: 'TECH_STAFFING',
-    targetMarket: 'INDIA_GCC',
+    countryCode: 'IN',
+    stateCode: '',
+    cityName: '',
     message: '',
   });
+
+  const countries = useMemo(() => Country.getAllCountries(), []);
+  const states = useMemo(
+    () => (formData.countryCode ? State.getStatesOfCountry(formData.countryCode) : []),
+    [formData.countryCode],
+  );
+  const cities = useMemo(
+    () =>
+      formData.countryCode && formData.stateCode
+        ? City.getCitiesOfState(formData.countryCode, formData.stateCode)
+        : [],
+    [formData.countryCode, formData.stateCode],
+  );
 
   const SPECIALIZATION_LABELS: Record<string, string> = {
     TECH_STAFFING: 'IT & Technology Staffing',
@@ -345,11 +538,42 @@ export function VendorEnquirySection() {
     GENERAL_RPO: 'General Staffing & RPO',
   };
 
-  const GEOGRAPHY_LABELS: Record<string, string> = {
-    INDIA_GCC: 'India & UAE/GCC',
-    INDIA_ONLY: 'India Domestic',
-    GCC_ONLY: 'UAE & Middle East',
-    GLOBAL: 'UK, Europe & Global Hubs',
+  const buildEnquiryMessage = () => {
+    const specText = SPECIALIZATION_LABELS[formData.specialization] || formData.specialization;
+    const countryName =
+      Country.getCountryByCode(formData.countryCode)?.name || formData.countryCode;
+    const stateName = formData.stateCode
+      ? State.getStateByCodeAndCountry(formData.stateCode, formData.countryCode)?.name
+      : '';
+
+    return [
+      `*RECRUITMENT VENDOR PARTNERSHIP ENQUIRY*`,
+      `Gravitas Edge Consulting`,
+      `----------------------------------------`,
+      `Dear Team,`,
+      ``,
+      `I am writing to enquire about a recruitment vendor partnership with Gravitas Edge Consulting. Please find our details below.`,
+      ``,
+      `*Agency Name:* ${formData.agencyName.trim()}`,
+      `*Contact Person:* ${formData.contactName.trim()}`,
+      `*Work Email:* ${formData.workEmail.trim()}`,
+      `*Phone / WhatsApp:* ${formData.phone.trim() || 'Not specified'}`,
+      `*Specialization:* ${specText}`,
+      `*Country:* ${countryName || 'Not specified'}`,
+      `*State:* ${stateName || 'Not specified'}`,
+      `*City:* ${formData.cityName || 'Not specified'}`,
+      formData.message.trim() ? `*Partnership Note:* ${formData.message.trim()}` : null,
+      ``,
+      `We look forward to your response and the opportunity to work together.`,
+      ``,
+      `Regards,`,
+      `${formData.contactName.trim()}`,
+      `${formData.agencyName.trim()}`,
+      `----------------------------------------`,
+      `Sent via Recruitment Vendor Portal`,
+    ]
+      .filter((line) => line !== null)
+      .join('\n');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -361,25 +585,8 @@ export function VendorEnquirySection() {
 
     setLoading(true);
     try {
-      // 1. Format clean, formal corporate WhatsApp message (exact structure requested)
-      const specText = SPECIALIZATION_LABELS[formData.specialization] || formData.specialization;
-      const geoText = GEOGRAPHY_LABELS[formData.targetMarket] || formData.targetMarket;
-
-      const waMessage = [
-        '*New Recruitment Vendor Partnership Enquiry*',
-        '',
-        `*Agency Name:* ${formData.agencyName.trim()}`,
-        `*Contact Person:* ${formData.contactName.trim()}`,
-        `*Work Email:* ${formData.workEmail.trim()}`,
-        `*Phone / WhatsApp:* ${formData.phone.trim() || 'Not specified'}`,
-        `*Specialization:* ${specText}`,
-        `*Target Market:* ${geoText}`,
-        formData.message.trim() ? `*Note:* ${formData.message.trim()}` : null,
-        '',
-        '_Submitted via Gravitas Edge Recruitment Vendor Portal_',
-      ]
-        .filter(Boolean)
-        .join('\n');
+      // 1. Format clean, formal corporate WhatsApp message
+      const waMessage = buildEnquiryMessage();
 
       // 2. Automatically copy message to clipboard as safe backup
       try {
@@ -419,251 +626,327 @@ export function VendorEnquirySection() {
       className="relative bg-surface-muted py-16 sm:py-24 border-t border-line scroll-mt-16"
     >
       <div className="mx-auto max-w-[1320px] px-5">
-        <div className="mx-auto max-w-3xl">
-          <div className="text-center mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
+          {/* Left Column: Static Content & Partnership Highlights */}
+          <div className="lg:col-span-5 lg:sticky lg:top-24">
             <Eyebrow>PARTNER ENQUIRY</Eyebrow>
             <h2 className="mt-3 font-serif-heading text-3xl font-bold leading-tight text-content sm:text-4xl">
               Recruitment Vendor &amp; Partner Enquiry
             </h2>
-            <p className="mt-3 text-base text-content-muted">
+            <p className="mt-4 text-base leading-relaxed text-content-muted">
               Looking for tailored enterprise vendor access, agency bulk accounts, or custom mandate
-              alerts? Submit your agency details and our partnership team will reach out.
+              alerts? Submit your agency details and our partnership team will connect with you
+              directly.
             </p>
+
+            {/* Key Partnership Highlights */}
+            <div className="mt-8 space-y-4">
+              {[
+                {
+                  icon: <HiOutlineBuildingOffice2 className="h-5 w-5 text-[#D6952F]" />,
+                  title: 'Enterprise & Bulk Agency Access',
+                  desc: 'Multi-seat team plans and dedicated account support for staffing firms.',
+                },
+                {
+                  icon: <HiOutlineShieldCheck className="h-5 w-5 text-[#D6952F]" />,
+                  title: 'Verified VMS & RFP Mandates',
+                  desc: 'Direct corporate empanelment notices across India, UAE/GCC, and UK.',
+                },
+                {
+                  icon: (
+                    <HiOutlineChatBubbleBottomCenterText className="h-5 w-5 text-[#D6952F]" />
+                  ),
+                  title: 'Instant WhatsApp Partnership Desk',
+                  desc: 'Submitting sends your structured agency brief directly to our onboarding team.',
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="flex items-start gap-3.5 rounded-2xl border border-line bg-surface p-4 shadow-sm dark:bg-surface-elevated"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#061B36] ring-1 ring-[#D6952F]/30">
+                    {item.icon}
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-content">{item.title}</h3>
+                    <p className="mt-0.5 text-xs leading-relaxed text-content-muted">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Direct Desk Metadata Strip */}
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-[#D6952F]/25 bg-[#D6952F]/10 px-4 py-3 text-xs font-medium text-content">
+              <span className="inline-flex items-center gap-1.5">
+                <HiOutlinePhone className="h-4 w-4 text-[#D6952F]" />
+                <span>WhatsApp Desk: +91 84487 14760</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <HiCheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <span>Response SLA: Under 24 Hours</span>
+              </span>
+            </div>
           </div>
 
-          <div className="rounded-2xl border border-line bg-surface p-6 sm:p-10 shadow-card dark:bg-surface-elevated">
-            {submitted ? (
-              <div className="text-center py-8">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 mb-4">
-                  <HiCheckCircle className="h-8 w-8" />
-                </div>
-                <h3 className="text-xl font-bold text-content mb-2">Thank you for your enquiry!</h3>
-                <p className="text-content-muted max-w-md mx-auto text-sm leading-relaxed mb-6">
-                  We have prepared your agency details for <strong>{formData.agencyName}</strong>. If WhatsApp did not open automatically, click below to open your chat.
-                </p>
-
-                <div className="flex flex-wrap justify-center gap-3 mb-6">
-                  <a
-                    href={`https://web.whatsapp.com/send?phone=918448714760&text=${encodeURIComponent(
-                      [
-                        '*New Recruitment Vendor Partnership Enquiry*',
-                        '',
-                        `*Agency Name:* ${formData.agencyName.trim()}`,
-                        `*Contact Person:* ${formData.contactName.trim()}`,
-                        `*Work Email:* ${formData.workEmail.trim()}`,
-                        `*Phone / WhatsApp:* ${formData.phone.trim() || 'Not specified'}`,
-                        `*Specialization:* ${SPECIALIZATION_LABELS[formData.specialization] || formData.specialization}`,
-                        `*Target Market:* ${GEOGRAPHY_LABELS[formData.targetMarket] || formData.targetMarket}`,
-                        formData.message.trim() ? `*Note:* ${formData.message.trim()}` : null,
-                        '',
-                        '_Submitted via Gravitas Edge Recruitment Vendor Portal_',
-                      ]
-                        .filter(Boolean)
-                        .join('\n')
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 text-sm font-bold shadow-md transition-colors"
-                  >
-                    <span>💬 Open WhatsApp Web</span>
-                  </a>
-
-                  <a
-                    href={`https://wa.me/918448714760?text=${encodeURIComponent(
-                      [
-                        '*New Recruitment Vendor Partnership Enquiry*',
-                        '',
-                        `*Agency Name:* ${formData.agencyName.trim()}`,
-                        `*Contact Person:* ${formData.contactName.trim()}`,
-                        `*Work Email:* ${formData.workEmail.trim()}`,
-                        `*Phone / WhatsApp:* ${formData.phone.trim() || 'Not specified'}`,
-                        `*Specialization:* ${SPECIALIZATION_LABELS[formData.specialization] || formData.specialization}`,
-                        `*Target Market:* ${GEOGRAPHY_LABELS[formData.targetMarket] || formData.targetMarket}`,
-                        formData.message.trim() ? `*Note:* ${formData.message.trim()}` : null,
-                        '',
-                        '_Submitted via Gravitas Edge Recruitment Vendor Portal_',
-                      ]
-                        .filter(Boolean)
-                        .join('\n')
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#061B36] hover:bg-[#0A2548] text-white px-5 py-2.5 text-sm font-semibold border border-white/10 transition-colors"
-                  >
-                    <span>📱 Open WhatsApp Mobile / App</span>
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const msg = [
-                        '*New Recruitment Vendor Partnership Enquiry*',
-                        '',
-                        `*Agency Name:* ${formData.agencyName.trim()}`,
-                        `*Contact Person:* ${formData.contactName.trim()}`,
-                        `*Work Email:* ${formData.workEmail.trim()}`,
-                        `*Phone / WhatsApp:* ${formData.phone.trim() || 'Not specified'}`,
-                        `*Specialization:* ${SPECIALIZATION_LABELS[formData.specialization] || formData.specialization}`,
-                        `*Target Market:* ${GEOGRAPHY_LABELS[formData.targetMarket] || formData.targetMarket}`,
-                        formData.message.trim() ? `*Note:* ${formData.message.trim()}` : null,
-                        '',
-                        '_Submitted via Gravitas Edge Recruitment Vendor Portal_',
-                      ]
-                        .filter(Boolean)
-                        .join('\n');
-                      navigator.clipboard.writeText(msg);
-                      showToast('Enquiry message copied to clipboard!', 'success');
-                    }}
-                    className="inline-flex items-center gap-2 rounded-xl bg-surface hover:bg-surface-muted text-content border border-line px-5 py-2.5 text-sm font-semibold transition-colors"
-                  >
-                    <span>📋 Copy Message</span>
-                  </button>
-                </div>
-
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSubmitted(false);
-                    setFormData({
-                      agencyName: '',
-                      contactName: '',
-                      workEmail: '',
-                      phone: '',
-                      specialization: 'TECH_STAFFING',
-                      targetMarket: 'INDIA_GCC',
-                      message: '',
-                    });
-                  }}
-                >
-                  Submit Another Enquiry
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
-                      Agency / Firm Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Apex Talent Partners"
-                      value={formData.agencyName}
-                      onChange={(e) => setFormData({ ...formData, agencyName: e.target.value })}
-                      className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface"
-                    />
+          {/* Right Column: Enquiry Form Card */}
+          <div className="lg:col-span-7">
+            <div className="rounded-2xl border border-line bg-surface p-6 sm:p-10 shadow-card dark:bg-surface-elevated">
+              {submitted ? (
+                <div className="text-center py-8">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 mb-4">
+                    <HiCheckCircle className="h-8 w-8" />
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
-                      Contact Person *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Rahul Sharma"
-                      value={formData.contactName}
-                      onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                      className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
-                      Corporate Work Email *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="rahul@apextalent.com"
-                      value={formData.workEmail}
-                      onChange={(e) => setFormData({ ...formData, workEmail: e.target.value })}
-                      className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
-                      Phone / WhatsApp (Optional)
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="+91 98765 43210"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
-                      Primary Specialization
-                    </label>
-                    <select
-                      value={formData.specialization}
-                      onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                      className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface cursor-pointer"
-                    >
-                      <option value="TECH_STAFFING">IT &amp; Technology Staffing</option>
-                      <option value="EXECUTIVE_SEARCH">Retained Executive Search</option>
-                      <option value="BFSI_FINANCE">BFSI &amp; Corporate Finance</option>
-                      <option value="HEALTHCARE_PHARMA">Healthcare &amp; Life Sciences</option>
-                      <option value="ENGINEERING_MANUF">Engineering &amp; Manufacturing</option>
-                      <option value="GENERAL_RPO">General Staffing &amp; RPO</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
-                      Target Placement Geography
-                    </label>
-                    <select
-                      value={formData.targetMarket}
-                      onChange={(e) => setFormData({ ...formData, targetMarket: e.target.value })}
-                      className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface cursor-pointer"
-                    >
-                      <option value="INDIA_GCC">India &amp; UAE/GCC</option>
-                      <option value="INDIA_ONLY">India Domestic</option>
-                      <option value="GCC_ONLY">UAE &amp; Middle East</option>
-                      <option value="GLOBAL">UK, Europe &amp; Global Hubs</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
-                    Partnership Note or Mandate Requirement
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Tell us about your agency size, key client sectors, or specific corporate empanelment needs..."
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface resize-none"
-                  />
-                </div>
-
-                <div className="pt-2">
-                  <Button
-                    type="submit"
-                    className="w-full !py-3.5 text-base font-bold !bg-emerald-600 hover:!bg-emerald-700 !text-white shadow-md flex items-center justify-center gap-2"
-                    loading={loading}
-                  >
-                    <span>Send Enquiry on WhatsApp</span>
-                    <span className="text-xl">💬</span>
-                  </Button>
-                  <p className="text-center text-xs text-content-muted mt-2">
-                    💬 Submitting will format your agency details and connect directly with our
-                    WhatsApp partnership desk.
+                  <h3 className="text-xl font-bold text-content mb-2">
+                    Thank you for your enquiry!
+                  </h3>
+                  <p className="text-content-muted max-w-md mx-auto text-sm leading-relaxed mb-6">
+                    We have prepared your agency details for <strong>{formData.agencyName}</strong>.
+                    If WhatsApp did not open automatically, click below to open your chat.
                   </p>
+
+                  <div className="flex flex-wrap justify-center gap-3 mb-6">
+                    <a
+                      href={`https://web.whatsapp.com/send?phone=918448714760&text=${encodeURIComponent(
+                        buildEnquiryMessage(),
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 text-sm font-bold shadow-md transition-colors"
+                    >
+                      <HiOutlineChatBubbleBottomCenterText className="h-4 w-4" />
+                      <span>Open WhatsApp Web</span>
+                    </a>
+
+                    <a
+                      href={`https://wa.me/918448714760?text=${encodeURIComponent(
+                        buildEnquiryMessage(),
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#061B36] hover:bg-[#0A2548] text-white px-5 py-2.5 text-sm font-semibold border border-white/10 transition-colors"
+                    >
+                      <HiOutlinePhone className="h-4 w-4" />
+                      <span>Open WhatsApp Mobile / App</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(buildEnquiryMessage());
+                        showToast('Enquiry message copied to clipboard!', 'success');
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl bg-surface hover:bg-surface-muted text-content border border-line px-5 py-2.5 text-sm font-semibold transition-colors"
+                    >
+                      <HiOutlineClipboardDocumentCheck className="h-4 w-4" />
+                      <span>Copy Message</span>
+                    </button>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSubmitted(false);
+                      setFormData({
+                        agencyName: '',
+                        contactName: '',
+                        workEmail: '',
+                        phone: '',
+                        specialization: 'TECH_STAFFING',
+                        countryCode: 'IN',
+                        stateCode: '',
+                        cityName: '',
+                        message: '',
+                      });
+                    }}
+                  >
+                    Submit Another Enquiry
+                  </Button>
                 </div>
-              </form>
-            )}
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
+                        Agency / Firm Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Apex Talent Partners"
+                        value={formData.agencyName}
+                        onChange={(e) => setFormData({ ...formData, agencyName: e.target.value })}
+                        className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
+                        Contact Person *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Rahul Sharma"
+                        value={formData.contactName}
+                        onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+                        className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
+                        Corporate Work Email *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="rahul@apextalent.com"
+                        value={formData.workEmail}
+                        onChange={(e) => setFormData({ ...formData, workEmail: e.target.value })}
+                        className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
+                        Phone / WhatsApp (Optional)
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="+91 98765 43210"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
+                        Primary Specialization
+                      </label>
+                      <SearchableSelect
+                        value={formData.specialization}
+                        onChange={(val) =>
+                          setFormData({ ...formData, specialization: val || 'TECH_STAFFING' })
+                        }
+                        placeholder="Search specialization..."
+                        options={Object.entries(SPECIALIZATION_LABELS).map(([val, label]) => ({
+                          value: val,
+                          label,
+                        }))}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
+                        Target Country *
+                      </label>
+                      <SearchableSelect
+                        required
+                        value={formData.countryCode}
+                        onChange={(val) =>
+                          setFormData({
+                            ...formData,
+                            countryCode: val,
+                            stateCode: '',
+                            cityName: '',
+                          })
+                        }
+                        placeholder="Search country..."
+                        options={countries.map((c) => ({
+                          value: c.isoCode,
+                          label: c.name,
+                        }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
+                        State
+                      </label>
+                      <SearchableSelect
+                        allowClear
+                        disabled={states.length === 0}
+                        value={formData.stateCode}
+                        onChange={(val) =>
+                          setFormData({
+                            ...formData,
+                            stateCode: val,
+                            cityName: '',
+                          })
+                        }
+                        placeholder={
+                          states.length === 0
+                            ? 'No states available'
+                            : 'Search or select state (optional)'
+                        }
+                        options={states.map((s) => ({
+                          value: s.isoCode,
+                          label: s.name,
+                        }))}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
+                        City
+                      </label>
+                      <SearchableSelect
+                        allowClear
+                        disabled={cities.length === 0}
+                        value={formData.cityName}
+                        onChange={(val) => setFormData({ ...formData, cityName: val })}
+                        placeholder={
+                          !formData.stateCode
+                            ? 'Select state first'
+                            : cities.length === 0
+                              ? 'No cities available'
+                              : 'Search or select city (optional)'
+                        }
+                        options={cities.map((city) => ({
+                          value: city.name,
+                          label: city.name,
+                        }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-content-muted mb-1.5">
+                      Partnership Note or Mandate Requirement
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Tell us about your agency size, key client sectors, or specific corporate empanelment needs..."
+                      value={formData.message}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-content placeholder:text-hint focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-surface resize-none"
+                    />
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      type="submit"
+                      className="w-full !py-3.5 text-base font-bold !bg-emerald-600 hover:!bg-emerald-700 !text-white shadow-md flex items-center justify-center gap-2"
+                      loading={loading}
+                    >
+                      <span>Send Enquiry on WhatsApp</span>
+                      <HiOutlineChatBubbleBottomCenterText className="h-5 w-5" />
+                    </Button>
+                    <p className="text-center text-xs text-content-muted mt-2">
+                      Submitting will format your agency details and connect directly with our
+                      WhatsApp partnership desk.
+                    </p>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </div>

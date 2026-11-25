@@ -361,37 +361,6 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Profile Visibility Performance Stats */}
-          <div className="rounded-2xl border border-[#E9E5DC] bg-white p-5 shadow-sm dark:border-[#1E3557] dark:bg-[#0E2340]">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-[#061B36] dark:text-white uppercase tracking-wider">
-                Profile Visibility
-              </span>
-              <span className="text-[10px] text-[#8C9AC0]">Last 30 days</span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center divide-x divide-[#F0EBE1] dark:divide-[#1E3557]">
-              <div>
-                <p className="text-lg font-bold text-[#061B36] dark:text-white">48</p>
-                <p className="text-[10px] text-[#5B6479] dark:text-slate-400 mt-0.5 leading-tight">
-                  Search Views
-                </p>
-              </div>
-              <div className="pl-2">
-                <p className="text-lg font-bold text-[#D6952F] dark:text-[#F0C27B]">14</p>
-                <p className="text-[10px] text-[#5B6479] dark:text-slate-400 mt-0.5 leading-tight">
-                  Recruiter Clicks
-                </p>
-              </div>
-              <div className="pl-2">
-                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">6</p>
-                <p className="text-[10px] text-[#5B6479] dark:text-slate-400 mt-0.5 leading-tight">
-                  Contact Requests
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Candidate Resume Quick Card */}
           <div className="rounded-2xl border border-[#E9E5DC] bg-white p-5 shadow-sm dark:border-[#1E3557] dark:bg-[#0E2340]">
             <div className="flex items-center justify-between mb-3">

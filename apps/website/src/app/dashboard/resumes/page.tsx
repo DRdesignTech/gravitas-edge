@@ -17,7 +17,7 @@ import {
   HiXMark,
 } from 'react-icons/hi2';
 import { useAuth } from '@/lib/auth';
-import { fetchMyResumes } from '@/lib/services';
+import { fetchMyResumes, processMyResume } from '@/lib/services';
 import { Resume } from '@/lib/types';
 import {
   Button,
@@ -71,6 +71,7 @@ export default function ResumesPage() {
   const [file, setFile] = useState<File | null>(null);
   const [resumeConsent, setResumeConsent] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const [listError, setListError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
@@ -147,7 +148,7 @@ export default function ResumesPage() {
     setUploading(true);
     try {
       await uploadFile('/resumes', file, 'resume');
-      showToast('Resume uploaded and attached to profile successfully', 'success');
+      showToast('Resume uploaded & profile details synced from your CV', 'success');
       setFile(null);
       setResumeConsent(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -206,6 +207,19 @@ export default function ResumesPage() {
       showToast(e?.message || 'Deletion failed', 'error');
     } finally {
       setDeleteId(null);
+    }
+  };
+
+  const handleProcessResume = async (resumeId: string) => {
+    setProcessingId(resumeId);
+    try {
+      await processMyResume(resumeId);
+      showToast('AI extracted details and synced them to your profile.', 'success');
+      await loadResumes();
+    } catch (e: any) {
+      showToast(e?.message || 'Unable to process resume right now', 'error');
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -450,6 +464,13 @@ export default function ResumesPage() {
                                     Active CV
                                   </span>
                                 )}
+                                {(item.processing?.status === 'COMPLETED' ||
+                                  item.uploadStatus === 'COMPLETED') && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#9B641B] bg-[#FFF3D9] px-2 py-0.5 rounded-full dark:bg-brand-950 dark:text-[#F0C27B]">
+                                    <HiSparkles className="h-3 w-3" />
+                                    AI Extracted
+                                  </span>
+                                )}
                               </div>
 
                               <div className="mt-1 flex items-center gap-3 text-[11px] text-[#8C9AC0]">
@@ -464,7 +485,23 @@ export default function ResumesPage() {
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto flex-wrap">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              loading={processingId === item.id}
+                              onClick={() => handleProcessResume(item.id)}
+                              className="text-xs font-semibold inline-flex items-center gap-1.5"
+                              title="Extract experience and skills into your profile"
+                            >
+                              <HiSparkles className="h-3.5 w-3.5 text-[#D6952F]" />
+                              <span>
+                                {item.processing?.status === 'COMPLETED'
+                                  ? 'Re-extract AI'
+                                  : 'AI Extract'}
+                              </span>
+                            </Button>
+
                             <Button
                               size="sm"
                               variant="outline"

@@ -42,6 +42,12 @@ export class UsersController {
     return this.usersService.getProfile(user.id);
   }
 
+  @Get('me/candidate-profile')
+  @ApiOperation({ summary: 'Get the authenticated candidate profile and latest AI-extracted resume data' })
+  getCandidateProfile(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.getCandidateProfile(user.id);
+  }
+
   @Patch('me/profile')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update the authenticated user profile' })

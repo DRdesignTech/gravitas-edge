@@ -18,6 +18,9 @@ import {
   HiXMark,
   HiMapPin,
   HiCheckBadge,
+  HiGlobeAlt,
+  HiBanknotes,
+  HiCursorArrowRays,
 } from 'react-icons/hi2';
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -42,12 +45,30 @@ const COUNTRY_FLAGS: Record<string, string> = {
 
 type PreviewTab = 'all' | 'london' | 'uae' | 'global' | 'india';
 
-const TABS: { key: PreviewTab; label: string; badge?: string }[] = [
+const TABS: { key: PreviewTab; label: string; badge?: string; icon?: React.ReactNode }[] = [
   { key: 'all', label: 'All Opportunities' },
-  { key: 'london', label: '🇬🇧 London Opportunities', badge: '10 Mandates' },
-  { key: 'uae', label: '🇦🇪 UAE & GCC Corridors', badge: 'Priority' },
-  { key: 'global', label: '🌐 All International Corridors' },
-  { key: 'india', label: '🇮🇳 India Hubs' },
+  {
+    key: 'london',
+    label: 'London Opportunities',
+    badge: '10 Mandates',
+    icon: <HiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />,
+  },
+  {
+    key: 'uae',
+    label: 'UAE & GCC Corridors',
+    badge: 'Priority',
+    icon: <HiBuildingOffice2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />,
+  },
+  {
+    key: 'global',
+    label: 'All International Corridors',
+    icon: <HiGlobeAlt className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />,
+  },
+  {
+    key: 'india',
+    label: 'India Hubs',
+    icon: <HiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />,
+  },
 ];
 
 /** Curated London Executive Mandates (MOM Alignment: ~10 London opportunities) */
@@ -496,7 +517,13 @@ export default function LiveFreePreview({
                 : 'bg-white dark:bg-[#0C1E38] text-content border-line hover:border-[#D6952F]/70'
             }`}
           >
-            <span>🇬🇧 London Opportunities (10)</span>
+            <HiMapPin
+              className={`h-3.5 w-3.5 shrink-0 ${
+                activeTab === 'london' ? 'text-current' : 'text-[#D6952F]'
+              }`}
+              aria-hidden="true"
+            />
+            <span>London Opportunities (10)</span>
           </button>
           <button
             type="button"
@@ -507,7 +534,13 @@ export default function LiveFreePreview({
                 : 'bg-white dark:bg-[#0C1E38] text-content border-line hover:border-[#D6952F]/70'
             }`}
           >
-            <span>🇦🇪 UAE & GCC (Dubai / ADGM)</span>
+            <HiBuildingOffice2
+              className={`h-3.5 w-3.5 shrink-0 ${
+                activeTab === 'uae' ? 'text-current' : 'text-[#D6952F]'
+              }`}
+              aria-hidden="true"
+            />
+            <span>UAE &amp; GCC (Dubai / ADGM)</span>
           </button>
           <button
             type="button"
@@ -518,7 +551,13 @@ export default function LiveFreePreview({
                 : 'bg-white dark:bg-[#0C1E38] text-content border-line hover:border-[#D6952F]/70'
             }`}
           >
-            <span>🌐 All International</span>
+            <HiGlobeAlt
+              className={`h-3.5 w-3.5 shrink-0 ${
+                activeTab === 'global' ? 'text-current' : 'text-[#D6952F]'
+              }`}
+              aria-hidden="true"
+            />
+            <span>All International</span>
           </button>
         </div>
 
@@ -538,7 +577,12 @@ export default function LiveFreePreview({
                 }`}
               >
                 {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-[#D6952F] dark:bg-[#061B36]" />}
-                {t.label}
+                {t.icon && (
+                  <span className={isSelected ? 'text-[#E3B968] dark:text-[#061B36]' : 'text-[#D6952F]'}>
+                    {t.icon}
+                  </span>
+                )}
+                <span>{t.label}</span>
                 {t.badge && (
                   <span
                     className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
@@ -559,7 +603,9 @@ export default function LiveFreePreview({
         {activeTab === 'london' && (
           <div className="mb-6 rounded-2xl border border-[#D6952F]/30 bg-gradient-to-r from-[#D6952F]/10 via-surface to-surface p-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between gap-4 shadow-sm dark:bg-surface-elevated">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🇬🇧</span>
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] ring-1 ring-[#D6952F]/30">
+                <HiMapPin className="h-5 w-5" aria-hidden="true" />
+              </span>
               <div>
                 <h4 className="text-sm font-bold text-content">London &amp; UK Executive Mandates</h4>
                 <p className="text-xs text-content-muted">
@@ -576,7 +622,9 @@ export default function LiveFreePreview({
         {activeTab === 'uae' && (
           <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-surface to-surface p-4 text-center sm:text-left sm:flex sm:items-center sm:justify-between gap-4 shadow-sm dark:bg-surface-elevated">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🇦🇪</span>
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30">
+                <HiBuildingOffice2 className="h-5 w-5" aria-hidden="true" />
+              </span>
               <div>
                 <h4 className="text-sm font-bold text-content">UAE &amp; GCC Leadership Corridors</h4>
                 <p className="text-xs text-content-muted">
@@ -757,7 +805,9 @@ export default function LiveFreePreview({
 
           <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="rounded-2xl bg-white/[0.06] backdrop-blur-md border border-white/10 p-5 text-left">
-              <div className="text-2xl mb-2">💸</div>
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#D6952F]/15 border border-[#D6952F]/30 text-[#F0C27B]">
+                <HiBanknotes className="h-5 w-5" aria-hidden="true" />
+              </div>
               <h4 className="font-bold text-base text-white mb-1.5">Zero 25% Agency Cut</h4>
               <p className="text-xs text-[#C9D3EA] leading-relaxed">
                 Traditional UK and UAE headhunters charge companies 20%–25% of your annual salary (£30,000+ on a £120k role), slowing hiring decisions. Gravitas Edge connects you directly to corporate hiring directors.
@@ -765,7 +815,9 @@ export default function LiveFreePreview({
             </div>
 
             <div className="rounded-2xl bg-white/[0.06] backdrop-blur-md border border-white/10 p-5 text-left">
-              <div className="text-2xl mb-2">🌍</div>
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#D6952F]/15 border border-[#D6952F]/30 text-[#F0C27B]">
+                <HiGlobeAlt className="h-5 w-5" aria-hidden="true" />
+              </div>
               <h4 className="font-bold text-base text-white mb-1.5">Single Plan, Multi-Country Access</h4>
               <p className="text-xs text-[#C9D3EA] leading-relaxed">
                 One transparent career vault access tier unlocks all active London (£80k–£200k), UAE (AED 35k–80k/mo tax-free), and global opportunities simultaneously without separate fees.
@@ -773,7 +825,9 @@ export default function LiveFreePreview({
             </div>
 
             <div className="rounded-2xl bg-white/[0.06] backdrop-blur-md border border-white/10 p-5 text-left">
-              <div className="text-2xl mb-2">🎯</div>
+              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#D6952F]/15 border border-[#D6952F]/30 text-[#F0C27B]">
+                <HiCursorArrowRays className="h-5 w-5" aria-hidden="true" />
+              </div>
               <h4 className="font-bold text-base text-white mb-1.5">Direct Hiring Executive Contact</h4>
               <p className="text-xs text-[#C9D3EA] leading-relaxed">
                 Skip dead-end portal queues and ATS keyword filters. Receive direct corporate email addresses and unmasked pathways to decision-makers.

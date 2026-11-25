@@ -138,6 +138,14 @@ export class ResumesController {
     return this.resumesService.download(id, user.id);
   }
 
+  @Post(':id/process')
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: 'Run AI-assisted extraction and sync extracted data to profile' })
+  process(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.resumesService.processResumeById(id, user.id);
+  }
+
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Soft-delete resume record' })

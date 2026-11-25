@@ -1,5 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, Matches } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsArray,
+  IsEmail,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({ example: 'user@example.com', description: 'User email' })
@@ -26,8 +38,10 @@ export class RegisterDto {
   fullName?: string;
 
   @ApiPropertyOptional({ example: '+919999999999', description: 'Phone number' })
+  @Transform(({ value }) => (typeof value === 'string' && value.trim() ? value.trim() : undefined))
   @IsOptional()
   @IsString()
+  @Matches(/^\+?[0-9\s\-().]{7,20}$/, { message: 'Please enter a valid phone number.' })
   @MaxLength(20)
   phone?: string;
 
@@ -36,6 +50,40 @@ export class RegisterDto {
   @IsString()
   @MaxLength(255)
   location?: string;
+
+  @ApiPropertyOptional({ example: 6, description: 'Years of professional experience' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(80)
+  yearsExperience?: number;
+
+  @ApiPropertyOptional({ example: 3, description: 'Months of experience (0-11)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(11)
+  monthsExperience?: number;
+
+  @ApiPropertyOptional({ example: 'Senior Software Engineer' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  currentJobTitle?: string;
+
+  @ApiPropertyOptional({ example: 'Acme Corp' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  currentCompany?: string;
+
+  @ApiPropertyOptional({ example: ['TypeScript', 'AWS', 'Executive Leadership'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  skills?: string[];
 
   @ApiPropertyOptional({
     example: 'REF-6Q3MX7K2TY',

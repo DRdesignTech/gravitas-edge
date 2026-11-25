@@ -45,6 +45,18 @@ export class AuthService {
 
   async register(dto: RegisterDto, ipAddress?: string) {
     const email = dto.email.trim().toLowerCase();
+    const phone = dto.phone?.trim() || undefined;
+    const fullName = dto.fullName?.trim() || undefined;
+    const location = dto.location?.trim() || undefined;
+    const currentJobTitle = dto.currentJobTitle?.trim() || undefined;
+    const currentCompany = dto.currentCompany?.trim() || undefined;
+    const cleanedSkills = Array.isArray(dto.skills)
+      ? [
+          ...new Set(
+            dto.skills.map((s) => s.trim()).filter((s) => s.length > 0 && s.length <= 80),
+          ),
+        ].slice(0, 30)
+      : undefined;
 
     // Only an account that is NOT soft-deleted occupies the email. A soft-deleted
     // (deletedAt IS NOT NULL) user no longer blocks re-registration.
@@ -61,9 +73,9 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
-    if (dto.phone) {
+    if (phone) {
       const phoneTaken = await this.prisma.user.findFirst({
-        where: { phone: dto.phone, deletedAt: null },
+        where: { phone, deletedAt: null },
       });
       if (phoneTaken) {
         await this.audit.record({
@@ -90,7 +102,7 @@ export class AuthService {
         const created = await tx.user.create({
           data: {
             email,
-            phone: dto.phone ?? null,
+            phone: phone ?? null,
             passwordHash,
             status: 'ACTIVE',
           },
@@ -101,13 +113,26 @@ export class AuthService {
           await tx.userRole.create({ data: { userId: created.id, roleId: userRole.id } });
         }
 
-        if (dto.fullName || dto.phone || dto.location) {
+        const hasProfileData =
+          Boolean(fullName || phone || location || currentJobTitle || currentCompany) ||
+          dto.yearsExperience != null ||
+          dto.monthsExperience != null ||
+          (cleanedSkills !== undefined && cleanedSkills.length > 0);
+
+        if (hasProfileData) {
           await tx.userProfile.create({
             data: {
               userId: created.id,
-              fullName: dto.fullName ?? null,
-              phone: dto.phone ?? null,
-              location: dto.location ?? null,
+              fullName: fullName ?? null,
+              phone: phone ?? null,
+              location: location ?? null,
+              ...(dto.yearsExperience != null ? { yearsExperience: dto.yearsExperience } : {}),
+              ...(dto.monthsExperience != null ? { monthsExperience: dto.monthsExperience } : {}),
+              ...(currentJobTitle ? { currentJobTitle } : {}),
+              ...(currentCompany ? { currentCompany } : {}),
+              ...(cleanedSkills && cleanedSkills.length > 0
+                ? { skills: cleanedSkills as unknown as Prisma.InputJsonValue }
+                : {}),
             },
           });
         }
@@ -426,6 +451,12 @@ export class AuthService {
             monthsExperience: true,
             currentJobTitle: true,
             currentCompany: true,
+            profileImg: true,
+            skills: true,
+            education: true,
+            workExperience: true,
+            certifications: true,
+            careerPreferences: true,
           },
         },
       },

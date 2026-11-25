@@ -28,9 +28,7 @@ export class AiService {
       return this.getOfflineFallback();
     }
 
-    const messages: OpenAiMessage[] = [
-      { role: 'system', content: GRAVITAS_AI_SYSTEM_PROMPT },
-    ];
+    const messages: OpenAiMessage[] = [{ role: 'system', content: GRAVITAS_AI_SYSTEM_PROMPT }];
 
     // Append up to 10 historical conversation turns
     for (const item of history.slice(-10)) {

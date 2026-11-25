@@ -283,9 +283,6 @@ export class AdminResumesService {
         'Profile extraction is only available for resumes linked to a user account',
       );
     }
-    if (resume.candidateProfile) {
-      throw new Error('Profile already exists for this resume');
-    }
 
     const filePath = this.storage.getFullPath(resume.storagePath);
     if (!existsSync(filePath)) {
@@ -293,12 +290,23 @@ export class AdminResumesService {
     }
 
     const buffer = readFileSync(filePath);
+    await this.prisma.resumeProcessing.upsert({
+      where: { resumeId: resume.id },
+      create: { resumeId: resume.id, status: 'PROCESSING', startedAt: new Date() },
+      update: { status: 'PROCESSING', startedAt: new Date(), errorMessage: null },
+    });
 
     try {
       const text = await this.extraction.extractText(buffer, resume.fileType);
-      const extracted = this.extraction.parseResumeText(text);
+      const { data: extracted, parserVersion } = await this.extraction.parseResumeWithAi(text);
 
-      if (extracted.rawText.length > 100) {
+      if (extracted.rawText.length > 40) {
+        if (resume.candidateProfile) {
+          await this.prisma.candidateProfile.delete({
+            where: { id: resume.candidateProfile.id },
+          });
+        }
+
         await this.prisma.candidateProfile.create({
           data: {
             userId: resume.userId,
@@ -370,6 +378,22 @@ export class AdminResumesService {
           },
         });
 
+        await this.prisma.resumeProcessing.upsert({
+          where: { resumeId: resume.id },
+          create: {
+            resumeId: resume.id,
+            status: 'COMPLETED',
+            completedAt: new Date(),
+            parserVersion,
+          },
+          update: {
+            status: 'COMPLETED',
+            completedAt: new Date(),
+            parserVersion,
+            errorMessage: null,
+          },
+        });
+
         await this.prisma.resume.update({
           where: { id: resume.id },
           data: { uploadStatus: 'COMPLETED', processedAt: new Date() },
@@ -377,7 +401,19 @@ export class AdminResumesService {
       }
 
       return extracted;
-    } catch (error) {
+    } catch (error: any) {
+      await this.prisma.resumeProcessing.upsert({
+        where: { resumeId: resume.id },
+        create: {
+          resumeId: resume.id,
+          status: 'FAILED',
+          errorMessage: String(error?.message || 'Extraction failed').slice(0, 500),
+        },
+        update: {
+          status: 'FAILED',
+          errorMessage: String(error?.message || 'Extraction failed').slice(0, 500),
+        },
+      });
       await this.prisma.resume.update({
         where: { id: resume.id },
         data: { uploadStatus: 'FAILED' },

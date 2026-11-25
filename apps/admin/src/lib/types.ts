@@ -888,3 +888,21 @@ export interface AdminResumePaginatedResponse {
     totalPages: number;
   };
 }
+
+export type NewsletterSubscriberStatus = 'SUBSCRIBED' | 'UNSUBSCRIBED';
+
+export interface NewsletterSubscriber {
+  id: string;
+  email: string;
+  status: NewsletterSubscriberStatus;
+  subscribedAt: string;
+  unsubscribedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewsletterSubscriberStats {
+  total: number;
+  subscribed: number;
+  unsubscribed: number;
+}

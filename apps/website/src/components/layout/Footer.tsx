@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BRAND_LOGO_SRC } from '@/lib/brand';
+import { subscribeNewsletter } from '@/lib/services';
+import { parseApiError } from '@/lib/errors';
 
 const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbCb0FrAe5VxQRICTf2K';
 
@@ -50,24 +52,52 @@ const topCountries = [
   { name: 'Kenya', href: '/opportunities?country=Kenya' },
 ];
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function Footer() {
   const year = new Date().getFullYear();
   const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-    setSubmitted(true);
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
+
+  const showToast = (detail: string) => {
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('show-toast', { detail: 'Thank you for subscribing to our updates!' }),
-      );
+      window.dispatchEvent(new CustomEvent('show-toast', { detail }));
     }
-    setTimeout(() => {
-      setEmail('');
-      setSubmitted(false);
-    }, 4000);
+  };
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submitting || submitted) return;
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !EMAIL_RE.test(trimmed)) {
+      showToast('Please enter a valid email address.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await subscribeNewsletter(trimmed);
+      setSubmitted(true);
+      showToast(res.message || 'Thank you for subscribing to our updates!');
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => {
+        setEmail('');
+        setSubmitted(false);
+      }, 4000);
+    } catch (err) {
+      const info = parseApiError(err);
+      showToast(info.message || 'Unable to subscribe right now. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleOpenOffers = () => {
@@ -224,16 +254,16 @@ export default function Footer() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Your email"
                 aria-label="Email for newsletter"
-                disabled={submitted}
+                disabled={submitting || submitted}
                 required
                 className="flex-1 min-w-0 bg-transparent border-0 text-white font-sans text-[0.85rem] leading-[1.55] px-[10px] py-[6px] outline-none placeholder:text-[#8C9AC0] disabled:opacity-60"
               />
               <button
                 type="submit"
-                disabled={submitted}
+                disabled={submitting || submitted}
                 className="bg-[#D6952F] hover:bg-[#C8842D] text-[#061B36] border-0 rounded-full px-4 py-[7px] font-bold text-[0.82rem] leading-none transition-colors shrink-0 disabled:opacity-75 cursor-pointer"
               >
-                {submitted ? 'Joined' : 'Join'}
+                {submitting ? 'Joining...' : submitted ? 'Joined' : 'Join'}
               </button>
             </form>
             <Link

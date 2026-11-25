@@ -767,7 +767,7 @@ export default function CountryDirectory({
               </div>
 
               {/* Scrollable Country Rows (.mlist) */}
-              <div className="overflow-y-auto flex flex-col gap-1 pr-1 max-[960px]:grid max-[960px]:grid-cols-2 min-[640px]:max-[960px]:grid-cols-3" id="mapList">
+              <div className="overflow-y-auto scrollbar-navy-gold flex flex-col gap-1 pr-2 max-[960px]:grid max-[960px]:grid-cols-2 min-[640px]:max-[960px]:grid-cols-3" id="mapList">
                 {countries.map((c) => {
                   const isIndia = c.cc === 'IN';
                   const isHl = highlightedCC === c.cc;

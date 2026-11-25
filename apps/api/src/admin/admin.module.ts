@@ -21,6 +21,8 @@ import { AdminCouponsController } from './coupons/admin-coupons.controller';
 import { AdminCouponsService } from './coupons/admin-coupons.service';
 import { AdminTestimonialsController } from './testimonials/admin-testimonials.controller';
 import { AdminTestimonialsService } from './testimonials/admin-testimonials.service';
+import { AdminNewsletterController } from './newsletter/admin-newsletter.controller';
+import { AdminNewsletterService } from './newsletter/admin-newsletter.service';
 import { AdminResumesModule } from './resumes/admin-resumes.module';
 import { AuditModule } from '../audit/audit.module';
 import { AccessModule } from '../access/access.module';
@@ -53,6 +55,7 @@ import { PaymentsModule } from '../payments/payments.module';
     AdminReferralSlabsController,
     AdminCouponsController,
     AdminTestimonialsController,
+    AdminNewsletterController,
   ],
   providers: [
     AdminUsersService,
@@ -64,6 +67,7 @@ import { PaymentsModule } from '../payments/payments.module';
     AdminReferralsService,
     AdminCouponsService,
     AdminTestimonialsService,
+    AdminNewsletterService,
   ],
 })
 export class AdminModule {}

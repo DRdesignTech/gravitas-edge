@@ -7,6 +7,17 @@ import { fetchMyActiveSubscriptions, fetchRvaAccess } from './services';
 import { AccessFlags, combineAccess, resolvePostLoginRoute, hasActiveSubscription } from './access-routing';
 import { User } from './types';
 
+export interface RegisterExtraFields {
+  phone?: string;
+  location?: string;
+  yearsExperience?: number;
+  monthsExperience?: number;
+  currentJobTitle?: string;
+  currentCompany?: string;
+  skills?: string[];
+  onBeforeRedirect?: () => Promise<void>;
+}
+
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -20,7 +31,13 @@ interface AuthContextType {
   /** Vault OR RVA — any active plan. `null` while either side resolves or errored. */
   hasAnyAccess: boolean | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, referralCode?: string) => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    referralCode?: string,
+    extra?: RegisterExtraFields,
+  ) => Promise<void>;
   logout: () => void;
   setUser: (user: User | null) => void;
   /** Re-fetch entitlements (e.g. right after a successful purchase). */
@@ -122,6 +139,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadUser]);
 
+  const linkPendingGuestResume = async () => {
+    if (typeof window === 'undefined') return;
+    const guestToken = window.localStorage.getItem('guest-resume-token');
+    if (!guestToken) return;
+    try {
+      await api.post(`/resumes/guest/${encodeURIComponent(guestToken)}/link`);
+      window.localStorage.removeItem('guest-resume-token');
+      window.localStorage.removeItem('guest-resume-info');
+      window.dispatchEvent(new CustomEvent('guest-resume-cleared'));
+    } catch {
+      // Best-effort — keep guest token intact if linking failed temporarily
+    }
+  };
+
   const login = async (email: string, password: string) => {
     const res = await api.post<{ accessToken: string; user: User }>('/auth/login', {
       email,
@@ -129,19 +160,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const token = res.accessToken ?? (res as any).access_token;
     const flags = await persistSession(token, res.user);
+    await linkPendingGuestResume();
     router.push(resolvePostLoginRoute(flags));
   };
 
-  const register = async (name: string, email: string, password: string, referralCode?: string) => {
-    const body: Record<string, string> = {
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    referralCode?: string,
+    extra?: RegisterExtraFields,
+  ) => {
+    const body: Record<string, any> = {
       fullName: name,
       email,
       password,
     };
     if (referralCode) body.referralCode = referralCode;
+    if (extra?.phone?.trim()) body.phone = extra.phone.trim();
+    if (extra?.location?.trim()) body.location = extra.location.trim();
+    if (extra?.yearsExperience != null && !Number.isNaN(extra.yearsExperience)) {
+      body.yearsExperience = extra.yearsExperience;
+    }
+    if (extra?.monthsExperience != null && !Number.isNaN(extra.monthsExperience)) {
+      body.monthsExperience = extra.monthsExperience;
+    }
+    if (extra?.currentJobTitle?.trim()) body.currentJobTitle = extra.currentJobTitle.trim();
+    if (extra?.currentCompany?.trim()) body.currentCompany = extra.currentCompany.trim();
+    if (extra?.skills && extra.skills.length > 0) body.skills = extra.skills;
+
     const res = await api.post<{ accessToken: string; user: User }>('/auth/register', body);
     const token = res.accessToken ?? (res as any).access_token;
     const flags = await persistSession(token, res.user);
+    if (extra?.onBeforeRedirect) {
+      await extra.onBeforeRedirect();
+      // Refresh cached user/profile in case linking a resume backfilled fields
+      await loadUser(token);
+    }
     router.push(resolvePostLoginRoute(flags));
   };
 

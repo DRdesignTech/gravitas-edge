@@ -8,6 +8,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { StorageService } from '../resumes/storage/storage.service';
@@ -37,38 +38,135 @@ export class UsersService {
 
   async updateMe(userId: string, dto: UpdateProfileDto) {
     const user = await this.findUserWithProfile(userId);
+    const normalizedPhone = dto.phone?.trim() || undefined;
 
-    if (dto.phone && dto.phone !== user.phone) {
+    if (normalizedPhone && normalizedPhone !== user.phone) {
       const taken = await this.prisma.user.findFirst({
-        where: { phone: dto.phone, deletedAt: null },
+        where: { phone: normalizedPhone, deletedAt: null },
       });
       if (taken && taken.id !== userId) {
         throw new ConflictException('Phone already registered');
       }
     }
 
-    const data: any = {
-      phone: dto.phone ?? undefined,
-    };
+    const cleanedSkills = Array.isArray(dto.skills)
+      ? [
+          ...new Set(
+            dto.skills.map((s) => s.trim()).filter((s) => s.length > 0 && s.length <= 80),
+          ),
+        ].slice(0, 50)
+      : undefined;
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: userId }, data });
+      if (normalizedPhone !== undefined) {
+        await tx.user.update({ where: { id: userId }, data: { phone: normalizedPhone } });
+      }
 
-      const profileData: any = {
-        fullName: dto.fullName ?? undefined,
-        phone: dto.phone ?? undefined,
-        location: dto.location ?? undefined,
-        yearsExperience: dto.yearsExperience ?? undefined,
-        monthsExperience: dto.monthsExperience ?? undefined,
-        currentJobTitle: dto.currentJobTitle ?? undefined,
-        currentCompany: dto.currentCompany ?? undefined,
+      const profileData: Prisma.UserProfileUncheckedCreateWithoutUserInput = {
+        fullName: dto.fullName !== undefined ? dto.fullName.trim() || null : undefined,
+        phone: normalizedPhone,
+        location: dto.location !== undefined ? dto.location.trim() || null : undefined,
+        yearsExperience: dto.yearsExperience,
+        monthsExperience: dto.monthsExperience,
+        currentJobTitle:
+          dto.currentJobTitle !== undefined ? dto.currentJobTitle.trim() || null : undefined,
+        currentCompany:
+          dto.currentCompany !== undefined ? dto.currentCompany.trim() || null : undefined,
+        skills: cleanedSkills as unknown as Prisma.InputJsonValue | undefined,
+        education: dto.education as unknown as Prisma.InputJsonValue | undefined,
+        workExperience: dto.workExperience as unknown as Prisma.InputJsonValue | undefined,
+        certifications: dto.certifications as unknown as Prisma.InputJsonValue | undefined,
+        careerPreferences: dto.careerPreferences as unknown as Prisma.InputJsonValue | undefined,
       };
 
       const existingProfile = await tx.userProfile.findUnique({ where: { userId } });
       if (existingProfile) {
-        await tx.userProfile.update({ where: { userId }, data: profileData });
+        await tx.userProfile.update({
+          where: { userId },
+          data: profileData as Prisma.UserProfileUpdateInput,
+        });
       } else if (Object.values(profileData).some((v) => v !== undefined)) {
         await tx.userProfile.create({ data: { userId, ...profileData } });
+      }
+
+      // Keep the latest CandidateProfile synchronized when present.
+      const latestCandidate = await tx.candidateProfile.findFirst({
+        where: { userId },
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true },
+      });
+
+      if (latestCandidate) {
+        const totalMonths =
+          dto.yearsExperience != null || dto.monthsExperience != null
+            ? (dto.yearsExperience ?? user.profile?.yearsExperience ?? 0) * 12 +
+              (dto.monthsExperience ?? user.profile?.monthsExperience ?? 0)
+            : undefined;
+
+        await tx.candidateProfile.update({
+          where: { id: latestCandidate.id },
+          data: {
+            fullName: dto.fullName !== undefined ? dto.fullName.trim() || null : undefined,
+            phone: normalizedPhone,
+            location: dto.location !== undefined ? dto.location.trim() || null : undefined,
+            totalExperience: totalMonths,
+            currentJobTitle:
+              dto.currentJobTitle !== undefined ? dto.currentJobTitle.trim() || null : undefined,
+            currentCompany:
+              dto.currentCompany !== undefined ? dto.currentCompany.trim() || null : undefined,
+            confirmationStatus: 'CONFIRMED',
+            ...(cleanedSkills !== undefined
+              ? {
+                  skills: {
+                    deleteMany: {},
+                    create: cleanedSkills.map((name) => ({ name, source: 'USER_CONFIRMED' })),
+                  },
+                }
+              : {}),
+            ...(dto.education !== undefined
+              ? {
+                  education: {
+                    deleteMany: {},
+                    create: dto.education.map((e) => ({
+                      qualification: e.qualification.trim(),
+                      institution: e.institution?.trim() || null,
+                      startYear: e.startYear ?? null,
+                      endYear: e.endYear ?? null,
+                      source: 'USER_CONFIRMED',
+                    })),
+                  },
+                }
+              : {}),
+            ...(dto.workExperience !== undefined
+              ? {
+                  workExperience: {
+                    deleteMany: {},
+                    create: dto.workExperience.map((w) => ({
+                      company: w.company.trim(),
+                      jobTitle: w.jobTitle?.trim() || null,
+                      startDate: w.startDate ? new Date(w.startDate) : null,
+                      endDate: w.endDate ? new Date(w.endDate) : null,
+                      isCurrent: Boolean(w.isCurrent),
+                      source: 'USER_CONFIRMED',
+                    })),
+                  },
+                }
+              : {}),
+            ...(dto.certifications !== undefined
+              ? {
+                  certifications: {
+                    deleteMany: {},
+                    create: dto.certifications.map((c) => ({
+                      name: c.name.trim(),
+                      issuer: c.issuer?.trim() || null,
+                      issueYear: c.issueYear ?? null,
+                      source: 'USER_CONFIRMED',
+                    })),
+                  },
+                }
+              : {}),
+          },
+        });
       }
     });
 
@@ -80,6 +178,74 @@ export class UsersService {
     });
 
     return this.getMe(userId);
+  }
+
+  async getCandidateProfile(userId: string) {
+    const [user, candidate] = await Promise.all([
+      this.findUserWithProfile(userId),
+      this.prisma.candidateProfile.findFirst({
+        where: { userId },
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          resume: {
+            select: {
+              id: true,
+              originalName: true,
+              uploadedAt: true,
+              uploadStatus: true,
+              processing: { select: { status: true, parserVersion: true, completedAt: true } },
+            },
+          },
+          skills: true,
+          workExperience: true,
+          education: true,
+          certifications: true,
+          industries: true,
+          functionalAreas: true,
+        },
+      }),
+    ]);
+
+    return {
+      profile: user.profile ?? null,
+      candidateProfile: candidate
+        ? {
+            id: candidate.id,
+            resumeId: candidate.resumeId,
+            confirmationStatus: candidate.confirmationStatus,
+            fullName: candidate.fullName,
+            email: candidate.email,
+            phone: candidate.phone,
+            location: candidate.location,
+            totalExperienceMonths: candidate.totalExperience,
+            currentJobTitle: candidate.currentJobTitle,
+            currentCompany: candidate.currentCompany,
+            skills: candidate.skills.map((s) => s.name),
+            workExperience: candidate.workExperience.map((w) => ({
+              company: w.company,
+              jobTitle: w.jobTitle,
+              startDate: w.startDate?.toISOString() ?? null,
+              endDate: w.endDate?.toISOString() ?? null,
+              isCurrent: w.isCurrent,
+            })),
+            education: candidate.education.map((e) => ({
+              qualification: e.qualification,
+              institution: e.institution,
+              startYear: e.startYear,
+              endYear: e.endYear,
+            })),
+            certifications: candidate.certifications.map((c) => ({
+              name: c.name,
+              issuer: c.issuer,
+              issueYear: c.issueYear,
+            })),
+            industries: candidate.industries.map((i) => i.name),
+            functionalAreas: candidate.functionalAreas.map((f) => f.name),
+            resume: candidate.resume,
+            updatedAt: candidate.updatedAt,
+          }
+        : null,
+    };
   }
 
   async getProfile(userId: string) {
