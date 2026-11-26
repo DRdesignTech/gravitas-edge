@@ -35,7 +35,7 @@ services:
       - key: STORAGE_LOCAL_PATH
         value: ./storage
       - key: CORS_ORIGINS
-        value: https://gravitas-edge-website.onrender.com
+        value: https://gravitas-edge-website.onrender.com,https://gravitas-edge-admin.onrender.com
 
   # ---------------------------------------------------------------------------
   # 2. Frontend User Website (Next.js)
@@ -55,9 +55,27 @@ services:
       - key: NEXT_PUBLIC_API_URL
         value: https://gravitas-edge-api.onrender.com/api
 
+  # ---------------------------------------------------------------------------
+  # 3. Admin Panel (Next.js)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: gravitas-edge-admin
+    runtime: node
+    plan: free
+    region: oregon # match the same region as the API and database
+    buildCommand: npm ci && npm run build:admin
+    startCommand: npm run start --workspace=apps/admin
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NEXT_PUBLIC_API_URL
+        value: https://gravitas-edge-api.onrender.com/api
+
 databases:
   # ---------------------------------------------------------------------------
-  # 3. Managed PostgreSQL Database
+  # 4. Managed PostgreSQL Database
   # ---------------------------------------------------------------------------
   - name: gravitas-edge-db
     databaseName: job_portal
