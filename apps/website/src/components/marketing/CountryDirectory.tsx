@@ -900,7 +900,7 @@ export default function CountryDirectory({
                 {/* Opportunity Demand Volume Bar */}
                 <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[#F3F1EB] dark:bg-white/10">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${
+                    className={`ge-demand-bar h-full rounded-full transition-colors duration-300 ${
                       isIndia
                         ? 'bg-gradient-to-r from-[#C8842D] to-[#F0C27B]'
                         : 'bg-gradient-to-r from-[#16A34A] to-[#4ADE80] group-hover:from-[#C8842D] group-hover:to-[#F0C27B]'
@@ -959,6 +959,20 @@ export default function CountryDirectory({
         )}
 
         {/* Billnote summary (.billnote#countryNote) */}
+        <style>{`
+          @keyframes ge-bar-reload {
+            0% {
+              transform: scaleX(0);
+            }
+            100% {
+              transform: scaleX(1);
+            }
+          }
+          .group:hover .ge-demand-bar {
+            transform-origin: left center;
+            animation: ge-bar-reload 750ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          }
+        `}</style>
         <p className="text-center text-[#5B6479] dark:text-[#AEB9D6] text-[0.85rem] mt-[18px]" id="countryNote">
           {intlCountries.length} international countries + India · {totalLiveRoles} active opportunities · counted once per Job ID
         </p>

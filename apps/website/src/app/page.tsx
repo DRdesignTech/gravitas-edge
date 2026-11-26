@@ -12,6 +12,9 @@ import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import Eyebrow from '@/components/marketing/Eyebrow';
 import HeroCarousel from '@/components/marketing/HeroCarousel';
+import PriceLockBanner from '@/components/marketing/PriceLockBanner';
+import InteractiveFeatureCards from '@/components/marketing/InteractiveFeatureCards';
+import NoApplyCard from '@/components/marketing/NoApplyCard';
 import HowItWorks from '@/components/marketing/HowItWorks';
 import Testimonials from '@/components/marketing/Testimonials';
 import LiveFreePreview from '@/components/marketing/LiveFreePreview';
@@ -21,7 +24,7 @@ import PricingSection from '@/components/marketing/PricingSection';
 import WhatsAppChannel from '@/components/marketing/WhatsAppChannel';
 import FaqSection from '@/components/marketing/FaqSection';
 import { scrollToHash } from '@/lib/scroll';
-import { HiSparkles, HiGlobeAlt, HiUserGroup, HiClock } from 'react-icons/hi2';
+import { HiSparkles } from 'react-icons/hi2';
 
 function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -37,24 +40,6 @@ function CheckAccent({ className = 'h-4 w-4' }: { className?: string }) {
     </svg>
   );
 }
-
-const whatFeatures = [
-  {
-    icon: <HiGlobeAlt className="h-5 w-5 text-[#C8943E] dark:text-[#F0C27B]" aria-hidden="true" />,
-    title: 'Multiple countries',
-    description: "One subscription covers every country in your vault's coverage.",
-  },
-  {
-    icon: <HiUserGroup className="h-5 w-5 text-[#C8943E] dark:text-[#F0C27B]" aria-hidden="true" />,
-    title: 'Direct pathways',
-    description: 'Recruiter or hiring-manager details where the source provides them.',
-  },
-  {
-    icon: <HiClock className="h-5 w-5 text-[#C8943E] dark:text-[#F0C27B]" aria-hidden="true" />,
-    title: 'Regularly updated',
-    description: 'Expired roles are removed automatically, so you only see live listings.',
-  },
-];
 
 const HERO_COUNTRIES = [
   { name: 'United Arab Emirates', code: 'AE', flag: '🇦🇪' },
@@ -355,6 +340,9 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Price Lock Promotional Strip for Guest Users */}
+      <PriceLockBanner onViewPlans={() => scrollTo('plans')} />
+
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* 2. WHAT GRAVITAS EDGE DOES — #what                             */}
       {/* ══════════════════════════════════════════════════════════════ */}
@@ -366,55 +354,32 @@ export default function Home() {
         <span id="why-gravitas-edge" className="sr-only" />
         <span id="what-we-do" className="sr-only" />
 
-        <div className="mx-auto max-w-[1180px] px-5 grid grid-cols-1 min-[861px]:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
-          <div>
-            <Eyebrow>
-              What Gravitas Edge does
-            </Eyebrow>
-            <h2 className="text-[#061B36] dark:text-[#F2F5FA] font-bold tracking-[-0.02em] leading-[1.15] text-[clamp(1.7rem,3.4vw,2.5rem)] mb-2 font-sans">
-              Skip the portals. Connect directly.
-            </h2>
-            <p className="text-[#5B6479] dark:text-[#9FB0CC] text-[1.05rem] leading-[1.55] max-w-[640px]">
-              Opportunities surface through many channels: recruiter networks, hiring managers,
-              consultants and company announcements. We find and select them, sort them by country,
-              city and experience, and give you the application pathway or hiring contact where
-              it&apos;s available.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[18px] mt-[26px]">
-              {whatFeatures.map((f) => (
-                <div key={f.title}>
-                  <div className="w-11 h-11 rounded-[12px] grid place-items-center bg-[#FBF0DE] dark:bg-[#201D19] text-[1.3rem] mb-3 select-none">
-                    {f.icon}
-                  </div>
-                  <h3 className="text-[1rem] font-bold text-[#061B36] dark:text-[#F2F5FA] leading-[1.15] mb-1 font-sans">
-                    {f.title}
-                  </h3>
-                  <p className="text-[#5B6479] dark:text-[#9FB0CC] text-[0.9rem] leading-[1.55]">
-                    {f.description}
-                  </p>
-                </div>
-              ))}
+        <div className="mx-auto max-w-[1180px] px-5">
+          {/* Top row: Text on left, "No Apply Now button" card on right */}
+          <div className="grid grid-cols-1 min-[861px]:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
+            <div>
+              <Eyebrow>
+                What Gravitas Edge does
+              </Eyebrow>
+              <h2 className="text-[#061B36] dark:text-[#F2F5FA] font-bold tracking-[-0.02em] leading-[1.15] text-[clamp(1.7rem,3.4vw,2.5rem)] mb-2 font-sans">
+                Skip the portals. Connect directly.
+              </h2>
+              <p className="text-[#5B6479] dark:text-[#9FB0CC] text-[1.05rem] leading-[1.55] max-w-[640px]">
+                Opportunities surface through many channels: recruiter networks, hiring managers,
+                consultants and company announcements. We find and select them, sort them by country,
+                city and experience, and give you the application pathway or hiring contact where
+                it&apos;s available.
+              </p>
             </div>
+
+            <NoApplyCard />
           </div>
 
-          <div className="bg-[#061B36] dark:bg-[#0A2645] text-white rounded-[16px] p-[26px] border border-transparent dark:border-[rgba(240,194,123,0.18)] shadow-lg">
-            <h3 className="text-white font-bold text-[1.35rem] leading-[1.15] mb-2 font-sans">
-              No &ldquo;Apply Now&rdquo; button
-            </h3>
-            <p className="text-[#C9D3EA] text-[0.93rem] mb-2.5 leading-[1.55]">
-              You reach out yourself, with context.
-            </p>
-            <ol className="list-decimal pl-5 text-[#C9D3EA] text-[0.93rem]">
-              <li className="my-1.5 leading-[1.55]">See a relevant opportunity in your vault</li>
-              <li className="my-1.5 leading-[1.55]">View the hiring contact or application pathway</li>
-              <li className="my-1.5 leading-[1.55]">Share your resume directly</li>
-            </ol>
-            <p className="text-[#8C9AC0] text-[0.78rem] mt-3.5 leading-[1.5]">
-              Gravitas Edge is an opportunity-information service, not a recruitment agency. We
-              don&apos;t guarantee interviews or placements.
-            </p>
-          </div>
+          {/* Bottom row: Interactive 3D animated feature cards */}
+          <InteractiveFeatureCards
+            onScrollTo={scrollTo}
+            onOpenOpportunities={() => router.push('/opportunities')}
+          />
         </div>
       </section>
 

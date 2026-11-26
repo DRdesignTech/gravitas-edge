@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import InfoBanner from './InfoBanner';
 
 const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbCb0FrAe5VxQRICTf2K';
@@ -227,10 +229,40 @@ const CHANNEL_NOTE =
   'This is an update channel only. Full opportunity details and direct hiring contacts are available through the Opportunity Vaults.';
 
 const floatingBadges = [
-  { label: 'Real-time Updates', icon: BoltIcon, position: '-left-[22px] top-[18px]' },
-  { label: 'Selected Opportunities', icon: CheckCircleIcon, position: '-right-[22px] top-[120px]' },
-  { label: 'Vault Activity', icon: LayersIcon, position: '-left-[22px] bottom-[110px]' },
-  { label: 'Be the First to Know', icon: BellIcon, position: '-right-[22px] bottom-[14px]' },
+  { label: 'Real-time Updates', icon: BoltIcon, position: '-left-7 top-[24px]', delay: '0s' },
+  { label: 'Selected Opportunities', icon: CheckCircleIcon, position: '-right-7 top-[132px]', delay: '0.8s' },
+  { label: 'Vault Activity', icon: LayersIcon, position: '-left-7 bottom-[126px]', delay: '1.6s' },
+  { label: 'Be the First to Know', icon: BellIcon, position: '-right-7 bottom-[22px]', delay: '2.4s' },
+];
+
+const CHAT_MESSAGES = [
+  {
+    id: 'msg-1',
+    type: 'incoming' as const,
+    tag: 'Opportunity Updates',
+    text: 'Selected opportunity updates, shared as they are sourced.',
+    time: '09:42',
+  },
+  {
+    id: 'msg-2',
+    type: 'outgoing' as const,
+    text: 'New or updated application routes as they become available.',
+    time: '09:43',
+  },
+  {
+    id: 'msg-3',
+    type: 'incoming' as const,
+    tag: 'Vault Activity',
+    text: 'Vault activity and additions, posted here.',
+    time: '09:45',
+  },
+  {
+    id: 'msg-4',
+    type: 'incoming' as const,
+    tag: 'Direct Alert · UAE',
+    text: 'VP Operations · Dubai — direct hiring-team pathway just added.',
+    time: '09:46',
+  },
 ];
 
 interface WhatsAppChannelProps {
@@ -246,8 +278,88 @@ export default function WhatsAppChannel({
   actionLabel = 'Join WhatsApp Channel',
   note,
 }: WhatsAppChannelProps) {
+  const phoneRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  // Step 0..4 controls how many messages are shown; typing shows between steps
+  const [visibleCount, setVisibleCount] = useState(1);
+  const [isTyping, setIsTyping] = useState(false);
+  const [phoneTilt, setPhoneTilt] = useState({ rx: 0, ry: 0 });
+
+  useEffect(() => {
+    const el = phoneRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.2 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Live looping chat feed with realistic typing indicator
+  useEffect(() => {
+    if (!inView) return;
+
+    let cancelled = false;
+    let timer: number;
+
+    const runCycle = (step: number) => {
+      if (cancelled) return;
+      if (step < CHAT_MESSAGES.length) {
+        setIsTyping(true);
+        timer = window.setTimeout(() => {
+          if (cancelled) return;
+          setIsTyping(false);
+          setVisibleCount(step + 1);
+          timer = window.setTimeout(() => runCycle(step + 1), 1600);
+        }, 1050);
+      } else {
+        // Pause on full conversation, then smoothly replay from message 1
+        timer = window.setTimeout(() => {
+          if (cancelled) return;
+          setVisibleCount(1);
+          timer = window.setTimeout(() => runCycle(1), 900);
+        }, 3200);
+      }
+    };
+
+    timer = window.setTimeout(() => runCycle(1), 900);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [inView]);
+
   return (
     <div className="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-white via-emerald-50/70 to-emerald-100/40 p-4 shadow-[0_28px_90px_-40px_rgba(16,185,129,0.55)] sm:p-10 lg:rounded-[2.5rem] lg:p-12 dark:border-emerald-500/25 dark:from-[#0B1A14] dark:via-emerald-950/40 dark:to-[#0B1A14] dark:shadow-[0_28px_90px_-40px_rgba(6,27,54,0.7)]">
+      <style>{`
+        @keyframes ge-badge-float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-5px); }
+        }
+        @keyframes ge-msg-pop {
+          0% { opacity: 0; transform: translateY(10px) scale(0.96); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes ge-typing-dot {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+          30% { transform: translateY(-4px); opacity: 1; }
+        }
+        .ge-badge-float {
+          animation: ge-badge-float 3.8s ease-in-out infinite;
+        }
+        .ge-msg-pop {
+          animation: ge-msg-pop 380ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .ge-typing-dot-1 { animation: ge-typing-dot 1.1s infinite 0s; }
+        .ge-typing-dot-2 { animation: ge-typing-dot 1.1s infinite 0.18s; }
+        .ge-typing-dot-3 { animation: ge-typing-dot 1.1s infinite 0.36s; }
+      `}</style>
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -bottom-28 -left-24 h-72 w-72 rounded-full bg-emerald-100/80 blur-3xl dark:bg-emerald-700/15"
@@ -262,9 +374,26 @@ export default function WhatsAppChannel({
       />
 
       <div className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12">
-        {/* Phone image on a soft, professional background */}
-        <div className="order-1 relative mx-auto flex w-full max-w-md items-center justify-center rounded-[2.5rem] bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-200/40 p-4 sm:p-10 dark:from-emerald-950/40 dark:via-emerald-900/25 dark:to-emerald-900/10">
-          <div className="relative w-full max-w-[250px] sm:max-w-[272px]">
+        {/* Larger, live-animated iPhone Prototype */}
+        <div
+          ref={phoneRef}
+          className="order-1 relative mx-auto flex w-full max-w-lg items-center justify-center rounded-[2.5rem] bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-200/40 p-5 sm:p-10 dark:from-emerald-950/40 dark:via-emerald-900/25 dark:to-emerald-900/10"
+          style={{ perspective: '1100px' }}
+          onMouseMove={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const px = (e.clientX - rect.left) / rect.width - 0.5;
+            const py = (e.clientY - rect.top) / rect.height - 0.5;
+            setPhoneTilt({ rx: -py * 8, ry: px * 10 });
+          }}
+          onMouseLeave={() => setPhoneTilt({ rx: 0, ry: 0 })}
+        >
+          <div
+            className="relative w-full max-w-[295px] sm:max-w-[330px]"
+            style={{
+              transform: `rotateX(${phoneTilt.rx}deg) rotateY(${phoneTilt.ry}deg)`,
+              transition: 'transform 260ms ease-out',
+            }}
+          >
             {/* Floating feature pills */}
             <div
               aria-hidden="true"
@@ -275,9 +404,10 @@ export default function WhatsAppChannel({
                 return (
                   <span
                     key={badge.label}
-                    className={`absolute z-30 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-100/90 bg-white/95 px-3 py-1.5 text-[10px] font-semibold text-[#061B36] shadow-[0_8px_20px_-4px_rgba(6,40,25,0.2)] backdrop-blur-sm dark:border-emerald-500/25 dark:bg-[#0C2118] dark:text-emerald-100 ${badge.position}`}
+                    style={{ animationDelay: badge.delay }}
+                    className={`ge-badge-float absolute z-30 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-100/90 bg-white/95 px-3.5 py-1.5 text-[11px] font-semibold text-[#061B36] shadow-[0_10px_24px_-4px_rgba(6,40,25,0.22)] backdrop-blur-sm dark:border-emerald-500/25 dark:bg-[#0C2118] dark:text-emerald-100 ${badge.position}`}
                   >
-                    <Icon className="h-3 w-3 text-[#25D366]" />
+                    <Icon className="h-3.5 w-3.5 text-[#25D366]" />
                     {badge.label}
                   </span>
                 );
@@ -375,7 +505,10 @@ export default function WhatsAppChannel({
                           <p className="truncate text-[11px] font-bold text-white">Gravitas Edge</p>
                           <VerifiedBadgeIcon className="h-3 w-3 shrink-0" />
                         </div>
-                        <p className="truncate text-[9px] text-white/80">WhatsApp Channel · online</p>
+                        <p className="flex items-center gap-1.5 truncate text-[10px] text-white/85">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#25D366] animate-pulse" />
+                          <span>{isTyping ? 'typing...' : 'WhatsApp Channel · online'}</span>
+                        </p>
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2.5 text-white/90">
@@ -389,7 +522,7 @@ export default function WhatsAppChannel({
                   </div>
 
                   {/* WhatsApp Chat Body */}
-                  <div className="relative flex-1 space-y-2.5 bg-[#EFEAE2] px-3 py-3 min-h-[250px]">
+                  <div className="relative flex flex-1 flex-col justify-end space-y-2.5 bg-[#EFEAE2] px-3.5 py-3.5 min-h-[340px] sm:min-h-[365px]">
                     {/* Subtle Doodle Wallpaper Texture */}
                     <div
                       aria-hidden="true"
@@ -397,52 +530,50 @@ export default function WhatsAppChannel({
                     />
 
                     {/* Date Pill */}
-                    <div className="relative z-10 flex justify-center">
-                      <span className="rounded-md bg-white/90 px-2.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-slate-500 shadow-sm border border-black/5">
+                    <div className="relative z-10 mb-auto flex justify-center">
+                      <span className="rounded-md bg-white/90 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500 shadow-sm border border-black/5">
                         Today
                       </span>
                     </div>
 
-                    {/* Message 1 (Incoming) */}
-                    <div className="relative z-10 flex justify-start">
-                      <div className="relative max-w-[86%] rounded-2xl rounded-tl-sm bg-white px-3 py-2 shadow-sm border border-slate-100">
-                        <p className="text-[8px] font-bold uppercase tracking-wider text-[#128C7E]">
-                          Opportunity Updates
-                        </p>
-                        <p className="mt-0.5 text-[11px] leading-snug text-slate-800 break-words">
-                          Selected opportunity updates, shared as they are sourced.
-                        </p>
-                        <div className="mt-1 flex items-center justify-end">
-                          <span className="text-[8px] text-slate-400">09:42</span>
+                    {CHAT_MESSAGES.slice(0, visibleCount).map((m) =>
+                      m.type === 'incoming' ? (
+                        <div key={m.id} className="ge-msg-pop relative z-10 flex justify-start">
+                          <div className="relative max-w-[88%] rounded-2xl rounded-tl-sm bg-white px-3.5 py-2.5 shadow-sm border border-slate-100">
+                            <p className="text-[8.5px] font-bold uppercase tracking-wider text-[#128C7E]">
+                              {m.tag}
+                            </p>
+                            <p className="mt-0.5 text-[11.5px] leading-snug text-slate-800 break-words">
+                              {m.text}
+                            </p>
+                            <div className="mt-1 flex items-center justify-end">
+                              <span className="text-[8.5px] text-slate-400">{m.time}</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      ) : (
+                        <div key={m.id} className="ge-msg-pop relative z-10 flex justify-end">
+                          <div className="relative max-w-[88%] rounded-2xl rounded-tr-sm bg-[#D9FDD3] px-3.5 py-2.5 text-[11.5px] leading-snug text-slate-900 shadow-sm border border-emerald-100/60 break-words">
+                            <p>{m.text}</p>
+                            <div className="mt-1 flex items-center justify-end gap-1">
+                              <span className="text-[8.5px] text-slate-500">{m.time}</span>
+                              <DoubleCheckIcon className="h-2.5 w-3 text-[#53BDEB]" />
+                            </div>
+                          </div>
+                        </div>
+                      ),
+                    )}
 
-                    {/* Message 2 (Outgoing) */}
-                    <div className="relative z-10 flex justify-end">
-                      <div className="relative max-w-[86%] rounded-2xl rounded-tr-sm bg-[#D9FDD3] px-3 py-2 text-[11px] leading-snug text-slate-900 shadow-sm border border-emerald-100/60 break-words">
-                        <p>New or updated application routes as they become available.</p>
-                        <div className="mt-1 flex items-center justify-end gap-1">
-                          <span className="text-[8px] text-slate-500">09:43</span>
-                          <DoubleCheckIcon className="h-2.5 w-3 text-[#53BDEB]" />
+                    {/* Live Typing Indicator */}
+                    {isTyping && (
+                      <div className="ge-msg-pop relative z-10 flex justify-start">
+                        <div className="inline-flex items-center gap-1 rounded-2xl rounded-tl-sm border border-slate-100 bg-white px-3.5 py-2.5 shadow-sm">
+                          <span className="ge-typing-dot-1 h-1.5 w-1.5 rounded-full bg-slate-400" />
+                          <span className="ge-typing-dot-2 h-1.5 w-1.5 rounded-full bg-slate-400" />
+                          <span className="ge-typing-dot-3 h-1.5 w-1.5 rounded-full bg-slate-400" />
                         </div>
                       </div>
-                    </div>
-
-                    {/* Message 3 (Incoming) */}
-                    <div className="relative z-10 flex justify-start">
-                      <div className="relative max-w-[86%] rounded-2xl rounded-tl-sm bg-white px-3 py-2 shadow-sm border border-slate-100">
-                        <p className="text-[8px] font-bold uppercase tracking-wider text-[#128C7E]">
-                          Vault Activity
-                        </p>
-                        <p className="mt-0.5 text-[11px] leading-snug text-slate-800 break-words">
-                          Vault activity and additions, posted here.
-                        </p>
-                        <div className="mt-1 flex items-center justify-end">
-                          <span className="text-[8px] text-slate-400">09:45</span>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Input Bar */}
