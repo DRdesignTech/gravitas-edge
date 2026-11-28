@@ -529,11 +529,11 @@
   background: linear-gradient(rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.78) 100%);
   border-bottom: 1.5px solid rgba(255, 255, 255, 0.9);
   border-left: 1.5px solid rgba(255, 255, 255, 0.9);
-  border-radius: 32px 100% 32px 32px;
+  border-radius: 22px 100% 22px 22px;
   transition: all 0.5s ease-in-out;
   position: absolute;
-  inset: 5px;
-  transform: translateZ(25px);
+  inset: 8px;
+  transform: translateZ(12px);
   pointer-events: none;
 }
 
@@ -545,7 +545,7 @@
 
 .uiverse-content {
   padding: 28px 18px 0 18px;
-  transform: translateZ(26px);
+  transform: translateZ(16px);
   transform-style: preserve-3d;
 }
 
@@ -568,6 +568,7 @@
   margin-top: 6px;
   font-size: 12px;
   line-height: 1.45;
+  padding-right: 44px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

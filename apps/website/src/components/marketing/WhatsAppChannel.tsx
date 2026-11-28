@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import InfoBanner from './InfoBanner';
+import ScrollReveal from './ScrollReveal';
 
 const WHATSAPP_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbCb0FrAe5VxQRICTf2K';
 
@@ -374,10 +375,10 @@ export default function WhatsAppChannel({
       />
 
       <div className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12">
-        {/* Larger, live-animated iPhone Prototype */}
+        {/* Larger, live-animated iPhone Prototype (no light-green background box) */}
         <div
           ref={phoneRef}
-          className="order-1 relative mx-auto flex w-full max-w-lg items-center justify-center rounded-[2.5rem] bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-200/40 p-5 sm:p-10 dark:from-emerald-950/40 dark:via-emerald-900/25 dark:to-emerald-900/10"
+          className="order-1 relative mx-auto flex w-full max-w-lg items-center justify-center p-4 sm:p-6"
           style={{ perspective: '1100px' }}
           onMouseMove={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
@@ -521,8 +522,8 @@ export default function WhatsAppChannel({
                     </div>
                   </div>
 
-                  {/* WhatsApp Chat Body */}
-                  <div className="relative flex flex-1 flex-col justify-end space-y-2.5 bg-[#EFEAE2] px-3.5 py-3.5 min-h-[340px] sm:min-h-[365px]">
+                  {/* WhatsApp Chat Body — fixed height so the phone never shrinks or grows */}
+                  <div className="relative flex h-[400px] sm:h-[430px] flex-col justify-end space-y-2.5 overflow-hidden bg-[#EFEAE2] px-3.5 py-3.5">
                     {/* Subtle Doodle Wallpaper Texture */}
                     <div
                       aria-hidden="true"
@@ -605,7 +606,7 @@ export default function WhatsAppChannel({
         </div>
 
         {/* Content */}
-        <div className="order-2 flex min-w-0 flex-col items-center text-center [overflow-wrap:anywhere]">
+        <ScrollReveal direction="right" delay={100} className="order-2 flex min-w-0 flex-col items-center text-center [overflow-wrap:anywhere]">
           <h2 className="text-3xl font-extrabold leading-[1.15] tracking-tight text-content sm:text-4xl dark:text-white">
             {title}
           </h2>
@@ -658,7 +659,7 @@ export default function WhatsAppChannel({
           </div>
 
           {note && <p className="mt-4 text-sm font-medium text-content-muted">{note}</p>}
-        </div>
+        </ScrollReveal>
       </div>
     </div>
   );

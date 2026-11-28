@@ -16,6 +16,7 @@ import PriceLockBanner from '@/components/marketing/PriceLockBanner';
 import InteractiveFeatureCards from '@/components/marketing/InteractiveFeatureCards';
 import NoApplyCard from '@/components/marketing/NoApplyCard';
 import HowItWorks from '@/components/marketing/HowItWorks';
+import ScrollReveal from '@/components/marketing/ScrollReveal';
 import Testimonials from '@/components/marketing/Testimonials';
 import LiveFreePreview from '@/components/marketing/LiveFreePreview';
 import CountryDirectory from '@/components/marketing/CountryDirectory';
@@ -75,11 +76,7 @@ export default function Home() {
   const load = () => {
     setLoading(true);
     setError('');
-    Promise.all([
-      fetchVaults(),
-      fetchPublicPricing(),
-      fetchOpportunities({ limit: 100 }),
-    ])
+    Promise.all([fetchVaults(), fetchPublicPricing(), fetchOpportunities({ limit: 100 })])
       .then(([v, p, oppsRes]) => {
         setVaults(v || []);
         setPricing(p || []);
@@ -172,9 +169,7 @@ export default function Home() {
 
   return (
     <div className="overflow-x-clip">
-      {/* ══════════════════════════════════════════════════════════════ */}
       {/* 1. HERO — #home                                                */}
-      {/* ══════════════════════════════════════════════════════════════ */}
 
       {/* Offer announcement ticker bar (.offerbar) */}
       <div
@@ -195,7 +190,7 @@ export default function Home() {
                   OFFER
                 </span>
                 <span>
-                  <b>Build Your Bundle</b> India + Global vaults, save <b>20%</b> ·{' '}
+                  <b>Build Your Bundle</b> Multi-region + Global vaults, save <b>20%</b> ·{' '}
                   <u className="no-underline border-b-[1.5px] border-[#061B36] font-bold hover:border-b-[2.5px]">
                     Build now
                   </u>
@@ -244,7 +239,8 @@ export default function Home() {
                 </span>
                 <span>
                   <b>{oppsTotal > 0 ? `${oppsTotal} live roles` : '500+ live roles'}</b> across{' '}
-                  <b>{countriesCount > 0 ? `${countriesCount} countries` : '24 countries'}</b> right now ·{' '}
+                  <b>{countriesCount > 0 ? `${countriesCount} countries` : '24 countries'}</b> right
+                  now ·{' '}
                   <u className="no-underline border-b-[1.5px] border-[#061B36] font-bold hover:border-b-[2.5px]">
                     Explore opportunities
                   </u>
@@ -275,7 +271,7 @@ export default function Home() {
                   PREMIER
                 </span>
                 <span>
-                  <b>Executive Premier Access</b> India + International in one vault ·{' '}
+                  <b>Executive Premier Access</b> Multi-region &amp; International in one vault ·{' '}
                   <u className="no-underline border-b-[1.5px] border-[#061B36] font-bold hover:border-b-[2.5px]">
                     Learn more
                   </u>
@@ -305,7 +301,10 @@ export default function Home() {
       {/* 3 Trust Features Strip right below Hero (.hstrip) */}
       <div className="bg-[#061B36] border-t border-white/[0.08]">
         <div className="mx-auto max-w-[1180px] px-5 grid grid-cols-3">
-          <div className="flex flex-col items-center gap-2 py-[22px] px-2.5 text-white font-semibold text-[0.95rem] text-center max-[600px]:text-[0.8rem] max-[600px]:py-4 max-[600px]:px-1.5">
+          <ScrollReveal
+            delay={0}
+            className="flex flex-col items-center gap-2 py-[22px] px-2.5 text-white font-semibold text-[0.95rem] text-center max-[600px]:text-[0.8rem] max-[600px]:py-4 max-[600px]:px-1.5"
+          >
             <svg
               className="w-6 h-6 stroke-[#D6952F] fill-none stroke-[1.6]"
               viewBox="0 0 24 24"
@@ -314,8 +313,11 @@ export default function Home() {
               <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z" />
             </svg>
             <span>Curated Opportunities</span>
-          </div>
-          <div className="flex flex-col items-center gap-2 py-[22px] px-2.5 text-white font-semibold text-[0.95rem] text-center max-[600px]:text-[0.8rem] max-[600px]:py-4 max-[600px]:px-1.5 border-l border-white/[0.12]">
+          </ScrollReveal>
+          <ScrollReveal
+            delay={100}
+            className="flex flex-col items-center gap-2 py-[22px] px-2.5 text-white font-semibold text-[0.95rem] text-center max-[600px]:text-[0.8rem] max-[600px]:py-4 max-[600px]:px-1.5 border-l border-white/[0.12]"
+          >
             <svg
               className="w-6 h-6 stroke-[#D6952F] fill-none stroke-[1.6]"
               viewBox="0 0 24 24"
@@ -325,8 +327,11 @@ export default function Home() {
               <path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" />
             </svg>
             <span>Direct Hiring Contacts</span>
-          </div>
-          <div className="flex flex-col items-center gap-2 py-[22px] px-2.5 text-white font-semibold text-[0.95rem] text-center max-[600px]:text-[0.8rem] max-[600px]:py-4 max-[600px]:px-1.5 border-l border-white/[0.12]">
+          </ScrollReveal>
+          <ScrollReveal
+            delay={200}
+            className="flex flex-col items-center gap-2 py-[22px] px-2.5 text-white font-semibold text-[0.95rem] text-center max-[600px]:text-[0.8rem] max-[600px]:py-4 max-[600px]:px-1.5 border-l border-white/[0.12]"
+          >
             <svg
               className="w-6 h-6 stroke-[#D6952F] fill-none stroke-[1.6]"
               viewBox="0 0 24 24"
@@ -336,16 +341,14 @@ export default function Home() {
               <path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" />
             </svg>
             <span>Global Markets</span>
-          </div>
+          </ScrollReveal>
         </div>
       </div>
 
       {/* Price Lock Promotional Strip for Guest Users */}
       <PriceLockBanner onViewPlans={() => scrollTo('plans')} />
 
-      {/* ══════════════════════════════════════════════════════════════ */}
       {/* 2. WHAT GRAVITAS EDGE DOES — #what                             */}
-      {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="what"
         className="py-[72px] bg-[#FEFDF9] dark:bg-[#06142A] text-[#1A2236] dark:text-[#EAEFFB]"
@@ -357,20 +360,18 @@ export default function Home() {
         <div className="mx-auto max-w-[1180px] px-5">
           {/* Top row: Text on left, "No Apply Now button" card on right */}
           <div className="grid grid-cols-1 min-[861px]:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
-            <div>
-              <Eyebrow>
-                What Gravitas Edge does
-              </Eyebrow>
+            <ScrollReveal direction="left">
+              <Eyebrow>What Gravitas Edge does</Eyebrow>
               <h2 className="text-[#061B36] dark:text-[#F2F5FA] font-bold tracking-[-0.02em] leading-[1.15] text-[clamp(1.7rem,3.4vw,2.5rem)] mb-2 font-sans">
                 Skip the portals. Connect directly.
               </h2>
               <p className="text-[#5B6479] dark:text-[#9FB0CC] text-[1.05rem] leading-[1.55] max-w-[640px]">
                 Opportunities surface through many channels: recruiter networks, hiring managers,
-                consultants and company announcements. We find and select them, sort them by country,
-                city and experience, and give you the application pathway or hiring contact where
-                it&apos;s available.
+                consultants and company announcements. We find and select them, sort them by
+                country, city and experience, and give you the application pathway or hiring contact
+                where it&apos;s available.
               </p>
-            </div>
+            </ScrollReveal>
 
             <NoApplyCard />
           </div>
@@ -383,14 +384,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
       {/* 4. HOW IT WORKS — #how-it-works                                 */}
-      {/* ══════════════════════════════════════════════════════════════ */}
       <HowItWorks />
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 5. LIVE FREE PREVIEW — #preview / #free-preview                 */}
-      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* 5. EXPLORE OPPORTUNITIES BY COUNTRY — #countries               */}
+      <CountryDirectory opportunities={opportunities} />
+      {/* 6. LIVE FREE PREVIEW — #preview / #free-preview                 */}
       {loading ? (
         <section
           id="preview"
@@ -416,29 +415,17 @@ export default function Home() {
           </div>
         </section>
       ) : (
-        <LiveFreePreview
-          vaults={vaults}
-          loading={false}
-          error=""
-          onRetry={load}
-        />
+        <LiveFreePreview vaults={vaults} loading={false} error="" onRetry={load} />
       )}
 
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 5. EXPLORE OPPORTUNITIES BY COUNTRY — #countries               */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      <CountryDirectory opportunities={opportunities} />
-
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* 6. OPPORTUNITY VAULTS — #vaults                                */}
-      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* 7. OPPORTUNITY VAULTS — #vaults                                */}
       <section
         id="vaults"
         className="section-glow-navy relative border-t border-line bg-surface dark:bg-surface-elevated/50"
       >
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-            <div className="max-w-2xl">
+            <ScrollReveal className="max-w-2xl">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D6952F]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#D6952F]">
                   <HiSparkles className="h-3.5 w-3.5 text-[#D6952F]" />
@@ -449,29 +436,34 @@ export default function Home() {
                 Find where you fit.
               </h2>
               <p className="mt-2 text-sm text-content-muted sm:text-base">
-                Opportunities segmented by seniority level, compensation tier, and target market geography.
+                Opportunities segmented by seniority level, compensation tier, and target market
+                geography.
               </p>
-            </div>
+            </ScrollReveal>
             <div className="flex flex-wrap items-center gap-2">
               {user && (
-                <Link
-                  href="/dashboard/vaults"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-2 text-xs font-bold text-content transition hover:border-[#D6952F] hover:text-[#D6952F] dark:bg-surface-elevated"
-                >
-                  My Vaults Directory →
-                </Link>
+                <ScrollReveal delay={120}>
+                  <Link
+                    href="/dashboard/vaults"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-2 text-xs font-bold text-content transition hover:border-[#D6952F] hover:text-[#D6952F] dark:bg-surface-elevated"
+                  >
+                    My Vaults Directory →
+                  </Link>
+                </ScrollReveal>
               )}
             </div>
           </div>
 
           {!loading && !error && vaults.length > 0 && (
-            <VaultFinder
-              vaults={vaults}
-              recommended={recommendedVaultIds}
-              onRecommendedChange={setRecommendedVaultIds}
-              onlyRecommended={onlyRecommended}
-              onToggleOnlyRecommended={setOnlyRecommended}
-            />
+            <ScrollReveal delay={100}>
+              <VaultFinder
+                vaults={vaults}
+                recommended={recommendedVaultIds}
+                onRecommendedChange={setRecommendedVaultIds}
+                onlyRecommended={onlyRecommended}
+                onToggleOnlyRecommended={setOnlyRecommended}
+              />
+            </ScrollReveal>
           )}
 
           {loading ? (
@@ -491,22 +483,20 @@ export default function Home() {
             </div>
           ) : (
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 pt-5">
-              {visibleVaults.map((v) => (
-                <VaultCard key={v.id} vault={v} recommended={recommendedVaultIds.has(v.id)} />
+              {visibleVaults.map((v, idx) => (
+                <ScrollReveal key={v.id} delay={(idx % 3) * 90} className="h-full">
+                  <VaultCard vault={v} recommended={recommendedVaultIds.has(v.id)} />
+                </ScrollReveal>
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
       {/* 8. PLANS / PRICING — #plans                                     */}
-      {/* ══════════════════════════════════════════════════════════════ */}
       <PricingSection groups={pricing} loading={loading} error={error} onRetry={load} />
 
-      {/* ══════════════════════════════════════════════════════════════ */}
       {/* 9. WHATSAPP FREE CONNECTION — #whatsapp-free-2                 */}
-      {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="whatsapp-free-2"
         className="section-glow relative border-t border-line bg-surface-muted"
@@ -520,9 +510,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
       {/* 10. UPLOAD RESUME — #upload-resume                              */}
-      {/* ══════════════════════════════════════════════════════════════ */}
       <section
         id="upload-resume"
         className="relative overflow-hidden border-t border-line bg-[#FEFDF9] dark:bg-[#06142A] scroll-mt-20"
@@ -541,22 +529,24 @@ export default function Home() {
           <div className="grid gap-10 lg:grid-cols-12 lg:items-center lg:gap-12">
             {/* Left Column: Executive Pitch & 2x2 Bento Benefits */}
             <div className="lg:col-span-6">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#D6952F]/35 bg-[#D6952F]/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#9C6424] dark:text-[#F0C27B]">
-                <span className="text-[#D6952F]">✦</span>
-                <span>Executive Talent Profile</span>
-              </span>
-
-              <h2 className="mt-4 font-serif-heading text-3xl font-bold tracking-tight text-[#061B36] dark:text-[#F2F5FA] sm:text-4xl leading-[1.15]">
-                Upload your resume.{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D6952F] to-[#B37E28]">
-                  Let the right roles find you.
+              <ScrollReveal direction="left">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#D6952F]/35 bg-[#D6952F]/10 px-3.5 py-1 text-xs font-bold uppercase tracking-widest text-[#9C6424] dark:text-[#F0C27B]">
+                  <span className="text-[#D6952F]">✦</span>
+                  <span>Executive Talent Profile</span>
                 </span>
-              </h2>
 
-              <p className="mt-4 text-sm leading-relaxed text-[#5B6479] dark:text-[#93A3BE] sm:text-base max-w-xl">
-                Make your profile ready for high-impact opportunities across India, UAE, London, and
-                global corridors. Share your resume once—no account needed to start.
-              </p>
+                <h2 className="mt-4 font-serif-heading text-3xl font-bold tracking-tight text-[#061B36] dark:text-[#F2F5FA] sm:text-4xl leading-[1.15]">
+                  Upload your resume.{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D6952F] to-[#B37E28]">
+                    Let the right roles find you.
+                  </span>
+                </h2>
+
+                <p className="mt-4 text-sm leading-relaxed text-[#5B6479] dark:text-[#93A3BE] sm:text-base max-w-xl">
+                  Make your profile ready for high-impact opportunities across London, UAE, Singapore,
+                  North America, and global corridors. Share your resume once—no account needed to start.
+                </p>
+              </ScrollReveal>
 
               {/* 2x2 Bento Benefit Grid */}
               <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -577,67 +567,66 @@ export default function Home() {
                     title: 'Consent-First Privacy',
                     desc: 'Your data is shared strictly with your explicit consent.',
                   },
-                ].map((item) => (
-                  <div
-                    key={item.title}
-                    className="group rounded-2xl border border-[#E9E5DC] dark:border-[#1E3557] bg-white/80 dark:bg-[#0C1E38]/80 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D6952F]/60 hover:shadow-md"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#061B36] to-[#102E57] text-[#F0C27B] ring-1 ring-[#D6952F]/30">
-                        <CheckAccent className="h-3.5 w-3.5" />
-                      </span>
-                      <div>
-                        <h3 className="text-sm font-bold text-[#061B36] dark:text-[#F2F5FA]">
-                          {item.title}
-                        </h3>
-                        <p className="mt-1 text-xs leading-relaxed text-[#5B6479] dark:text-[#93A3BE]">
-                          {item.desc}
-                        </p>
+                ].map((item, idx) => (
+                  <ScrollReveal key={item.title} delay={idx * 80} className="h-full">
+                    <div className="group h-full rounded-2xl border border-[#E9E5DC] dark:border-[#1E3557] bg-white/80 dark:bg-[#0C1E38]/80 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D6952F]/60 hover:shadow-md">
+                      <div className="flex items-start gap-3">
+                        <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#061B36] to-[#102E57] text-[#F0C27B] ring-1 ring-[#D6952F]/30">
+                          <CheckAccent className="h-3.5 w-3.5" />
+                        </span>
+                        <div>
+                          <h3 className="text-sm font-bold text-[#061B36] dark:text-[#F2F5FA]">
+                            {item.title}
+                          </h3>
+                          <p className="mt-1 text-xs leading-relaxed text-[#5B6479] dark:text-[#93A3BE]">
+                            {item.desc}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </ScrollReveal>
                 ))}
               </div>
 
               {/* Trust & Format Strip */}
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line/70 pt-5 text-xs font-medium text-[#5B6479] dark:text-[#93A3BE]">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  No Account Required
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#D6952F]" />
-                  Auto-Extracts Contact Details
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-                  PDF, DOC, DOCX · Max 5 MB
-                </span>
-              </div>
+              <ScrollReveal delay={200}>
+                <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-line/70 pt-5 text-xs font-medium text-[#5B6479] dark:text-[#93A3BE]">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    No Account Required
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#D6952F]" />
+                    Auto-Extracts Contact Details
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                    PDF, DOC, DOCX · Max 5 MB
+                  </span>
+                </div>
+              </ScrollReveal>
             </div>
 
             {/* Right Column: Elevated ResumeUploadCard Wrapper */}
             <div className="lg:col-span-6 relative">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -inset-2 rounded-[2rem] bg-gradient-to-br from-[#D6952F]/20 via-transparent to-[#061B36]/15 blur-xl opacity-70"
-              />
-              <div className="relative">
-                <ResumeUploadCard />
-              </div>
+              <ScrollReveal direction="right" delay={120}>
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-2 rounded-[2rem] bg-gradient-to-br from-[#D6952F]/20 via-transparent to-[#061B36]/15 blur-xl opacity-70"
+                />
+                <div className="relative">
+                  <ResumeUploadCard />
+                </div>
+              </ScrollReveal>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ══════════════════════════════════════════════════════════════ */}
       {/* 11. TESTIMONIALS — #testimonials                                 */}
-      {/* ══════════════════════════════════════════════════════════════ */}
       <Testimonials />
 
-      {/* ══════════════════════════════════════════════════════════════ */}
       {/* 12. FAQ — #faq                                                  */}
-      {/* ══════════════════════════════════════════════════════════════ */}
       <FaqSection />
     </div>
   );

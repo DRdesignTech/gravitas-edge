@@ -13,12 +13,12 @@ interface SaleItem {
 }
 
 const sampleSales: SaleItem[] = [
-  { minutesAgo: 30, city: 'Dubai', country: 'UAE', flag: '🇦🇪', planName: 'Global Career Access' },
-  { minutesAgo: 52, city: 'Bengaluru', country: 'India', flag: '🇮🇳', planName: 'the Leadership India + Global Career Access bundle' },
+  { minutesAgo: 30, city: 'Dubai', country: 'UAE', flag: '🇦🇪', planName: 'UAE & Global Access Vault' },
+  { minutesAgo: 52, city: 'Frankfurt', country: 'Germany', flag: '🇩🇪', planName: 'Leadership + Global Career bundle' },
   { minutesAgo: 78, city: 'London', country: 'UK', flag: '🇬🇧', planName: 'Global Leadership Access' },
-  { minutesAgo: 115, city: 'Mumbai', country: 'India', flag: '🇮🇳', planName: 'Executive Premier Access' },
+  { minutesAgo: 115, city: 'Toronto', country: 'Canada', flag: '🇨🇦', planName: 'Executive Premier Access' },
   { minutesAgo: 160, city: 'Riyadh', country: 'Saudi Arabia', flag: '🇸🇦', planName: 'Global Career Access' },
-  { minutesAgo: 205, city: 'Pune', country: 'India', flag: '🇮🇳', planName: 'Management India' },
+  { minutesAgo: 205, city: 'New York', country: 'United States', flag: '🇺🇸', planName: 'Management Access Vault' },
   { minutesAgo: 250, city: 'Singapore', country: 'Singapore', flag: '🇸🇬', planName: 'Global Leadership Access' },
 ];
 

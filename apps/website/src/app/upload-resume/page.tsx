@@ -13,6 +13,7 @@ import {
 import { ApiError } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
 import { Alert, Button, useToast } from '@/components/ui';
+import ScrollReveal from '@/components/marketing/ScrollReveal';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx'];
@@ -275,7 +276,7 @@ export default function UploadResumePage() {
               LEFT COLUMN: HERO COPY & BENEFIT BULLETS
               ═════════════════════════════════════════════════════════ */}
           <div className="lg:col-span-6 space-y-8">
-            <div>
+            <ScrollReveal direction="left">
               <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#C8842D] dark:text-[#F0C27B]">
                 RESUMES
               </span>
@@ -285,45 +286,51 @@ export default function UploadResumePage() {
               <p className="mt-5 text-sm sm:text-base leading-relaxed text-[#5B6479] dark:text-slate-400 max-w-md">
                 Keep your resume with Gravitas Edge so the right opportunities can reach you. No account is needed to start.
               </p>
-            </div>
+            </ScrollReveal>
 
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-[#061B36] dark:text-white">
-                The right opportunities. A better fit.
-              </h2>
+              <ScrollReveal delay={80}>
+                <h2 className="text-base sm:text-lg font-bold text-[#061B36] dark:text-white">
+                  The right opportunities. A better fit.
+                </h2>
+              </ScrollReveal>
               
               <div className="mt-6 space-y-5">
-                {BENEFITS.map((benefit) => (
-                  <div key={benefit.title} className="flex items-start gap-3.5">
-                    <BenefitCheckIcon />
-                    <div>
-                      <h3 className="text-sm font-bold text-[#061B36] dark:text-white leading-tight">
-                        {benefit.title}
-                      </h3>
-                      <p className="mt-0.5 text-xs sm:text-sm text-[#5B6479] dark:text-slate-400 leading-relaxed">
-                        {benefit.description}
-                      </p>
+                {BENEFITS.map((benefit, idx) => (
+                  <ScrollReveal key={benefit.title} delay={120 + idx * 70}>
+                    <div className="flex items-start gap-3.5">
+                      <BenefitCheckIcon />
+                      <div>
+                        <h3 className="text-sm font-bold text-[#061B36] dark:text-white leading-tight">
+                          {benefit.title}
+                        </h3>
+                        <p className="mt-0.5 text-xs sm:text-sm text-[#5B6479] dark:text-slate-400 leading-relaxed">
+                          {benefit.description}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  </ScrollReveal>
                 ))}
               </div>
             </div>
 
             {/* Bottom Shield Highlight Notice */}
-            <div className="rounded-2xl bg-[#EEF0EA] dark:bg-[#0E2340] p-4 flex items-center gap-3.5">
-              <span className="text-[#5B6479] dark:text-[#F0C27B] shrink-0">
-                <ShieldCheckIcon className="h-5 w-5" />
-              </span>
-              <p className="text-xs sm:text-[13px] text-[#4B5565] dark:text-slate-300 font-medium leading-relaxed">
-                Your resume is used only for future opportunity matching and is never shared without your consent.
-              </p>
-            </div>
+            <ScrollReveal delay={200}>
+              <div className="rounded-2xl bg-[#EEF0EA] dark:bg-[#0E2340] p-4 flex items-center gap-3.5">
+                <span className="text-[#5B6479] dark:text-[#F0C27B] shrink-0">
+                  <ShieldCheckIcon className="h-5 w-5" />
+                </span>
+                <p className="text-xs sm:text-[13px] text-[#4B5565] dark:text-slate-300 font-medium leading-relaxed">
+                  Your resume is used only for future opportunity matching and is never shared without your consent.
+                </p>
+              </div>
+            </ScrollReveal>
           </div>
 
           {/* ═════════════════════════════════════════════════════════
               RIGHT COLUMN: ADD YOUR DETAILS & UPLOAD CARD
               ═════════════════════════════════════════════════════════ */}
-          <div className="lg:col-span-6">
+          <ScrollReveal direction="right" delay={100} className="lg:col-span-6">
             <div className="rounded-[2rem] border border-[#EAE6DE]/80 bg-white p-7 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.06)] dark:border-[#1E3557] dark:bg-[#0E2340]">
               
               <div className="mb-6">
@@ -596,7 +603,7 @@ export default function UploadResumePage() {
                 </form>
               )}
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </div>
     </div>

@@ -36,7 +36,7 @@ export const HERO_SLIDES: HeroSlide[] = [
       'Gravitas Edge connects ambitious professionals directly with unadvertised, confidential leadership roles and multinational vacancies across 24+ countries.',
     bulletPoints: [
       'Pre-vetted cross-border opportunities',
-      'Exclusive India, UAE, UK, & Global hubs',
+      'Exclusive UK, UAE, US, Singapore & Global hubs',
       'Direct hiring manager application pathways',
     ],
     ctaPrimary: {
@@ -270,37 +270,52 @@ export default function HeroCarousel({
           ))}
         </div>
 
-        {/* Dynamic Eyebrow Badge & Content with Vertical Scroll Animation */}
-        <div key={slide.id} className="hero-slide-scroll">
-          <div className="flex items-center gap-2 mb-[0.6rem]">
-            {slide.badgeIcon}
-            <span className="text-[0.78rem] font-bold tracking-[0.14em] uppercase text-[#F0C27B]">
-              {slide.badge}
-            </span>
-          </div>
-
-          <h1 className="text-white font-bold tracking-[-0.02em] leading-[1.15] text-[clamp(2.1rem,4.8vw,3.5rem)] max-w-[800px]">
-            {slide.titleLeading}{' '}
-            <em className="not-italic text-[#D6952F]">{slide.titleHighlight}</em>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="text-[#C9D3EA] text-[1.1rem] leading-[1.55] max-w-[640px] mt-[16px] mb-[18px]">
-            {slide.subtitle}
-          </p>
-
-          {/* Quick bullet highlights of features/benefits/working */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-[720px] mb-[24px]">
-            {slide.bulletPoints.map((point, i) => (
+        {/* Fixed-height Grid Stack: sizes automatically to the tallest slide so the hero never shrinks or jumps */}
+        <div className="grid">
+          {HERO_SLIDES.map((s, idx) => {
+            const isActive = idx === currentSlideIndex;
+            return (
               <div
-                key={i}
-                className="flex items-center gap-2 bg-white/[0.07] backdrop-blur-sm border border-white/10 rounded-lg px-2.5 py-1.5 text-[0.8rem] text-slate-200"
+                key={isActive ? `${s.id}-active` : s.id}
+                aria-hidden={!isActive}
+                className={`col-start-1 row-start-1 ${
+                  isActive
+                    ? 'hero-slide-scroll relative z-10'
+                    : 'invisible opacity-0 pointer-events-none select-none'
+                }`}
               >
-                <span className="text-[#D6952F] font-bold">✓</span>
-                <span className="leading-snug">{point}</span>
+                <div className="flex items-center gap-2 mb-[0.6rem]">
+                  {s.badgeIcon}
+                  <span className="text-[0.78rem] font-bold tracking-[0.14em] uppercase text-[#F0C27B]">
+                    {s.badge}
+                  </span>
+                </div>
+
+                <h1 className="text-white font-bold tracking-[-0.02em] leading-[1.15] text-[clamp(2.1rem,4.8vw,3.5rem)] max-w-[800px]">
+                  {s.titleLeading}{' '}
+                  <em className="not-italic text-[#D6952F]">{s.titleHighlight}</em>
+                </h1>
+
+                {/* Subtitle */}
+                <p className="text-[#C9D3EA] text-[1.1rem] leading-[1.55] max-w-[640px] mt-[16px] mb-[18px]">
+                  {s.subtitle}
+                </p>
+
+                {/* Quick bullet highlights of features/benefits/working */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 max-w-[720px] mb-[24px]">
+                  {s.bulletPoints.map((point, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 bg-white/[0.07] backdrop-blur-sm border border-white/10 rounded-lg px-2.5 py-1.5 text-[0.8rem] text-slate-200"
+                    >
+                      <span className="text-[#D6952F] font-bold">✓</span>
+                      <span className="leading-snug">{point}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
         {/* Persistent Search bar form */}

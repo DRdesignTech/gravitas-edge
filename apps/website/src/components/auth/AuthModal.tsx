@@ -16,6 +16,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const REFERRAL_CODE_RE = /^REF-[A-Z2-9]{10}$/;
 
 const TRUST_MESSAGES = [
+  '✦ Price Lock Guarantee • Subscribe Once, Keep Your Rate Forever',
   '✦ Direct Hiring Contacts • Pre-Market Roles',
   '✦ Retained Search & CXO Mandates • India & GCC',
   '✦ Zero Algorithmic Filtering • 100% Curated',
@@ -373,6 +374,16 @@ export default function AuthModal({
 
           {/* Bottom Live Vault Proof Card & Rotating Trust Pill */}
           <div className="relative z-10 space-y-3 hidden sm:block">
+            {mode === 'signup' && (
+              <div className="rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/15 px-3.5 py-2.5 backdrop-blur-md">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[#E8D08B]">
+                  🔒 Lifetime Price Lock Guarantee
+                </p>
+                <p className="mt-0.5 text-[11px] leading-snug text-slate-200">
+                  Once you subscribe, lock in today&apos;s rate forever — no future renewal price hikes.
+                </p>
+              </div>
+            )}
             <div className="p-4 rounded-xl bg-[#070C1B]/75 backdrop-blur-md border border-[#D4AF37]/25 shadow-lg">
               <div className="flex items-center justify-between">
                 <div>

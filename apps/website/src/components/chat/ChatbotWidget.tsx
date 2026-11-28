@@ -16,6 +16,7 @@ import {
   matchCustomQuestion,
 } from '@/data/chatbot-data';
 import { AiChatMessage, sendAiChatMessage } from '@/lib/services';
+import { BRAND_LOGO_SRC } from '@/lib/brand';
 import MarkdownContent from './MarkdownContent';
 
 const WHATSAPP_CHANNEL_URL = 'https://wa.me/message/5JALY3QF6BTKC1';
@@ -301,8 +302,13 @@ export default function ChatbotWidget() {
               aria-hidden="true"
               className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-[#D6952F]/20 blur-2xl"
             />
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#F0C27B] to-[#C8842D] text-[#061B36] shadow-sm">
-              <SparklesIcon className="h-5 w-5" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-1 shadow-sm ring-2 ring-[#F0C27B]/60">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={BRAND_LOGO_SRC}
+                alt="Gravitas Edge logo"
+                className="h-full w-full object-contain"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-white flex items-center gap-2">
@@ -579,28 +585,185 @@ export default function ChatbotWidget() {
           `}</style>
         </div>
       ) : (
-        <div className={`fixed z-[60] flex items-center gap-3 ${launcherPosition}`}>
+        <div className={`fixed z-[60] flex flex-col items-end gap-3 ${launcherPosition}`}>
+          <style>{`
+            @keyframes ge-bot-float {
+              0%, 100% { transform: translateY(0px) rotate(0deg); }
+              50% { transform: translateY(-3px) rotate(1.5deg); }
+            }
+            @keyframes ge-bot-blink {
+              0%, 44%, 48%, 92%, 96%, 100% { transform: scaleY(1); }
+              46%, 94% { transform: scaleY(0.12); }
+            }
+            @keyframes ge-bot-wave {
+              0%, 100% { transform: rotate(0deg); }
+              25% { transform: rotate(-28deg); }
+              50% { transform: rotate(10deg); }
+              75% { transform: rotate(-24deg); }
+            }
+            @keyframes ge-bot-ping {
+              0% { transform: scale(0.9); opacity: 0.75; }
+              75%, 100% { transform: scale(1.8); opacity: 0; }
+            }
+            .ge-bot-float {
+              animation: ge-bot-float 3s ease-in-out infinite;
+            }
+            .ge-bot-eye {
+              transform-box: fill-box;
+              transform-origin: center;
+              animation: ge-bot-blink 4.5s ease-in-out infinite;
+            }
+            .ge-bot-hand {
+              transform-origin: 36px 32px;
+            }
+            .group:hover .ge-bot-hand {
+              animation: ge-bot-wave 0.8s ease-in-out infinite;
+            }
+            .ge-bot-antenna-ring {
+              transform-box: fill-box;
+              transform-origin: center;
+              animation: ge-bot-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+            }
+          `}</style>
+
+          {/* 1. WhatsApp (First / Top) */}
           <a
             href={WHATSAPP_CHANNEL_URL}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Chat on WhatsApp"
             title="Chat on WhatsApp"
-            className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_10px_24px_-6px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 border-0"
+            className="group relative flex h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2EE574] to-[#1DB954] text-white shadow-[0_12px_26px_-6px_rgba(37,211,102,0.55),inset_0_1px_1px_rgba(255,255,255,0.4)] transition-all duration-200 hover:scale-110 border-0"
           >
-            <svg viewBox="0 0 32 32" className="h-[28px] w-[28px] fill-white" aria-hidden="true">
+            <span className="pointer-events-none absolute right-[64px] whitespace-nowrap rounded-full bg-[#061B36] px-3 py-1.5 text-[11px] font-semibold text-white opacity-0 translate-x-2 shadow-lg transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0">
+              Chat on WhatsApp
+            </span>
+            <svg viewBox="0 0 32 32" className="h-[27px] w-[27px] fill-white drop-shadow-sm" aria-hidden="true">
               <path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.6a10.6 10.6 0 0 1-5.4-1.5l-.4-.2-3.9 1 1-3.8-.2-.4A10.6 10.6 0 1 1 16 26.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7 0a8.7 8.7 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7 6.3 6.3 0 0 0 1.3 3.3 14.4 14.4 0 0 0 5.5 4.9c2 .9 2.9.9 3.9.8a3.3 3.3 0 0 0 2.2-1.6 2.7 2.7 0 0 0 .2-1.6c-.1-.2-.3-.2-.6-.4z" />
             </svg>
           </a>
+
+          {/* 2. Interactive 3D Chat Robot Assistant (Second / Bottom) */}
           <button
             type="button"
             onClick={() => setOpen(true)}
             aria-label="Open AI chat assistant"
             title="Chat with Gravitas Edge AI Assistant"
-            className="relative flex h-[56px] w-[56px] items-center justify-center rounded-full bg-[#061B36] text-[#F0C27B] border border-[#D6952F]/40 shadow-xl transition-all duration-200 hover:scale-105 hover:bg-[#0E2B52] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6952F]"
+            className="group relative flex h-[62px] w-[62px] items-center justify-center rounded-full bg-gradient-to-br from-[#123A6E] via-[#061B36] to-[#030E1F] border-2 border-[#F0C27B]/60 shadow-[0_16px_34px_-6px_rgba(6,27,54,0.7),0_0_18px_-4px_rgba(214,149,47,0.45),inset_0_2px_3px_rgba(255,255,255,0.28)] transition-all duration-200 hover:scale-110 hover:border-[#F0C27B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6952F]"
           >
-            <ChatIcon className="h-7 w-7 text-[#F0C27B]" />
-            <span className="absolute right-0.5 top-0.5 h-3.5 w-3.5 rounded-full border-2 border-surface bg-emerald-500 dark:border-surface-elevated" />
+            {/* Hover speech pill */}
+            <span className="pointer-events-none absolute right-[72px] flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#D6952F]/40 bg-[#061B36] px-3.5 py-1.5 text-[11px] font-bold text-[#F6D58A] opacity-0 translate-x-2 shadow-xl transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Ask Gravitas AI
+            </span>
+
+            <svg
+              viewBox="0 0 52 52"
+              className="ge-bot-float h-12 w-12 overflow-visible drop-shadow-[0_4px_8px_rgba(0,0,0,0.45)]"
+              fill="none"
+              aria-hidden="true"
+            >
+              <defs>
+                <radialGradient id="geBotHead" cx="35%" cy="25%" r="75%">
+                  <stop offset="0%" stopColor="#FFFFFF" />
+                  <stop offset="60%" stopColor="#E6ECF5" />
+                  <stop offset="100%" stopColor="#B8C5DC" />
+                </radialGradient>
+                <linearGradient id="geBotVisor" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#0D284D" />
+                  <stop offset="100%" stopColor="#041022" />
+                </linearGradient>
+                <radialGradient id="geBotGold" cx="35%" cy="30%" r="70%">
+                  <stop offset="0%" stopColor="#FFE4A3" />
+                  <stop offset="65%" stopColor="#D6952F" />
+                  <stop offset="100%" stopColor="#9A6414" />
+                </radialGradient>
+              </defs>
+
+              {/* Antenna with pulsing beacon */}
+              <circle cx="24" cy="7" r="4" fill="#F0C27B" className="ge-bot-antenna-ring" />
+              <line x1="24" y1="8" x2="24" y2="13.5" stroke="#D6952F" strokeWidth="2.4" strokeLinecap="round" />
+              <circle cx="24" cy="7" r="2.8" fill="url(#geBotGold)" />
+
+              {/* Left & Right 3D Ear Pods */}
+              <rect x="6.5" y="20" width="4.5" height="10" rx="2.25" fill="url(#geBotGold)" />
+              <rect x="37" y="20" width="4.5" height="10" rx="2.25" fill="url(#geBotGold)" />
+
+              {/* Cute 3D Torso Collar */}
+              <rect
+                x="14.5"
+                y="34.5"
+                width="19"
+                height="9"
+                rx="4.5"
+                fill="url(#geBotHead)"
+                stroke="#1B3258"
+                strokeWidth="1.1"
+              />
+              <circle cx="24" cy="39" r="2.2" fill="url(#geBotGold)" />
+
+              {/* Waving 3D Robot Hand (waves on hover) */}
+              <g className="ge-bot-hand">
+                <rect
+                  x="35"
+                  y="28"
+                  width="9"
+                  height="4.8"
+                  rx="2.4"
+                  transform="rotate(-32 39 30)"
+                  fill="url(#geBotHead)"
+                  stroke="#1B3258"
+                  strokeWidth="1.1"
+                />
+                <circle
+                  cx="43"
+                  cy="26"
+                  r="3"
+                  fill="url(#geBotGold)"
+                  stroke="#1B3258"
+                  strokeWidth="1"
+                />
+              </g>
+
+              {/* 3D Rounded Robot Head */}
+              <rect
+                x="10"
+                y="13"
+                width="28"
+                height="23"
+                rx="10"
+                fill="url(#geBotHead)"
+                stroke="#1B3258"
+                strokeWidth="1.2"
+              />
+              <ellipse cx="19" cy="16" rx="6" ry="1.8" fill="#FFFFFF" opacity="0.88" />
+
+              {/* Dark Glass Visor */}
+              <rect
+                x="13.5"
+                y="18"
+                width="21"
+                height="12"
+                rx="5.5"
+                fill="url(#geBotVisor)"
+                stroke="#D6952F"
+                strokeWidth="0.9"
+                strokeOpacity="0.65"
+              />
+
+              {/* Glowing Animated Robot Eyes */}
+              <ellipse cx="19.5" cy="24" rx="2.1" ry="2.6" fill="#F6D58A" className="ge-bot-eye" />
+              <ellipse cx="28.5" cy="24" rx="2.1" ry="2.6" fill="#F6D58A" className="ge-bot-eye" />
+
+              {/* Friendly Smile */}
+              <path
+                d="M21 32.5c1.8 1.2 4.2 1.2 6 0"
+                stroke="#061B36"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="absolute right-0.5 top-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#061B36] bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
           </button>
         </div>
       )}

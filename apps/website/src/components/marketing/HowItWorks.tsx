@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import Eyebrow from './Eyebrow';
 
-const steps = [
+export interface HowItWorksStep {
+  num: string;
+  tag: string;
+  title: string;
+  description: string;
+}
+
+const DEFAULT_STEPS: HowItWorksStep[] = [
   {
     num: '01',
     tag: 'Free Preview',
@@ -20,7 +27,7 @@ const steps = [
     num: '03',
     tag: 'Vault Access',
     title: 'Choose your vault',
-    description: 'Pick India, Global, or combined access that matches your experience.',
+    description: 'Pick regional, global, or combined access that matches your experience.',
   },
   {
     num: '04',
@@ -30,7 +37,23 @@ const steps = [
   },
 ];
 
-export default function HowItWorks() {
+interface HowItWorksProps {
+  id?: string;
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
+  steps?: HowItWorksStep[];
+  showBackwardsAnchor?: boolean;
+}
+
+export default function HowItWorks({
+  id = 'how',
+  eyebrow = 'How it works',
+  title = 'From discovery to direct outreach',
+  subtitle = 'A clear four-step path from previewing live roles to contacting hiring teams directly.',
+  steps = DEFAULT_STEPS,
+  showBackwardsAnchor = true,
+}: HowItWorksProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const [inView, setInView] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number>(0);
@@ -78,20 +101,20 @@ export default function HowItWorks() {
   return (
     <section
       ref={sectionRef}
-      id="how"
+      id={id}
       className="relative overflow-hidden bg-gradient-to-b from-white via-[#FCFBF7] to-white dark:from-[#0C1E38] dark:via-[#08172E] dark:to-[#0C1E38] py-[76px] scroll-mt-20"
     >
       {/* Anchor for backwards compatibility & header scroll spy */}
-      <div id="how-it-works" className="absolute -top-20" aria-hidden="true" />
+      {showBackwardsAnchor && <div id="how-it-works" className="absolute -top-20" aria-hidden="true" />}
 
       <div className="mx-auto max-w-[1180px] px-5">
         <div className="text-center">
-          <Eyebrow>How it works</Eyebrow>
+          <Eyebrow>{eyebrow}</Eyebrow>
           <h2 className="font-bold tracking-[-0.02em] text-[#061B36] dark:text-[#F2F5FA] text-[clamp(1.7rem,3.4vw,2.5rem)] leading-[1.15] mb-2 font-sans">
-            From discovery to direct outreach
+            {title}
           </h2>
-          <p className="mx-auto max-w-[540px] text-[0.95rem] text-[#5B6479] dark:text-[#93A3BE]">
-            A clear four-step path from previewing live roles to contacting hiring teams directly.
+          <p className="mx-auto max-w-[560px] text-[0.95rem] text-[#5B6479] dark:text-[#93A3BE]">
+            {subtitle}
           </p>
         </div>
 

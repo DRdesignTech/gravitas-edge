@@ -6,6 +6,7 @@ import { PricingGroup } from '@/lib/types';
 import { Skeleton, ErrorState } from '@/components/ui';
 import OpportunityVaultCard from '@/components/plans/OpportunityVaultCard';
 import PlansIntro from '@/components/plans/PlansIntro';
+import ScrollReveal from './ScrollReveal';
 
 export default function PricingSection({
   groups,
@@ -68,11 +69,14 @@ export default function PricingSection({
   return (
     <section id="plans" className="section-glow-navy relative border-t border-line bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-        <PlansIntro as="h2" />
+        <ScrollReveal>
+          <PlansIntro as="h2" />
+        </ScrollReveal>
 
         {/* Interactive Category Filter Pills (if multiple categories are available) */}
         {!loading && !error && categories.length > 2 && (
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+          <ScrollReveal delay={100}>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
             {categories.map((cat) => {
               const active = selectedCategory === cat.id;
               const count =
@@ -116,7 +120,8 @@ export default function PricingSection({
                 </button>
               );
             })}
-          </div>
+            </div>
+          </ScrollReveal>
         )}
 
         {loading ? (
@@ -140,21 +145,25 @@ export default function PricingSection({
           </div>
         ) : (
           <div className="mt-8 grid items-start gap-4 sm:gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredGroups.map((group) => (
-              <OpportunityVaultCard key={group.vault.id} group={group} />
+            {filteredGroups.map((group, idx) => (
+              <ScrollReveal key={group.vault.id} delay={(idx % 3) * 90}>
+                <OpportunityVaultCard group={group} />
+              </ScrollReveal>
             ))}
           </div>
         )}
 
-        <p className="mt-12 text-center text-sm text-content-muted">
-          Prefer to compare all options side by side?{' '}
-          <Link
-            href="/plans"
-            className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-          >
-            View full plans
-          </Link>
-        </p>
+        <ScrollReveal delay={120}>
+          <p className="mt-12 text-center text-sm text-content-muted">
+            Prefer to compare all options side by side?{' '}
+            <Link
+              href="/plans"
+              className="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+            >
+              View full plans
+            </Link>
+          </p>
+        </ScrollReveal>
       </div>
     </section>
   );

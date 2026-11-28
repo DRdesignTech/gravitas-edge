@@ -23,6 +23,7 @@ import { OPPORTUNITY_CATEGORIES, EMPLOYMENT_TYPES } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
 import { previousInternalRoute } from '@/lib/navigation';
 import { canRevealCompanyExperience } from '@/lib/opportunity-access';
+import ScrollReveal from '@/components/marketing/ScrollReveal';
 import { extractEmail, buildApplyMailto } from '@job-portal/shared';
 
 const PAGE_SIZE = 12;
@@ -534,7 +535,7 @@ function OpportunityPageContent() {
           className="pointer-events-none absolute -right-20 top-0 h-80 w-80 rounded-full bg-[#D6952F]/15 blur-3xl"
         />
 
-        <div className="relative mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
+        <ScrollReveal className="relative mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
           {/* Breadcrumb Navigation */}
           <div className="mb-3 flex items-center gap-1.5 text-xs text-[#AEB9D6]">
             <Link
@@ -712,7 +713,7 @@ function OpportunityPageContent() {
               </Link>
             </div>
           )}
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
@@ -1201,15 +1202,15 @@ function OpportunityPageContent() {
                 {/* ─── GRID VIEW ────────────────────────────────────── */}
                 {view === 'grid' ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {displayItems.map((o) => {
+                    {displayItems.map((o, idx) => {
                       const canReveal = canRevealCompanyExperience(o, hasVaultAccess);
                       const isFull = o.isFullAccess;
                       const email = extractEmail(o.applicationContact, o.applicationUrl);
                       const flag = (o.country && COUNTRY_FLAGS[o.country]) || '🌐';
 
                       return (
+                        <ScrollReveal key={o.id} delay={(idx % 2) * 80} className="h-full">
                         <article
-                          key={o.id}
                           onClick={() => openOpportunity(o.id)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -1351,21 +1352,22 @@ function OpportunityPageContent() {
                             )}
                           </div>
                         </article>
+                        </ScrollReveal>
                       );
                     })}
                   </div>
                 ) : (
                   /* ─── LIST VIEW ────────────────────────────────────── */
                   <div className="space-y-4">
-                    {displayItems.map((o) => {
+                    {displayItems.map((o, idx) => {
                       const canReveal = canRevealCompanyExperience(o, hasVaultAccess);
                       const isFull = o.isFullAccess;
                       const email = extractEmail(o.applicationContact, o.applicationUrl);
                       const flag = (o.country && COUNTRY_FLAGS[o.country]) || '🌐';
 
                       return (
+                        <ScrollReveal key={o.id} delay={Math.min(idx * 50, 250)}>
                         <article
-                          key={o.id}
                           onClick={() => openOpportunity(o.id)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -1462,6 +1464,7 @@ function OpportunityPageContent() {
                             </div>
                           </div>
                         </article>
+                        </ScrollReveal>
                       );
                     })}
                   </div>
@@ -1491,6 +1494,7 @@ function OpportunityPageContent() {
           ───────────────────────────────────────────────────────────── */}
       <section className="border-t border-[#E9E5DC] bg-[#FAF8F5] py-14 dark:border-[#1E3557] dark:bg-[#07172B]">
         <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
+          <ScrollReveal>
           <div className="rounded-2xl border border-[#F0C27B]/60 bg-gradient-to-br from-[#FBF0DE] to-[#FFF9F0] p-7 sm:p-10 shadow-sm dark:from-[#0E2340] dark:to-[#081B33] dark:border-[#D6952F]/30">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
               <div>
@@ -1537,6 +1541,7 @@ function OpportunityPageContent() {
               </div>
             )}
           </div>
+          </ScrollReveal>
         </div>
       </section>
     </div>

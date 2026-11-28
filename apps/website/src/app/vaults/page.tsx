@@ -9,6 +9,8 @@ import { VaultIcon } from '@/components/cards';
 import { formatMoney } from '@/lib/format';
 import { getErrorMessage } from '@/lib/errors';
 import ResumeUploadCard from '@/components/marketing/ResumeUploadCard';
+import ScrollReveal from '@/components/marketing/ScrollReveal';
+import AdvantageSection from './AdvantageSection';
 
 function typeLabel(type: string): string {
   const map: Record<string, string> = {
@@ -158,7 +160,7 @@ export default function VaultsPage() {
             <span className="text-white/80">Opportunity Vaults</span>
           </div>
 
-          <div className="text-center sm:text-left">
+          <ScrollReveal className="text-center sm:text-left">
             {/* Eyebrow Pill */}
             <div className="inline-flex items-center gap-2 rounded-full border border-[#D6952F]/40 bg-[#D6952F]/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#F0C27B] mb-4">
               <span className="h-1.5 w-1.5 rounded-full bg-[#F0C27B] animate-pulse" />
@@ -206,13 +208,14 @@ export default function VaultsPage() {
                 Secure Checkout · Instant Access
               </span>
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* SECTION 2 — SUBSCRIPTION EXPLANATION BANNER */}
       <section className="border-b border-[#E9E5DC] bg-[#FAF8F5] py-5 dark:border-[#1E3557] dark:bg-[#07172B]">
         <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
+          <ScrollReveal delay={60}>
           <div className="rounded-2xl border border-[#D6952F]/30 bg-gradient-to-r from-[#FFFDF9] to-[#FBF5EB] p-5 shadow-sm dark:border-[#D6952F]/20 dark:from-[#091F38] dark:to-[#07172B]">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -243,6 +246,7 @@ export default function VaultsPage() {
               </div>
             </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -250,6 +254,7 @@ export default function VaultsPage() {
       <section className="bg-[#FAF8F5] py-12 dark:bg-[#07172B]">
         <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
           {/* Section Header with Category Tabs */}
+          <ScrollReveal>
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 border-b border-[#E9E5DC] pb-6 dark:border-[#1E3557]">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-[#D6952F] dark:text-[#F0C27B]">
@@ -313,6 +318,7 @@ export default function VaultsPage() {
               </div>
             )}
           </div>
+          </ScrollReveal>
 
           {/* Cards Grid */}
           <div className="mt-8">
@@ -349,7 +355,7 @@ export default function VaultsPage() {
               </div>
             ) : (
               <div className="grid gap-6 lg:gap-8 md:grid-cols-2 lg:grid-cols-3 items-stretch">
-                {filteredVaults.map((v) => {
+                {filteredVaults.map((v, idx) => {
                   const vPlans = pricing.find((g) => g.vault.id === v.id)?.plans ?? [];
                   const maxDiscount = vPlans.reduce(
                     (m, p) => Math.max(m, p.discountPercentage ?? 0),
@@ -361,9 +367,9 @@ export default function VaultsPage() {
                   const vaultIcon = getVaultIcon(v.name);
 
                   return (
+                    <ScrollReveal key={v.id} delay={(idx % 3) * 80} className="h-full">
                     <article
-                      key={v.id}
-                      className="group relative flex flex-col overflow-hidden rounded-3xl border border-[#E9E5DC] bg-white p-6 sm:p-7 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-[#D6952F]/60 hover:shadow-xl dark:border-[#1E3557] dark:bg-[#0D2038] dark:hover:border-[#F0C27B]/50"
+                      className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-[#E9E5DC] bg-white p-6 sm:p-7 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-[#D6952F]/60 hover:shadow-xl dark:border-[#1E3557] dark:bg-[#0D2038] dark:hover:border-[#F0C27B]/50"
                     >
                       {/* Top decorative gradient bar */}
                       <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#D6952F] via-[#F0C27B] to-[#D6952F] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -534,6 +540,7 @@ export default function VaultsPage() {
                         )}
                       </div>
                     </article>
+                    </ScrollReveal>
                   );
                 })}
               </div>
@@ -543,79 +550,20 @@ export default function VaultsPage() {
       </section>
 
       {/* SECTION 4 — WHY GRAVITAS EDGE VAULTS */}
-      <section className="border-t border-[#E9E5DC] bg-white py-14 dark:border-[#1E3557] dark:bg-[#081B33]">
-        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#D6952F] dark:text-[#F0C27B]">
-              The Gravitas Advantage
-            </span>
-            <h2 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-[#061B36] dark:text-white">
-              Why Executives Choose Gravitas Edge
-            </h2>
-            <p className="mx-auto mt-2 max-w-2xl text-sm sm:text-base text-[#5B6479] dark:text-slate-300">
-              Traditional job portals rely on keyword algorithms and crowded applicant pools.
-              Gravitas Edge provides verified intelligence and direct hiring manager routing.
-            </p>
-          </div>
-
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-2xl border border-[#E9E5DC] bg-[#FAF8F5] p-6 dark:border-[#1E3557] dark:bg-[#0D2038]">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] shadow-xs">
-                <svg className="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-base font-bold text-[#061B36] dark:text-white">
-                Direct Hiring Contacts
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#5B6479] dark:text-slate-300">
-                Each opportunity includes validated decision-maker contact details — name, title, and verified email route — so your inquiry reaches the actual hiring authority.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#E9E5DC] bg-[#FAF8F5] p-6 dark:border-[#1E3557] dark:bg-[#0D2038]">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] shadow-xs">
-                <svg className="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-base font-bold text-[#061B36] dark:text-white">
-                Pre-Market &amp; Retained Searches
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#5B6479] dark:text-slate-300">
-                Discover roles sourced directly from executive search partners and confidential institutional mandates before they are publicly broadcast.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#E9E5DC] bg-[#FAF8F5] p-6 dark:border-[#1E3557] dark:bg-[#0D2038]">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] shadow-xs">
-                <svg className="h-5.5 w-5.5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
-                  <circle cx="12" cy="12" r="9" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.6 9h16.8M3.6 15h16.8" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-base font-bold text-[#061B36] dark:text-white">
-                Cross-Border Global Mobility
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#5B6479] dark:text-slate-300">
-                Target leadership and executive mandates across high-growth international corridors including India, UAE, Singapore, the UK, and Europe.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <AdvantageSection />
 
       {/* SECTIONS 5 & 6 — RESUME UPLOAD + REFERRAL REWARDS */}
       <section className="border-t border-[#E9E5DC] bg-[#FAF8F5] py-14 sm:py-18 dark:border-[#1E3557] dark:bg-[#07172B]">
         <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-2 items-stretch">
             {/* Resume Upload Card */}
-            <div>
+            <ScrollReveal direction="left">
               <ResumeUploadCard />
-            </div>
+            </ScrollReveal>
 
             {/* Referral Rewards Card */}
-            <div className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-[#E9E5DC] bg-white p-7 sm:p-8 shadow-sm dark:border-[#1E3557] dark:bg-[#0D2038]">
+            <ScrollReveal direction="right" delay={100} className="h-full">
+            <div className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-[#E9E5DC] bg-white p-7 sm:p-8 shadow-sm dark:border-[#1E3557] dark:bg-[#0D2038]">
               <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#FAF0DC]/50 dark:bg-[#D6952F]/10 blur-2xl" />
 
               <div className="relative">
@@ -672,13 +620,14 @@ export default function VaultsPage() {
                 </Link>
               </div>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
 
       {/* FOOTER CALLOUT / FAQ ASSISTANCE */}
       <section className="border-t border-[#E9E5DC] bg-white py-12 dark:border-[#1E3557] dark:bg-[#061B36]">
-        <div className="mx-auto max-w-[1240px] px-4 text-center sm:px-6 lg:px-8">
+        <ScrollReveal className="mx-auto max-w-[1240px] px-4 text-center sm:px-6 lg:px-8">
           <h2 className="text-xl sm:text-2xl font-bold text-[#061B36] dark:text-white">
             Still deciding which Opportunity Vault fits your search?
           </h2>
@@ -703,7 +652,7 @@ export default function VaultsPage() {
               <span aria-hidden="true">→</span>
             </Link>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
     </div>
   );

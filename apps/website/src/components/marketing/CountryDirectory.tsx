@@ -12,6 +12,7 @@ import {
   COUNTRY_NAME_TO_CC,
 } from './worldMapData';
 import Eyebrow from './Eyebrow';
+import ScrollReveal from './ScrollReveal';
 import {
   HiMapPin,
   HiArrowUpRight,
@@ -25,6 +26,7 @@ export interface CountryInfo {
   cc: string;
   count: number;
   cities: Set<string>;
+  cityCounts: Record<string, number>;
   inds: Set<string>;
 }
 
@@ -60,14 +62,18 @@ export default function CountryDirectory({
 }) {
   // Aggregate countries from live opportunities if available, or fallback to prototype sample data
   const countries = useMemo<CountryInfo[]>(() => {
-    if (!opportunities || opportunities.length === 0) {
-      return FALLBACK_COUNTRIES.map((c) => ({
+    const buildFallback = () =>
+      FALLBACK_COUNTRIES.map((c) => ({
         name: c.name,
         cc: c.cc,
         count: c.count,
         cities: new Set(c.cities),
+        cityCounts: Object.fromEntries(c.cities.map((city) => [city, 1])),
         inds: new Set(c.inds),
       }));
+
+    if (!opportunities || opportunities.length === 0) {
+      return buildFallback();
     }
 
     const byCountry: Record<string, CountryInfo> = {};
@@ -83,12 +89,15 @@ export default function CountryDirectory({
           cc,
           count: 0,
           cities: new Set<string>(),
+          cityCounts: {},
           inds: new Set<string>(),
         };
       }
       byCountry[cName].count += 1;
-      if (o.location?.trim()) {
-        byCountry[cName].cities.add(o.location.trim());
+      const loc = o.location?.trim();
+      if (loc) {
+        byCountry[cName].cities.add(loc);
+        byCountry[cName].cityCounts[loc] = (byCountry[cName].cityCounts[loc] || 0) + 1;
       }
       if (o.industry?.trim()) {
         byCountry[cName].inds.add(o.industry.trim());
@@ -97,13 +106,7 @@ export default function CountryDirectory({
 
     const list = Object.values(byCountry);
     if (list.length === 0) {
-      return FALLBACK_COUNTRIES.map((c) => ({
-        name: c.name,
-        cc: c.cc,
-        count: c.count,
-        cities: new Set(c.cities),
-        inds: new Set(c.inds),
-      }));
+      return buildFallback();
     }
     return list;
   }, [opportunities]);
@@ -121,9 +124,22 @@ export default function CountryDirectory({
   }, [countries]);
 
   const [showAll, setShowAll] = useState(false);
+  const [openLocationCC, setOpenLocationCC] = useState<string | null>(null);
   const visibleTiles = useMemo(() => {
     return showAll ? sortedTiles : sortedTiles.slice(0, 6);
   }, [showAll, sortedTiles]);
+
+  useEffect(() => {
+    if (!openLocationCC) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest('[data-country-location-dropdown]')) {
+        setOpenLocationCC(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [openLocationCC]);
 
   const totalLiveRoles = useMemo(() => countries.reduce((s, c) => s + c.count, 0), [countries]);
   const totalCities = useMemo(() => countries.reduce((s, c) => s + c.cities.size, 0), [countries]);
@@ -353,7 +369,7 @@ export default function CountryDirectory({
     <section id="countries" className="relative py-[72px] bg-white dark:bg-[#0C1E38] scroll-mt-20">
       <div className="mx-auto max-w-[1180px] px-5">
         {/* Section Header (.center) */}
-        <div className="text-center">
+        <ScrollReveal className="text-center">
           <Eyebrow>
             Explore opportunities by country
           </Eyebrow>
@@ -363,9 +379,10 @@ export default function CountryDirectory({
           <p className="text-[#5B6479] dark:text-[#AEB9D6] max-w-[640px] text-[1.05rem] leading-[1.55] mx-auto">
             This list updates itself. A country appears when its first active opportunity is published and disappears when its last one expires or is archived.
           </p>
-        </div>
+        </ScrollReveal>
 
         {/* Global Opportunity Map Box (.gmap#mapBox) */}
+        <ScrollReveal direction="scale" delay={80}>
         <div
           className="mt-[30px] rounded-[24px] overflow-hidden max-w-full text-white border border-[#F0C27B]/20 shadow-[0_30px_60px_-30px_rgba(6,27,54,0.6)]"
           style={{
@@ -476,7 +493,6 @@ export default function CountryDirectory({
                   {WORLD_MAP_PATHS.map((p) => {
                     const cc = NUM2CC[p.n];
                     const c = cc ? byCC[cc] : null;
-                    const isIndia = cc === 'IN';
                     const hasJobs = Boolean(c);
                     const isHighlighted = highlightedCC === cc;
 
@@ -487,12 +503,10 @@ export default function CountryDirectory({
                     if (hasJobs) {
                       cursor = 'pointer';
                       if (isHighlighted) {
-                        fill = isIndia ? '#F6D58A' : '#86EFAC';
+                        fill = '#86EFAC';
                       } else {
-                        fill = isIndia ? 'url(#mindia)' : 'url(#mgreen)';
-                        filter = isIndia
-                          ? 'drop-shadow(0 0 5px rgba(240,194,123,0.5))'
-                          : 'drop-shadow(0 0 5px rgba(34,197,94,0.55))';
+                        fill = 'url(#mgreen)';
+                        filter = 'drop-shadow(0 0 5px rgba(34,197,94,0.55))';
                       }
                     }
 
@@ -537,7 +551,6 @@ export default function CountryDirectory({
                 <g id="mapMarkers">
                   {markerClusters.map((cl, idx) => {
                     const isMulti = cl.m.length > 1;
-                    const isIndia = !isMulti && cl.m[0]?.cc === 'IN';
                     const isHl = highlightedCC && cl.m.some((m) => m.cc === highlightedCC);
                     const sw0 = svgRef.current?.clientWidth || 900;
                     const k = Math.min(2.4, Math.max(1, 760 / sw0));
@@ -557,10 +570,6 @@ export default function CountryDirectory({
                       ringFill = 'rgba(214,149,47,0.35)';
                       pinFill = '#D6952F';
                       textColor = '#061B36';
-                    } else if (isIndia) {
-                      pinStroke = '#F0C27B';
-                      ringFill = 'rgba(240,194,123,0.35)';
-                      pinFill = '#0B2440';
                     }
 
                     if (isHl) {
@@ -729,7 +738,7 @@ export default function CountryDirectory({
                   <div className="text-[0.72rem] text-[#5B6479] dark:text-[#AEB9D6] mb-2.5">
                     Access:{' '}
                     <b className="text-[#061B36] dark:text-white">
-                      {popup.cc === 'IN' ? 'India vaults · Executive Premier' : 'Global vaults · Executive Premier'}
+                      Global vaults · Executive Premier
                     </b>
                   </div>
                   <Link
@@ -769,7 +778,6 @@ export default function CountryDirectory({
               {/* Scrollable Country Rows (.mlist) */}
               <div className="overflow-y-auto scrollbar-navy-gold flex flex-col gap-1 pr-2 max-[960px]:grid max-[960px]:grid-cols-2 min-[640px]:max-[960px]:grid-cols-3" id="mapList">
                 {countries.map((c) => {
-                  const isIndia = c.cc === 'IN';
                   const isHl = highlightedCC === c.cc;
                   const barWidth = Math.max(8, (c.count / maxCount) * 100);
 
@@ -788,20 +796,12 @@ export default function CountryDirectory({
                     >
                       <span className="text-[1.1rem] row-span-2">{COUNTRY_FLAGS[c.cc] || '🌐'}</span>
                       <span className="font-semibold whitespace-nowrap overflow-hidden text-ellipsis">{c.name}</span>
-                      <span
-                        className={`font-extrabold row-span-2 text-right ${
-                          isIndia ? 'text-[#F0C27B]' : 'text-[#86EFAC]'
-                        }`}
-                      >
+                      <span className="font-extrabold row-span-2 text-right text-[#86EFAC]">
                         {c.count}
                       </span>
                       <span className="h-1 rounded-full bg-white/[0.08] overflow-hidden block">
                         <i
-                          className={`block h-full rounded-full ${
-                            isIndia
-                              ? 'bg-gradient-to-r from-[#C8842D] to-[#F0C27B]'
-                              : 'bg-gradient-to-r from-[#16A34A] to-[#4ADE80]'
-                          }`}
+                          className="block h-full rounded-full bg-gradient-to-r from-[#16A34A] to-[#4ADE80]"
                           style={{ width: `${barWidth}%` }}
                         />
                       </span>
@@ -819,10 +819,6 @@ export default function CountryDirectory({
               Jobs available
             </span>
             <span className="inline-flex items-center">
-              <i className="w-[11px] h-[11px] rounded-[3px] bg-[#D6952F] inline-block mr-1.5" />
-              India · India vaults
-            </span>
-            <span className="inline-flex items-center">
               <i className="w-[11px] h-[11px] rounded-[3px] bg-[#1B3558] border border-[#2B4A73] inline-block mr-1.5" />
               No live jobs right now
             </span>
@@ -832,101 +828,173 @@ export default function CountryDirectory({
             </span>
           </div>
         </div>
+        </ScrollReveal>
 
         {/* Country Directory Tiles Grid (.grid.ctiles#countryGrid) */}
         <div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-7"
           id="countryGrid"
         >
-          {visibleTiles.map((c) => {
-            const isIndia = c.cc === 'IN';
+          {visibleTiles.map((c, idx) => {
             const flag = COUNTRY_FLAGS[c.cc] || '🌐';
             const citiesArray = Array.from(c.cities);
-            const citiesText = citiesArray.join(' · ');
             const isHighlighted = highlightedCC === c.cc;
+            const isLocationsOpen = openLocationCC === c.cc;
 
             return (
-              <Link
+              <ScrollReveal
                 key={c.name}
-                href={`/opportunities?country=${encodeURIComponent(c.name)}`}
+                delay={(idx % 3) * 80}
+                className={`h-full ${isLocationsOpen ? 'relative z-30' : ''}`}
+              >
+              <div
+                data-country-location-dropdown
                 onMouseEnter={() => setHighlightedCC(c.cc)}
                 onMouseLeave={() => setHighlightedCC(null)}
-                className={`group relative overflow-hidden rounded-[14px] border bg-white p-4 text-left transition-all duration-200 shadow-sm hover:-translate-y-1 hover:shadow-[0_12px_28px_-10px_rgba(6,27,54,0.12)] dark:bg-[#10243E] dark:hover:shadow-[0_12px_28px_-10px_rgba(0,0,0,0.4)] ${
-                  isHighlighted
+                className={`group relative flex h-full flex-col justify-between rounded-[14px] border bg-white p-4 text-left transition-all duration-200 shadow-sm hover:-translate-y-1 hover:shadow-[0_12px_28px_-10px_rgba(6,27,54,0.12)] dark:bg-[#10243E] dark:hover:shadow-[0_12px_28px_-10px_rgba(0,0,0,0.4)] ${
+                  isHighlighted || isLocationsOpen
                     ? 'border-[#C8943E] ring-1 ring-[#C8943E]/30'
-                    : isIndia
-                    ? 'border-dashed border-[#E9E5DC] dark:border-white/10 hover:border-[#C8943E]'
                     : 'border-[#E9E5DC] dark:border-white/10 hover:border-[#C8943E]'
                 }`}
               >
-                {/* Header: Flag + Code + Live Hiring Badge */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl leading-none" role="img" aria-label={c.name}>
-                      {flag}
-                    </span>
-                    <span className="rounded bg-[#061B36]/5 px-1.5 py-0.5 font-mono text-[11px] font-bold text-content dark:bg-white/10 dark:text-white">
-                      {c.cc}
+                <div>
+                  {/* Header: Flag + Code + Live Hiring Badge */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl leading-none" role="img" aria-label={c.name}>
+                        {flag}
+                      </span>
+                      <span className="rounded bg-[#061B36]/5 px-1.5 py-0.5 font-mono text-[11px] font-bold text-content dark:bg-white/10 dark:text-white">
+                        {c.cc}
+                      </span>
+                    </div>
+
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      </span>
+                      Hiring now
                     </span>
                   </div>
 
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  {/* Country Name + Interactive Arrow */}
+                  <Link
+                    href={`/opportunities?country=${encodeURIComponent(c.name)}`}
+                    className="mt-2.5 flex items-center justify-between gap-1.5 no-underline"
+                  >
+                    <h3 className="font-['Poppins',sans-serif] text-[0.95rem] font-bold text-[#061B36] transition-colors group-hover:text-[#C8943E] dark:text-white line-clamp-1">
+                      {c.name}
+                    </h3>
+                    <HiArrowUpRight className="h-4 w-4 shrink-0 text-[#9FB0CC] transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#C8943E]" />
+                  </Link>
+
+                  {/* Metric Counter Display */}
+                  <div className="mt-1.5 flex items-baseline gap-1.5">
+                    <span className="font-['Poppins',sans-serif] text-2xl font-extrabold tracking-tight text-[#061B36] transition-colors group-hover:text-emerald-600 dark:text-white dark:group-hover:text-emerald-400">
+                      {c.count}
                     </span>
-                    Hiring now
-                  </span>
-                </div>
-
-                {/* Country Name + Interactive Arrow */}
-                <div className="mt-2.5 flex items-center justify-between gap-1.5">
-                  <h3 className="font-['Poppins',sans-serif] text-[0.95rem] font-bold text-[#061B36] transition-colors group-hover:text-[#C8943E] dark:text-white line-clamp-1">
-                    {c.name}
-                  </h3>
-                  <HiArrowUpRight className="h-4 w-4 shrink-0 text-[#9FB0CC] transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#C8943E]" />
-                </div>
-
-                {/* Metric Counter Display */}
-                <div className="mt-1.5 flex items-baseline gap-1.5">
-                  <span className="font-['Poppins',sans-serif] text-2xl font-extrabold tracking-tight text-[#061B36] transition-colors group-hover:text-emerald-600 dark:text-white dark:group-hover:text-emerald-400">
-                    {c.count}
-                  </span>
-                  <span className="text-[11px] font-medium text-[#5B6479] dark:text-[#AEB9D6]">
-                    {c.count === 1 ? 'active opportunity' : 'active opportunities'}
-                  </span>
-                </div>
-
-                {/* Opportunity Demand Volume Bar */}
-                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[#F3F1EB] dark:bg-white/10">
-                  <div
-                    className={`ge-demand-bar h-full rounded-full transition-colors duration-300 ${
-                      isIndia
-                        ? 'bg-gradient-to-r from-[#C8842D] to-[#F0C27B]'
-                        : 'bg-gradient-to-r from-[#16A34A] to-[#4ADE80] group-hover:from-[#C8842D] group-hover:to-[#F0C27B]'
-                    }`}
-                    style={{ width: `${Math.max(14, (c.count / maxCount) * 100)}%` }}
-                  />
-                </div>
-
-                {/* Cities / Locations in a clean, compact line */}
-                {citiesText && (
-                  <div className="mt-2.5 flex items-center gap-1 text-[11px] text-[#5B6479] dark:text-[#AEB9D6]">
-                    <HiMapPin className="h-3.5 w-3.5 shrink-0 text-[#C8943E]" />
-                    <span className="truncate">{citiesText}</span>
+                    <span className="text-[11px] font-medium text-[#5B6479] dark:text-[#AEB9D6]">
+                      {c.count === 1 ? 'active opportunity' : 'active opportunities'}
+                    </span>
                   </div>
-                )}
+
+                  {/* Opportunity Demand Volume Bar */}
+                  <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[#F3F1EB] dark:bg-white/10">
+                    <div
+                      className="ge-demand-bar h-full rounded-full transition-colors duration-300 bg-gradient-to-r from-[#16A34A] to-[#4ADE80] group-hover:from-[#C8842D] group-hover:to-[#F0C27B]"
+                      style={{ width: `${Math.max(14, (c.count / maxCount) * 100)}%` }}
+                    />
+                  </div>
+
+                  {/* Locations Row with Fixed-Height Floating Dropdown Trigger */}
+                  <div className="relative mt-2.5 flex items-center justify-between gap-2 text-[11px] text-[#5B6479] dark:text-[#AEB9D6]">
+                    <div className="flex min-w-0 items-center gap-1">
+                      <HiMapPin className="h-3.5 w-3.5 shrink-0 text-[#C8943E]" />
+                      <span className="truncate">
+                        {citiesArray.length > 0 ? citiesArray[0] : 'Multiple hubs'}
+                        {citiesArray.length > 1 ? ` +${citiesArray.length - 1}` : ''}
+                      </span>
+                    </div>
+
+                    {citiesArray.length > 0 && (
+                      <button
+                        type="button"
+                        aria-expanded={isLocationsOpen}
+                        onClick={() => setOpenLocationCC(isLocationsOpen ? null : c.cc)}
+                        className={`inline-flex shrink-0 items-center gap-1 rounded-lg border px-2 py-0.5 text-[10.5px] font-bold transition cursor-pointer ${
+                          isLocationsOpen
+                            ? 'border-[#D6952F] bg-[#061B36] text-[#F0C27B]'
+                            : 'border-[#E9E5DC] bg-[#FAF8F5] text-[#061B36] hover:border-[#D6952F] dark:border-white/15 dark:bg-white/5 dark:text-[#F0C27B]'
+                        }`}
+                      >
+                        <span>Locations ({citiesArray.length})</span>
+                        {isLocationsOpen ? (
+                          <HiChevronUp className="h-3 w-3" />
+                        ) : (
+                          <HiChevronDown className="h-3 w-3" />
+                        )}
+                      </button>
+                    )}
+
+                    {/* Floating Dropdown Popover (does not increase card height) */}
+                    {isLocationsOpen && (
+                      <div className="absolute left-0 right-0 top-full z-40 mt-2 rounded-2xl border border-[#D6952F]/50 bg-white p-3 shadow-[0_18px_40px_-12px_rgba(6,27,54,0.28)] dark:border-[#D6952F]/40 dark:bg-[#081B33]">
+                        <div className="mb-2 flex items-center justify-between gap-2 border-b border-[#E9E5DC] pb-1.5 dark:border-white/10">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#B37517] dark:text-[#F0C27B]">
+                            Exact Locations in {c.name}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setOpenLocationCC(null)}
+                            className="text-[10px] font-bold text-[#8C9AC0] hover:text-[#061B36] dark:hover:text-white cursor-pointer"
+                          >
+                            Close
+                          </button>
+                        </div>
+                        <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto pr-0.5">
+                          {citiesArray
+                            .slice()
+                            .sort((a, b) => (c.cityCounts[b] || 0) - (c.cityCounts[a] || 0))
+                            .map((city) => {
+                              const cityCount = c.cityCounts[city] || 0;
+                              return (
+                                <Link
+                                  key={city}
+                                  href={`/opportunities?country=${encodeURIComponent(c.name)}&search=${encodeURIComponent(city)}`}
+                                  onClick={() => setOpenLocationCC(null)}
+                                  className="inline-flex items-center gap-1.5 rounded-full border border-[#E9E5DC] bg-[#FAF8F5] px-2.5 py-1 text-[11px] font-semibold text-[#061B36] transition hover:border-[#D6952F] hover:bg-[#D6952F]/15 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:border-[#D6952F]"
+                                >
+                                  <HiMapPin className="h-3 w-3 shrink-0 text-[#D6952F]" />
+                                  <span>{city}</span>
+                                  {cityCount > 0 && (
+                                    <span className="rounded-full bg-[#061B36] px-1.5 py-0.2 text-[10px] font-extrabold text-[#F0C27B]">
+                                      {cityCount}
+                                    </span>
+                                  )}
+                                </Link>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Compact Card Footer */}
                 <div className="mt-3 flex items-center justify-between border-t border-[#E9E5DC]/80 pt-2 text-[11px] font-semibold dark:border-white/10">
                   <span className="text-[#5B6479] dark:text-[#AEB9D6]">
-                    {isIndia ? 'India Vaults' : 'Global Vaults'}
+                    Global Vaults
                   </span>
-                  <span className="inline-flex items-center gap-0.5 text-[#C8943E] transition-all group-hover:translate-x-0.5">
+                  <Link
+                    href={`/opportunities?country=${encodeURIComponent(c.name)}`}
+                    className="inline-flex items-center gap-0.5 text-[#C8943E] transition-all hover:translate-x-0.5 no-underline"
+                  >
                     View <HiArrowRight className="h-3 w-3" />
-                  </span>
+                  </Link>
                 </div>
-              </Link>
+              </div>
+              </ScrollReveal>
             );
           })}
         </div>
@@ -974,7 +1042,7 @@ export default function CountryDirectory({
           }
         `}</style>
         <p className="text-center text-[#5B6479] dark:text-[#AEB9D6] text-[0.85rem] mt-[18px]" id="countryNote">
-          {intlCountries.length} international countries + India · {totalLiveRoles} active opportunities · counted once per Job ID
+          {countries.length} countries worldwide · {totalLiveRoles} active opportunities · counted once per Job ID
         </p>
       </div>
     </section>

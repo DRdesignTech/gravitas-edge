@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRef, useState } from 'react';
+import ScrollReveal from './ScrollReveal';
 
 export interface FaqItemData {
   id?: number | string;
@@ -18,22 +19,22 @@ const REDESIGN_FAQS: FaqItemData[] = [
   {
     question: 'Which vaults are available?',
     answer:
-      'Seven: Early Career India (0–5 yrs), Management India (5–10), Leadership India (10–15), Executive India (15+), Global Career Access (under 10 yrs, international), Global Leadership Access (10+ yrs, international) and Executive Premier Access (15+ yrs, India and international).',
+      'Multiple seniority- and region-aligned vaults: Early Career (0–5 yrs), Management (5–10 yrs), Leadership (10–15 yrs), Executive & C-Suite (15+ yrs), UAE & Global Access, Remote Cross-Border Access, and Executive Premier Access across international hubs.',
   },
   {
-    question: 'Do Global vaults include India?',
+    question: 'Do Global vaults cover multiple regions?',
     answer:
-      'No. Global Career Access and Global Leadership Access cover international opportunities outside India. For India, choose an India vault, Executive Premier Access, or a Build Your Bundle combination.',
+      'Yes. Our Global and UAE & Global vaults cover international executive and leadership opportunities across Europe, the Middle East & GCC, North America, Asia-Pacific, and cross-border remote corridors.',
   },
   {
     question: 'How is my price decided?',
     answer:
-      'By your billing country. India billing addresses are charged in INR; international billing addresses are charged in USD for the Global vaults. Local-currency amounts are shown for reference. Checkout shows the final currency, taxes and renewal terms before you pay.',
+      'By your billing region and selected currency. International billing addresses are supported with transparent multi-currency display, and checkout shows the exact final currency, taxes, and renewal terms before you pay.',
   },
   {
     question: 'How does Build Your Bundle work?',
     answer:
-      'Combine one eligible India vault with its matching Global vault for 20% off, in one checkout with one renewal date. The discount applies while both stay active; cancelling either removes it.',
+      'Combine any eligible regional vault with its matching Global Access vault for 20% off, in one checkout with one renewal date. The discount applies while both stay active; cancelling either removes it.',
   },
   {
     question: 'Do I pay to apply?',
@@ -106,22 +107,24 @@ export default function FaqSection({
   return (
     <section id="faq" className="py-16 sm:py-20">
       <div className="mx-auto max-w-[820px] px-4 sm:px-6">
-        <div className="mb-7 text-center">
+        <ScrollReveal className="mb-7 text-center">
           <span className="mb-2 inline-block text-[0.75rem] font-bold uppercase tracking-[0.12em] text-[#15803D] dark:text-emerald-400">
             {eyebrow}
           </span>
           <h2 className="text-3xl font-bold leading-[1.15] tracking-tight text-[#061B36] sm:text-4xl lg:text-[2.5rem] dark:text-white">
             {title}
           </h2>
-        </div>
+        </ScrollReveal>
 
         <div className="w-full">
           {items.map((item, idx) => (
-            <FaqItem key={item.id ?? idx} question={item.question} answer={item.answer} />
+            <ScrollReveal key={item.id ?? idx} delay={Math.min(idx * 55, 330)}>
+              <FaqItem question={item.question} answer={item.answer} />
+            </ScrollReveal>
           ))}
         </div>
 
-        <div className="mt-7 text-center">
+        <ScrollReveal delay={150} className="mt-7 text-center">
           <Link
             href="/faq"
             className="inline-flex items-center gap-1.5 rounded-full border border-[#E9E5DC] bg-white px-5 py-2.5 text-sm font-semibold text-[#061B36] shadow-sm transition-all duration-200 hover:border-[#061B36] hover:bg-slate-50 dark:border-[#1E3557] dark:bg-[#0E2340] dark:text-white dark:hover:border-slate-500"
@@ -129,7 +132,7 @@ export default function FaqSection({
             View all frequently asked questions
             <span aria-hidden="true">→</span>
           </Link>
-        </div>
+        </ScrollReveal>
       </div>
     </section>
   );

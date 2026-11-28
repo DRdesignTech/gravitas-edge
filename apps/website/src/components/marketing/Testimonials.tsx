@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
+import ScrollReveal from './ScrollReveal';
 
 type TestimonialItem = {
   name: string;
@@ -17,7 +18,7 @@ const fallbackTestimonials: TestimonialItem[] = [
     badge: '45% Pay Jump',
     role: 'Lead Product Manager @ FinTech Growth Scale-Up',
     quote:
-      'I found a Lead PM role 3 weeks before it was posted publicly on LinkedIn. Applied directly to the VP via the email provided in the Gravitas Vault, and was offered India-competitive premium equity + a 45% pay bump.',
+      'I found a Lead PM role 3 weeks before it was posted publicly on LinkedIn. Applied directly to the VP via the email provided in the Gravitas Vault, and was offered top-band equity + a 45% pay bump.',
   },
   {
     name: 'Adil Mahmood',
@@ -29,21 +30,21 @@ const fallbackTestimonials: TestimonialItem[] = [
   {
     name: 'Neha Bansal',
     badge: 'Hired in 12 Days',
-    role: 'Senior Data Engineer @ Global Analytics Firm (Hybrid)',
+    role: 'Senior Data Engineer @ Global Analytics Firm (London)',
     quote:
-      'The India Vault surfaced a Senior Data Engineer role that was only being shared through internal referrals. I reached the hiring manager directly and had an offer in under two weeks — no portal queue, no blind applications.',
+      'The Global Vault surfaced a Senior Data Engineer role that was only being shared through internal referrals. I reached the hiring manager directly and had an offer in under two weeks — no portal queue, no blind applications.',
   },
   {
     name: 'Rohan Mehta',
     badge: 'Pre-Market Access',
-    role: 'Growth Marketing Lead @ D2C Brand (Bengaluru)',
+    role: 'Growth Marketing Lead @ FinTech Scale-Up (Singapore)',
     quote:
       'I connected with the founder before the role was even advertised. The direct contact in the Vault made the difference — the whole process felt personal and fast instead of automated.',
   },
   {
     name: 'Aisha Rahman',
     badge: 'Back After a Break',
-    role: 'Finance Controller @ Manufacturing Group (Pune)',
+    role: 'Finance Controller @ Manufacturing Group (Frankfurt)',
     quote:
       'After a two-year career break I was nervous about portals. Gravitas Edge let me speak to the consultant actually hiring for the role, which rebuilt my confidence and led to a strong offer.',
   },
@@ -169,7 +170,7 @@ export default function Testimonials() {
       className="relative py-16 lg:py-20 bg-[radial-gradient(900px_300px_at_50%_0%,#F7EFE2_0%,rgba(247,239,226,0)_75%)] dark:bg-transparent"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
+        <ScrollReveal className="mx-auto max-w-3xl text-center">
           <span className="inline-block text-[0.75rem] font-bold uppercase tracking-[0.22em] text-[#C8842D] dark:text-[#F0C27B] mb-2.5">
             What our subscribers say
           </span>
@@ -179,30 +180,34 @@ export default function Testimonials() {
           <p className="text-[0.95rem] text-[#1A2236] dark:text-slate-300">
             Real feedback from professionals.
           </p>
-        </div>
+        </ScrollReveal>
       </div>
 
       {testimonials.length > 0 && (
-        <div
-          className="mt-8 overflow-hidden py-3 [mask-image:linear-gradient(90deg,transparent,#000_9%,#000_91%,transparent)] [-webkit-mask-image:linear-gradient(90deg,transparent,#000_9%,#000_91%,transparent)]"
-          role="region"
-          aria-label="Subscriber testimonials"
-        >
-          <div className="flex w-max animate-[marquee-scroll_42s_linear_infinite] hover:[animation-play-state:paused]">
-            {[0, 1].map((copy) => (
-              <div key={copy} aria-hidden={copy === 1} className="flex shrink-0 gap-4 pr-4">
-                {testimonials.map((item) => (
-                  <TestimonialCard key={`${copy}-${item.name}`} item={item} />
-                ))}
-              </div>
-            ))}
+        <ScrollReveal delay={120}>
+          <div
+            className="mt-8 overflow-hidden py-3 [mask-image:linear-gradient(90deg,transparent,#000_9%,#000_91%,transparent)] [-webkit-mask-image:linear-gradient(90deg,transparent,#000_9%,#000_91%,transparent)]"
+            role="region"
+            aria-label="Subscriber testimonials"
+          >
+            <div className="flex w-max animate-[marquee-scroll_42s_linear_infinite] hover:[animation-play-state:paused]">
+              {[0, 1].map((copy) => (
+                <div key={copy} aria-hidden={copy === 1} className="flex shrink-0 gap-4 pr-4">
+                  {testimonials.map((item) => (
+                    <TestimonialCard key={`${copy}-${item.name}`} item={item} />
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </ScrollReveal>
       )}
 
-      <p className="mt-5 text-center text-[0.85rem] text-[#5B6479] dark:text-slate-400">
-        Individual subscriber experiences. Outcomes vary and are not guaranteed.
-      </p>
+      <ScrollReveal delay={180}>
+        <p className="mt-5 text-center text-[0.85rem] text-[#5B6479] dark:text-slate-400">
+          Individual subscriber experiences. Outcomes vary and are not guaranteed.
+        </p>
+      </ScrollReveal>
     </section>
   );
 }

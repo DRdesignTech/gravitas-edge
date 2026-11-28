@@ -584,48 +584,57 @@ export function VaultGlyph({ name, className = 'h-7 w-7' }: { name: string; clas
 function AccessPill({ locked }: { locked: boolean }) {
   if (locked) {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#061B36]/5 px-2.5 py-0.5 text-[0.72rem] font-bold text-content-muted ring-1 ring-inset ring-line dark:bg-white/10 dark:text-[#E2E8F0]">
-        <HiLockClosed className="h-3 w-3 text-[#C8943E]" />
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#061B36]/85 px-2.5 py-0.5 text-[0.72rem] font-bold text-white ring-1 ring-inset ring-[#F0C27B]/45 backdrop-blur-xs">
+        <HiLockClosed className="h-3 w-3 text-[#F0C27B]" />
         Preview Ready
       </span>
     );
   }
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[0.72rem] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/30">
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-950/85 px-2.5 py-0.5 text-[0.72rem] font-bold text-emerald-300 ring-1 ring-inset ring-emerald-400/40 backdrop-blur-xs">
       <HiShieldCheck className="h-3.5 w-3.5" />
       Access Active
     </span>
   );
 }
 
-function getVaultMeta(name: string): { level: string; region: string; badges: string[] } {
+function getVaultMeta(name: string): {
+  level: string;
+  region: string;
+  badges: string[];
+  image: string;
+} {
   const n = name.toLowerCase();
   if (n.includes('executive')) {
     return {
       level: 'Executive (C-Suite & Board)',
-      region: 'India & Key Corridors',
+      region: 'Global & Key Corridors',
       badges: ['Direct CXO Roles', 'Board Appointments', 'Verified Comp'],
+      image: '/images/vault_executive.jpg',
     };
   }
   if (n.includes('leadership')) {
     return {
       level: 'Leadership (10+ Years)',
-      region: 'India Hubs',
+      region: 'Global Leadership Hubs',
       badges: ['Senior Management', 'Direct Recruiter Access', 'Pre-Vetted Roles'],
+      image: '/images/vault_leadership.jpg',
     };
   }
   if (n.includes('management')) {
     return {
       level: 'Management (5–10 Years)',
-      region: 'India Hubs',
+      region: 'Global Career Hubs',
       badges: ['Mid-Level Leads', 'Functional Heads', 'Verified Companies'],
+      image: '/images/vault_management.jpg',
     };
   }
   if (n.includes('early') || n.includes('career')) {
     return {
       level: 'Early Career (0–5 Years)',
-      region: 'India Hubs',
+      region: 'Global Growth Hubs',
       badges: ['Fast-Track Roles', 'Growth Startups', 'High-Impact Openings'],
+      image: '/images/vault_early_career.jpg',
     };
   }
   if (n.includes('remote')) {
@@ -633,6 +642,7 @@ function getVaultMeta(name: string): { level: string; region: string; badges: st
       level: 'Cross-Border Remote',
       region: 'Global / Borderless',
       badges: ['100% Remote', 'USD/EUR Compensation', 'Global Companies'],
+      image: '/images/vault_remote.jpg',
     };
   }
   if (n.includes('uae') || n.includes('global')) {
@@ -640,12 +650,14 @@ function getVaultMeta(name: string): { level: string; region: string; badges: st
       level: 'International & GCC',
       region: 'Dubai, GCC, Singapore & Global',
       badges: ['Tax-Free Comp', 'GCC Executive Hubs', 'Global Relocation'],
+      image: '/images/vault_uae_global.jpg',
     };
   }
   return {
     level: 'Verified Career Channel',
     region: 'Curated Opportunity Channel',
     badges: ['Verified Pathways', 'Direct Contacts', 'Active Pipeline'],
+    image: '/images/vault_uae_global.jpg',
   };
 }
 
@@ -666,75 +678,78 @@ export function VaultCard({
   return (
     <Link
       href={href}
-      className={`group relative flex h-full flex-col justify-between rounded-[20px] bg-white p-6 transition-all duration-300 ease-out hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6952F] dark:bg-[#0C1E38] ${
+      className={`group relative flex h-full flex-col justify-between overflow-hidden rounded-[20px] bg-white transition-all duration-300 ease-out hover:-translate-y-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6952F] dark:bg-[#0C1E38] ${
         recommended
           ? 'border-2 border-[#D6952F] shadow-[0_16px_36px_-12px_rgba(214,149,47,0.35)] ring-2 ring-[#D6952F]/20 hover:shadow-[0_20px_42px_-12px_rgba(214,149,47,0.45)]'
           : 'border border-[#E9E5DC] dark:border-white/10 hover:border-[#D6952F] hover:shadow-[0_16px_36px_-12px_rgba(6,27,54,0.12)] dark:hover:shadow-[0_16px_36px_-12px_rgba(0,0,0,0.5)]'
       }`}
     >
-      {/* Decorative background glow */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden rounded-[20px]"
-      >
-        <span
-          className="absolute -right-12 -top-12 h-44 w-44 rounded-full opacity-50 transition-opacity duration-300 group-hover:opacity-100"
-          style={{ background: 'radial-gradient(circle, rgba(214,149,47,0.18), transparent 70%)' }}
-        />
-      </span>
-
       {recommended && (
-        <span className="absolute left-6 top-0 z-20 -translate-y-1/2 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#D6952F] via-[#E2A746] to-[#B37E28] px-3.5 py-1 text-[11px] font-extrabold text-white shadow-md uppercase tracking-wider ring-2 ring-white dark:ring-[#0C1E38]">
-          <HiSparkles className="h-3.5 w-3.5 text-white" />
-          Recommended For You
+        <span className="absolute left-5 top-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#D6952F] via-[#E2A746] to-[#B37E28] px-3 py-1 text-[10px] font-extrabold text-white shadow-md uppercase tracking-wider ring-2 ring-white/80 dark:ring-[#0C1E38]">
+          <HiSparkles className="h-3 w-3 text-white" />
+          Recommended
         </span>
       )}
 
       <div>
-        {/* Top Meta Line: Seniority Tag + Access Pill */}
-        <div className="relative flex items-center justify-between gap-2 border-b border-line/50 pb-3 dark:border-white/10">
-          <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#C8943E]">
-            {meta.level}
-          </span>
-          <AccessPill locked={!unlocked} />
-        </div>
-
-        {/* Main Header: Glyph in navy/gold tile + Vault Title */}
-        <div className="relative mt-4 flex items-start gap-3.5">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] border border-[#F0C27B]/30 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:border-[#D6952F] group-hover:text-white">
-            <VaultGlyph name={v.name} className="h-6 w-6" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-['Poppins',system-ui,sans-serif] text-[1.12rem] font-bold leading-snug text-[#061B36] transition-colors group-hover:text-[#D6952F] dark:text-white">
-              {v.name}
-            </h3>
-            <p className="mt-0.5 text-xs text-content-faint">
-              {meta.region}
-            </p>
+        {/* Tailored Card Cover Image */}
+        <div className="relative h-36 w-full overflow-hidden bg-[#061B36]">
+          <img
+            src={meta.image}
+            alt={v.name}
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-t from-[#061B36]/85 via-[#061B36]/25 to-transparent"
+          />
+          <div className="absolute inset-x-4 bottom-3 flex items-center justify-between gap-2">
+            <span className="font-mono text-[10.5px] font-bold uppercase tracking-wider text-[#F0C27B] drop-shadow-sm">
+              {meta.level}
+            </span>
+            <AccessPill locked={!unlocked} />
           </div>
         </div>
 
-        {v.description && (
-          <p className="relative mt-3.5 text-[0.88rem] leading-[1.6] text-[#5B6479] dark:text-[#AEB9D6]">
-            {v.description}
-          </p>
-        )}
-
-        {/* Key Feature Badges */}
-        <div className="relative mt-4 flex flex-wrap gap-1.5">
-          {meta.badges.map((b) => (
-            <span
-              key={b}
-              className="rounded-md bg-[#061B36]/5 px-2 py-0.5 text-[10px] font-semibold text-content-muted dark:bg-white/5 dark:text-[#AEB9D6]"
-            >
-              {b}
+        {/* Card Content Body */}
+        <div className="relative p-5 pb-0">
+          {/* Main Header: Glyph in navy/gold tile + Vault Title */}
+          <div className="flex items-start gap-3.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] border border-[#F0C27B]/30 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:border-[#D6952F] group-hover:text-white">
+              <VaultGlyph name={v.name} className="h-5 w-5" />
             </span>
-          ))}
+            <div className="min-w-0 flex-1">
+              <h3 className="font-['Poppins',system-ui,sans-serif] text-[1.08rem] font-bold leading-snug text-[#061B36] transition-colors group-hover:text-[#D6952F] dark:text-white">
+                {v.name}
+              </h3>
+              <p className="mt-0.5 text-xs text-content-faint">
+                {meta.region}
+              </p>
+            </div>
+          </div>
+
+          {v.description && (
+            <p className="mt-3 text-[0.86rem] leading-[1.58] text-[#5B6479] dark:text-[#AEB9D6]">
+              {v.description}
+            </p>
+          )}
+
+          {/* Key Feature Badges */}
+          <div className="mt-3.5 flex flex-wrap gap-1.5">
+            {meta.badges.map((b) => (
+              <span
+                key={b}
+                className="rounded-md bg-[#061B36]/5 px-2 py-0.5 text-[10px] font-semibold text-content-muted dark:bg-white/5 dark:text-[#AEB9D6]"
+              >
+                {b}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Action area: action text + circular arrow */}
-      <div className="relative mt-6 flex items-center justify-between gap-3 border-t border-[#F0ECE1] pt-4 dark:border-white/10">
+      <div className="relative mx-5 mb-5 mt-5 flex items-center justify-between gap-3 border-t border-[#F0ECE1] pt-3.5 dark:border-white/10">
         <span className="text-[0.78rem] font-medium leading-relaxed text-[#7A8A9E] dark:text-[#8D9CB0]">
           {actionText}
         </span>

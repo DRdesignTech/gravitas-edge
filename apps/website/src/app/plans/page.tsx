@@ -7,6 +7,7 @@ import { fetchPublicPricing, purchasePlan } from '@/lib/services';
 import { PricingGroup, PricingPlan } from '@/lib/types';
 import { Skeleton, ErrorState, useToast } from '@/components/ui';
 import OpportunityVaultCard from '@/components/plans/OpportunityVaultCard';
+import ScrollReveal from '@/components/marketing/ScrollReveal';
 import { getErrorMessage } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import { shouldShowVaultPlanBanner } from '@/lib/access-routing';
@@ -115,7 +116,7 @@ export default function PlansPage() {
             <span className="text-white/80">Plans &amp; Pricing</span>
           </div>
 
-          <div className="text-center sm:text-left">
+          <ScrollReveal className="text-center sm:text-left">
             {/* Eyebrow Pill */}
             <div className="inline-flex items-center gap-2 rounded-full border border-[#D6952F]/40 bg-[#D6952F]/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-[#F0C27B] mb-4">
               <span className="h-1.5 w-1.5 rounded-full bg-[#F0C27B] animate-pulse" />
@@ -163,7 +164,7 @@ export default function PlansPage() {
                 Instant Digital Activation
               </span>
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </section>
 
@@ -190,6 +191,7 @@ export default function PlansPage() {
           )}
 
           {/* Section Controls Bar */}
+          <ScrollReveal>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E9E5DC] pb-5 dark:border-[#1E3557]">
             <div>
               <h2 className="text-xl sm:text-2xl font-extrabold text-[#061B36] dark:text-white">
@@ -235,6 +237,7 @@ export default function PlansPage() {
               </button>
             </div>
           </div>
+          </ScrollReveal>
 
           {/* MAIN CONTENT AREA */}
           <div className="mt-8">
@@ -251,8 +254,10 @@ export default function PlansPage() {
             ) : viewMode === 'cards' ? (
               /* 1. CARDS VIEW */
               <div className="grid items-start gap-4 sm:gap-4.5 sm:grid-cols-2 lg:grid-cols-3">
-                {groups.map((group) => (
-                  <OpportunityVaultCard key={group.vault.id} group={group} />
+                {groups.map((group, idx) => (
+                  <ScrollReveal key={group.vault.id} delay={(idx % 3) * 90}>
+                    <OpportunityVaultCard group={group} />
+                  </ScrollReveal>
                 ))}
               </div>
             ) : (
@@ -369,6 +374,7 @@ export default function PlansPage() {
           </div>
 
           {/* SECTION 3 — BUILD YOUR BUNDLE CALLOUT (from redesign prototype) */}
+          <ScrollReveal delay={80}>
           <div className="mt-14 rounded-3xl border border-[#E9E5DC] bg-gradient-to-br from-[#061B36] to-[#0A2645] p-7 sm:p-10 text-white shadow-xl dark:border-[#1E3557]">
             <div className="grid gap-8 lg:grid-cols-2 items-center">
               <div>
@@ -408,13 +414,17 @@ export default function PlansPage() {
               </div>
             </div>
           </div>
+          </ScrollReveal>
 
           {/* Billing Transparency Note */}
+          <ScrollReveal delay={100}>
           <div className="mt-8 text-center text-xs text-[#7E889E] dark:text-slate-400">
             Prices shown in INR for India billing addresses. Applicable taxes are shown at checkout. Your billing country, not your physical location, sets the price.
           </div>
+          </ScrollReveal>
 
           {/* SECTION 4 — ADVISORY & ASSISTANCE CALLOUT */}
+          <ScrollReveal delay={120}>
           <div className="mt-10 rounded-3xl border border-[#E9E5DC] bg-white p-7 sm:p-9 text-center shadow-sm dark:border-[#1E3557] dark:bg-[#0D2038]">
             <h3 className="text-lg sm:text-xl font-bold text-[#061B36] dark:text-white">
               Have Questions or Need Enterprise Assistance?
@@ -444,6 +454,7 @@ export default function PlansPage() {
               </Link>
             </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
     </div>

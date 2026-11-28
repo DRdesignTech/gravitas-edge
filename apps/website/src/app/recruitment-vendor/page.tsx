@@ -23,6 +23,7 @@ import {
   SearchIcon,
 } from '@/components/cards';
 import Eyebrow from '@/components/marketing/Eyebrow';
+import ScrollReveal from '@/components/marketing/ScrollReveal';
 import VendorHeroCarousel from '@/components/marketing/VendorHeroCarousel';
 import {
   VendorServicesSection,
@@ -49,12 +50,7 @@ const CATEGORY_BLURBS: Record<string, string> = {
 };
 
 /** Primary categories shown in the "key areas" grid (OTHER is excluded by design). */
-const PRIMARY_CATEGORIES = [
-  'VENDOR_ENABLEMENT',
-  'RFP_EOI_RFQ',
-  'STAFFING_RPO',
-  'EXECUTIVE_SEARCH',
-];
+const PRIMARY_CATEGORIES = ['VENDOR_ENABLEMENT', 'RFP_EOI_RFQ', 'STAFFING_RPO', 'EXECUTIVE_SEARCH'];
 
 /** The navy feature strip beneath the hero. */
 const HERO_FEATURES: { label: string; paths: string[] }[] = [
@@ -381,9 +377,10 @@ export default function RecruitmentVendorPage() {
       {/* Bottom feature strip — navy bar with gold outline icons. */}
       <div className="relative z-10 border-t border-[#C8943E]/20 bg-[#061B36]">
         <div className="mx-auto grid w-full max-w-[1320px] grid-cols-2 divide-x divide-white/10 px-2 py-3 sm:grid-cols-4 sm:px-6 sm:py-5 lg:px-8">
-          {HERO_FEATURES.map((feature) => (
-            <div
+          {HERO_FEATURES.map((feature, idx) => (
+            <ScrollReveal
               key={feature.label}
+              delay={idx * 80}
               className="flex flex-col items-center gap-1.5 px-1.5 text-center sm:gap-2"
             >
               <svg
@@ -401,7 +398,7 @@ export default function RecruitmentVendorPage() {
               <span className="text-[11px] font-medium leading-tight text-white/90 sm:text-sm">
                 {feature.label}
               </span>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
       </div>
@@ -427,7 +424,7 @@ export default function RecruitmentVendorPage() {
       {!error && (
         <section id="categories" className="section-glow relative bg-surface-muted">
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-            <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
+            <ScrollReveal className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
               <Eyebrow>WHAT YOU&apos;LL FIND</Eyebrow>
               <h2 className="mt-3 font-serif-heading text-3xl font-bold leading-tight text-content sm:text-4xl">
                 Opportunities Across Key Areas
@@ -435,7 +432,7 @@ export default function RecruitmentVendorPage() {
               <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-content-muted">
                 The vault is organised by the types of partnerships companies are looking to build.
               </p>
-            </div>
+            </ScrollReveal>
 
             {loading ? (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -445,68 +442,71 @@ export default function RecruitmentVendorPage() {
               </div>
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {categories.map((category) => {
+                {categories.map((category, idx) => {
                   const isSelected = selectedCategory === category.value;
                   return (
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      key={category.value}
-                      onClick={() => handleCategoryClick(category.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleCategoryClick(category.value);
-                        }
-                      }}
-                      className={`group relative flex flex-col rounded-2xl p-5 text-left transition-all duration-300 cursor-pointer select-none ${
-                        isSelected
-                          ? 'border-2 border-[#D6952F] bg-gradient-to-b from-[#D6952F]/15 via-surface to-surface dark:from-[#D6952F]/20 dark:via-surface-elevated dark:to-surface-elevated shadow-[0_12px_28px_-6px_rgba(214,149,47,0.35)] -translate-y-1.5 ring-2 ring-[#D6952F]/40'
-                          : 'card-static border border-line hover:-translate-y-1 hover:border-[#D6952F]/60 hover:shadow-card-hover'
-                      }`}
-                    >
-                      {/* Top icon & active badge indicator */}
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-105 ${
-                            isSelected
-                              ? 'bg-[#D6952F] text-[#061B36] shadow-md ring-2 ring-[#D6952F]'
-                              : 'bg-gradient-to-br from-[#061B36] to-brand-600 text-[#E3B968] ring-1 ring-inset ring-[#C8943E]/30'
-                          }`}
-                        >
-                          <CategoryIcon value={category.value} className="h-6 w-6" />
-                        </span>
-
-                        {isSelected ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[#D6952F] px-2.5 py-0.5 text-[11px] font-bold text-[#061B36] shadow-sm">
-                            <span>Active</span>
-                            <span>✕</span>
+                    <ScrollReveal key={category.value} delay={idx * 80} className="h-full">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleCategoryClick(category.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleCategoryClick(category.value);
+                          }
+                        }}
+                        className={`group relative flex h-full flex-col rounded-2xl p-5 text-left transition-all duration-300 cursor-pointer select-none ${
+                          isSelected
+                            ? 'border-2 border-[#D6952F] bg-gradient-to-b from-[#D6952F]/15 via-surface to-surface dark:from-[#D6952F]/20 dark:via-surface-elevated dark:to-surface-elevated shadow-[0_12px_28px_-6px_rgba(214,149,47,0.35)] -translate-y-1.5 ring-2 ring-[#D6952F]/40'
+                            : 'card-static border border-line hover:-translate-y-1 hover:border-[#D6952F]/60 hover:shadow-card-hover'
+                        }`}
+                      >
+                        {/* Top icon & active badge indicator */}
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-105 ${
+                              isSelected
+                                ? 'bg-[#D6952F] text-[#061B36] shadow-md ring-2 ring-[#D6952F]'
+                                : 'bg-gradient-to-br from-[#061B36] to-brand-600 text-[#E3B968] ring-1 ring-inset ring-[#C8943E]/30'
+                            }`}
+                          >
+                            <CategoryIcon value={category.value} className="h-6 w-6" />
                           </span>
-                        ) : (
-                          <span className="text-xs font-semibold text-brand-600 dark:text-[#E3B968] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                            <span>Filter</span>
-                            <span>→</span>
-                          </span>
-                        )}
-                      </div>
 
-                      <h3 className="mt-4 text-base font-bold leading-snug text-content group-hover:text-brand-600 dark:group-hover:text-brand-300 transition-colors">
-                        {category.label}
-                      </h3>
+                          {isSelected ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#D6952F] px-2.5 py-0.5 text-[11px] font-bold text-[#061B36] shadow-sm">
+                              <span>Active</span>
+                              <span>✕</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs font-semibold text-brand-600 dark:text-[#E3B968] opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                              <span>Filter</span>
+                              <span>→</span>
+                            </span>
+                          )}
+                        </div>
 
-                      <p className="mt-2 flex-1 text-sm leading-relaxed text-content-muted">
-                        {CATEGORY_BLURBS[category.value] ?? 'Recruitment partnership opportunities.'}
-                      </p>
+                        <h3 className="mt-4 text-base font-bold leading-snug text-content group-hover:text-brand-600 dark:group-hover:text-brand-300 transition-colors">
+                          {category.label}
+                        </h3>
 
-                      <div className="mt-4 flex items-center justify-between border-t border-line/70 pt-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[#C8943E]">
-                          {category.count} {category.count === 1 ? 'opportunity' : 'opportunities'}
+                        <p className="mt-2 flex-1 text-sm leading-relaxed text-content-muted">
+                          {CATEGORY_BLURBS[category.value] ??
+                            'Recruitment partnership opportunities.'}
                         </p>
-                        <span className="text-xs font-semibold text-brand-600 dark:text-[#E3B968] group-hover:underline">
-                          {isSelected ? 'Click to clear ✕' : 'Filter preview →'}
-                        </span>
+
+                        <div className="mt-4 flex items-center justify-between border-t border-line/70 pt-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#C8943E]">
+                            {category.count}{' '}
+                            {category.count === 1 ? 'opportunity' : 'opportunities'}
+                          </p>
+                          <span className="text-xs font-semibold text-brand-600 dark:text-[#E3B968] group-hover:underline">
+                            {isSelected ? 'Click to clear ✕' : 'Filter preview →'}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    </ScrollReveal>
                   );
                 })}
               </div>
@@ -524,7 +524,7 @@ export default function RecruitmentVendorPage() {
           className="section-glow-navy relative border-t border-line bg-surface scroll-mt-20"
         >
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-            <div className="mb-8 max-w-2xl">
+            <ScrollReveal className="mb-8 max-w-2xl">
               <Eyebrow>SEE BEFORE YOU SUBSCRIBE</Eyebrow>
               <h2 className="mt-3 font-serif-heading text-2xl font-bold tracking-tight text-content sm:text-3xl">
                 Explore Recent Opportunities
@@ -533,7 +533,7 @@ export default function RecruitmentVendorPage() {
                 A preview of recently published opportunities. Commercial and contact details are
                 masked until you subscribe.
               </p>
-            </div>
+            </ScrollReveal>
 
             {/* Selected category filter pill bar */}
             {selectedCategory && (
@@ -543,7 +543,8 @@ export default function RecruitmentVendorPage() {
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1 text-xs font-bold text-content shadow-sm border border-line">
                   <span>
-                    {categories.find((c) => c.value === selectedCategory)?.label || selectedCategory}
+                    {categories.find((c) => c.value === selectedCategory)?.label ||
+                      selectedCategory}
                   </span>
                   <button
                     type="button"
@@ -597,13 +598,18 @@ export default function RecruitmentVendorPage() {
                               stroke="currentColor"
                               aria-hidden="true"
                             >
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
                             </svg>
                           </button>
                         )}
                       </div>
                       <p className="text-center text-xs text-content-muted">
-                        You can search anything — try multiple keywords like opportunity type, organisation, industry, geography, or Job ID
+                        You can search anything — try multiple keywords like opportunity type,
+                        organisation, industry, geography, or Job ID
                       </p>
                       <button
                         type="submit"
@@ -683,43 +689,45 @@ export default function RecruitmentVendorPage() {
               </div>
             ) : view === 'grid' ? (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredOpportunities.map((o) => (
-                  <PreviewCard key={o.id} opportunity={o} onUnlock={() => scrollToId('plans')} />
+                {filteredOpportunities.map((o, idx) => (
+                  <ScrollReveal key={o.id} delay={(idx % 3) * 80} className="h-full">
+                    <PreviewCard opportunity={o} onUnlock={() => scrollToId('plans')} />
+                  </ScrollReveal>
                 ))}
               </div>
             ) : (
               <div className="space-y-2.5">
-                {filteredOpportunities.map((o) => (
-                  <PreviewRow key={o.id} opportunity={o} onUnlock={() => scrollToId('plans')} />
+                {filteredOpportunities.map((o, idx) => (
+                  <ScrollReveal key={o.id} delay={Math.min(idx * 55, 275)}>
+                    <PreviewRow opportunity={o} onUnlock={() => scrollToId('plans')} />
+                  </ScrollReveal>
                 ))}
               </div>
             )}
 
             {totalPages > 1 && (
               <div className="mt-8">
-                <Pagination
-                  currentPage={page}
-                  totalPages={totalPages}
-                  onPageChange={goToPage}
-                />
+                <Pagination currentPage={page} totalPages={totalPages} onPageChange={goToPage} />
               </div>
             )}
 
-            <div className="mt-10 flex flex-col items-start gap-2 rounded-2xl border border-line bg-surface-muted px-5 py-4 text-sm text-content-muted dark:bg-surface/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <p>
-                Full commercial and contact details become available with a Recruitment Vendor
-                Access plan.
-              </p>
-              <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1">
-                <button
-                  type="button"
-                  onClick={() => scrollToId('plans')}
-                  className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                >
-                  View Access Plans →
-                </button>
+            <ScrollReveal delay={100}>
+              <div className="mt-10 flex flex-col items-start gap-2 rounded-2xl border border-line bg-surface-muted px-5 py-4 text-sm text-content-muted dark:bg-surface/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <p>
+                  Full commercial and contact details become available with a Recruitment Vendor
+                  Access plan.
+                </p>
+                <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1">
+                  <button
+                    type="button"
+                    onClick={() => scrollToId('plans')}
+                    className="text-sm font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                  >
+                    View Access Plans →
+                  </button>
+                </div>
               </div>
-            </div>
+            </ScrollReveal>
           </div>
         </section>
       )}
@@ -738,12 +746,9 @@ export default function RecruitmentVendorPage() {
       {/* 6. PLANS                                                       */}
       {/* ══════════════════════════════════════════════════════════════ */}
       {!error && (
-        <section
-          id="plans"
-          className="section-glow-navy relative border-t border-line bg-surface"
-        >
+        <section id="plans" className="section-glow-navy relative border-t border-line bg-surface">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-            <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
+            <ScrollReveal className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
               <Eyebrow>ACCESS THE FULL VAULT</Eyebrow>
               <h2 className="mt-3 font-serif-heading text-3xl font-bold leading-tight text-content sm:text-4xl">
                 Choose Your Access Plan
@@ -752,7 +757,7 @@ export default function RecruitmentVendorPage() {
                 Full access to all Recruitment Vendor Access opportunities for the duration of your
                 plan.
               </p>
-            </div>
+            </ScrollReveal>
 
             {loading ? (
               <div className="grid gap-5 sm:gap-6 lg:grid-cols-3">
@@ -765,16 +770,17 @@ export default function RecruitmentVendorPage() {
                 <p className="text-sm text-content-muted">No plans are available right now.</p>
               </div>
             ) : (
-              <div className="grid items-stretch gap-5 sm:gap-6 lg:grid-cols-3">
-                {plans.map((plan) => (
-                  <PlanCard
-                    key={plan.id}
-                    plan={plan}
-                    popular={plan.durationDays === 90}
-                    loading={buyingPlanId === plan.id}
-                    disabled={buyingPlanId !== null}
-                    onChoose={() => handleChoosePlan(plan)}
-                  />
+              <div className="grid items-stretch gap-5 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {plans.map((plan, idx) => (
+                  <ScrollReveal key={plan.id} delay={idx * 90} className="h-full">
+                    <PlanCard
+                      plan={plan}
+                      popular={plan.durationDays === 90}
+                      loading={buyingPlanId === plan.id}
+                      disabled={buyingPlanId !== null}
+                      onChoose={() => handleChoosePlan(plan)}
+                    />
+                  </ScrollReveal>
                 ))}
               </div>
             )}
@@ -793,15 +799,17 @@ export default function RecruitmentVendorPage() {
       {!error && faqs.length > 0 && (
         <section id="faq" className="section-glow relative border-t border-line bg-surface-muted">
           <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-            <div className="mb-8 text-center">
+            <ScrollReveal className="mb-8 text-center">
               <Eyebrow>FREQUENTLY ASKED QUESTIONS</Eyebrow>
               <h2 className="mt-3 font-serif-heading text-2xl font-bold tracking-tight text-content sm:text-3xl">
                 Quick Answers
               </h2>
-            </div>
+            </ScrollReveal>
             <div className="space-y-3">
-              {faqs.map((faq) => (
-                <FaqItem key={faq.id} faq={faq} />
+              {faqs.map((faq, idx) => (
+                <ScrollReveal key={faq.id} delay={Math.min(idx * 55, 330)}>
+                  <FaqItem faq={faq} />
+                </ScrollReveal>
               ))}
             </div>
           </div>
@@ -813,70 +821,73 @@ export default function RecruitmentVendorPage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       <section className="relative overflow-hidden bg-surface-muted py-8 sm:py-12 border-t border-line">
         <div className="mx-auto max-w-[1320px] px-5">
-          <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-b from-[#061B36] via-[#092244] to-[#041226] text-white shadow-xl border border-[#D6952F]/25 px-5 py-7 sm:px-10 sm:py-9 text-center">
-            {/* Ambient luxury lighting */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[550px] h-[180px] bg-gradient-to-b from-[#D6952F]/15 to-transparent blur-[60px] rounded-full"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 w-[400px] h-[120px] bg-blue-500/10 blur-[70px] rounded-full"
-            />
+          <ScrollReveal direction="scale">
+            <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-b from-[#061B36] via-[#092244] to-[#041226] text-white shadow-xl border border-[#D6952F]/25 px-5 py-7 sm:px-10 sm:py-9 text-center">
+              {/* Ambient luxury lighting */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[550px] h-[180px] bg-gradient-to-b from-[#D6952F]/15 to-transparent blur-[60px] rounded-full"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -bottom-10 left-1/2 -translate-x-1/2 w-[400px] h-[120px] bg-blue-500/10 blur-[70px] rounded-full"
+              />
 
-            <div className="relative z-10 mx-auto max-w-2xl">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-[#D6952F]/15 text-[#F0C27B] border border-[#D6952F]/35 shadow-sm mb-3">
-                <span className="text-[#D6952F]">✦</span>
-                <span>Recruitment Partner Vault</span>
-              </span>
-
-              <h2 className="font-serif-heading text-2xl sm:text-3xl font-bold text-white tracking-tight leading-snug">
-                Explore the Free Preview and see{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F0C27B] via-[#D6952F] to-[#E5A93C]">
-                  current opportunities.
+              <div className="relative z-10 mx-auto max-w-2xl">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase bg-[#D6952F]/15 text-[#F0C27B] border border-[#D6952F]/35 shadow-sm mb-3">
+                  <span className="text-[#D6952F]">✦</span>
+                  <span>Recruitment Partner Vault</span>
                 </span>
-              </h2>
 
-              <p className="mt-2 text-xs sm:text-sm text-[#C9D3EA] leading-relaxed max-w-xl mx-auto font-sans">
-                Review verified corporate empanelment notices, commercial staffing tenders, and active vendor requirements before choosing your access plan.
-              </p>
+                <h2 className="font-serif-heading text-2xl sm:text-3xl font-bold text-white tracking-tight leading-snug">
+                  Explore the Free Preview and see{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F0C27B] via-[#D6952F] to-[#E5A93C]">
+                    current opportunities.
+                  </span>
+                </h2>
 
-              {/* Action Buttons */}
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => scrollToId('free-preview')}
-                  className="inline-flex items-center justify-center gap-2 rounded-full py-2.5 px-6 font-bold text-sm bg-gradient-to-r from-[#D6952F] to-[#C08124] hover:from-[#E0A23D] hover:to-[#CF8F30] text-[#061B36] shadow-[0_8px_20px_-4px_rgba(214,149,47,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer border-0"
-                >
-                  <span>Explore Free Opportunities</span>
-                  <span className="text-base leading-none font-bold">→</span>
-                </button>
+                <p className="mt-2 text-xs sm:text-sm text-[#C9D3EA] leading-relaxed max-w-xl mx-auto font-sans">
+                  Review verified corporate empanelment notices, commercial staffing tenders, and
+                  active vendor requirements before choosing your access plan.
+                </p>
 
-                <Link
-                  href="/contact"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 px-5 font-semibold text-sm text-white/95 bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/35 backdrop-blur-sm transition-all no-underline cursor-pointer"
-                >
-                  Talk to us
-                </Link>
-              </div>
+                {/* Action Buttons */}
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => scrollToId('free-preview')}
+                    className="inline-flex items-center justify-center gap-2 rounded-full py-2.5 px-6 font-bold text-sm bg-gradient-to-r from-[#D6952F] to-[#C08124] hover:from-[#E0A23D] hover:to-[#CF8F30] text-[#061B36] shadow-[0_8px_20px_-4px_rgba(214,149,47,0.5)] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer border-0"
+                  >
+                    <span>Explore Free Opportunities</span>
+                    <span className="text-base leading-none font-bold">→</span>
+                  </button>
 
-              {/* Trust Indicators */}
-              <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center">
-                <div className="flex items-center justify-center gap-1.5 text-xs text-[#D7DFEE]">
-                  <span className="text-emerald-400 font-bold">✓</span>
-                  <span>100% Verified Mandates</span>
+                  <Link
+                    href="/contact"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 px-5 font-semibold text-sm text-white/95 bg-white/10 hover:bg-white/15 border border-white/20 hover:border-white/35 backdrop-blur-sm transition-all no-underline cursor-pointer"
+                  >
+                    Talk to us
+                  </Link>
                 </div>
-                <div className="flex items-center justify-center gap-1.5 text-xs text-[#D7DFEE]">
-                  <span className="text-emerald-400 font-bold">✓</span>
-                  <span>Direct Procurement Access</span>
-                </div>
-                <div className="flex items-center justify-center gap-1.5 text-xs text-[#D7DFEE]">
-                  <span className="text-emerald-400 font-bold">✓</span>
-                  <span>Zero Agency Commission</span>
+
+                {/* Trust Indicators */}
+                <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-[#D7DFEE]">
+                    <span className="text-emerald-400 font-bold">✓</span>
+                    <span>100% Verified Mandates</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-[#D7DFEE]">
+                    <span className="text-emerald-400 font-bold">✓</span>
+                    <span>Direct Procurement Access</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-[#D7DFEE]">
+                    <span className="text-emerald-400 font-bold">✓</span>
+                    <span>Zero Agency Commission</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </ScrollReveal>
         </div>
       </section>
     </div>
@@ -888,13 +899,7 @@ export default function RecruitmentVendorPage() {
 const PREVIEW_WRAPPER =
   'group card-premium relative flex h-full flex-col overflow-hidden rounded-2xl';
 
-function RvaField({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string | number | null;
-}) {
+function RvaField({ label, value }: { label: string; value?: string | number | null }) {
   if (value === null || value === undefined || String(value).trim() === '') return null;
   return (
     <div className="flex flex-col gap-0.5 text-xs">
@@ -1086,54 +1091,90 @@ function PlanCard({
   disabled: boolean;
   onChoose: () => void;
 }) {
+  const tags = popular ? ['Most Popular', 'AutoPay'] : ['Instant Access', 'AutoPay'];
+
   return (
-    <article
-      className={`relative flex flex-col rounded-2xl border p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover ${
-        popular
-          ? 'border-[#C8943E]/60 bg-gradient-to-b from-[#FFF3D9]/70 to-surface dark:from-brand-950/60 dark:to-surface-elevated'
-          : 'border-line bg-surface dark:bg-surface-elevated'
-      }`}
-    >
-      {popular && (
-        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#061B36] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#E3B968] shadow-sm dark:bg-brand-400 dark:text-[#061B36]">
-          Most Popular
-        </span>
-      )}
-      <p className="text-sm font-bold uppercase tracking-wide text-content-muted">
-        {plan.durationLabel}
-      </p>
-      <p className="mt-3 text-3xl font-extrabold tracking-tight text-content">
-        {formatMoney(plan.autoPayAmount, plan.currency)}
-      </p>
-      <p className="mt-2 text-xs text-content-muted">Renews automatically with AutoPay</p>
-
-      {plan.description && (
-        <p className="mt-4 text-sm leading-relaxed text-content-muted">{plan.description}</p>
-      )}
-
-      <ul className="mt-5 flex-1 space-y-2.5">
-        {[
-          `Full access — ${plan.durationLabel.toLowerCase()}`,
-          'All opportunity categories',
-          'Commercial & contact details',
-          'Instant activation after payment',
-        ].map((item) => (
-          <li key={item} className="flex items-start gap-2.5 text-sm text-content-muted">
-            <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-
-      <Button
-        className="mt-6 w-full !py-3"
-        loading={loading}
-        disabled={disabled}
-        onClick={onChoose}
+    <div className="uiverse-parent h-[242px] sm:h-[248px] w-full">
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        onClick={() => {
+          if (!disabled) onChoose();
+        }}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onChoose();
+          }
+        }}
+        aria-label={`Choose ${plan.durationLabel} plan`}
+        className={`uiverse-card block w-full text-left ${
+          disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+        }`}
       >
-        {loading ? 'Starting…' : 'Buy Now'}
-      </Button>
-    </article>
+        {/* Layered concentric circles logo in top right (matching Home page plan card) */}
+        <div className="uiverse-logo" aria-hidden="true">
+          <span className="circle circle1" />
+          <span className="circle circle2" />
+          <span className="circle circle3" />
+          <span className="circle circle4" />
+          <span className="circle circle5">
+            <span className="svg-glyph">
+              <BriefcaseIcon className="h-5 w-5 text-[#F0C27B]" />
+            </span>
+          </span>
+        </div>
+
+        {/* Organic curved glass backdrop */}
+        <div className="uiverse-glass" aria-hidden="true" />
+
+        {/* Card Content */}
+        <div className="uiverse-content">
+          <h3 className="title">{plan.durationLabel}</h3>
+          <p className="text">
+            {plan.description ||
+              'Full access to Recruitment Vendor Access mandates, direct contacts & RFP details.'}
+          </p>
+
+          {/* Pricing metric row */}
+          <div className="uiverse-price-pill">
+            <span className="text-base sm:text-lg font-extrabold text-[#061B36] dark:text-white">
+              {formatMoney(plan.autoPayAmount, plan.currency)}
+            </span>
+            <span className="mx-1 text-slate-300 dark:text-slate-600">·</span>
+            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              AutoPay
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom bar with tags on left and Buy Now CTA on right */}
+        <div className="uiverse-bottom">
+          <div className="tags-container">
+            {tags.map((tag) => (
+              <span key={tag} className="tag">
+                {tag}
+              </span>
+            ))}
+          </div>
+
+          <div className="view-more">
+            <span className="view-more-button">{loading ? 'Starting…' : 'Buy Now'}</span>
+            <svg
+              className="svg"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

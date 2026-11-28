@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { faqData, faqCategories } from '@/data/faq-data';
 import type { FaqItem, FaqCategory } from '@/data/faq-data';
 import { EmptyState } from '@/components/ui';
+import ScrollReveal from '@/components/marketing/ScrollReveal';
 
 function highlightMatch(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text;
@@ -382,7 +383,7 @@ export default function FaqPage() {
           className="pointer-events-none absolute inset-0 opacity-[0.04] bg-[radial-gradient(#FFFFFF_1px,transparent_1px)] [background-size:16px_16px]"
         />
 
-        <div className="relative mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8 text-center">
+        <ScrollReveal className="relative mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8 text-center">
           {/* Eyebrow Pill */}
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-[#F0C27B] backdrop-blur-md shadow-sm">
             <HelpIcon className="h-4 w-4 text-[#D6952F]" />
@@ -447,7 +448,7 @@ export default function FaqPage() {
               </span>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* ─────────────────────────────────────────────────────────────
@@ -585,14 +586,15 @@ export default function FaqPage() {
                     </div>
 
                     <div className="space-y-3">
-                      {items.map((item) => (
-                        <FaqAccordionItem
-                          key={item.id}
-                          item={item}
-                          isOpen={openIds.has(item.id)}
-                          onToggle={() => handleToggleAccordion(item.id)}
-                          query={search}
-                        />
+                      {items.map((item, idx) => (
+                        <ScrollReveal key={item.id} delay={Math.min(idx * 45, 270)}>
+                          <FaqAccordionItem
+                            item={item}
+                            isOpen={openIds.has(item.id)}
+                            onToggle={() => handleToggleAccordion(item.id)}
+                            query={search}
+                          />
+                        </ScrollReveal>
                       ))}
                     </div>
                   </section>
@@ -601,17 +603,18 @@ export default function FaqPage() {
             ) : (
               /* Specific Category view or Active Search Results */
               <div className="space-y-3">
-                {activeItems.map((item) => {
+                {activeItems.map((item, idx) => {
                   const cat = faqCategories.find((c) => c.id === item.category);
                   return (
-                    <FaqAccordionItem
-                      key={item.id}
-                      item={item}
-                      isOpen={openIds.has(item.id)}
-                      onToggle={() => handleToggleAccordion(item.id)}
-                      query={search}
-                      categoryLabel={selectedCategory === 'all' ? cat?.label : undefined}
-                    />
+                    <ScrollReveal key={item.id} delay={Math.min(idx * 45, 270)}>
+                      <FaqAccordionItem
+                        item={item}
+                        isOpen={openIds.has(item.id)}
+                        onToggle={() => handleToggleAccordion(item.id)}
+                        query={search}
+                        categoryLabel={selectedCategory === 'all' ? cat?.label : undefined}
+                      />
+                    </ScrollReveal>
                   );
                 })}
               </div>

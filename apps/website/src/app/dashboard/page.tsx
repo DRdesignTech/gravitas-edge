@@ -621,7 +621,10 @@ export default function Dashboard() {
                       } bg-white p-5 shadow-sm transition hover:shadow-md dark:border-[#1E3557] dark:bg-[#0E2340]`}
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
+                        <Link
+                          href={`/dashboard/opportunities/${o.id}`}
+                          className="min-w-0 flex-1 block no-underline"
+                        >
                           {/* Top Row: Location */}
                           <div className="flex items-center gap-2">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF8F5] px-2.5 py-0.5 text-[10px] font-semibold text-[#061B36] border border-[#E9E5DC] dark:bg-[#152943] dark:border-[#1E3557] dark:text-slate-200">
@@ -635,11 +638,9 @@ export default function Dashboard() {
                           </div>
 
                           {/* Title */}
-                          <Link href={`/opportunities/${o.id}`}>
-                            <h4 className="mt-2 font-sans text-sm sm:text-base font-bold text-[#061B36] hover:text-[#D6952F] dark:text-white dark:hover:text-[#F0C27B] transition line-clamp-1">
-                              {o.title}
-                            </h4>
-                          </Link>
+                          <h4 className="mt-2 font-sans text-sm sm:text-base font-bold text-[#061B36] group-hover:text-[#D6952F] dark:text-white dark:group-hover:text-[#F0C27B] transition line-clamp-1">
+                            {o.title}
+                          </h4>
 
                           {/* Metadata with Vector Icons */}
                           <div className="mt-2 flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs text-[#5B6479] dark:text-slate-400">
@@ -673,7 +674,7 @@ export default function Dashboard() {
                               </span>
                             )}
                           </div>
-                        </div>
+                        </Link>
 
                         {/* Action CTA */}
                         <div className="shrink-0 pt-1">
@@ -690,7 +691,7 @@ export default function Dashboard() {
                                 <HiArrowRight className="h-3 w-3" />
                               </a>
                             ) : (
-                              <Link href={`/opportunities/${o.id}`}>
+                              <Link href={`/dashboard/opportunities/${o.id}`}>
                                 <Button size="sm" variant="outline" className="text-xs">
                                   View Details
                                 </Button>

@@ -76,12 +76,12 @@ export default function WelcomeSplashModal() {
             BUNDLE OFFER
           </span>
           <h3 id="splashTitle" className="text-white font-bold text-[1.55rem] leading-[1.2] font-sans">
-            India + Global access,
+            Multi-Region + Global access,
             <br />
             <span className="text-[#F0C27B]">save 20% every month</span>
           </h3>
           <p className="text-[#C9D3EA] text-[0.88rem] mt-2 font-normal">
-            Combine an India vault with its matching Global vault in one checkout.
+            Combine any regional career vault with a Global Access vault in one checkout.
           </p>
         </div>
 
@@ -89,28 +89,28 @@ export default function WelcomeSplashModal() {
         <div className="p-[20px_22px_22px] flex flex-col gap-2.5 bg-white text-[#1A2236]">
           <div className="flex justify-between items-center gap-2.5 border border-[#E9E5DC] rounded-[12px] p-[11px_14px] text-[0.84rem]">
             <div>
-              <b className="text-[#061B36] font-bold block text-left">Leadership India + Global Career Access</b>
+              <b className="text-[#061B36] font-bold block text-left">Global Leadership + Career Access</b>
               <small className="text-[#5B6479] text-[0.75rem] block text-left mt-0.5">
-                10–15 years India · Under 10 years International
+                10–15+ years Leadership · Cross-Border International
               </small>
             </div>
             <div className="text-right whitespace-nowrap">
-              <s className="text-[#5B6479] text-[0.75rem] block line-through">₹2,498</s>
-              <strong className="text-[#15803D] text-[1rem] font-bold">₹1,998</strong>
+              <s className="text-[#5B6479] text-[0.75rem] block line-through">$79</s>
+              <strong className="text-[#15803D] text-[1rem] font-bold">$63</strong>
               <small className="text-[#5B6479] text-[0.75rem]">/mo</small>
             </div>
           </div>
 
           <div className="flex justify-between items-center gap-2.5 border border-[#E9E5DC] rounded-[12px] p-[11px_14px] text-[0.84rem]">
             <div>
-              <b className="text-[#061B36] font-bold block text-left">Management India + Global Career Access</b>
+              <b className="text-[#061B36] font-bold block text-left">Management + Global Career Access</b>
               <small className="text-[#5B6479] text-[0.75rem] block text-left mt-0.5">
-                5–10 years India · Under 10 years International
+                5–10 years Management · Cross-Border International
               </small>
             </div>
             <div className="text-right whitespace-nowrap">
-              <s className="text-[#5B6479] text-[0.75rem] block line-through">₹2,098</s>
-              <strong className="text-[#15803D] text-[1rem] font-bold">₹1,678</strong>
+              <s className="text-[#5B6479] text-[0.75rem] block line-through">$59</s>
+              <strong className="text-[#15803D] text-[1rem] font-bold">$47</strong>
               <small className="text-[#5B6479] text-[0.75rem]">/mo</small>
             </div>
           </div>

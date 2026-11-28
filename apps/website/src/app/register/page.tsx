@@ -337,6 +337,15 @@ function RegisterForm() {
               <div className="flex items-start gap-3.5">
                 <CheckmarkIcon />
                 <div>
+                  <h3 className="text-sm font-bold text-[#061B36] dark:text-white">Lifetime Price Lock Guarantee</h3>
+                  <p className="mt-0.5 text-xs sm:text-sm text-[#5B6479] dark:text-slate-400 leading-relaxed">
+                    Once you subscribe, lock in today&apos;s rate for life — your renewal price stays protected forever, even as pricing updates.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3.5">
+                <CheckmarkIcon />
+                <div>
                   <h3 className="text-sm font-bold text-[#061B36] dark:text-white">Direct Recruiter &amp; CXO Contacts</h3>
                   <p className="mt-0.5 text-xs sm:text-sm text-[#5B6479] dark:text-slate-400 leading-relaxed">
                     Skip anonymous applicant tracking systems. Reach verified hiring managers directly by email and phone.
@@ -364,15 +373,7 @@ function RegisterForm() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3.5">
-                <CheckmarkIcon />
-                <div>
-                  <h3 className="text-sm font-bold text-[#061B36] dark:text-white">Zero Third-Party Data Selling</h3>
-                  <p className="mt-0.5 text-xs sm:text-sm text-[#5B6479] dark:text-slate-400 leading-relaxed">
-                    Your candidate data is strictly guarded under comprehensive candidate privacy and confidentiality standards.
-                  </p>
-                </div>
-              </div>
+              
             </div>
 
             {/* Visual Architectural Skyline Proof Card */}

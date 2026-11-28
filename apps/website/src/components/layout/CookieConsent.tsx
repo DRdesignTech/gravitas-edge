@@ -119,51 +119,38 @@ export default function CookieConsent() {
 
   return (
     <>
-      {/* FLOATING EXECUTIVE COOKIE CONSENT CARD */}
+      {/* COMPACT FLOATING COOKIE CONSENT BAR */}
       {visible && (
         <div
           role="dialog"
           aria-label="Cookie consent"
           aria-modal="false"
-          className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-4xl animate-in fade-in slide-in-from-bottom-5 duration-300"
+          className="fixed bottom-3 sm:bottom-4 left-3 sm:left-4 z-50 w-[calc(100%-1.5rem)] max-w-md animate-in fade-in slide-in-from-bottom-4 duration-300"
         >
-          <div className="relative overflow-hidden rounded-3xl border border-[#D6952F]/40 bg-white/95 p-5 sm:p-6 shadow-[0_20px_50px_-15px_rgba(6,27,54,0.35)] backdrop-blur-md dark:bg-[#07172B]/95 dark:border-[#D6952F]/30 dark:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.7)]">
-            {/* Subtle decorative watermark glow */}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#FAF0DC]/50 dark:bg-[#D6952F]/10 blur-2xl"
-            />
-
-            <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-              <div className="flex items-start gap-3.5 max-w-2xl">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#061B36] text-[#F0C27B] border border-[#D6952F]/40 shadow-xs dark:bg-[#0A2645]">
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+          <div className="relative overflow-hidden rounded-2xl border border-[#D6952F]/35 bg-white/95 px-4 py-3 shadow-[0_14px_34px_-12px_rgba(6,27,54,0.3)] backdrop-blur-md dark:bg-[#07172B]/95 dark:border-[#D6952F]/30 dark:shadow-[0_14px_34px_-12px_rgba(0,0,0,0.7)]">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-start gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#061B36] text-[#F0C27B] border border-[#D6952F]/35 dark:bg-[#0A2645]">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
                   </svg>
                 </div>
 
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#C8943E] dark:text-[#F0C27B]">
-                      Privacy &amp; Data Transparency
-                    </span>
-                    <span className="h-1 w-1 rounded-full bg-[#D6952F]" />
-                    <span className="text-[10px] text-[#7E889E] dark:text-slate-400">Gravitas Edge</span>
-                  </div>
-                  <h3 className="text-sm sm:text-base font-bold text-[#061B36] dark:text-white">
-                    We value your executive privacy
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xs font-bold text-[#061B36] dark:text-white">
+                    We value your privacy
                   </h3>
-                  <p className="mt-1 text-xs leading-relaxed text-[#5B6479] dark:text-slate-300">
-                    We use essential security technologies to maintain platform integrity. With your permission, we also use analytical tools to measure search relevance and improve opportunity curation across international corridors.
+                  <p className="mt-0.5 text-[11px] leading-snug text-[#5B6479] dark:text-slate-300">
+                    We use essential cookies for security and optional analytics to improve search relevance.
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0 self-end lg:self-center">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setManageOpen(true)}
-                  className="text-xs font-semibold text-[#8A6524] hover:text-[#5B3E12] dark:text-[#F0C27B] dark:hover:text-white underline underline-offset-4 px-2 py-1.5 transition-colors cursor-pointer"
+                  className="mr-auto text-[11px] font-semibold text-[#8A6524] hover:text-[#5B3E12] dark:text-[#F0C27B] dark:hover:text-white underline underline-offset-2 px-1 py-1 transition-colors cursor-pointer"
                 >
                   Manage Choices
                 </button>
@@ -171,15 +158,15 @@ export default function CookieConsent() {
                 <button
                   type="button"
                   onClick={rejectNonEssential}
-                  className="rounded-xl border border-[#E9E5DC] bg-white px-4 py-2.5 text-xs font-semibold text-[#061B36] shadow-xs hover:bg-[#FAF8F5] dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white dark:hover:bg-[#0B2342] transition cursor-pointer"
+                  className="rounded-lg border border-[#E9E5DC] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#061B36] hover:bg-[#FAF8F5] dark:border-[#1E3557] dark:bg-[#081B33] dark:text-white dark:hover:bg-[#0B2342] transition cursor-pointer"
                 >
-                  Reject Non-Essential
+                  Reject
                 </button>
 
                 <button
                   type="button"
                   onClick={acceptAll}
-                  className="rounded-xl bg-gradient-to-r from-[#D6952F] via-[#C8943E] to-[#B37E28] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:brightness-105 hover:shadow-md transition cursor-pointer"
+                  className="rounded-lg bg-gradient-to-r from-[#D6952F] via-[#C8943E] to-[#B37E28] px-3.5 py-1.5 text-[11px] font-bold text-white shadow-sm hover:brightness-105 transition cursor-pointer"
                 >
                   Accept All
                 </button>

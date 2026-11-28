@@ -20,15 +20,44 @@ function vaultTags(name: string): string[] {
 }
 
 /**
- * Lowest monthly-equivalent price across the vault's plans, derived only from
- * the server-supplied plan data (actual discounted price per 30 days).
+ * Lowest monthly-equivalent price summary across the vault's plans, derived
+ * from the server-supplied plan data (both regular before-discount and
+ * discounted after-discount per 30 days).
  */
-function lowestMonthlyEquivalent(plans: PricingPlan[]): number | null {
-  const equivalents = plans
-    .filter((p) => p.durationDays > 0)
-    .map((p) => ((p.discountedPrice ?? p.price) * DAYS_PER_MONTH) / p.durationDays);
-  if (equivalents.length === 0) return null;
-  return Math.min(...equivalents);
+function lowestMonthlySummary(plans: PricingPlan[]): {
+  discountedMonthly: number;
+  regularMonthly: number;
+  discountPercentage: number;
+} | null {
+  const valid = plans.filter((p) => p.durationDays > 0);
+  if (valid.length === 0) return null;
+
+  let bestPlan = valid[0];
+  let bestDiscounted = ((bestPlan.discountedPrice ?? bestPlan.price) * DAYS_PER_MONTH) / bestPlan.durationDays;
+
+  for (let i = 1; i < valid.length; i++) {
+    const p = valid[i];
+    const monthly = ((p.discountedPrice ?? p.price) * DAYS_PER_MONTH) / p.durationDays;
+    if (monthly < bestDiscounted) {
+      bestDiscounted = monthly;
+      bestPlan = p;
+    }
+  }
+
+  const regularBase = bestPlan.regularPrice > 0 ? bestPlan.regularPrice : bestPlan.price;
+  const regularMonthly = (regularBase * DAYS_PER_MONTH) / bestPlan.durationDays;
+  const discountPercentage =
+    bestPlan.discountPercentage > 0
+      ? Math.round(bestPlan.discountPercentage)
+      : regularMonthly > bestDiscounted
+        ? Math.round(((regularMonthly - bestDiscounted) / regularMonthly) * 100)
+        : 0;
+
+  return {
+    discountedMonthly: bestDiscounted,
+    regularMonthly,
+    discountPercentage,
+  };
 }
 
 export default function OpportunityVaultCard({
@@ -40,7 +69,7 @@ export default function OpportunityVaultCard({
   const { vault, plans } = group;
   const tags = vaultTags(vault.name);
   const currency = plans[0]?.currency ?? 'INR';
-  const fromMonthly = lowestMonthlyEquivalent(plans);
+  const priceSummary = lowestMonthlySummary(plans);
 
   return (
     <div className="uiverse-parent h-[240px] sm:h-[242px] w-full">
@@ -70,20 +99,36 @@ export default function OpportunityVaultCard({
           <h3 className="title">{vault.name}</h3>
           {vault.description && <p className="text">{vault.description}</p>}
 
-          {/* Pricing metric row */}
-          {fromMonthly !== null && (
-            <div className="uiverse-price-pill">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E889E] dark:text-slate-400">
-                From
-              </span>
-              <span className="text-base sm:text-lg font-extrabold text-[#061B36] dark:text-white">
-                {formatMoney(fromMonthly, currency)}
-              </span>
-              <span className="text-xs font-medium text-[#7E889E] dark:text-slate-400">/mo</span>
-              <span className="mx-1 text-slate-300 dark:text-slate-600">·</span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                {plans.length} {plans.length === 1 ? 'Option' : 'Tiers'}
-              </span>
+          {/* Pricing metric row (2 lines: prices on line 1, offer & tiers on line 2) */}
+          {priceSummary !== null && (
+            <div className="uiverse-price-pill !flex !flex-col !items-start !gap-1">
+              {/* Line 1: Before-discount & After-discount prices */}
+              <div className="flex flex-wrap items-baseline gap-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#7E889E] dark:text-slate-400">
+                  From
+                </span>
+                {priceSummary.regularMonthly > priceSummary.discountedMonthly && (
+                  <span className="rounded-md bg-[#061B36]/5 px-1.5 py-0.5 text-sm font-bold text-[#0c0c0e] line-through decoration-[#dc9e3a] decoration-2 dark:bg-white/10 dark:text-slate-300">
+                    {formatMoney(priceSummary.regularMonthly, currency)}
+                  </span>
+                )}
+                <span className="text-lg sm:text-xl font-extrabold leading-none text-[#061B36] dark:text-white">
+                  {formatMoney(priceSummary.discountedMonthly, currency)}
+                </span>
+                <span className="text-xs font-semibold text-[#7E889E] dark:text-slate-400">/mo</span>
+              </div>
+
+              {/* Line 2: Offer badge & tier count */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {priceSummary.discountPercentage > 0 && (
+                  <span className="rounded-full border border-[#D6952F]/35 bg-[#D6952F]/15 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#9C6424] dark:text-[#F0C27B]">
+                    Save {priceSummary.discountPercentage}%
+                  </span>
+                )}
+                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  {plans.length} {plans.length === 1 ? 'Option' : 'Tiers'}
+                </span>
+              </div>
             </div>
           )}
         </div>

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { Opportunity, Vault, OpportunityQuery, PaginatedResult } from '@/lib/types';
 import { Skeleton, ErrorState } from '@/components/ui';
 import { fetchOpportunities } from '@/lib/services';
 import Eyebrow from './Eyebrow';
+import ScrollReveal from './ScrollReveal';
+import PreviewOpportunityCard3D from './PreviewOpportunityCard3D';
 import {
   HiBriefcase,
   HiBuildingOffice2,
@@ -43,7 +45,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
   'Nigeria': '🇳🇬',
 };
 
-type PreviewTab = 'all' | 'london' | 'uae' | 'global' | 'india';
+type PreviewTab = 'all' | 'london' | 'uae' | 'global' | 'apac';
 
 const TABS: { key: PreviewTab; label: string; badge?: string; icon?: React.ReactNode }[] = [
   { key: 'all', label: 'All Opportunities' },
@@ -65,8 +67,8 @@ const TABS: { key: PreviewTab; label: string; badge?: string; icon?: React.React
     icon: <HiGlobeAlt className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />,
   },
   {
-    key: 'india',
-    label: 'India Hubs',
+    key: 'apac',
+    label: 'Asia-Pacific Hubs',
     icon: <HiMapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />,
   },
 ];
@@ -360,6 +362,117 @@ function formatExp(o: Opportunity): string {
   return 'Executive exp.';
 }
 
+const ROI_CARDS = [
+  {
+    icon: <HiBanknotes className="h-5 w-5" aria-hidden="true" />,
+    badge: '95% Cost Savings',
+    title: 'Zero 25% Agency Cut',
+    description:
+      'Traditional UK and UAE headhunters charge companies 20%–25% of your annual salary (£30,000+ on a £120k role), slowing hiring decisions. Gravitas Edge connects you directly to corporate hiring directors.',
+  },
+  {
+    icon: <HiGlobeAlt className="h-5 w-5" aria-hidden="true" />,
+    badge: '24+ Countries',
+    title: 'Single Plan, Multi-Country Access',
+    description:
+      'One transparent career vault access tier unlocks all active London (£80k–£200k), UAE (AED 35k–80k/mo tax-free), and global opportunities simultaneously without separate fees.',
+  },
+  {
+    icon: <HiCursorArrowRays className="h-5 w-5" aria-hidden="true" />,
+    badge: '0 ATS Filters',
+    title: 'Direct Hiring Executive Contact',
+    description:
+      'Skip dead-end portal queues and ATS keyword filters. Receive direct corporate email addresses and unmasked pathways to decision-makers.',
+  },
+];
+
+function RoiCard3D({
+  card,
+  delay = 0,
+}: {
+  card: (typeof ROI_CARDS)[number];
+  delay?: number;
+}) {
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0, mx: 50, my: 50, hovering: false });
+
+  return (
+    <ScrollReveal delay={delay} className="h-full">
+      <div
+        className="group relative h-full select-none"
+        style={{ perspective: '1000px' }}
+        onMouseMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const px = (e.clientX - rect.left) / rect.width;
+          const py = (e.clientY - rect.top) / rect.height;
+          setTilt({
+            rx: (0.5 - py) * 14,
+            ry: (px - 0.5) * 14,
+            mx: px * 100,
+            my: py * 100,
+            hovering: true,
+          });
+        }}
+        onMouseLeave={() => setTilt({ rx: 0, ry: 0, mx: 50, my: 50, hovering: false })}
+      >
+        <div
+          className="relative flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.06] p-5 text-left backdrop-blur-md transition-colors duration-300 group-hover:border-[#D6952F]/60 group-hover:bg-white/[0.09] group-hover:shadow-[0_24px_48px_-16px_rgba(0,0,0,0.65)]"
+          style={{
+            transformStyle: 'preserve-3d',
+            transform: `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg) scale(${
+              tilt.hovering ? 1.025 : 1
+            })`,
+            transition: tilt.hovering
+              ? 'transform 110ms ease-out, border-color 300ms, background-color 300ms, box-shadow 300ms'
+              : 'transform 520ms cubic-bezier(0.22, 1, 0.36, 1), border-color 300ms, background-color 300ms, box-shadow 300ms',
+          }}
+        >
+          {/* Cursor-following gold 3D spotlight */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-300"
+            style={{
+              opacity: tilt.hovering ? 1 : 0,
+              background: `radial-gradient(260px circle at ${tilt.mx}% ${tilt.my}%, rgba(214, 149, 47, 0.22), transparent 70%)`,
+            }}
+          />
+
+          <div style={{ transformStyle: 'preserve-3d' }}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#D6952F]/30 bg-[#D6952F]/15 text-[#F0C27B] shadow-sm transition-transform duration-300 group-hover:scale-110"
+                style={{ transform: 'translateZ(30px)' }}
+              >
+                {card.icon}
+              </div>
+
+              <span
+                className="inline-flex items-center rounded-full border border-[#D6952F]/35 bg-[#D6952F]/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#F0C27B] opacity-75 transition-all duration-300 group-hover:opacity-100"
+                style={{ transform: 'translateZ(24px)' }}
+              >
+                {card.badge}
+              </span>
+            </div>
+
+            <h4
+              className="mb-1.5 text-base font-bold text-white transition-colors group-hover:text-[#F6D58A]"
+              style={{ transform: 'translateZ(20px)' }}
+            >
+              {card.title}
+            </h4>
+
+            <p
+              className="text-xs leading-relaxed text-[#C9D3EA]"
+              style={{ transform: 'translateZ(12px)' }}
+            >
+              {card.description}
+            </p>
+          </div>
+        </div>
+      </div>
+    </ScrollReveal>
+  );
+}
+
 export default function LiveFreePreview({
   vaults,
   loading: initialLoading,
@@ -461,20 +574,19 @@ export default function LiveFreePreview({
     }
 
     if (activeTab === 'global') {
-      const liveGlobal = opportunities.filter((o) => o.country?.toLowerCase() !== 'india');
-      // Supplement with curated international roles if live list has fewer than 6
-      if (liveGlobal.length < 6) {
+      if (opportunities.length < 6) {
         return [
-          ...liveGlobal,
+          ...opportunities,
           ...CURATED_LONDON_OPPORTUNITIES.slice(0, 3),
           ...CURATED_UAE_OPPORTUNITIES.slice(0, 3),
         ].slice(0, 9);
       }
-      return liveGlobal.slice(0, 9);
+      return opportunities.slice(0, 9);
     }
 
-    if (activeTab === 'india') {
-      return opportunities.filter((o) => o.country?.toLowerCase() === 'india').slice(0, 6);
+    if (activeTab === 'apac') {
+      const apacSet = new Set(['singapore', 'india', 'australia', 'japan', 'hong kong', 'malaysia']);
+      return opportunities.filter((o) => apacSet.has((o.country || '').toLowerCase())).slice(0, 6);
     }
 
     // Default 'all':
@@ -488,7 +600,7 @@ export default function LiveFreePreview({
 
       <div className="mx-auto max-w-[1240px] px-5">
         {/* Section Header */}
-        <div className="text-center">
+        <ScrollReveal className="text-center">
           <div className="flex items-center justify-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D6952F]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[#D6952F]">
               <HiSparkles className="h-3.5 w-3.5 text-[#D6952F]" />
@@ -501,10 +613,11 @@ export default function LiveFreePreview({
           <p className="text-[#5B6479] dark:text-[#93A3BE] text-[1.05rem] max-w-[660px] mx-auto leading-[1.55]">
             A live preview of opportunities active across our career vaults right now. Direct recruiter contacts and full application details unlock with access.
           </p>
-        </div>
+        </ScrollReveal>
 
         {/* Quick Corridor Filter Shortcuts */}
-        <div className="flex items-center justify-center gap-2 flex-wrap mt-6 mb-2">
+        <ScrollReveal delay={100}>
+          <div className="flex items-center justify-center gap-2 flex-wrap mt-6 mb-2">
           <span className="text-xs font-bold uppercase tracking-wider text-[#D6952F] mr-1">
             Priority Corridors:
           </span>
@@ -560,9 +673,11 @@ export default function LiveFreePreview({
             <span>All International</span>
           </button>
         </div>
+        </ScrollReveal>
 
         {/* Filter Segmented Tabs */}
-        <div className="flex gap-2 justify-center flex-wrap my-[20px]">
+        <ScrollReveal delay={140}>
+          <div className="flex gap-2 justify-center flex-wrap my-[20px]">
           {TABS.map((t) => {
             const isSelected = activeTab === t.key;
             return (
@@ -597,7 +712,8 @@ export default function LiveFreePreview({
               </button>
             );
           })}
-        </div>
+          </div>
+        </ScrollReveal>
 
         {/* Priority Corridor Spotlight Callouts */}
         {activeTab === 'london' && (
@@ -660,127 +776,21 @@ export default function LiveFreePreview({
             No live opportunities match this category right now.
           </div>
         ) : (
-          /* Unique Executive Cards Grid */
+          /* Unique Executive 3D Cards Grid */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredOpportunities.map((o) => {
-              const country = o.country || (o.location?.includes(',') ? o.location.split(',')[1].trim() : '');
-              const city = o.location ? o.location.split(/[/,]/)[0].trim() : '';
-              const isIndia = country.toLowerCase() === 'india';
-              const flag = (country && COUNTRY_FLAGS[country]) || '🌐';
-              const hasDirectContact = Boolean(o.applicationContact || o.applicationUrl);
-              const cardVaults = o.vaults && o.vaults.length > 0 ? o.vaults : [];
-
-              return (
-                <div
-                  key={o.id}
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-[20px] border border-[#E9E5DC] bg-white p-5 text-left transition-all duration-300 shadow-sm hover:-translate-y-1.5 hover:border-[#D6952F] hover:shadow-[0_16px_36px_-12px_rgba(6,27,54,0.14)] dark:border-white/10 dark:bg-[#0C1E38] dark:hover:shadow-[0_16px_36px_-12px_rgba(0,0,0,0.5)]"
-                >
-                  <div>
-                    {/* Top Header Row: Location Pill + Live Verified Badge (Zero raw IDs shown) */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          isIndia
-                            ? 'bg-[#FBF0DE] text-[#9C6424] dark:bg-[#C8943E]/15 dark:text-[#E3B968]'
-                            : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                        }`}
-                      >
-                        <span className="text-sm leading-none">{flag}</span>
-                        <span>{city ? `${city}, ` : ''}{country || 'Global'}</span>
-                      </span>
-
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                        </span>
-                        Live Role
-                      </span>
-                    </div>
-
-                    {/* Opportunity Title */}
-                    <h4 className="mt-3.5 text-[1.05rem] font-bold leading-snug text-[#061B36] transition-colors group-hover:text-[#D6952F] dark:text-[#F2F5FA] line-clamp-2">
-                      <Link
-                        href={`/opportunities/${o.id}`}
-                        className="hover:underline"
-                      >
-                        {o.title}
-                      </Link>
-                    </h4>
-
-                    {/* Metadata Attribute Chips with Official Vector Icons */}
-                    <div className="mt-3 flex flex-wrap gap-1.5 text-xs text-content-muted">
-                      {o.industry && (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-[#061B36]/5 px-2 py-1 dark:bg-white/5">
-                          <HiBuildingOffice2 className="h-3.5 w-3.5 text-[#C8943E]" />
-                          {o.industry}
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 rounded-md bg-[#061B36]/5 px-2 py-1 dark:bg-white/5">
-                        <HiBriefcase className="h-3.5 w-3.5 text-[#C8943E]" />
-                        {formatExp(o)}
-                      </span>
-                      {o.employmentType && (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-[#061B36]/5 px-2 py-1 dark:bg-white/5">
-                          <HiShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                          {o.employmentType}
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 rounded-md bg-[#061B36]/5 px-2 py-1 dark:bg-white/5">
-                        <HiClock className="h-3.5 w-3.5 text-content-faint" />
-                        {formatAgo(o.createdAt || o.publishedDate)}
-                      </span>
-                    </div>
-
-                    {/* Compensation Tag */}
-                    <div className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-[#C8943E]/40 bg-[#FFF3D9]/30 px-3 py-2 text-xs dark:bg-[#C8943E]/10">
-                      <span className="font-bold text-[#061B36] dark:text-[#E3B968]">
-                        {o.salary ? o.salary : 'Executive Compensation · Tier Protected'}
-                      </span>
-                      <span className="text-[10px] font-semibold text-[#C8943E] uppercase tracking-wider">
-                        {isIndia ? 'INR' : 'Global'}
-                      </span>
-                    </div>
-
-                    {/* Associated Vault Channels */}
-                    {cardVaults.length > 0 && (
-                      <div className="mt-2.5 flex flex-wrap gap-1.5">
-                        {cardVaults.map((v) => (
-                          <span
-                            key={v.id}
-                            className="rounded-full bg-surface-muted px-2.5 py-0.5 text-[10px] font-semibold text-content-muted dark:bg-white/5"
-                          >
-                            {v.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Unique Action Footer with Secure Unlock */}
-                  <div className="mt-5 flex items-center justify-between border-t border-line/60 pt-3 text-xs">
-                    <div className="flex items-center gap-1.5 text-content-muted">
-                      <HiLockClosed className="h-3.5 w-3.5 text-[#C8943E]" />
-                      <span className="text-[11px] font-medium">
-                        {hasDirectContact ? 'Direct Hiring Contact' : 'Application Pathway'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setUnlockOpportunity(o)}
-                      className="inline-flex items-center gap-1 rounded-xl bg-[#D6952F] px-3.5 py-1.5 text-xs font-bold text-[#061B36] shadow-sm transition-all hover:bg-[#C8842D] hover:shadow active:scale-[0.98] cursor-pointer"
-                    >
-                      <HiLockOpen className="h-3.5 w-3.5" />
-                      Unlock Role
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredOpportunities.map((o, idx) => (
+              <PreviewOpportunityCard3D
+                key={o.id}
+                o={o}
+                idx={idx}
+                onUnlock={setUnlockOpportunity}
+              />
+            ))}
           </div>
         )}
 
         {/* Value-for-Money (ROI) Presentation Card */}
+        <ScrollReveal direction="up" delay={80}>
         <div className="mt-14 rounded-3xl border border-[#D6952F]/30 bg-gradient-to-br from-[#061B36] via-[#0A2244] to-[#041226] text-white p-6 sm:p-10 shadow-xl relative overflow-hidden">
           <div
             aria-hidden="true"
@@ -804,35 +814,9 @@ export default function LiveFreePreview({
           </div>
 
           <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="rounded-2xl bg-white/[0.06] backdrop-blur-md border border-white/10 p-5 text-left">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#D6952F]/15 border border-[#D6952F]/30 text-[#F0C27B]">
-                <HiBanknotes className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <h4 className="font-bold text-base text-white mb-1.5">Zero 25% Agency Cut</h4>
-              <p className="text-xs text-[#C9D3EA] leading-relaxed">
-                Traditional UK and UAE headhunters charge companies 20%–25% of your annual salary (£30,000+ on a £120k role), slowing hiring decisions. Gravitas Edge connects you directly to corporate hiring directors.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white/[0.06] backdrop-blur-md border border-white/10 p-5 text-left">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#D6952F]/15 border border-[#D6952F]/30 text-[#F0C27B]">
-                <HiGlobeAlt className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <h4 className="font-bold text-base text-white mb-1.5">Single Plan, Multi-Country Access</h4>
-              <p className="text-xs text-[#C9D3EA] leading-relaxed">
-                One transparent career vault access tier unlocks all active London (£80k–£200k), UAE (AED 35k–80k/mo tax-free), and global opportunities simultaneously without separate fees.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white/[0.06] backdrop-blur-md border border-white/10 p-5 text-left">
-              <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#D6952F]/15 border border-[#D6952F]/30 text-[#F0C27B]">
-                <HiCursorArrowRays className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <h4 className="font-bold text-base text-white mb-1.5">Direct Hiring Executive Contact</h4>
-              <p className="text-xs text-[#C9D3EA] leading-relaxed">
-                Skip dead-end portal queues and ATS keyword filters. Receive direct corporate email addresses and unmasked pathways to decision-makers.
-              </p>
-            </div>
+            {ROI_CARDS.map((card, idx) => (
+              <RoiCard3D key={card.title} card={card} delay={idx * 90} />
+            ))}
           </div>
 
           <div className="relative z-10 mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
@@ -849,6 +833,7 @@ export default function LiveFreePreview({
             </Link>
           </div>
         </div>
+        </ScrollReveal>
 
         {/* Search All Opportunities CTA */}
         <div className="text-center mt-[36px]">
@@ -930,9 +915,9 @@ export default function LiveFreePreview({
                     </b>
                     <span className="text-xs text-[#5B6479] dark:text-[#93A3BE] block truncate mt-0.5">
                       {v.type === 'both' || v.type === 'premier'
-                        ? 'India + International Corridors'
+                        ? 'Multi-Region + Global Corridors'
                         : v.type === 'india'
-                          ? 'India Leadership Hubs'
+                          ? 'Asia-Pacific Leadership Hubs'
                           : 'Global Talent Markets'}
                     </span>
                   </div>
